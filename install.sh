@@ -4,7 +4,7 @@
 # Copies skills, hooks, and scripts into a consuming project's .claude/ directory.
 #
 # Usage:
-#   .claude/vendor/animatic/install.sh
+#   vendor/animatic/install.sh
 #
 # Behavior:
 #   - Copies skills/ → .claude/skills/ (skips LEARNINGS.md if local version exists)
@@ -19,8 +19,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ANIMATIC_DIR="$SCRIPT_DIR"
 
-# Find project root (walk up from .claude/vendor/animatic to project root)
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# Find project root via git (works regardless of where the submodule is mounted)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-superproject-working-tree 2>/dev/null || cd "$SCRIPT_DIR/../.." && pwd)"
 CLAUDE_DIR="$PROJECT_ROOT/.claude"
 
 echo "Animatic Install"

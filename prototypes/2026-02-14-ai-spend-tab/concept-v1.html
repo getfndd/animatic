@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Spend Tab — Beta Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* ITO Light mode tokens */
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-quaternary: 0 0% 78%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --radius: 0.5rem;
+    }
+
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Sparkline canvas */
+    .sparkline-container { position: relative; height: 48px; margin-top: 12px; }
+    .sparkline-container canvas { width: 100%; height: 100%; }
+
+    /* Horizontal bar scaling */
+    .bar-fill { transition: width 0.3s ease; }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-quaternary': 'hsl(var(--text-quaternary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-6">
+
+  <!-- ================================================================= -->
+  <!-- AI Spend Tab Content (injected as tab body in BetaManagement)     -->
+  <!-- ================================================================= -->
+
+  <!-- Time Range Controls -->
+  <div class="mb-6 flex items-center justify-end">
+    <div class="flex items-center gap-4">
+      <div class="flex gap-1">
+        <button class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors bg-surface-secondary text-text-secondary hover:bg-surface-tertiary">24h</button>
+        <button class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors bg-surface-secondary text-text-secondary hover:bg-surface-tertiary">7d</button>
+        <button class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors bg-surface-inverse text-text-inverse">30d</button>
+        <button class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors bg-surface-secondary text-text-secondary hover:bg-surface-tertiary">All</button>
+        <button class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors bg-surface-secondary text-text-secondary hover:bg-surface-tertiary">Custom</button>
+      </div>
+      <div class="w-px h-4 bg-border-default"></div>
+      <button class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition-colors">
+        <!-- Download icon (Phosphor DownloadSimple) -->
+        <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M224,152v56a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H208V152a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,132.69V40a8,8,0,0,0-16,0v92.69L93.66,106.34a8,8,0,0,0-11.32,11.32Z"/></svg>
+        Export CSV
+      </button>
+      <button class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition-colors">
+        <!-- ArrowClockwise icon -->
+        <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16h28.69L187.8,71.12a80,80,0,1,0,1.49,114.36,8,8,0,1,1,11.42,11.2A96,96,0,1,1,230.2,67.07L232,65.31V56a8,8,0,0,1,16,0Z"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Stat Cards — 4 column grid                                        -->
+  <!-- ================================================================= -->
+  <div class="mb-6 grid grid-cols-4 gap-4">
+
+    <!-- Total Spend -->
+    <div class="rounded-lg border bg-surface-primary p-4">
+      <p class="text-xs font-medium text-text-tertiary">Total spend</p>
+      <div class="mt-1 flex items-baseline">
+        <span class="text-2xl font-semibold tabular-nums text-text-primary">$47.23</span>
+        <span class="ml-2 inline-flex items-center text-xs font-medium text-status-error">
+          <svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" class="mr-0.5"><path d="M232,168H160.4l-36.3-90.66a8,8,0,0,0-14.9,0L72.8,168H24a8,8,0,0,0,0,16H80a8,8,0,0,0,7.4-5l28.6-71.4L144.6,179A8,8,0,0,0,152,184h80a8,8,0,0,0,0-16Z"/></svg>
+          +12%
+        </span>
+      </div>
+      <div class="sparkline-container">
+        <canvas id="spark-spend"></canvas>
+      </div>
+    </div>
+
+    <!-- Avg Cost / User -->
+    <div class="rounded-lg border bg-surface-primary p-4">
+      <p class="text-xs font-medium text-text-tertiary">Avg cost / user</p>
+      <div class="mt-1 flex items-baseline">
+        <span class="text-2xl font-semibold tabular-nums text-text-primary">$2.36</span>
+        <span class="ml-2 inline-flex items-center text-xs font-medium text-status-success">
+          -4%
+        </span>
+      </div>
+      <div class="sparkline-container">
+        <canvas id="spark-avg"></canvas>
+      </div>
+    </div>
+
+    <!-- Cache Savings -->
+    <div class="rounded-lg border bg-surface-primary p-4">
+      <p class="text-xs font-medium text-text-tertiary">Cache savings</p>
+      <div class="mt-1 flex items-baseline">
+        <span class="text-2xl font-semibold tabular-nums text-text-primary">$12.80</span>
+        <span class="ml-2 inline-flex items-center text-xs font-medium text-status-success">
+          +8%
+        </span>
+      </div>
+      <div class="sparkline-container">
+        <canvas id="spark-cache"></canvas>
+      </div>
+    </div>
+
+    <!-- Requests -->
+    <div class="rounded-lg border bg-surface-primary p-4">
+      <p class="text-xs font-medium text-text-tertiary">Requests</p>
+      <div class="mt-1 flex items-baseline">
+        <span class="text-2xl font-semibold tabular-nums text-text-primary">1,847</span>
+        <span class="ml-2 inline-flex items-center text-xs font-medium text-status-success">
+          +18%
+        </span>
+      </div>
+      <div class="sparkline-container">
+        <canvas id="spark-requests"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Two-column: Spend by Feature + Model Usage                        -->
+  <!-- ================================================================= -->
+  <div class="mb-6 grid grid-cols-2 gap-4">
+
+    <!-- Spend by Feature -->
+    <div class="rounded-lg border bg-surface-primary p-4">
+      <p class="text-xs font-medium text-text-tertiary mb-4">Spend by Feature</p>
+      <div class="space-y-3" id="feature-bars">
+        <!-- AI Advisor — 40% -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-text-primary">AI Advisor</span>
+            <span class="text-xs tabular-nums text-text-secondary">$18.92</span>
+          </div>
+          <div class="h-2 rounded-full bg-surface-secondary overflow-hidden">
+            <div class="h-full rounded-full bar-fill" style="width: 100%; background-color: #7c3aed;"></div>
+          </div>
+        </div>
+        <!-- Investor Q&A — 25% -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-text-primary">Investor Q&A</span>
+            <span class="text-xs tabular-nums text-text-secondary">$11.81</span>
+          </div>
+          <div class="h-2 rounded-full bg-surface-secondary overflow-hidden">
+            <div class="h-full rounded-full bar-fill" style="width: 62%; background-color: #e11d48;"></div>
+          </div>
+        </div>
+        <!-- Interaction AI — 15% -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-text-primary">Interaction AI</span>
+            <span class="text-xs tabular-nums text-text-secondary">$7.08</span>
+          </div>
+          <div class="h-2 rounded-full bg-surface-secondary overflow-hidden">
+            <div class="h-full rounded-full bar-fill" style="width: 37%; background-color: #0284c7;"></div>
+          </div>
+        </div>
+        <!-- Documents — 10% -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-text-primary">Documents</span>
+            <span class="text-xs tabular-nums text-text-secondary">$4.72</span>
+          </div>
+          <div class="h-2 rounded-full bg-surface-secondary overflow-hidden">
+            <div class="h-full rounded-full bar-fill" style="width: 25%; background-color: #059669;"></div>
+          </div>
+        </div>
+        <!-- Email Composer — 7% -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-text-primary">Email Composer</span>
+            <span class="text-xs tabular-nums text-text-secondary">$3.30</span>
+          </div>
+          <div class="h-2 rounded-full bg-surface-secondary overflow-hidden">
+            <div class="h-full rounded-full bar-fill" style="width: 17%; background-color: #d97706;"></div>
+          </div>
+        </div>
+        <!-- Data Room — 3% -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-text-primary">Data Room</span>
+            <span class="text-xs tabular-nums text-text-secondary">$1.40</span>
+          </div>
+          <div class="h-2 rounded-full bg-surface-secondary overflow-hidden">
+            <div class="h-full rounded-full bar-fill" style="width: 7%; background-color: #0d9488;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Usage -->
+    <div class="rounded-lg border bg-surface-primary p-4">
+      <p class="text-xs font-medium text-text-tertiary mb-4">Model Usage</p>
+      <div class="space-y-1">
+        <!-- Table header -->
+        <div class="grid grid-cols-[1fr_80px_80px_80px] gap-2 pb-2 border-b">
+          <span class="text-[11px] font-medium text-text-quaternary">Model</span>
+          <span class="text-[11px] font-medium text-text-quaternary text-right">Requests</span>
+          <span class="text-[11px] font-medium text-text-quaternary text-right">Tokens</span>
+          <span class="text-[11px] font-medium text-text-quaternary text-right">Cost</span>
+        </div>
+
+        <!-- Anthropic section -->
+        <div class="pt-2 pb-1">
+          <span class="text-[10px] font-medium text-text-quaternary uppercase tracking-wider">Anthropic</span>
+        </div>
+        <div class="grid grid-cols-[1fr_80px_80px_80px] gap-2 py-1.5">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-violet-500"></div>
+            <span class="text-xs text-text-primary">Claude Sonnet 4</span>
+          </div>
+          <span class="text-xs tabular-nums text-text-secondary text-right">412</span>
+          <span class="text-xs tabular-nums text-text-secondary text-right">842K</span>
+          <span class="text-xs tabular-nums text-text-primary font-medium text-right">$28.14</span>
+        </div>
+        <div class="grid grid-cols-[1fr_80px_80px_80px] gap-2 py-1.5">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-violet-300"></div>
+            <span class="text-xs text-text-primary">Claude Haiku 3.5</span>
+          </div>
+          <span class="text-xs tabular-nums text-text-secondary text-right">687</span>
+          <span class="text-xs tabular-nums text-text-secondary text-right">1.2M</span>
+          <span class="text-xs tabular-nums text-text-primary font-medium text-right">$8.64</span>
+        </div>
+
+        <!-- Google section -->
+        <div class="pt-3 pb-1 border-t mt-1">
+          <span class="text-[10px] font-medium text-text-quaternary uppercase tracking-wider">Google</span>
+        </div>
+        <div class="grid grid-cols-[1fr_80px_80px_80px] gap-2 py-1.5">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+            <span class="text-xs text-text-primary">Gemini 1.5 Flash</span>
+          </div>
+          <span class="text-xs tabular-nums text-text-secondary text-right">621</span>
+          <span class="text-xs tabular-nums text-text-secondary text-right">980K</span>
+          <span class="text-xs tabular-nums text-text-primary font-medium text-right">$0.37</span>
+        </div>
+
+        <!-- OpenAI section -->
+        <div class="pt-3 pb-1 border-t mt-1">
+          <span class="text-[10px] font-medium text-text-quaternary uppercase tracking-wider">OpenAI</span>
+        </div>
+        <div class="grid grid-cols-[1fr_80px_80px_80px] gap-2 py-1.5">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-sky-500"></div>
+            <span class="text-xs text-text-primary">GPT-4o-mini</span>
+          </div>
+          <span class="text-xs tabular-nums text-text-secondary text-right">127</span>
+          <span class="text-xs tabular-nums text-text-secondary text-right">310K</span>
+          <span class="text-xs tabular-nums text-text-primary font-medium text-right">$0.08</span>
+        </div>
+
+        <!-- Totals -->
+        <div class="grid grid-cols-[1fr_80px_80px_80px] gap-2 py-2 border-t mt-2">
+          <span class="text-xs font-medium text-text-primary">Total</span>
+          <span class="text-xs tabular-nums font-medium text-text-primary text-right">1,847</span>
+          <span class="text-xs tabular-nums font-medium text-text-primary text-right">3.3M</span>
+          <span class="text-xs tabular-nums font-medium text-text-primary text-right">$37.23</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Daily Spend Trend — Full-width area chart                         -->
+  <!-- ================================================================= -->
+  <div class="mb-6 rounded-lg border bg-surface-primary p-4">
+    <p class="text-xs font-medium text-text-tertiary mb-4">Daily Spend Trend</p>
+    <div style="height: 240px; position: relative;">
+      <canvas id="daily-spend-chart"></canvas>
+    </div>
+    <!-- Legend -->
+    <div class="mt-3 flex items-center gap-4 justify-center">
+      <div class="flex items-center gap-1.5">
+        <div class="w-2.5 h-2.5 rounded-sm" style="background-color: #7c3aed;"></div>
+        <span class="text-[11px] text-text-tertiary">AI Advisor</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="w-2.5 h-2.5 rounded-sm" style="background-color: #e11d48;"></div>
+        <span class="text-[11px] text-text-tertiary">Investor Q&A</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="w-2.5 h-2.5 rounded-sm" style="background-color: #0284c7;"></div>
+        <span class="text-[11px] text-text-tertiary">Interaction AI</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="w-2.5 h-2.5 rounded-sm" style="background-color: #059669;"></div>
+        <span class="text-[11px] text-text-tertiary">Documents</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="w-2.5 h-2.5 rounded-sm" style="background-color: #d97706;"></div>
+        <span class="text-[11px] text-text-tertiary">Email</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="w-2.5 h-2.5 rounded-sm" style="background-color: #0d9488;"></div>
+        <span class="text-[11px] text-text-tertiary">Data Room</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Top Users by AI Spend — Full-width table                          -->
+  <!-- ================================================================= -->
+  <div class="rounded-lg border bg-surface-primary p-4">
+    <p class="text-xs font-medium text-text-tertiary mb-4">Top Users by AI Spend</p>
+
+    <table class="w-full">
+      <thead>
+        <tr class="border-b">
+          <th class="text-left text-[11px] font-medium text-text-quaternary pb-2 pl-1">User</th>
+          <th class="text-right text-[11px] font-medium text-text-quaternary pb-2">Total Cost</th>
+          <th class="text-right text-[11px] font-medium text-text-quaternary pb-2">Requests</th>
+          <th class="text-left text-[11px] font-medium text-text-quaternary pb-2 pl-4">Primary Feature</th>
+          <th class="text-right text-[11px] font-medium text-text-quaternary pb-2 pr-1">Avg Cost/Req</th>
+        </tr>
+      </thead>
+      <tbody id="user-table">
+        <!-- Row 1 -->
+        <tr class="border-b border-border-subtle">
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-violet-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-violet-700">SC</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">Sarah Chen</p>
+                <p class="text-[11px] text-text-tertiary">sarah@meridian.io</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$8.42</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">312</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #7c3aed;"></div>
+              <span class="text-xs text-text-secondary">AI Advisor</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.027</td>
+        </tr>
+        <!-- Row 2 -->
+        <tr class="border-b border-border-subtle">
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-blue-700">JR</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">James Rodriguez</p>
+                <p class="text-[11px] text-text-tertiary">james@auroratech.com</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$6.18</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">247</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #7c3aed;"></div>
+              <span class="text-xs text-text-secondary">AI Advisor</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.025</td>
+        </tr>
+        <!-- Row 3 -->
+        <tr class="border-b border-border-subtle">
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-emerald-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-emerald-700">AP</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">Anika Patel</p>
+                <p class="text-[11px] text-text-tertiary">anika@climatebridge.co</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$5.64</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">198</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #e11d48;"></div>
+              <span class="text-xs text-text-secondary">Investor Q&A</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.028</td>
+        </tr>
+        <!-- Row 4 -->
+        <tr class="border-b border-border-subtle">
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-amber-700">MK</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">Marcus Kim</p>
+                <p class="text-[11px] text-text-tertiary">marcus@synthwave.ai</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$4.91</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">183</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #7c3aed;"></div>
+              <span class="text-xs text-text-secondary">AI Advisor</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.027</td>
+        </tr>
+        <!-- Row 5 -->
+        <tr class="border-b border-border-subtle">
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-rose-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-rose-700">LW</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">Lisa Wang</p>
+                <p class="text-[11px] text-text-tertiary">lisa@stackorder.io</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$4.23</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">156</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #0284c7;"></div>
+              <span class="text-xs text-text-secondary">Interaction AI</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.027</td>
+        </tr>
+        <!-- Row 6 -->
+        <tr class="border-b border-border-subtle">
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-cyan-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-cyan-700">DA</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">David Alvarez</p>
+                <p class="text-[11px] text-text-tertiary">david@neonhealth.co</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$3.87</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">142</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #e11d48;"></div>
+              <span class="text-xs text-text-secondary">Investor Q&A</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.027</td>
+        </tr>
+        <!-- Row 7 -->
+        <tr class="border-b border-border-subtle">
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-orange-700">NK</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">Nora Kessler</p>
+                <p class="text-[11px] text-text-tertiary">nora@foundersync.com</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$3.41</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">118</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #059669;"></div>
+              <span class="text-xs text-text-secondary">Documents</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.029</td>
+        </tr>
+        <!-- Row 8 -->
+        <tr class="border-b border-border-subtle">
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-teal-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-teal-700">RH</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">Raj Hariharan</p>
+                <p class="text-[11px] text-text-tertiary">raj@quantumleap.dev</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$2.98</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">104</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #7c3aed;"></div>
+              <span class="text-xs text-text-secondary">AI Advisor</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.029</td>
+        </tr>
+        <!-- Row 9 -->
+        <tr class="border-b border-border-subtle">
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-violet-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-violet-700">EO</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">Elena Osei</p>
+                <p class="text-[11px] text-text-tertiary">elena@terranova.fund</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$2.14</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">87</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #d97706;"></div>
+              <span class="text-xs text-text-secondary">Email Composer</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.025</td>
+        </tr>
+        <!-- Row 10 -->
+        <tr>
+          <td class="py-2.5 pl-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-blue-700">TN</span>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-text-primary">Tom Nguyen</p>
+                <p class="text-[11px] text-text-tertiary">tom@gridscale.co</p>
+              </div>
+            </div>
+          </td>
+          <td class="text-right text-xs tabular-nums font-medium text-text-primary py-2.5">$1.87</td>
+          <td class="text-right text-xs tabular-nums text-text-secondary py-2.5">72</td>
+          <td class="py-2.5 pl-4">
+            <span class="inline-flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full" style="background-color: #0d9488;"></div>
+              <span class="text-xs text-text-secondary">Data Room</span>
+            </span>
+          </td>
+          <td class="text-right text-xs tabular-nums text-text-tertiary py-2.5 pr-1">$0.026</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Remaining users note -->
+    <div class="mt-3 pt-3 border-t text-center">
+      <span class="text-[11px] text-text-quaternary">10 more users with combined spend of $3.58</span>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Raw Data Export                                                    -->
+  <!-- ================================================================= -->
+  <div class="mb-6 rounded-lg border bg-surface-primary p-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs font-medium text-text-tertiary">Raw Data Export</p>
+        <p class="text-[11px] text-text-quaternary mt-0.5">Full llm_logs for beta users — includes every request with timestamps, tokens, costs, cache hits, and latency</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="text-right">
+          <p class="text-xs tabular-nums text-text-secondary">1,847 rows</p>
+          <p class="text-[11px] text-text-quaternary">~240 KB</p>
+        </div>
+        <button class="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium bg-surface-secondary text-text-primary hover:bg-surface-tertiary transition-colors border border-border-default">
+          <!-- FileArrowDown icon -->
+          <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,176a8,8,0,0,1-5.66-2.34L136,155.31V200a8,8,0,0,1-16,0V155.31l-18.34,18.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0l32,32A8,8,0,0,1,160,176Zm0-88V44l44,44Z"/></svg>
+          Download raw logs (.csv)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Sparkline + Chart rendering (vanilla Canvas)                      -->
+  <!-- ================================================================= -->
+  <script>
+    // --- Demo data generators ---
+
+    function generateSparkData(count, min, max, trend = 0) {
+      const data = [];
+      let current = min + (max - min) * 0.5;
+      for (let i = 0; i < count; i++) {
+        current += (Math.random() - 0.45 + trend * 0.02) * (max - min) * 0.15;
+        current = Math.max(min, Math.min(max, current));
+        data.push(current);
+      }
+      return data;
+    }
+
+    function drawSparkline(canvasId, data, color, fillOpacity = 0.1) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+      const padding = 2;
+      const min = Math.min(...data);
+      const max = Math.max(...data);
+      const range = max - min || 1;
+
+      const points = data.map((v, i) => ({
+        x: padding + (i / (data.length - 1)) * (w - padding * 2),
+        y: h - padding - ((v - min) / range) * (h - padding * 2),
+      }));
+
+      // Fill gradient
+      const gradient = ctx.createLinearGradient(0, 0, 0, h);
+      gradient.addColorStop(0, color + Math.round(fillOpacity * 255).toString(16).padStart(2, '0'));
+      gradient.addColorStop(1, color + '05');
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, h);
+      points.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(points[points.length - 1].x, h);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+
+    // --- Daily spend stacked area chart ---
+
+    function drawDailySpendChart() {
+      const canvas = document.getElementById('daily-spend-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+      const paddingLeft = 40;
+      const paddingBottom = 24;
+      const paddingTop = 8;
+      const chartW = w - paddingLeft - 16;
+      const chartH = h - paddingBottom - paddingTop;
+
+      const days = 30;
+      const features = [
+        { name: 'Data Room', color: '#0d9488', base: 0.04, variance: 0.02 },
+        { name: 'Email', color: '#d97706', base: 0.10, variance: 0.04 },
+        { name: 'Documents', color: '#059669', base: 0.15, variance: 0.05 },
+        { name: 'Interaction AI', color: '#0284c7', base: 0.22, variance: 0.08 },
+        { name: 'Investor Q&A', color: '#e11d48', base: 0.38, variance: 0.12 },
+        { name: 'AI Advisor', color: '#7c3aed', base: 0.60, variance: 0.20 },
+      ];
+
+      // Generate stacked data
+      const stacked = [];
+      for (let d = 0; d < days; d++) {
+        const dayData = { cumulative: [0] };
+        let cum = 0;
+        features.forEach(f => {
+          const val = f.base + (Math.random() - 0.5) * f.variance;
+          cum += Math.max(0.01, val);
+          dayData.cumulative.push(cum);
+        });
+        stacked.push(dayData);
+      }
+
+      const maxVal = Math.max(...stacked.map(d => d.cumulative[d.cumulative.length - 1]));
+      const yMax = Math.ceil(maxVal / 0.5) * 0.5;
+
+      // Y-axis labels
+      ctx.fillStyle = 'hsl(0, 0%, 64%)';
+      ctx.font = '10px Satoshi, system-ui';
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const val = (yMax / 4) * i;
+        const y = paddingTop + chartH - (i / 4) * chartH;
+        ctx.fillText('$' + val.toFixed(1), paddingLeft - 8, y + 3);
+
+        // Grid line
+        ctx.beginPath();
+        ctx.moveTo(paddingLeft, y);
+        ctx.lineTo(w - 16, y);
+        ctx.strokeStyle = 'hsl(0, 0%, 94%)';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+
+      // X-axis labels (every 5 days)
+      ctx.textAlign = 'center';
+      const today = new Date();
+      for (let d = 0; d < days; d += 5) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - (days - 1 - d));
+        const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const x = paddingLeft + (d / (days - 1)) * chartW;
+        ctx.fillText(label, x, h - 6);
+      }
+
+      // Draw stacked areas (bottom to top)
+      for (let f = features.length - 1; f >= 0; f--) {
+        ctx.beginPath();
+
+        // Top edge
+        for (let d = 0; d < days; d++) {
+          const x = paddingLeft + (d / (days - 1)) * chartW;
+          const y = paddingTop + chartH - (stacked[d].cumulative[f + 1] / yMax) * chartH;
+          d === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+
+        // Bottom edge (reverse)
+        for (let d = days - 1; d >= 0; d--) {
+          const x = paddingLeft + (d / (days - 1)) * chartW;
+          const y = paddingTop + chartH - (stacked[d].cumulative[f] / yMax) * chartH;
+          ctx.lineTo(x, y);
+        }
+
+        ctx.closePath();
+        ctx.fillStyle = features[f].color + '40';
+        ctx.fill();
+
+        // Top line
+        ctx.beginPath();
+        for (let d = 0; d < days; d++) {
+          const x = paddingLeft + (d / (days - 1)) * chartW;
+          const y = paddingTop + chartH - (stacked[d].cumulative[f + 1] / yMax) * chartH;
+          d === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = features[f].color;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
+    // --- Initialize ---
+
+    window.addEventListener('load', () => {
+      drawSparkline('spark-spend', generateSparkData(30, 30, 55, 1), '#e11d48');
+      drawSparkline('spark-avg', generateSparkData(30, 1.8, 3.0, -0.5), '#0284c7');
+      drawSparkline('spark-cache', generateSparkData(30, 8, 16, 1), '#059669');
+      drawSparkline('spark-requests', generateSparkData(30, 1200, 2200, 1.5), '#7c3aed');
+      drawDailySpendChart();
+    });
+
+    window.addEventListener('resize', () => {
+      drawSparkline('spark-spend', generateSparkData(30, 30, 55, 1), '#e11d48');
+      drawSparkline('spark-avg', generateSparkData(30, 1.8, 3.0, -0.5), '#0284c7');
+      drawSparkline('spark-cache', generateSparkData(30, 8, 16, 1), '#059669');
+      drawSparkline('spark-requests', generateSparkData(30, 1200, 2200, 1.5), '#7c3aed');
+      drawDailySpendChart();
+    });
+  </script>
+
+</body>
+</html>

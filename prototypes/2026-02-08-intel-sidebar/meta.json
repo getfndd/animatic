@@ -1,0 +1,11 @@
+{
+  "id": "2026-02-08-intel-sidebar",
+  "name": "Intel Sidebar Directions",
+  "description": "5 directions for the Portfolio Intelligence right sidebar — summary reactivity, feed density, status dot removal",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "sidebar-directions.html", "notes": "5 directions: A=Dense Timeline, B=By Company, C=Scorecard, D=Reactive Prose, E=No Summary" }
+  ],
+  "createdAt": "2026-02-08T23:40:00Z"
+}

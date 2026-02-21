@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investor Profile — Relationship Tab — Full Page Polish</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --text-link: 220 70% 50%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --status-info: 217 91% 60%;
+      --status-info-bg: 214 95% 93%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+    .annotation {
+      position: relative;
+    }
+    .annotation::before {
+      content: attr(data-annotation);
+      position: absolute;
+      right: -240px;
+      top: 0;
+      width: 220px;
+      font-size: 11px;
+      line-height: 1.4;
+      color: hsl(var(--status-error));
+      background: hsl(var(--status-error-bg));
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid hsl(var(--status-error) / 0.2);
+      pointer-events: none;
+      z-index: 10;
+    }
+    .annotation-fix::before {
+      color: hsl(var(--status-success));
+      background: hsl(var(--status-success-bg));
+      border-color: hsl(var(--status-success) / 0.2);
+    }
+    .polish-highlight {
+      outline: 2px dashed hsl(var(--status-warning) / 0.5);
+      outline-offset: 4px;
+      border-radius: 6px;
+    }
+    .polish-fix {
+      outline: 2px solid hsl(var(--status-success) / 0.4);
+      outline-offset: 4px;
+      border-radius: 6px;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'text-link': 'hsl(var(--text-link))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+            'status-info': 'hsl(var(--status-info))',
+            'status-info-bg': 'hsl(var(--status-info-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen">
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar (simplified) -->
+    <aside class="w-60 h-screen border-r flex flex-col bg-surface-primary shrink-0">
+      <div class="h-14 flex items-center px-6 border-b">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded bg-surface-inverse"></div>
+          <span class="font-semibold text-sm">Weftly</span>
+        </div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-4 px-3">
+        <div class="text-[11px] font-medium text-text-tertiary px-3 mb-2">Fundraising</div>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm text-text-secondary hover:bg-surface-secondary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Overview
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm bg-surface-secondary font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Investors
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm text-text-secondary hover:bg-surface-secondary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Pipeline
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm text-text-secondary hover:bg-surface-secondary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          Data Room
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+
+      <!-- Top Bar with back nav -->
+      <header class="h-14 border-b flex items-center px-6 shrink-0 bg-surface-primary">
+        <button class="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors text-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          <span class="font-medium">Back to Investors</span>
+        </button>
+      </header>
+
+      <!-- Scrollable page content -->
+      <main class="flex-1 overflow-auto">
+        <div class="px-6 py-8">
+          <div class="max-w-6xl">
+
+            <!-- ============================================================ -->
+            <!-- PROFILE HEADER -->
+            <!-- ============================================================ -->
+            <div class="flex items-start justify-between mb-8">
+              <div class="flex items-start gap-4">
+                <!-- Logo -->
+                <div class="w-14 h-14 rounded-xl bg-surface-inverse flex items-center justify-center text-text-inverse text-lg font-bold shrink-0">
+                  tW
+                </div>
+                <!-- Info -->
+                <div>
+                  <div class="flex items-center gap-3 mb-1 flex-wrap">
+                    <h1 class="text-xl font-semibold text-text-primary">TwentyTwo VC</h1>
+                    <span class="text-sm text-text-tertiary">VC</span>
+                    <!-- Lifecycle badge -->
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border border-border-default text-text-secondary">
+                      <span class="w-1.5 h-1.5 rounded-full bg-text-tertiary"></span>
+                      Prospect
+                    </span>
+                    <!-- Fit badge -->
+                    <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-status-success-bg text-text-primary">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                      Good Match
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-4 text-sm text-text-secondary">
+                    <span class="flex items-center gap-1.5">
+                      <svg class="w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                      San Francisco, United States
+                    </span>
+                    <a href="#" class="inline-flex items-center gap-1 text-text-secondary hover:text-text-link transition-colors">
+                      www.twentytwo.vc
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
+                  </div>
+
+                  <!-- POLISH 1: Group tag — FIXED from inline hex to 100-shade + text-text-primary -->
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-100 text-text-primary">
+                      Top Tier
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex items-center gap-2">
+                <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors">
+                  Edit
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                </button>
+                <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border text-text-tertiary hover:text-status-error hover:border-status-error/30 transition-colors">
+                  Delete
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex gap-1 mb-6 border-b border-border-subtle">
+              <button class="px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary transition-colors">Overview</button>
+              <button class="px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary transition-colors">Team <span class="text-text-tertiary">1</span></button>
+              <button class="px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary transition-colors">Portfolio <span class="text-text-tertiary">19</span></button>
+              <button class="px-4 py-2.5 text-sm font-medium text-text-primary border-b-2 border-text-primary -mb-px">Relationship</button>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- RELATIONSHIP TAB CONTENT -->
+            <!-- ============================================================ -->
+
+            <!-- ==================== -->
+            <!-- SIDE A: EMPTY STATE  -->
+            <!-- ==================== -->
+            <div class="mb-16">
+              <div class="flex items-center gap-2 mb-6">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-tertiary text-text-secondary">Empty State</span>
+                <span class="text-sm text-text-tertiary">What a new investor sees</span>
+              </div>
+
+              <div class="space-y-0">
+
+                <!-- ENGAGEMENT (empty state) -->
+                <!-- POLISH 2: Heading size mismatch — EngagementBreakdownPanel uses text-sm while SectionHeading uses text-base. Standardize to text-base. -->
+                <div class="pb-6">
+                  <div class="mb-6 flex items-center justify-between">
+                    <h3 class="text-base font-semibold text-text-primary">Engagement</h3>
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors">
+                      Sync
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                  </div>
+
+                  <!-- POLISH 3: Empty engagement — instead of "0 Cold" with zero counters, show a helpful message -->
+                  <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-3">
+                      <span class="text-4xl font-bold tabular-nums text-text-tertiary">&mdash;</span>
+                      <div>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-secondary text-text-tertiary">No signals</span>
+                      </div>
+                    </div>
+                    <div class="h-12 w-px bg-border-subtle"></div>
+                    <p class="text-sm text-text-tertiary">
+                      Connect Gmail or Calendar to track engagement automatically
+                    </p>
+                  </div>
+                </div>
+
+                <div class="border-t border-border-subtle"></div>
+
+                <!-- NEW: NDA & DATA ROOM (empty) -->
+                <div class="py-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-semibold text-text-primary">NDA & Data Room</h3>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+                    <div>
+                      <p class="mb-2 text-xs text-text-tertiary">NDA Status</p>
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-secondary text-text-tertiary">
+                        <span class="w-1.5 h-1.5 rounded-full bg-text-tertiary"></span>
+                        Not Sent
+                      </span>
+                    </div>
+                    <div>
+                      <p class="mb-2 text-xs text-text-tertiary">Data Room</p>
+                      <p class="text-sm text-text-tertiary">No access</p>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 flex items-center gap-2">
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-surface-inverse text-text-inverse hover:opacity-90 transition-opacity">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                      Send NDA
+                    </button>
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-secondary transition-colors">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                      Share Data Room
+                    </button>
+                  </div>
+                </div>
+
+                <div class="border-t border-border-subtle"></div>
+
+                <!-- RELATIONSHIP DETAILS (empty) -->
+                <div class="py-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-semibold text-text-primary">Relationship Details</h3>
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-secondary transition-colors">
+                      Add
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+                    </button>
+                  </div>
+                  <p class="text-sm text-text-tertiary">No details added yet</p>
+                </div>
+
+                <div class="border-t border-border-subtle"></div>
+
+                <!-- NOTES & MEETINGS (empty) -->
+                <div class="pt-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-semibold text-text-primary">Notes & Meetings</h3>
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-secondary transition-colors">
+                      Add Note
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+                    </button>
+                  </div>
+                  <p class="text-sm text-text-tertiary">No interactions logged yet</p>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- ========================= -->
+            <!-- SIDE B: POPULATED STATE   -->
+            <!-- ========================= -->
+            <div class="pt-12 border-t-4 border-dashed border-border-default">
+              <div class="flex items-center gap-2 mb-6">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-status-success-bg text-status-success">Populated State</span>
+                <span class="text-sm text-text-tertiary">Active investor with engagement, signed NDA, and data room access</span>
+              </div>
+
+              <div class="space-y-0">
+
+                <!-- ENGAGEMENT (populated) -->
+                <div class="pb-6">
+                  <div class="mb-6 flex items-center justify-between">
+                    <h3 class="text-base font-semibold text-text-primary">Engagement</h3>
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors">
+                      Sync
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-3">
+                      <span class="text-4xl font-bold tabular-nums text-text-primary">72</span>
+                      <div class="flex flex-col gap-1">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-text-primary">
+                          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          Warm
+                        </span>
+                        <div class="flex items-center gap-1 text-xs">
+                          <svg class="w-3 h-3 text-status-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                          <span class="text-status-success">Rising</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="h-12 w-px bg-border-subtle"></div>
+                    <div class="flex items-center gap-6">
+                      <!-- Email stat -->
+                      <div class="flex items-center gap-3">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-md bg-surface-secondary">
+                          <svg class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        </div>
+                        <div>
+                          <div class="text-lg font-semibold tabular-nums text-text-primary">12</div>
+                          <div class="text-xs text-text-tertiary">Emails</div>
+                        </div>
+                      </div>
+                      <!-- Meeting stat -->
+                      <div class="flex items-center gap-3">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-md bg-surface-secondary">
+                          <svg class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                        <div>
+                          <div class="text-lg font-semibold tabular-nums text-text-primary">3</div>
+                          <div class="text-xs text-text-tertiary">Meetings</div>
+                        </div>
+                      </div>
+                      <!-- Document stat -->
+                      <div class="flex items-center gap-3">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-md bg-surface-secondary">
+                          <svg class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        </div>
+                        <div>
+                          <div class="text-lg font-semibold tabular-nums text-text-primary">8</div>
+                          <div class="text-xs text-text-tertiary">Documents</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Recent activity toggle -->
+                  <div class="mt-6 border-t border-border-subtle pt-4">
+                    <button class="inline-flex items-center gap-1 rounded text-sm text-text-secondary hover:text-text-primary transition-colors">
+                      <span>Recent activity (23)</span>
+                      <svg class="w-3.5 h-3.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="border-t border-border-subtle"></div>
+
+                <!-- NEW: NDA & DATA ROOM (signed + active) -->
+                <div class="py-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-semibold text-text-primary">NDA & Data Room</h3>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+                    <div>
+                      <p class="mb-2 text-xs text-text-tertiary">NDA Status</p>
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-status-success-bg text-status-success">
+                        <span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+                        Signed
+                      </span>
+                    </div>
+                    <div>
+                      <p class="mb-2 text-xs text-text-tertiary">Signed</p>
+                      <p class="text-sm text-text-primary">Jan 15, 2026</p>
+                    </div>
+                    <div>
+                      <p class="mb-2 text-xs text-text-tertiary">Data Room</p>
+                      <p class="text-sm text-text-primary">3 folders shared</p>
+                    </div>
+                    <div>
+                      <p class="mb-2 text-xs text-text-tertiary">Last Accessed</p>
+                      <p class="text-sm text-text-primary">2 days ago</p>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 flex items-center gap-2">
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-secondary transition-colors">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                      Share More Folders
+                    </button>
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-secondary transition-colors">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                      View Activity
+                    </button>
+                  </div>
+                </div>
+
+                <div class="border-t border-border-subtle"></div>
+
+                <!-- RELATIONSHIP DETAILS (populated) -->
+                <div class="py-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-semibold text-text-primary">Relationship Details</h3>
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-secondary transition-colors">
+                      Edit
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <div>
+                      <p class="mb-2 text-xs text-text-tertiary">Connection</p>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-text-primary">Warm</span>
+                    </div>
+                    <div>
+                      <p class="mb-2 text-xs text-text-tertiary">Intro Path</p>
+                      <p class="text-sm text-text-primary">Mutual contact</p>
+                    </div>
+                    <div>
+                      <p class="mb-2 text-xs text-text-tertiary">Introducer</p>
+                      <p class="text-sm text-text-primary">Sarah Chen</p>
+                    </div>
+                  </div>
+                  <div class="mt-4 col-span-full">
+                    <p class="mb-2 text-xs text-text-tertiary">Notes</p>
+                    <p class="text-sm text-text-secondary">Met at TechCrunch Disrupt 2025. Strong interest in developer tools. Partner Sarah Chen handles pre-seed through Series A.</p>
+                  </div>
+                </div>
+
+                <div class="border-t border-border-subtle"></div>
+
+                <!-- NOTES & MEETINGS (populated) -->
+                <div class="pt-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-base font-semibold text-text-primary">Notes & Meetings</h3>
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-secondary transition-colors">
+                      Add Note
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+                    </button>
+                  </div>
+
+                  <div class="space-y-3">
+                    <!-- Interaction 1 -->
+                    <div class="flex items-start gap-3 p-3 rounded-md border border-border-subtle">
+                      <div class="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 shrink-0">
+                        <svg class="w-4 h-4 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                          <span class="text-sm font-medium text-text-primary">Partner meeting — Sarah Chen</span>
+                          <span class="text-xs text-text-tertiary whitespace-nowrap ml-2">Feb 12</span>
+                        </div>
+                        <p class="text-xs text-text-secondary line-clamp-1">Discussed product roadmap and Series A timeline. Sarah wants to see Q1 metrics before moving forward.</p>
+                      </div>
+                    </div>
+
+                    <!-- Interaction 2 -->
+                    <div class="flex items-start gap-3 p-3 rounded-md border border-border-subtle">
+                      <div class="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 shrink-0">
+                        <svg class="w-4 h-4 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                          <span class="text-sm font-medium text-text-primary">Follow-up email sent</span>
+                          <span class="text-xs text-text-tertiary whitespace-nowrap ml-2">Feb 5</span>
+                        </div>
+                        <p class="text-xs text-text-secondary line-clamp-1">Sent updated pitch deck and financial projections as discussed.</p>
+                      </div>
+                    </div>
+
+                    <!-- Interaction 3 -->
+                    <div class="flex items-start gap-3 p-3 rounded-md border border-border-subtle">
+                      <div class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 shrink-0">
+                        <svg class="w-4 h-4 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                          <span class="text-sm font-medium text-text-primary">Intro call with Sarah Chen</span>
+                          <span class="text-xs text-text-tertiary whitespace-nowrap ml-2">Jan 20</span>
+                        </div>
+                        <p class="text-xs text-text-secondary line-clamp-1">Initial 30-min intro call. Sarah covers developer tools and infrastructure at TwentyTwo.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- DESIGN POLISH LOG -->
+            <!-- ============================================================ -->
+            <div class="mt-16 pt-8 border-t-4 border-dashed border-border-default">
+              <h2 class="text-lg font-semibold text-text-primary mb-6">Design Polishes Identified</h2>
+
+              <div class="space-y-4">
+
+                <!-- Polish 1 -->
+                <div class="flex gap-4 p-4 rounded-lg bg-status-error-bg border border-status-error/10">
+                  <div class="shrink-0">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-status-error text-white text-xs font-bold">1</span>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-text-primary mb-1">Group tag color violation (@rand)</h3>
+                    <p class="text-sm text-text-secondary mb-2">"Top Tier" tag uses inline <code class="px-1 py-0.5 rounded bg-surface-secondary text-xs">style={{ color: hex }}</code> — colored text on transparent-ish background. Violates the 100-shade bg + text-text-primary rule.</p>
+                    <div class="flex gap-4">
+                      <div>
+                        <p class="text-xs text-text-tertiary mb-1">Before</p>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium" style="background-color: #10b98115; color: #10b981;">Top Tier</span>
+                      </div>
+                      <div>
+                        <p class="text-xs text-text-tertiary mb-1">After</p>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-text-primary">Top Tier</span>
+                      </div>
+                    </div>
+                    <p class="text-xs text-text-tertiary mt-2">File: InvestorProfile.jsx lines 1181-1196</p>
+                  </div>
+                </div>
+
+                <!-- Polish 2 -->
+                <div class="flex gap-4 p-4 rounded-lg bg-status-warning-bg border border-status-warning/10">
+                  <div class="shrink-0">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-status-warning text-white text-xs font-bold">2</span>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-text-primary mb-1">Engagement heading size mismatch</h3>
+                    <p class="text-sm text-text-secondary mb-2">EngagementBreakdownPanel uses <code class="px-1 py-0.5 rounded bg-surface-secondary text-xs">text-sm font-semibold</code> while SectionHeading (used by Relationship Details, Notes & Meetings) uses <code class="px-1 py-0.5 rounded bg-surface-secondary text-xs">text-base font-semibold</code>. The Engagement heading appears smaller than its siblings.</p>
+                    <p class="text-xs text-text-tertiary">Fix: Change EngagementBreakdownPanel line 192 from text-sm to text-base</p>
+                  </div>
+                </div>
+
+                <!-- Polish 3 -->
+                <div class="flex gap-4 p-4 rounded-lg bg-status-warning-bg border border-status-warning/10">
+                  <div class="shrink-0">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-status-warning text-white text-xs font-bold">3</span>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-text-primary mb-1">Empty engagement shows "0 Cold" with zero counters</h3>
+                    <p class="text-sm text-text-secondary mb-2">When there are zero signals, showing a big "0" with "Cold" badge and three zero counters (Emails 0, Meetings 0, Documents 0) is visual noise that tells the user what they already know — nothing happened. It also makes "Cold" feel like a judgment rather than a data point.</p>
+                    <div class="flex gap-6 mt-3">
+                      <div>
+                        <p class="text-xs text-text-tertiary mb-2">Before</p>
+                        <div class="flex items-center gap-3 p-3 rounded-md bg-surface-secondary">
+                          <span class="text-2xl font-bold tabular-nums text-text-primary">0</span>
+                          <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-tertiary text-text-secondary">Cold</span>
+                          <span class="text-xs text-text-tertiary">| Emails 0 | Meetings 0 | Documents 0</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p class="text-xs text-text-tertiary mb-2">After</p>
+                        <div class="flex items-center gap-3 p-3 rounded-md bg-surface-secondary">
+                          <span class="text-2xl font-bold tabular-nums text-text-tertiary">&mdash;</span>
+                          <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-tertiary text-text-tertiary">No signals</span>
+                          <span class="text-xs text-text-tertiary">Connect Gmail or Calendar to track</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p class="text-xs text-text-tertiary mt-2">Fix: When overallScore === 0 && totalSignalCount === 0, show em-dash + "No signals" + integration CTA instead of numeric zero state</p>
+                  </div>
+                </div>
+
+                <!-- Polish 4 -->
+                <div class="flex gap-4 p-4 rounded-lg bg-status-info-bg border border-status-info/10">
+                  <div class="shrink-0">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-status-info text-white text-xs font-bold">4</span>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-text-primary mb-1">New section: NDA & Data Room</h3>
+                    <p class="text-sm text-text-secondary">Add between Engagement and Relationship Details. Uses same flat metadata grid pattern. Three states: Not Sent, Sent, Signed. Contextual quick actions per state. This is the main FND-1423 deliverable.</p>
+                  </div>
+                </div>
+
+                <!-- Polish 5 -->
+                <div class="flex gap-4 p-4 rounded-lg bg-surface-secondary border border-border-subtle">
+                  <div class="shrink-0">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-text-tertiary text-white text-xs font-bold">5</span>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-text-primary mb-1">Interaction card icon containers use rounded-full (deferred)</h3>
+                    <p class="text-sm text-text-secondary">The interaction cards in Notes & Meetings use <code class="px-1 py-0.5 rounded bg-surface-tertiary text-xs">rounded-full</code> for icon containers. Per design system, icon containers should be <code class="px-1 py-0.5 rounded bg-surface-tertiary text-xs">rounded-md</code>. This exists in the current code and is out of scope for FND-1423, but worth noting.</p>
+                    <p class="text-xs text-text-tertiary mt-1">File: InvestorProfile.jsx line 1572</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

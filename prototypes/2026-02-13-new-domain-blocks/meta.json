@@ -1,0 +1,17 @@
+{
+  "id": "2026-02-13-new-domain-blocks",
+  "name": "New Domain Blocks — Milestone, Attachment, Quote",
+  "description": "Three new email composer block types showing editor view (editable fields, controls) alongside email preview (inline-styled HTML). Plus updated slash command menu with Domain Blocks category.",
+  "prompt": "/prototype 'New domain blocks: Milestone, Attachment, Quote — editor + email preview' --fidelity concept --chrome minimal",
+  "fidelity": "concept",
+  "chrome": "minimal",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Editor view + email preview for each block, plus slash command menu" }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-hover", "--text-primary", "--text-secondary", "--text-tertiary", "--text-quaternary", "--border-default", "--border-subtle", "--border-strong"],
+    "presets": [],
+    "patterns": ["atom-nodeview", "invisible-border-input", "icon-container", "accent-border", "file-type-colors"]
+  },
+  "createdAt": "2026-02-13T18:30:00Z"
+}

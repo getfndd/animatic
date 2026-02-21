@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investor Matching — Autoplay</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================
+       CSS CUSTOM PROPERTIES — ITO Light Mode
+       ================================================================ */
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+
+      /* Speed hierarchy */
+      --fast: 180ms;
+      --medium: 500ms;
+      --slow: 700ms;
+      --spring: 1100ms;
+
+      /* Easings */
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+      --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* ================================================================
+       RESET & BASE
+       ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { border-color: hsl(var(--border-default)); }
+
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ================================================================
+       SCENE — the card that contains all phases
+       ================================================================ */
+    #scene-wrapper {
+      position: relative;
+      padding: 56px;
+    }
+
+    .card-wrapper {
+      position: relative;
+    }
+
+    #scene {
+      position: relative;
+      width: 700px;
+      background: hsl(var(--surface-primary));
+      border-radius: 12px;
+      border: 1px solid hsl(var(--border-default));
+      box-shadow:
+        0 4px 24px rgba(0,0,0,0.05),
+        0 16px 48px rgba(0,0,0,0.03);
+      overflow: hidden;
+      transition: height var(--slow) var(--ease-smooth);
+    }
+
+    /* ================================================================
+       PHASE LAYERS — absolutely positioned, crossfade system
+       ================================================================ */
+    .phase-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        opacity var(--medium) var(--ease-out-expo),
+        transform 600ms var(--ease-out-expo);
+    }
+
+    .phase-layer.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Measuring mode — forces relative for scrollHeight measurement */
+    .phase-layer.measuring {
+      position: relative !important;
+      opacity: 0 !important;
+      transform: none !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
+    }
+
+    /* ================================================================
+       BUTTON PRESS & ICON WIGGLE KEYFRAMES
+       ================================================================ */
+    @keyframes icon-wiggle {
+      0%   { transform: rotate(0deg); }
+      15%  { transform: rotate(14deg); }
+      30%  { transform: rotate(-6deg); }
+      45%  { transform: rotate(4deg); }
+      60%  { transform: rotate(-2deg); }
+      75%  { transform: rotate(1deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { box-shadow: 0 0 0 3px hsla(38, 92%, 50%, 0.15); }
+      50%      { box-shadow: 0 0 0 6px hsla(38, 92%, 50%, 0.08); }
+    }
+
+    /* Step dot pop — bouncy scale on done */
+    @keyframes dot-pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.4); }
+      70%  { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+
+    /* CTA glow — pulsing brightness on Send button */
+    @keyframes cta-glow {
+      0%   { filter: brightness(1);   box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+      50%  { filter: brightness(1.08); box-shadow: 0 0 12px 2px rgba(0,0,0,0.08); }
+      100% { filter: brightness(1);   box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+    }
+
+    /* Card send-off — lifts up and flies away */
+    @keyframes card-send-off {
+      0%   { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+      25%  { transform: translateY(-8px) scale(1.01); opacity: 1; filter: blur(0); }
+      100% { transform: translateY(-100px) scale(0.96); opacity: 0; filter: blur(6px); }
+    }
+    .card-wrapper.sending {
+      animation: card-send-off 900ms var(--ease-in) forwards;
+      pointer-events: none;
+    }
+
+    /* Processing shimmer sweep */
+    @keyframes shimmer-sweep {
+      0%   { transform: translateX(-50%); }
+      100% { transform: translateX(50%); }
+    }
+
+    /* ================================================================
+       STEP ITEMS — Phase 1 stagger
+       ================================================================ */
+    .step-item {
+      opacity: 0;
+      transform: translateY(10px);
+      transition:
+        opacity 400ms var(--ease-out-expo),
+        transform 450ms var(--ease-out-expo);
+    }
+    .step-item.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .step-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: hsl(var(--border-default));
+      flex-shrink: 0;
+      transition: all 400ms var(--ease-spring);
+    }
+    .step-dot.done {
+      background: hsl(142, 71%, 45%);
+      animation: dot-pop 400ms var(--ease-spring);
+    }
+    .step-dot.active {
+      background: hsl(38, 92%, 50%);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    .step-text {
+      transition: color 400ms, font-weight 200ms;
+    }
+
+    /* Processing indicator bar with shimmer */
+    .processing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: hsla(38, 92%, 50%, 0.06);
+      border: 1px solid hsla(38, 92%, 50%, 0.12);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .processing-indicator::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; right: 0; bottom: 0;
+      width: 200%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        hsla(38, 92%, 50%, 0.04) 40%,
+        hsla(38, 92%, 50%, 0.08) 50%,
+        hsla(38, 92%, 50%, 0.04) 60%,
+        transparent 100%
+      );
+      animation: shimmer-sweep 2.5s linear infinite;
+    }
+
+    .processing-indicator .processing-text {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: hsl(38, 70%, 40%);
+      position: relative;
+      z-index: 1;
+    }
+
+    .processing-indicator svg {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ================================================================
+       RESULT STAGGER — Phase 2 stagger
+       ================================================================ */
+    .stagger-item {
+      opacity: 0;
+      transform: translateX(16px);
+      transition:
+        opacity 350ms var(--ease-out-expo),
+        transform 450ms var(--ease-out-expo);
+    }
+    .stagger-item.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    .result-card {
+      opacity: 0;
+      transform: translateY(20px) translateX(8px);
+      transition:
+        opacity 500ms var(--ease-out-expo),
+        transform 600ms var(--ease-out-expo);
+    }
+    .result-card.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Match score pill */
+    .match-score-pill {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    /* ================================================================
+       PHASE 3 — Investor Profile + Message Compose
+       ================================================================ */
+    .profile-item {
+      opacity: 0;
+      transform: translateY(12px);
+      transition:
+        opacity 400ms var(--ease-out-expo),
+        transform 500ms var(--ease-out-expo);
+    }
+    .profile-item.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    .compose-field {
+      opacity: 0;
+      transition: opacity 400ms var(--ease-out-expo);
+    }
+    .compose-field.visible {
+      opacity: 1;
+    }
+
+    .compose-cursor {
+      display: inline-block;
+      width: 1px;
+      height: 14px;
+      background: hsl(var(--text-primary));
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: cursor-blink 1s step-end infinite;
+    }
+
+    @keyframes cursor-blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* CTA glow on Send button (light theme) */
+    .cta-glow {
+      animation: cta-glow 1.8s var(--ease-smooth) infinite;
+    }
+
+    /* ================================================================
+       PLAYBACK CONTROLS
+       ================================================================ */
+    #playback {
+      position: fixed;
+      bottom: 0;
+      left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 12px 24px;
+      background: hsl(var(--surface-inverse));
+      border-top: 1px solid hsl(0 0% 20%);
+      z-index: 100;
+    }
+
+    .ctrl-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: hsl(var(--text-inverse));
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ctrl-btn:hover { background: rgba(255,255,255,0.18); }
+
+    .phase-dots { display: flex; gap: 8px; }
+
+    .phase-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .phase-dot.active { background: white; transform: scale(1.3); }
+    .phase-dot.completed { background: rgba(255,255,255,0.5); }
+
+    .ctrl-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      font-family: 'Satoshi', sans-serif;
+      min-width: 80px;
+    }
+
+    /* ================================================================
+       EMBED MODE
+       ================================================================ */
+    body.embed {
+      background: transparent;
+      min-height: auto;
+      padding: 0;
+      overflow: visible;
+    }
+    body.embed #scene-wrapper {
+      padding: 32px;
+    }
+    body.embed #scene {
+      width: 100%;
+      border: none;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 16px 48px rgba(0,0,0,0.05);
+    }
+    body.embed #playback { display: none; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body>
+
+  <div id="scene-wrapper">
+    <div class="card-wrapper">
+      <div id="scene">
+
+        <!-- ═══════════════════════════════════════════════════════
+             PHASE 0 — START: The inline action row
+             ═══════════════════════════════════════════════════════ -->
+        <div class="phase-layer active" id="phase-0">
+          <div style="padding: 24px;">
+            <div class="flex items-center justify-between rounded-lg border border-border-subtle bg-surface-primary px-4 py-3">
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-100">
+                  <svg class="w-[18px] h-[18px]" fill="none" stroke="hsl(var(--text-primary))" stroke-width="1.5" viewBox="0 0 256 256">
+                    <circle cx="128" cy="128" r="72" fill="none"/>
+                    <line x1="128" y1="28" x2="128" y2="64"/>
+                    <line x1="128" y1="192" x2="128" y2="228"/>
+                    <line x1="28" y1="128" x2="64" y2="128"/>
+                    <line x1="192" y1="128" x2="228" y2="128"/>
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Find best-fit investors</p>
+                  <p class="text-xs text-text-tertiary">Match your round criteria against our investor database</p>
+                </div>
+              </div>
+              <button id="find-matches-btn" class="inline-flex items-center gap-1.5 rounded-full border border-border-default bg-surface-primary px-3.5 py-1.5 text-sm font-medium text-text-primary" style="cursor: pointer; font-family: inherit; transform-origin: center;">
+                Find Matches
+                <svg id="btn-arrow" class="w-3.5 h-3.5" style="transform-origin: center;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ═══════════════════════════════════════════════════════
+             PHASE 1 — PROCESSING: Action row transforms
+             Step dots reveal sequentially as analysis proceeds.
+             ═══════════════════════════════════════════════════════ -->
+        <div class="phase-layer" id="phase-1">
+          <div style="padding: 24px;">
+            <div class="rounded-lg border border-border-subtle bg-surface-primary px-4 py-4">
+              <!-- Processing indicator bar with shimmer -->
+              <div class="processing-indicator">
+                <svg class="w-[18px] h-[18px] text-amber-600" style="animation: spin 1s linear infinite;" fill="none" viewBox="0 0 24 24">
+                  <circle style="opacity: 0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.5"></circle>
+                  <path style="opacity: 0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span class="processing-text">Analyzing against 2,400+ investors...</span>
+              </div>
+
+              <!-- Step-by-step progress dots -->
+              <div id="step-container" class="flex flex-col gap-3">
+                <div class="step-item" data-step="0">
+                  <div class="flex items-center gap-3">
+                    <div class="step-dot" data-dot="0"></div>
+                    <span class="step-text text-sm text-text-tertiary" data-text="0">Sector focus: B2B SaaS, AI/ML, Enterprise</span>
+                  </div>
+                </div>
+                <div class="step-item" data-step="1">
+                  <div class="flex items-center gap-3">
+                    <div class="step-dot" data-dot="1"></div>
+                    <span class="step-text text-sm text-text-tertiary" data-text="1">Check size preference: $2M – $8M range</span>
+                  </div>
+                </div>
+                <div class="step-item" data-step="2">
+                  <div class="flex items-center gap-3">
+                    <div class="step-dot" data-dot="2"></div>
+                    <span class="step-text text-sm text-text-tertiary" data-text="2">Stage alignment: Series A</span>
+                  </div>
+                </div>
+                <div class="step-item" data-step="3">
+                  <div class="flex items-center gap-3">
+                    <div class="step-dot" data-dot="3"></div>
+                    <span class="step-text text-sm text-text-tertiary" data-text="3">Portfolio overlap analysis</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ═══════════════════════════════════════════════════════
+             PHASE 2 — RESULTS: Full match results page
+             Monochrome SVG logos, match score count-up
+             ═══════════════════════════════════════════════════════ -->
+        <div class="phase-layer" id="phase-2">
+          <!-- Header bar -->
+          <div class="stagger-item" data-stagger="header">
+            <div class="flex items-center justify-between border-b border-border-default px-6 py-3.5">
+              <div class="flex items-center gap-3">
+                <button class="flex items-center gap-1.5 text-sm text-text-secondary">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                  Back
+                </button>
+                <div class="h-5 w-px bg-border-default"></div>
+                <div class="flex items-center gap-2">
+                  <div class="flex h-7 w-7 items-center justify-center rounded-md bg-surface-secondary">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="hsl(var(--text-primary))" stroke-width="1.5" viewBox="0 0 256 256">
+                      <circle cx="128" cy="128" r="72" fill="none"/>
+                      <line x1="128" y1="28" x2="128" y2="64"/>
+                      <line x1="128" y1="192" x2="128" y2="228"/>
+                      <line x1="28" y1="128" x2="64" y2="128"/>
+                      <line x1="192" y1="128" x2="228" y2="128"/>
+                    </svg>
+                  </div>
+                  <h1 class="text-base font-semibold">12 Matching Investors</h1>
+                </div>
+              </div>
+              <button id="btn-add" class="rounded-full bg-surface-inverse text-text-inverse px-3.5 py-1.5 text-sm font-medium inline-flex items-center gap-1.5" style="cursor: pointer; font-family: inherit; transform-origin: center;">
+                Add 3 Investors
+                <svg id="btn-add-icon" class="w-3.5 h-3.5" style="transform-origin: center;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter bar -->
+          <div class="stagger-item" data-stagger="filters">
+            <div class="flex items-center gap-2 border-b border-border-default px-6 py-2.5">
+              <button class="flex items-center gap-1.5 rounded-md border border-border-default px-2.5 py-1.5 text-xs text-text-secondary">
+                Location
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <button class="flex items-center gap-1.5 rounded-md border border-border-default px-2.5 py-1.5 text-xs text-text-secondary">
+                Stage
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <button class="flex items-center gap-1.5 rounded-md border border-border-default px-2.5 py-1.5 text-xs text-text-secondary">
+                Sectors
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <button class="flex items-center gap-1.5 rounded-md border border-border-default px-2.5 py-1.5 text-xs text-text-secondary">
+                Check Size
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <div class="flex-1"></div>
+              <button class="flex items-center gap-1.5 rounded-md border border-border-default px-2.5 py-1.5 text-xs text-text-secondary">
+                Sort: Best Match
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Results cards -->
+          <div class="p-5 flex flex-col gap-2.5">
+
+            <!-- Card 1: Lightspeed — 92% -->
+            <div class="result-card rounded-lg border border-border-default bg-surface-primary p-4" data-card="0">
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-secondary border border-border-subtle">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="hsl(var(--text-secondary))"><path d="M9.5 1L3.5 8.5H7L5.5 15L12.5 7H9L9.5 1z"/></svg>
+                </div>
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                  <h3 class="text-sm font-semibold truncate">Lightspeed Venture Partners</h3>
+                  <span class="shrink-0 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">VC</span>
+                </div>
+                <span class="match-score-pill shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-text-primary" data-target="92">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span class="score-value">0%</span>
+                </span>
+              </div>
+              <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
+                <span>San Francisco, US</span>
+                <span class="text-text-tertiary">&middot;</span>
+                <span>$3M – $8M</span>
+                <span class="text-text-tertiary">&middot;</span>
+                <span style="font-variant-numeric: tabular-nums;">142 portfolio cos.</span>
+              </div>
+              <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">
+                  <svg class="w-2.5 h-2.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Stage match
+                </span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">
+                  <svg class="w-2.5 h-2.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Sector aligned
+                </span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">
+                  <svg class="w-2.5 h-2.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Check size fit
+                </span>
+              </div>
+              <p class="mt-2 text-xs text-text-secondary">
+                <span class="font-medium text-text-primary">Portfolio:</span>
+                Snap, AppDynamics, MuleSoft, Nutanix, Affirm
+              </p>
+            </div>
+
+            <!-- Card 2: Accel — 87% -->
+            <div class="result-card rounded-lg border border-border-default bg-surface-primary p-4" data-card="1">
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-secondary border border-border-subtle">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 3l5 5-5 5" stroke="hsl(var(--text-secondary))" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 3l5 5-5 5" stroke="hsl(var(--text-secondary))" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                  <h3 class="text-sm font-semibold truncate">Accel</h3>
+                  <span class="shrink-0 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">VC</span>
+                </div>
+                <span class="match-score-pill shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-text-primary" data-target="87">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span class="score-value">0%</span>
+                </span>
+              </div>
+              <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
+                <span>Palo Alto, US</span>
+                <span class="text-text-tertiary">&middot;</span>
+                <span>$5M – $15M</span>
+                <span class="text-text-tertiary">&middot;</span>
+                <span style="font-variant-numeric: tabular-nums;">203 portfolio cos.</span>
+              </div>
+              <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">
+                  <svg class="w-2.5 h-2.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Stage match
+                </span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">
+                  <svg class="w-2.5 h-2.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Thesis aligned
+                </span>
+              </div>
+              <p class="mt-2 text-xs text-text-secondary">
+                <span class="font-medium text-text-primary">Portfolio:</span>
+                Slack, Dropbox, Atlassian, CrowdStrike, Qualtrics
+              </p>
+            </div>
+
+            <!-- Card 3: Index — 81% -->
+            <div class="result-card rounded-lg border border-border-default bg-surface-primary p-4" data-card="2">
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-secondary border border-border-subtle">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="hsl(var(--text-secondary))"><path d="M8 1L14.5 8L8 15L1.5 8Z"/></svg>
+                </div>
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                  <h3 class="text-sm font-semibold truncate">Index Ventures</h3>
+                  <span class="shrink-0 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">VC</span>
+                </div>
+                <span class="match-score-pill shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-text-primary" data-target="81">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span class="score-value">0%</span>
+                </span>
+              </div>
+              <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
+                <span>San Francisco, US</span>
+                <span class="text-text-tertiary">&middot;</span>
+                <span>$2M – $10M</span>
+                <span class="text-text-tertiary">&middot;</span>
+                <span style="font-variant-numeric: tabular-nums;">89 portfolio cos.</span>
+              </div>
+              <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">
+                  <svg class="w-2.5 h-2.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Sector aligned
+                </span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-secondary">
+                  <svg class="w-2.5 h-2.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Geographic fit
+                </span>
+              </div>
+              <p class="mt-2 text-xs text-text-secondary">
+                <span class="font-medium text-text-primary">Portfolio:</span>
+                Figma, Discord, Notion, Plaid, Datadog
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+
+        <!-- ═══════════════════════════════════════════════════════
+             PHASE 3 — ENGAGE: Investor Profile + Message Compose
+             Added badge, firm header, key contact, compose preview
+             with typewriter, CTA glow, and send-off.
+             ═══════════════════════════════════════════════════════ -->
+        <div class="phase-layer" id="phase-3">
+          <div style="padding: 24px;">
+
+            <!-- Added confirmation badge -->
+            <div class="profile-item" data-profile="0">
+              <div class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-text-primary mb-4">
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                3 investors added to pipeline
+              </div>
+            </div>
+
+            <!-- Firm header with monochrome logo -->
+            <div class="profile-item flex items-center gap-3 mb-4" data-profile="1">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-surface-secondary border border-border-subtle">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="hsl(var(--text-secondary))"><path d="M9.5 1L3.5 8.5H7L5.5 15L12.5 7H9L9.5 1z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-base font-semibold text-text-primary">Lightspeed Venture Partners</h3>
+                <p class="text-xs text-text-tertiary mt-0.5">VC &middot; San Francisco &middot; 92% match</p>
+              </div>
+              <span class="match-score-pill shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-text-primary">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                92%
+              </span>
+            </div>
+
+            <!-- Key contact card -->
+            <div class="profile-item rounded-lg border border-border-default bg-surface-primary p-3.5 mb-3" data-profile="2">
+              <p class="text-[11px] font-medium text-text-tertiary uppercase tracking-wider mb-2.5">Key Contact</p>
+              <div class="flex items-center gap-2.5">
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-secondary border border-border-subtle text-xs font-semibold text-text-secondary">MB</div>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Mercedes Bent</p>
+                  <p class="text-xs text-text-tertiary">Partner, Early Stage</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Message compose preview -->
+            <div class="profile-item rounded-lg border border-border-default bg-surface-primary p-3.5" data-profile="3">
+              <div class="compose-field flex items-center gap-2 pb-2.5 mb-2.5 border-b border-border-subtle" id="compose-to">
+                <span class="text-xs font-medium text-text-tertiary shrink-0">To:</span>
+                <span class="text-sm text-text-primary">Mercedes Bent &lt;m.bent@lsvp.com&gt;</span>
+              </div>
+              <div class="compose-field flex items-center gap-2 pb-2.5 mb-2.5 border-b border-border-subtle" id="compose-subject">
+                <span class="text-xs font-medium text-text-tertiary shrink-0">Subject:</span>
+                <span class="text-sm text-text-primary" id="subject-text"></span>
+              </div>
+              <div class="text-sm text-text-secondary leading-relaxed" style="min-height: 1.6em;">
+                <span id="typewriter-text"></span><span class="compose-cursor"></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /scene -->
+    </div><!-- /card-wrapper -->
+  </div><!-- /scene-wrapper -->
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       PLAYBACK CONTROLS
+       ═══════════════════════════════════════════════════════ -->
+  <div id="playback">
+    <button class="ctrl-btn" id="play-pause-btn" title="Play/Pause">
+      <svg id="icon-pause" width="14" height="14" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      <svg id="icon-play" width="14" height="14" viewBox="0 0 24 24" fill="white" style="display:none;"><polygon points="6,4 20,12 6,20"/></svg>
+    </button>
+    <div class="phase-dots">
+      <div class="phase-dot active" data-phase="0" title="Start"></div>
+      <div class="phase-dot" data-phase="1" title="Processing"></div>
+      <div class="phase-dot" data-phase="2" title="Results"></div>
+      <div class="phase-dot" data-phase="3" title="Engage"></div>
+    </div>
+    <span class="ctrl-label" id="phase-label">Start</span>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       ANIMATION ENGINE
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    /* ================================================================
+       CONFIGURATION
+       ================================================================ */
+    const PHASES = [
+      { id: 0, label: 'Start',      dwell: 2500 },
+      { id: 1, label: 'Processing', dwell: 5500 },
+      { id: 2, label: 'Results',    dwell: 5000 },
+      { id: 3, label: 'Engage',     dwell: 8000 },
+    ];
+
+    const LOOP_PAUSE = 1500;
+
+    const SUBJECT_TEXT = 'Introduction — Series A, AI/ML B2B SaaS';
+    const TYPEWRITER_TEXT = "Hi Mercedes, I'm reaching out because Lightspeed's focus on enterprise AI aligns closely with what we're building...";
+
+    /* ================================================================
+       STATE
+       ================================================================ */
+    let currentPhase = 0;
+    let playing = true;
+    let phaseTimer = null;
+    const phaseHeights = {};
+    const timers = [];
+
+    const scene = document.getElementById('scene');
+    const layers = PHASES.map((_, i) => document.getElementById('phase-' + i));
+
+    /* ================================================================
+       HELPERS
+       ================================================================ */
+    function delay(ms) {
+      return new Promise(resolve => {
+        const id = setTimeout(resolve, ms);
+        timers.push(id);
+      });
+    }
+
+    function pushTimer(fn, ms) {
+      const id = setTimeout(fn, ms);
+      timers.push(id);
+      return id;
+    }
+
+    function clearAllTimers() {
+      timers.forEach(t => clearTimeout(t));
+      timers.length = 0;
+    }
+
+    /* ================================================================
+       MEASURE PHASE HEIGHTS
+       Each phase is temporarily made relative to get scrollHeight.
+       Stagger items, compose fields, and typewriter text are
+       temporarily shown for accurate measurement.
+       ================================================================ */
+    function measurePhases() {
+      scene.style.transition = 'none';
+
+      PHASES.forEach(p => {
+        const el = layers[p.id];
+        el.classList.remove('active');
+        el.classList.add('measuring');
+
+        // Show stagger items at full size
+        el.querySelectorAll('.step-item, .stagger-item, .result-card, .profile-item').forEach(f => {
+          f.style.opacity = '1';
+          f.style.transform = 'none';
+        });
+
+        // Show compose fields for measurement
+        el.querySelectorAll('.compose-field').forEach(f => f.style.opacity = '1');
+
+        // Fill text content for height measurement
+        const tw = el.querySelector('#typewriter-text');
+        if (tw) tw.textContent = TYPEWRITER_TEXT;
+        const subj = el.querySelector('#subject-text');
+        if (subj) subj.textContent = SUBJECT_TEXT;
+
+        // Show match scores at target value for measurement
+        el.querySelectorAll('.match-score-pill[data-target]').forEach(s => {
+          const sv = s.querySelector('.score-value');
+          if (sv) sv.textContent = s.dataset.target + '%';
+        });
+
+        el.offsetHeight; // force layout
+        phaseHeights[p.id] = el.scrollHeight;
+
+        // Reset
+        if (tw) tw.textContent = '';
+        if (subj) subj.textContent = '';
+        el.querySelectorAll('.compose-field').forEach(f => f.style.opacity = '');
+        el.querySelectorAll('.match-score-pill[data-target]').forEach(s => {
+          const sv = s.querySelector('.score-value');
+          if (sv) sv.textContent = '0%';
+        });
+        el.querySelectorAll('.step-item, .stagger-item, .result-card, .profile-item').forEach(f => {
+          f.style.opacity = '';
+          f.style.transform = '';
+        });
+
+        el.classList.remove('measuring');
+      });
+
+      // Restore phase 0
+      layers[0].classList.add('active');
+      scene.style.height = phaseHeights[0] + 'px';
+
+      requestAnimationFrame(() => { scene.style.transition = ''; });
+    }
+
+    /* ================================================================
+       RESET ALL ANIMATIONS
+       ================================================================ */
+    function resetAllAnimations() {
+      clearAllTimers();
+
+      // Step items in Phase 1
+      document.querySelectorAll('#phase-1 .step-item').forEach(el => el.classList.remove('visible'));
+      document.querySelectorAll('#phase-1 .step-dot').forEach(el => {
+        el.classList.remove('done', 'active');
+        el.style.animation = '';
+      });
+      document.querySelectorAll('#phase-1 .step-text').forEach(el => {
+        el.style.color = '';
+        el.style.fontWeight = '';
+      });
+
+      // Stagger items in Phase 2
+      document.querySelectorAll('#phase-2 .stagger-item').forEach(el => el.classList.remove('visible'));
+      document.querySelectorAll('#phase-2 .result-card').forEach(el => el.classList.remove('visible'));
+
+      // Match scores back to 0
+      document.querySelectorAll('.match-score-pill[data-target] .score-value').forEach(el => {
+        el.textContent = '0%';
+      });
+
+      // Profile items in Phase 3
+      document.querySelectorAll('#phase-3 .profile-item').forEach(el => el.classList.remove('visible'));
+
+      // Compose fields
+      document.querySelectorAll('.compose-field').forEach(el => el.classList.remove('visible'));
+      const subjText = document.getElementById('subject-text');
+      if (subjText) subjText.textContent = '';
+
+      // Typewriter
+      const tw = document.getElementById('typewriter-text');
+      if (tw) tw.textContent = '';
+
+      // Button states
+      const btn0 = document.getElementById('find-matches-btn');
+      const arrow = document.getElementById('btn-arrow');
+      if (btn0) { btn0.style.transition = ''; btn0.style.filter = ''; btn0.style.transform = ''; }
+      if (arrow) { arrow.style.animation = ''; }
+
+      const btnAdd = document.getElementById('btn-add');
+      const btnAddIcon = document.getElementById('btn-add-icon');
+      if (btnAdd) { btnAdd.style.transition = ''; btnAdd.style.filter = ''; btnAdd.style.transform = ''; }
+      if (btnAddIcon) { btnAddIcon.style.animation = ''; }
+
+      const btnSend = document.getElementById('btn-send');
+      if (btnSend) { btnSend.style.transition = ''; btnSend.style.filter = ''; btnSend.style.transform = ''; btnSend.classList.remove('cta-glow'); }
+      const btnSendIcon = document.getElementById('btn-send-icon');
+      if (btnSendIcon) { btnSendIcon.style.animation = ''; }
+
+      // Card send-off
+      const cw = document.querySelector('.card-wrapper');
+      if (cw) {
+        cw.classList.remove('sending');
+        cw.style.animation = '';
+      }
+    }
+
+    /* ================================================================
+       DIRECTIONAL TRANSFORMS
+       Each phase enters/exits from a different direction for
+       "Powers of 10" directional journey.
+       ================================================================ */
+    function getExitTransform(from) {
+      if (from === 0) return 'translateY(-12px)';
+      if (from === 1) return 'translateX(-20px)';
+      if (from === 2) return 'translateY(-16px) scale(0.98)';
+      if (from === 3) return 'translateY(-16px) scale(0.98)';
+      return 'translateY(-12px)';
+    }
+
+    function getEnterTransform(to) {
+      if (to === 0) return 'translateY(8px)';
+      if (to === 1) return 'translateY(16px)';
+      if (to === 2) return 'translateX(30px)';
+      if (to === 3) return 'translateY(16px)';
+      return 'translateY(16px)';
+    }
+
+    /* ================================================================
+       PHASE TRANSITION ORCHESTRATOR
+       ================================================================ */
+    function transitionTo(targetPhase) {
+      if (targetPhase === currentPhase) return;
+
+      const outLayer = layers[currentPhase];
+      const inLayer = layers[targetPhase];
+
+      // 1. Set incoming layer's starting position
+      inLayer.style.transition = 'none';
+      inLayer.style.transform = getEnterTransform(targetPhase);
+      inLayer.offsetHeight; // force reflow
+      inLayer.style.transition = '';
+
+      // 2. SLOW: Scene height
+      scene.style.height = phaseHeights[targetPhase] + 'px';
+
+      // 3. MEDIUM: Exit outgoing phase
+      outLayer.style.transform = getExitTransform(currentPhase);
+      outLayer.classList.remove('active');
+
+      // 4. MEDIUM: Enter incoming phase (slight delay for overlapping motion)
+      pushTimer(() => {
+        inLayer.style.transform = '';
+        inLayer.classList.add('active');
+      }, 80);
+
+      // 5. FAST: Update controls
+      document.querySelectorAll('.phase-dot').forEach((dot, i) => {
+        dot.classList.remove('active', 'completed');
+        if (i === targetPhase) dot.classList.add('active');
+        else if (i < targetPhase) dot.classList.add('completed');
+      });
+      document.getElementById('phase-label').textContent = PHASES[targetPhase].label;
+
+      // 6. Cleanup after transition
+      pushTimer(() => {
+        outLayer.style.transform = '';
+      }, 700);
+
+      currentPhase = targetPhase;
+
+      // 7. Phase enter callbacks
+      onPhaseEnter(targetPhase);
+    }
+
+    /* ================================================================
+       PHASE ENTER CALLBACKS — stagger animations per phase
+       ================================================================ */
+    function onPhaseEnter(phase) {
+      if (phase === 1) runStepDots();
+      if (phase === 2) runResultStagger();
+      if (phase === 3) runProfileStagger();
+    }
+
+    /* ── Phase 1: Sequential step dots with dot-pop ── */
+    function runStepDots() {
+      const steps = document.querySelectorAll('#phase-1 .step-item');
+      const dots  = document.querySelectorAll('#phase-1 .step-dot');
+      const texts = document.querySelectorAll('#phase-1 .step-text');
+
+      // Step 0: fade in, done (green) with dot-pop
+      pushTimer(() => {
+        steps[0].classList.add('visible');
+        dots[0].classList.add('done');
+        texts[0].style.color = 'hsl(142, 71%, 40%)';
+      }, 400);
+
+      // Step 1: fade in, done (green) with dot-pop
+      pushTimer(() => {
+        steps[1].classList.add('visible');
+        dots[1].classList.add('done');
+        texts[1].style.color = 'hsl(142, 71%, 40%)';
+      }, 1000);
+
+      // Step 2: fade in, active (amber pulse)
+      pushTimer(() => {
+        steps[2].classList.add('visible');
+        dots[2].classList.add('active');
+        texts[2].style.color = 'hsl(var(--text-primary))';
+        texts[2].style.fontWeight = '500';
+      }, 1600);
+
+      // Step 3: fade in, pending (gray)
+      pushTimer(() => {
+        steps[3].classList.add('visible');
+      }, 2200);
+
+      // Step 2 completes → Step 3 activates
+      pushTimer(() => {
+        dots[2].classList.remove('active');
+        dots[2].classList.add('done');
+        texts[2].style.color = 'hsl(142, 71%, 40%)';
+        texts[2].style.fontWeight = '';
+        dots[3].classList.add('active');
+        texts[3].style.color = 'hsl(var(--text-primary))';
+        texts[3].style.fontWeight = '500';
+      }, 3200);
+
+      // Step 3 completes — all done
+      pushTimer(() => {
+        dots[3].classList.remove('active');
+        dots[3].classList.add('done');
+        texts[3].style.color = 'hsl(142, 71%, 40%)';
+        texts[3].style.fontWeight = '';
+      }, 4200);
+    }
+
+    /* ── Phase 2: Header → filters → cards stagger + score count-up ── */
+    function runResultStagger() {
+      const header  = document.querySelector('#phase-2 [data-stagger="header"]');
+      const filters = document.querySelector('#phase-2 [data-stagger="filters"]');
+      const cards   = document.querySelectorAll('#phase-2 .result-card');
+
+      pushTimer(() => header?.classList.add('visible'), 100);
+      pushTimer(() => filters?.classList.add('visible'), 250);
+
+      cards.forEach((card, i) => {
+        const cardDelay = 500 + i * 250;
+        pushTimer(() => card.classList.add('visible'), cardDelay);
+        // Count up match scores as each card appears
+        runScoreCountUp(i, cardDelay + 100);
+      });
+    }
+
+    /* ── Phase 3: Profile items stagger + sequential compose ── */
+    function runProfileStagger() {
+      const items = document.querySelectorAll('#phase-3 .profile-item');
+      items.forEach((el, i) => {
+        pushTimer(() => el.classList.add('visible'), i * 200);
+      });
+
+      // Sequential compose: To → Subject types → Body types → Send glows
+      // Starts after compose box appears (~800ms for 4 items at 200ms)
+      runComposeSequence(1000);
+    }
+
+    /* ================================================================
+       MATCH SCORE COUNT-UP
+       ================================================================ */
+    function runScoreCountUp(cardIndex, delayMs) {
+      const pills = document.querySelectorAll('#phase-2 .match-score-pill[data-target]');
+      const pill = pills[cardIndex];
+      if (!pill) return;
+
+      const sv = pill.querySelector('.score-value');
+      if (!sv) return;
+
+      const target = parseInt(pill.dataset.target);
+      const duration = 600;
+      const startTime = performance.now() + delayMs;
+
+      function tick(now) {
+        const elapsed = now - startTime;
+        if (elapsed < 0) {
+          requestAnimationFrame(tick);
+          return;
+        }
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease out quad
+        const eased = 1 - (1 - progress) * (1 - progress);
+        const current = Math.round(eased * target);
+        sv.textContent = current + '%';
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    /* ================================================================
+       SEQUENTIAL COMPOSE REVEAL (Phase 3)
+       Stagger: To field → Subject types → Body types → Send glows
+       ================================================================ */
+    function runComposeSequence(startDelay) {
+      const toField = document.getElementById('compose-to');
+      const subjField = document.getElementById('compose-subject');
+      const subjText = document.getElementById('subject-text');
+      const sendBtn = document.getElementById('btn-send');
+
+      if (!toField || !subjField) return;
+
+      // 1. Show To field
+      pushTimer(() => {
+        toField.classList.add('visible');
+      }, startDelay);
+
+      // 2. Show Subject field, then type subject
+      pushTimer(() => {
+        subjField.classList.add('visible');
+        let i = 0;
+        function typeSubject() {
+          if (i < SUBJECT_TEXT.length) {
+            subjText.textContent = SUBJECT_TEXT.slice(0, i + 1);
+            i++;
+            const char = SUBJECT_TEXT[i - 1];
+            const speed = char === ' ' ? 15 : char === ',' || char === '\u2014' ? 60 : 25;
+            pushTimer(typeSubject, speed);
+          } else {
+            // 3. After subject done, start body typewriter
+            pushTimer(() => runBodyTypewriter(sendBtn), 300);
+          }
+        }
+        pushTimer(typeSubject, 200);
+      }, startDelay + 400);
+    }
+
+    function runBodyTypewriter(sendBtn) {
+      const el = document.getElementById('typewriter-text');
+      if (!el) return;
+      el.textContent = '';
+      let i = 0;
+
+      function typeNext() {
+        if (i < TYPEWRITER_TEXT.length) {
+          el.textContent = TYPEWRITER_TEXT.slice(0, i + 1);
+          i++;
+          const char = TYPEWRITER_TEXT[i - 1];
+          const speed = char === ' ' ? 20 : char === ',' || char === '.' || char === "'" ? 70 : 28;
+          pushTimer(typeNext, speed);
+        } else {
+          // Typing done — pulse the Send button
+          if (sendBtn) {
+            pushTimer(() => sendBtn.classList.add('cta-glow'), 400);
+          }
+        }
+      }
+      typeNext();
+    }
+
+    /* ================================================================
+       INTERACTION ANIMATIONS
+       Button press with icon wiggle
+       ================================================================ */
+    const INTERACTIONS = {
+      // Phase 0: Find Matches button press
+      0: async () => {
+        const btn = document.getElementById('find-matches-btn');
+        const arrow = document.getElementById('btn-arrow');
+        if (!btn) return;
+
+        // Anticipation — subtle glow + scale up
+        btn.style.transition = 'filter 200ms, transform 200ms';
+        btn.style.filter = 'brightness(1.04)';
+        btn.style.transform = 'scale(1.02)';
+        await delay(220);
+
+        // Press — squash down
+        btn.style.transition = 'filter 180ms, transform 180ms';
+        btn.style.filter = 'brightness(0.97)';
+        btn.style.transform = 'scale(0.97)';
+
+        // Icon wiggle starts with press
+        if (arrow) arrow.style.animation = 'icon-wiggle 800ms cubic-bezier(0.22, 1, 0.36, 1)';
+        await delay(260);
+
+        // Release overshoot
+        btn.style.transition = 'filter 300ms cubic-bezier(0.22, 1, 0.36, 1), transform 300ms cubic-bezier(0.22, 1, 0.36, 1)';
+        btn.style.filter = 'brightness(1.01)';
+        btn.style.transform = 'scale(1.01)';
+        await delay(300);
+
+        // Settle
+        btn.style.transition = 'filter 250ms, transform 250ms';
+        btn.style.filter = '';
+        btn.style.transform = '';
+        await delay(280);
+
+        // Cleanup
+        if (arrow) arrow.style.animation = '';
+        btn.style.transition = '';
+      },
+
+      // Phase 2: Add 3 Investors button press
+      2: async () => {
+        const btn = document.getElementById('btn-add');
+        const icon = document.getElementById('btn-add-icon');
+        if (!btn) return;
+
+        btn.style.transition = 'filter 200ms, transform 200ms';
+        btn.style.filter = 'brightness(1.06)';
+        btn.style.transform = 'scale(1.02)';
+        await delay(220);
+
+        btn.style.transition = 'filter 180ms, transform 180ms';
+        btn.style.filter = 'brightness(0.95)';
+        btn.style.transform = 'scale(0.97)';
+        if (icon) icon.style.animation = 'icon-wiggle 800ms cubic-bezier(0.22, 1, 0.36, 1)';
+        await delay(260);
+
+        btn.style.transition = 'filter 300ms cubic-bezier(0.22, 1, 0.36, 1), transform 300ms cubic-bezier(0.22, 1, 0.36, 1)';
+        btn.style.filter = 'brightness(1.01)';
+        btn.style.transform = 'scale(1.01)';
+        await delay(300);
+
+        btn.style.transition = 'filter 250ms, transform 250ms';
+        btn.style.filter = '';
+        btn.style.transform = '';
+        await delay(280);
+
+        if (icon) icon.style.animation = '';
+        btn.style.transition = '';
+      },
+
+      // Phase 3: Send Introduction button press + card send-off
+      3: async () => {
+        const btn = document.getElementById('btn-send');
+        const icon = document.getElementById('btn-send-icon');
+        if (!btn) return;
+
+        // Stop the glow, press the button
+        btn.classList.remove('cta-glow');
+        btn.style.transition = 'filter 200ms, transform 200ms';
+        btn.style.filter = 'brightness(1.06)';
+        btn.style.transform = 'scale(1.02)';
+        await delay(220);
+
+        btn.style.transition = 'filter 180ms, transform 180ms';
+        btn.style.filter = 'brightness(0.95)';
+        btn.style.transform = 'scale(0.97)';
+        if (icon) icon.style.animation = 'icon-wiggle 800ms cubic-bezier(0.22, 1, 0.36, 1)';
+        await delay(260);
+
+        btn.style.transition = 'filter 300ms cubic-bezier(0.22, 1, 0.36, 1), transform 300ms cubic-bezier(0.22, 1, 0.36, 1)';
+        btn.style.filter = '';
+        btn.style.transform = '';
+        await delay(400);
+
+        if (icon) icon.style.animation = '';
+        btn.style.transition = '';
+
+        // Card flies away
+        document.querySelector('.card-wrapper').classList.add('sending');
+        await delay(950);
+      },
+    };
+
+    /* ================================================================
+       PLAYBACK ENGINE
+       ================================================================ */
+    function scheduleNext() {
+      if (!playing) return;
+      clearTimeout(phaseTimer);
+
+      const dwell = PHASES[currentPhase].dwell;
+      const interaction = INTERACTIONS[currentPhase];
+      const leadTime = interaction ? 1200 : 0;
+
+      phaseTimer = setTimeout(async () => {
+        if (!playing) return;
+
+        const next = currentPhase + 1;
+        if (next < PHASES.length) {
+          // Run interaction before leaving this phase
+          if (interaction) await interaction();
+          if (!playing) return;
+          transitionTo(next);
+          scheduleNext();
+        } else {
+          // End of sequence — loop pause then restart
+          setTimeout(() => {
+            if (playing) restart();
+          }, LOOP_PAUSE);
+        }
+      }, dwell - leadTime);
+    }
+
+    function togglePlay() {
+      playing = !playing;
+      document.getElementById('icon-pause').style.display = playing ? '' : 'none';
+      document.getElementById('icon-play').style.display = playing ? 'none' : '';
+      if (playing) scheduleNext();
+      else clearTimeout(phaseTimer);
+    }
+
+    function jumpTo(phase) {
+      clearTimeout(phaseTimer);
+      resetAllAnimations();
+      transitionTo(phase);
+      if (playing) scheduleNext();
+    }
+
+    function restart() {
+      clearTimeout(phaseTimer);
+      resetAllAnimations();
+      if (currentPhase !== 0) transitionTo(0);
+      if (playing) scheduleNext();
+    }
+
+    /* ================================================================
+       CONTROLS — wire up buttons and dots
+       ================================================================ */
+    document.getElementById('play-pause-btn').addEventListener('click', togglePlay);
+
+    document.querySelectorAll('.phase-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        const target = parseInt(dot.dataset.phase);
+        if (target !== currentPhase) jumpTo(target);
+      });
+    });
+
+    /* ================================================================
+       EMBED MODE
+       ================================================================ */
+    const isEmbed = new URLSearchParams(window.location.search).has('embed');
+
+    function applyEmbedMode() {
+      if (!isEmbed) return;
+      document.body.classList.add('embed');
+    }
+
+    /* ================================================================
+       BOOT
+       ================================================================ */
+    window.addEventListener('DOMContentLoaded', () => {
+      applyEmbedMode();
+      // Brief delay for Tailwind CDN + fonts to render
+      setTimeout(() => {
+        measurePhases();
+        setTimeout(() => scheduleNext(), 400);
+      }, 200);
+    });
+  </script>
+
+</body>
+</html>

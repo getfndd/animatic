@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editorial Personality — Reference</title>
+<link rel="stylesheet" href="motion.css">
+<style>
+  /* ================================================================
+     REFERENCE PROTOTYPE: Product Search Demo
+
+     Demonstrates all editorial signature techniques:
+     - Phase 0: Hero with ambient gradient + blur-to-sharp reveal
+     - Phase 1: Feature tabs with slide stagger + tab switching
+     - Phase 2: Search with content cycling + typewriter
+     - Phase 3: Results with count-up numbers + stagger reveal
+
+     Generic product UI — not tied to any specific product.
+     ================================================================ */
+
+  /* -- Phase 0: Hero -- */
+  .hero-section {
+    text-align: center;
+    padding: 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-section h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ed-text-primary);
+    margin: 0 0 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-section p {
+    font-size: 14px;
+    color: var(--ed-text-secondary);
+    margin: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-stat {
+    text-align: center;
+  }
+
+  .hero-stat .value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--ed-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hero-stat .label {
+    font-size: 12px;
+    color: var(--ed-text-tertiary);
+    margin-top: 4px;
+  }
+
+  /* -- Phase 1: Features -- */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 4px 0;
+  }
+
+  .feature-card {
+    padding: 16px;
+    background: var(--ed-surface-secondary);
+    border-radius: var(--ed-radius-md);
+    border: 1px solid transparent;
+    transition: border-color var(--ed-fast) var(--ed-ease-out);
+  }
+
+  .feature-card:hover {
+    border-color: var(--ed-border-subtle);
+  }
+
+  .feature-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--ed-radius-sm);
+    background: var(--ed-accent-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+
+  .feature-icon svg {
+    width: 16px;
+    height: 16px;
+    color: var(--ed-accent);
+  }
+
+  .feature-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ed-text-primary);
+    margin: 0 0 4px;
+  }
+
+  .feature-card p {
+    font-size: 12px;
+    color: var(--ed-text-tertiary);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* -- Phase 2: Search -- */
+  .search-demo {
+    padding: 8px 0;
+  }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--ed-surface-secondary);
+    border: 1px solid var(--ed-border-subtle);
+    border-radius: var(--ed-radius-md);
+    margin-bottom: 16px;
+    transition: border-color var(--ed-medium) var(--ed-ease-out);
+  }
+
+  .search-bar.focused {
+    border-color: var(--ed-accent);
+  }
+
+  .search-bar svg {
+    width: 16px;
+    height: 16px;
+    color: var(--ed-text-quaternary);
+    flex-shrink: 0;
+  }
+
+  .search-bar .search-text {
+    font-size: 14px;
+    color: var(--ed-text-primary);
+    flex: 1;
+  }
+
+  .cycle-label {
+    font-size: 13px;
+    color: var(--ed-text-tertiary);
+    margin-bottom: 12px;
+  }
+
+  .cycle-display {
+    position: relative;
+    height: 20px;
+    overflow: hidden;
+  }
+
+  .suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .chip {
+    padding: 6px 12px;
+    background: var(--ed-surface-secondary);
+    border: 1px solid var(--ed-border-subtle);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--ed-text-secondary);
+    transition: background var(--ed-fast) var(--ed-ease-out),
+                border-color var(--ed-fast) var(--ed-ease-out);
+  }
+
+  .chip.active {
+    background: var(--ed-accent-bg);
+    border-color: var(--ed-accent);
+    color: var(--ed-accent-text);
+  }
+
+  /* -- Phase 3: Results -- */
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .results-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ed-text-primary);
+    margin: 0;
+  }
+
+  .result-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    border-radius: var(--ed-radius-sm);
+    transition: background var(--ed-fast) var(--ed-ease-out);
+  }
+
+  .result-item:hover {
+    background: var(--ed-surface-hover);
+  }
+
+  .result-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--ed-radius-sm);
+    background: var(--ed-surface-secondary);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .result-thumb svg {
+    width: 20px;
+    height: 20px;
+    color: var(--ed-text-quaternary);
+  }
+
+  .result-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .result-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ed-text-primary);
+    margin-bottom: 2px;
+  }
+
+  .result-meta {
+    font-size: 12px;
+    color: var(--ed-text-tertiary);
+  }
+
+  .result-score {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ed-accent-text);
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  /* -- Phosphor icon helpers -- */
+  svg.ph {
+    display: inline-block;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div id="scene" class="scene">
+  <div id="card" class="card">
+
+    <!-- Header -->
+    <div id="card-header" class="card-header">
+      <div id="title-block" class="title-block">
+        <h2 id="phase-title">Product Search</h2>
+        <div id="phase-subtitle" class="subtitle">Find what you need, instantly</div>
+      </div>
+      <div class="badge badge--accent">
+        <svg class="ph" width="12" height="12" viewBox="0 0 256 256"><path d="M232,128a104,104,0,1,1-104-104A104.11,104.11,0,0,1,232,128Z" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path d="M128,80v48" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><circle cx="128" cy="168" r="8" fill="currentColor"/></svg>
+        Live Demo
+      </div>
+    </div>
+
+    <!-- Phase container -->
+    <div id="phase-container" class="phase-container">
+
+      <!-- Phase 0: Hero with ambient gradient + blur reveal + count-up -->
+      <div id="phase-0" class="phase active">
+        <div class="hero-section">
+          <div class="ambient-gradient"></div>
+          <h1 class="blur-reveal" data-blur-group="hero">Smart Search</h1>
+          <p class="blur-reveal" data-blur-group="hero">AI-powered search across all your content</p>
+          <div class="hero-stats">
+            <div class="hero-stat blur-reveal" data-blur-group="hero">
+              <div class="value" data-count-target="2847" data-count-suffix="">0</div>
+              <div class="label">Documents indexed</div>
+            </div>
+            <div class="hero-stat blur-reveal" data-blur-group="hero">
+              <div class="value" data-count-target="94" data-count-suffix="%">0</div>
+              <div class="label">Relevance accuracy</div>
+            </div>
+            <div class="hero-stat blur-reveal" data-blur-group="hero">
+              <div class="value" data-count-target="0.3" data-count-suffix="s" data-count-decimals="1">0</div>
+              <div class="label">Avg response time</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 1: Feature grid with slide stagger -->
+      <div id="phase-1" class="phase">
+        <div class="features-grid">
+          <div class="feature-card slide-enter" data-stagger-group="features">
+            <div class="feature-icon">
+              <svg class="ph" viewBox="0 0 256 256"><circle cx="116" cy="116" r="84" fill="none" stroke="currentColor" stroke-width="16"/><line x1="175.4" y1="175.4" x2="224" y2="224" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/></svg>
+            </div>
+            <h3>Semantic Search</h3>
+            <p>Find by meaning, not just keywords. Understands context and intent.</p>
+          </div>
+          <div class="feature-card slide-enter" data-stagger-group="features">
+            <div class="feature-icon">
+              <svg class="ph" viewBox="0 0 256 256"><rect x="48" y="48" width="160" height="160" rx="8" fill="none" stroke="currentColor" stroke-width="16"/><line x1="96" y1="112" x2="160" y2="112" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/><line x1="96" y1="144" x2="160" y2="144" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/></svg>
+            </div>
+            <h3>Document Analysis</h3>
+            <p>Automatically extracts key information from PDFs, docs, and more.</p>
+          </div>
+          <div class="feature-card slide-enter" data-stagger-group="features">
+            <div class="feature-icon">
+              <svg class="ph" viewBox="0 0 256 256"><polyline points="64 88 16 128 64 168" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><polyline points="192 88 240 128 192 168" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><line x1="160" y1="40" x2="96" y2="216" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/></svg>
+            </div>
+            <h3>API Access</h3>
+            <p>Integrate search into your workflow with a simple REST API.</p>
+          </div>
+          <div class="feature-card slide-enter" data-stagger-group="features">
+            <div class="feature-icon">
+              <svg class="ph" viewBox="0 0 256 256"><path d="M40,56V200a8,8,0,0,0,8,8H216" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><polyline points="216 96 160 152 120 120 72 168" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Analytics</h3>
+            <p>Track search patterns and surface content gaps automatically.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2: Search with content cycling -->
+      <div id="phase-2" class="phase">
+        <div class="search-demo">
+          <div class="search-bar" id="search-bar">
+            <svg class="ph" viewBox="0 0 256 256"><circle cx="116" cy="116" r="84" fill="none" stroke="currentColor" stroke-width="16"/><line x1="175.4" y1="175.4" x2="224" y2="224" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/></svg>
+            <span class="search-text typewriter-text" data-text="quarterly revenue projections 2026"></span>
+          </div>
+          <div class="cycle-label">Try searching for:</div>
+          <div class="cycle-display cycle-container">
+            <span class="cycle-item active" data-cycle-group="queries" style="color: var(--ed-text-secondary); font-size: 14px; font-weight: 500;">quarterly revenue projections</span>
+            <span class="cycle-item" data-cycle-group="queries" style="color: var(--ed-text-secondary); font-size: 14px; font-weight: 500;">board meeting minutes from March</span>
+            <span class="cycle-item" data-cycle-group="queries" style="color: var(--ed-text-secondary); font-size: 14px; font-weight: 500;">employee handbook vacation policy</span>
+            <span class="cycle-item" data-cycle-group="queries" style="color: var(--ed-text-secondary); font-size: 14px; font-weight: 500;">series A term sheet comparisons</span>
+          </div>
+          <div class="suggestion-chips" style="margin-top: 20px;">
+            <span class="chip slide-enter" data-stagger-group="chips">Financial Reports</span>
+            <span class="chip slide-enter active" data-stagger-group="chips">Revenue</span>
+            <span class="chip slide-enter" data-stagger-group="chips">Q4 2025</span>
+            <span class="chip slide-enter" data-stagger-group="chips">Projections</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3: Results with stagger + score count-up -->
+      <div id="phase-3" class="phase">
+        <div class="results-header">
+          <h3>
+            <span data-count-target="12" class="count-up" style="color: var(--ed-accent-text);">0</span>
+            results found
+          </h3>
+          <span class="badge badge--success">
+            <svg class="ph" width="12" height="12" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Relevant
+          </span>
+        </div>
+
+        <div class="result-item slide-enter" data-stagger-group="results">
+          <div class="result-thumb">
+            <svg class="ph" viewBox="0 0 256 256"><path d="M200,224H56a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h96l56,56V216A8,8,0,0,1,200,224Z" fill="none" stroke="currentColor" stroke-width="16" stroke-linejoin="round"/><polyline points="152 32 152 88 208 88" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="result-content">
+            <div class="result-title">Q4 2025 Revenue Report.pdf</div>
+            <div class="result-meta">Finance / Reports &middot; Updated 2 days ago</div>
+          </div>
+          <div class="result-score" data-count-target="97" data-count-suffix="%" style="color: var(--ed-accent-text);">0</div>
+        </div>
+
+        <div class="result-item slide-enter" data-stagger-group="results">
+          <div class="result-thumb">
+            <svg class="ph" viewBox="0 0 256 256"><rect x="32" y="48" width="192" height="160" rx="8" fill="none" stroke="currentColor" stroke-width="16"/><line x1="32" y1="96" x2="224" y2="96" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/></svg>
+          </div>
+          <div class="result-content">
+            <div class="result-title">2026 Projections — Board Deck</div>
+            <div class="result-meta">Strategy / Presentations &middot; Updated 1 week ago</div>
+          </div>
+          <div class="result-score" data-count-target="92" data-count-suffix="%" style="color: var(--ed-accent-text);">0</div>
+        </div>
+
+        <div class="result-item slide-enter" data-stagger-group="results">
+          <div class="result-thumb">
+            <svg class="ph" viewBox="0 0 256 256"><path d="M40,56V200a8,8,0,0,0,8,8H216" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><polyline points="216 96 160 152 120 120 72 168" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="result-content">
+            <div class="result-title">Revenue Trend Analysis</div>
+            <div class="result-meta">Finance / Analytics &middot; Updated 3 days ago</div>
+          </div>
+          <div class="result-score" data-count-target="88" data-count-suffix="%" style="color: var(--ed-accent-text);">0</div>
+        </div>
+
+        <div class="result-item slide-enter" data-stagger-group="results">
+          <div class="result-thumb">
+            <svg class="ph" viewBox="0 0 256 256"><path d="M200,224H56a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h96l56,56V216A8,8,0,0,1,200,224Z" fill="none" stroke="currentColor" stroke-width="16" stroke-linejoin="round"/><polyline points="152 32 152 88 208 88" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="result-content">
+            <div class="result-title">ARR Growth Model — Series A</div>
+            <div class="result-meta">Fundraising / Models &middot; Updated 2 weeks ago</div>
+          </div>
+          <div class="result-score" data-count-target="84" data-count-suffix="%" style="color: var(--ed-accent-text);">0</div>
+        </div>
+      </div>
+
+    </div><!-- /phase-container -->
+
+    <!-- Footers per phase -->
+    <div id="footer-0" class="card-footer active">
+      <span>Powered by AI</span>
+      <span>2,847 documents</span>
+    </div>
+    <div id="footer-1" class="card-footer">
+      <span>4 core capabilities</span>
+      <span>Enterprise ready</span>
+    </div>
+    <div id="footer-2" class="card-footer">
+      <span>Natural language queries</span>
+      <span>Semantic matching</span>
+    </div>
+    <div id="footer-3" class="card-footer">
+      <span>12 results &middot; 0.3s</span>
+      <span>Sorted by relevance</span>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /scene -->
+
+<!-- Playback controls -->
+<div id="playback" class="playback-bar">
+  <button id="play-btn" class="play-btn" onclick="togglePlay()">
+    <svg id="icon-pause" width="14" height="14" viewBox="0 0 256 256"><rect x="156" y="48" width="36" height="160" rx="4" fill="currentColor"/><rect x="64" y="48" width="36" height="160" rx="4" fill="currentColor"/></svg>
+    <svg id="icon-play" width="14" height="14" viewBox="0 0 256 256" style="display:none;"><path d="M72,39.9V216.1a8,8,0,0,0,12.15,6.69l144.08-88.1a7.82,7.82,0,0,0,0-13.38L84.15,33.21A8,8,0,0,0,72,39.9Z" fill="currentColor"/></svg>
+  </button>
+  <div id="phase-dots" class="phase-dots">
+    <span class="phase-dot active" data-phase="0" onclick="jumpTo(0)"></span>
+    <span class="phase-dot" data-phase="1" onclick="jumpTo(1)"></span>
+    <span class="phase-dot" data-phase="2" onclick="jumpTo(2)"></span>
+    <span class="phase-dot" data-phase="3" onclick="jumpTo(3)"></span>
+  </div>
+  <span id="phase-label" class="phase-label">Overview</span>
+</div>
+
+<script src="engine.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const engine = new EditorialEngine({
+      phases: [
+        { id: 0, label: 'Overview',  dwell: 3500 },
+        { id: 1, label: 'Features',  dwell: 3000 },
+        { id: 2, label: 'Search',    dwell: 4000 },
+        { id: 3, label: 'Results',   dwell: 3500 },
+      ],
+      titles: ['Product Search', 'Features', 'Smart Search', 'Results'],
+      subtitles: [
+        'Find what you need, instantly',
+        'Built for modern teams',
+        'Natural language queries',
+        'Ranked by relevance',
+      ],
+      onPhaseEnter: {
+        0: (eng) => {
+          eng.runBlurReveal('hero', 250);
+          eng.pushTimer(() => eng.runCountUp(800), 600);
+        },
+        1: (eng) => {
+          eng.runSlideStagger('features', 120);
+        },
+        2: (eng) => {
+          eng.runTypewriter('#phase-2 .typewriter-text', 300);
+          eng.runSlideStagger('chips', 100);
+          eng.runContentCycle('queries', 2800);
+          // Focus the search bar
+          eng.pushTimer(() => {
+            document.getElementById('search-bar').classList.add('focused');
+          }, 200);
+        },
+        3: (eng) => {
+          eng.runSlideStagger('results', 150);
+          eng.pushTimer(() => eng.runCountUp(600), 400);
+        },
+      },
+    });
+
+    engine.exposeGlobals();
+    engine.boot();
+  });
+</script>
+
+</body>
+</html>

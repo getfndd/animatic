@@ -1,0 +1,22 @@
+{
+  "id": "2026-02-15-recipient-picker",
+  "name": "Recipient Picker Redesign",
+  "description": "Three approaches to investor updates recipient selection: audience-first mode toggle, group toggle cards, and email-style token field with smart autocomplete. All include NDA warnings, already-sent indicators, and external recipient support.",
+  "prompt": "/prototype Investor Updates recipient picker redesign --options 3",
+  "fidelity": "concept",
+  "chrome": "minimal",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Original exploration: grouped contacts with checkboxes and selected chips bar" },
+    { "file": "concept-v2.html", "notes": "Option A — Audience-First: Two-mode choice (All contacts vs Custom) inspired by email composer v2, with NDA warning banner and collapsible groups" },
+    { "file": "concept-v3.html", "notes": "Option B — Group Toggle Cards: Groups as first-class cards with toggle switches, avatar stacks, expand-to-override, NDA warnings at group level" },
+    { "file": "concept-v4.html", "notes": "Option C — Token Field: Gmail/Linear-style To field with dark group tokens and light individual tokens, smart autocomplete with groups-first dropdown, NDA warning bar" },
+    { "file": "concept-v5.html", "notes": "In-Editor Context: Full two-column editor layout with all 3 options + current design shown in the actual sidebar context (Preflight → Recipients → Delivery). Tab switcher to compare." },
+    { "file": "concept-v6.html", "notes": "Custom Groups Integration: User-created investor groups (from Investors table) appear as 'Your Groups' above auto-computed 'Smart Groups' in the token field dropdown. Custom groups get colored token chips (blue-100/blue-700), smart groups get dark inverse chips. Shows overlap handling, 'via group' attribution, and member firm names in subtitles." }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-tertiary", "--surface-inverse", "--text-primary", "--text-secondary", "--text-tertiary", "--text-inverse", "--border-default", "--border-subtle", "--border-strong", "--status-success", "--status-success-bg", "--status-warning", "--status-warning-bg"],
+    "presets": [],
+    "patterns": ["flat-row-hover", "avatar-colors-200-shade", "card-row-hover", "token-chips", "nda-warning"]
+  },
+  "createdAt": "2026-02-15T13:00:00Z"
+}

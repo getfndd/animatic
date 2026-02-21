@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fundraise Overview — Direction F: Advisor-Led Category Dashboard</title>
+  <style>
+    :root {
+      --surface-primary: #ffffff;
+      --surface-secondary: #f5f5f4;
+      --surface-tertiary: #e7e5e4;
+      --surface-hover: #f5f5f4;
+      --text-primary: #1c1917;
+      --text-secondary: #57534e;
+      --text-tertiary: #a8a29e;
+      --text-inverse: #fafaf9;
+      --border-default: #e7e5e4;
+      --border-subtle: #f5f5f4;
+      --status-success: #10b981;
+      --status-warning: #f59e0b;
+      --status-error: #ef4444;
+      --status-info: #6366f1;
+      --radius-structural: 8px;
+      --radius-grouped: 6px;
+      --radius-interactive: 4px;
+      --radius-pill: 9999px;
+      --sidebar-width: 232px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text-primary); background: var(--surface-secondary);
+      line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    .app-shell { display: flex; min-height: 100vh; }
+
+    /* State visibility */
+    .state-1 .hide-1 { display: none !important; }
+    .state-2 .hide-2 { display: none !important; }
+    .state-3 .hide-3 { display: none !important; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-width); background: var(--surface-primary);
+      border-right: 1px solid var(--border-default);
+      display: flex; flex-direction: column; flex-shrink: 0;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+    }
+    .sidebar-logo { padding: 20px 20px 16px; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+    .sidebar-nav { flex: 1; padding: 0 8px; display: flex; flex-direction: column; gap: 1px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 7px 12px;
+      border-radius: var(--radius-interactive); font-size: 13.5px; font-weight: 450;
+      color: var(--text-secondary); cursor: pointer; transition: background-color 140ms, color 140ms;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .nav-item.active { background: var(--surface-secondary); color: var(--text-primary); font-weight: 550; }
+    .nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.65; }
+    .nav-item.active .nav-icon { opacity: 1; }
+    .sidebar-section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); padding: 16px 12px 4px; }
+    .sidebar-workspace { padding: 16px 20px; border-top: 1px solid var(--border-default); }
+    .workspace-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 4px; }
+    .workspace-name { font-size: 13px; font-weight: 550; }
+
+    /* ── Main ── */
+    .main-area { flex: 1; margin-left: var(--sidebar-width); }
+
+    /* Page header */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px 0; max-width: 980px;
+    }
+    .page-title-area { display: flex; align-items: center; gap: 10px; }
+    .page-icon { width: 32px; height: 32px; border-radius: var(--radius-grouped); background: var(--surface-secondary); display: flex; align-items: center; justify-content: center; }
+    .page-icon svg { width: 16px; height: 16px; color: var(--text-secondary); }
+    .page-title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+    .page-actions { display: flex; align-items: center; gap: 8px; }
+    .action-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: var(--radius-pill);
+      border: 1px solid var(--border-default); background: var(--surface-primary);
+      font-size: 12.5px; font-weight: 500; color: var(--text-secondary);
+      cursor: pointer; transition: border-color 140ms, background-color 140ms;
+    }
+    .action-btn:hover { border-color: var(--text-tertiary); background: var(--surface-hover); }
+    .action-btn svg { width: 14px; height: 14px; }
+    .action-btn.advisor-btn { font-weight: 550; color: var(--text-primary); }
+
+    /* Tab bar */
+    .tab-bar { display: flex; gap: 2px; padding: 14px 40px 0; max-width: 980px; }
+    .tab {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: var(--radius-pill);
+      border: 1px solid transparent; background: none;
+      font-size: 13px; font-weight: 450; color: var(--text-secondary);
+      cursor: pointer; transition: all 140ms;
+    }
+    .tab:hover { background: var(--surface-hover); }
+    .tab.active { border-color: var(--border-default); background: var(--surface-primary); font-weight: 550; color: var(--text-primary); }
+    .tab svg { width: 15px; height: 15px; opacity: 0.6; }
+    .tab.active svg { opacity: 1; }
+
+    /* Content flow */
+    .content-flow {
+      max-width: 980px; padding: 20px 40px 80px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    /* ── Advisor Briefing Card ── */
+    .advisor-card {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-structural);
+      padding: 22px 24px;
+    }
+    .advisor-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .advisor-avatar {
+      width: 28px; height: 28px; border-radius: var(--radius-pill); flex-shrink: 0; overflow: hidden;
+    }
+    .advisor-avatar svg { width: 100%; height: 100%; }
+    .advisor-name { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+    .advisor-body { padding-left: 38px; }
+    .advisor-headline { font-size: 15px; font-weight: 600; margin-bottom: 6px; line-height: 1.35; }
+    .advisor-text { font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; max-width: 600px; }
+    .advisor-text strong { font-weight: 600; color: var(--text-primary); }
+    .advisor-cta {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 14px;
+      padding: 7px 14px; border-radius: var(--radius-pill);
+      background: var(--text-primary); color: var(--text-inverse);
+      font-size: 13px; font-weight: 550; text-decoration: none;
+      transition: opacity 140ms; border: none; cursor: pointer;
+    }
+    .advisor-cta:hover { opacity: 0.85; }
+    .advisor-cta svg { width: 14px; height: 14px; }
+    .advisor-notice {
+      display: flex; align-items: flex-start; gap: 8px; margin-top: 14px;
+      padding: 8px 10px; background: var(--surface-secondary);
+      border-radius: var(--radius-interactive);
+    }
+    .advisor-notice-icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--status-info); margin-top: 1px; }
+    .advisor-notice-text { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+    .advisor-notice-text a { color: var(--status-info); font-weight: 550; text-decoration: none; }
+    .advisor-notice-text a:hover { text-decoration: underline; }
+
+    /* Advisor attention items (State 3) */
+    .advisor-items { display: flex; flex-direction: column; gap: 10px; margin-top: 2px; }
+    .advisor-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 12px; background: var(--surface-secondary);
+      border-radius: var(--radius-grouped);
+    }
+    .advisor-item-icon {
+      width: 24px; height: 24px; border-radius: var(--radius-interactive);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+    }
+    .advisor-item-icon svg { width: 13px; height: 13px; }
+    .advisor-item-icon.warn { background: #fef3c7; color: #d97706; }
+    .advisor-item-icon.alert { background: #fef2f2; color: #dc2626; }
+    .advisor-item-body { flex: 1; min-width: 0; }
+    .advisor-item-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
+    .advisor-item-link {
+      font-size: 12px; font-weight: 550; color: var(--status-info);
+      text-decoration: none; margin-top: 3px; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .advisor-item-link:hover { text-decoration: underline; }
+    .advisor-item-link svg { width: 12px; height: 12px; }
+    .advisor-open {
+      display: inline-flex; align-items: center; gap: 5px; margin-top: 14px;
+      font-size: 12px; font-weight: 550; color: var(--status-info);
+      text-decoration: none; transition: opacity 140ms;
+    }
+    .advisor-open:hover { opacity: 0.75; }
+    .advisor-open svg { width: 13px; height: 13px; }
+
+    /* ── Category Cards ── */
+    .category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .cat-card {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-structural);
+      overflow: hidden;
+    }
+    .cat-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 16px 20px 0;
+    }
+    .cat-icon {
+      width: 32px; height: 32px; border-radius: var(--radius-grouped);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      background: var(--surface-secondary); color: var(--text-secondary);
+    }
+    .cat-icon svg { width: 16px; height: 16px; }
+    .cat-title-area { flex: 1; min-width: 0; }
+    .cat-title { font-size: 14px; font-weight: 600; }
+    .cat-subtitle { font-size: 12px; color: var(--text-tertiary); }
+    .cat-badge {
+      font-size: 11px; font-weight: 550; padding: 2px 8px;
+      border-radius: var(--radius-interactive); display: inline-flex; align-items: center; gap: 4px;
+      white-space: nowrap;
+    }
+    .cat-badge svg { width: 12px; height: 12px; }
+    .cat-badge.strong { background: #ecfdf5; color: #059669; }
+    .cat-badge.building { background: #f5f5f4; color: #57534e; }
+    .cat-badge.not-started { background: #f5f5f4; color: #a8a29e; }
+    .cat-badge.attention { background: #fffbeb; color: #d97706; }
+    .cat-badge.behind { background: #fef2f2; color: #dc2626; }
+
+    .cat-body { padding: 14px 20px 16px; }
+
+    /* Metric rows */
+    .metric-rows { display: flex; flex-direction: column; }
+    .metric-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0;
+    }
+    .metric-row:not(:last-child) { border-bottom: 1px solid var(--border-subtle); }
+    .metric-label { font-size: 13px; color: var(--text-secondary); }
+    .metric-value { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+    .metric-delta { font-size: 11px; font-weight: 550; margin-left: 6px; }
+    .metric-delta.up { color: var(--status-success); }
+    .metric-delta.down { color: var(--status-error); }
+    .metric-value.success { color: var(--status-success); }
+    .metric-value.error { color: var(--status-error); }
+    .metric-target { font-size: 11px; color: var(--text-tertiary); margin-left: 4px; font-weight: 400; }
+
+    /* Insight row */
+    .insight-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 10px 12px; margin-top: 10px;
+      background: var(--surface-secondary); border-radius: var(--radius-interactive);
+    }
+    .insight-icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-tertiary); margin-top: 1px; }
+    .insight-text { font-size: 12px; color: var(--text-secondary); line-height: 1.4; flex: 1; }
+    .insight-link {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;
+      font-size: 12px; font-weight: 550; color: var(--status-info);
+      text-decoration: none;
+    }
+    .insight-link:hover { text-decoration: underline; }
+    .insight-link svg { width: 12px; height: 12px; }
+
+    /* Empty category content */
+    .cat-empty {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      padding: 12px 0 4px;
+    }
+    .cat-empty-icon { color: var(--text-tertiary); margin-bottom: 8px; }
+    .cat-empty-icon svg { width: 28px; height: 28px; }
+    .cat-empty-text { font-size: 12.5px; color: var(--text-tertiary); max-width: 200px; }
+    .cat-empty-link {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;
+      font-size: 12px; font-weight: 550; color: var(--status-info);
+      text-decoration: none;
+    }
+    .cat-empty-link:hover { text-decoration: underline; }
+    .cat-empty-link svg { width: 12px; height: 12px; }
+
+    /* ── Deal Docs (State 3) ── */
+    .deal-docs {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-structural);
+      padding: 18px 20px;
+    }
+    .deal-docs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .deal-docs-title-area { display: flex; align-items: center; gap: 10px; }
+    .deal-docs-icon { width: 32px; height: 32px; border-radius: var(--radius-grouped); background: var(--surface-secondary); display: flex; align-items: center; justify-content: center; }
+    .deal-docs-icon svg { width: 16px; height: 16px; color: var(--text-secondary); }
+    .deal-docs-title { font-size: 14px; font-weight: 600; }
+    .deal-docs-subtitle { font-size: 12px; color: var(--text-tertiary); }
+    .deal-docs-stats { display: flex; align-items: center; gap: 14px; font-size: 12px; }
+    .deal-docs-stat { display: flex; align-items: center; gap: 4px; }
+    .deal-docs-dot { width: 6px; height: 6px; border-radius: var(--radius-pill); }
+    .deal-docs-dot.signed { background: var(--status-success); }
+    .deal-docs-dot.pending { background: var(--status-error); }
+    .deal-docs-bar { height: 6px; border-radius: 3px; background: var(--surface-tertiary); overflow: hidden; margin-bottom: 6px; }
+    .deal-docs-fill { height: 100%; border-radius: 3px; background: var(--status-success); width: 75%; }
+    .deal-docs-bar-label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 12px; }
+    .deal-docs-followup-label { font-size: 11px; font-weight: 550; color: var(--text-secondary); margin-bottom: 6px; }
+    .deal-docs-followup { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .deal-docs-followup-item { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+    .deal-docs-followup-item .deal-docs-dot { width: 5px; height: 5px; }
+    .deal-docs-followup-item span { color: var(--text-secondary); }
+    .deal-docs-followup-item .days { color: var(--text-tertiary); }
+    .deal-docs-send {
+      font-size: 12px; font-weight: 550; color: var(--status-info);
+      text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    /* ── Board export ── */
+    .board-export {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-structural);
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .board-export-left { display: flex; align-items: center; gap: 10px; }
+    .board-export-icon { width: 32px; height: 32px; border-radius: var(--radius-grouped); background: var(--surface-secondary); display: flex; align-items: center; justify-content: center; }
+    .board-export-icon svg { width: 16px; height: 16px; color: var(--text-secondary); }
+    .board-export-title { font-size: 14px; font-weight: 550; }
+    .board-export-desc { font-size: 12px; color: var(--text-tertiary); }
+    .export-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: var(--radius-pill);
+      background: var(--text-primary); color: var(--text-inverse);
+      font-size: 13px; font-weight: 550; border: none; cursor: pointer;
+      transition: opacity 140ms;
+    }
+    .export-btn:hover { opacity: 0.85; }
+    .export-btn svg { width: 14px; height: 14px; }
+
+    /* ── Dev mode ── */
+    .dev-mode {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 8px; z-index: 100;
+    }
+    .dev-mode-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-tertiary);
+      background: var(--surface-primary); border: 1px solid var(--border-default);
+      padding: 3px 7px; border-radius: var(--radius-interactive);
+    }
+    .dev-mode-tabs {
+      display: flex; background: var(--surface-primary);
+      border: 1px solid var(--border-default); border-radius: var(--radius-interactive);
+      overflow: hidden;
+    }
+    .dev-mode-tab {
+      font-size: 10px; font-weight: 500; padding: 5px 10px;
+      color: var(--text-tertiary); cursor: pointer; border: none; background: none;
+      transition: background-color 140ms, color 140ms;
+    }
+    .dev-mode-tab:not(:last-child) { border-right: 1px solid var(--border-default); }
+    .dev-mode-tab.active { background: var(--text-primary); color: var(--text-inverse); font-weight: 600; }
+    .dev-mode-tab:hover:not(.active) { background: var(--surface-hover); color: var(--text-secondary); }
+
+    /* Arrow icon inline */
+    .arrow-icon { width: 12px; height: 12px; display: inline-block; vertical-align: middle; }
+  </style>
+</head>
+<body>
+  <div class="app-shell state-1" id="appShell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">Weftly</div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Dashboard</a>
+        <div class="sidebar-section-label">Favorites</div>
+        <a class="nav-item active" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>fndd Seed Round</a>
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>fndd Cap Table</a>
+      </nav>
+      <div class="sidebar-workspace">
+        <div class="workspace-label">Workspace</div>
+        <div class="workspace-name">fndd</div>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <!-- Page header -->
+      <div class="page-header">
+        <div class="page-title-area">
+          <div class="page-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+          <div class="page-title">fndd Seed Round</div>
+        </div>
+        <div class="page-actions">
+          <button class="action-btn advisor-btn">
+            <svg viewBox="0 0 28 28" style="width:18px;height:18px"><circle cx="14" cy="14" r="14" fill="#404040"/><text x="14" y="18" text-anchor="middle" fill="#fafaf9" font-size="12" font-weight="700" font-family="system-ui">W</text></svg>
+            Advisor
+          </button>
+          <button class="action-btn">Quick Actions</button>
+        </div>
+      </div>
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Overview</button>
+        <button class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Pipeline</button>
+        <button class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Investors</button>
+        <button class="tab">More</button>
+      </div>
+
+      <div class="content-flow">
+
+        <!-- ╔═══════════════════════════════════════╗ -->
+        <!-- ║  ADVISOR CARD — State 1 (Setup)       ║ -->
+        <!-- ╚═══════════════════════════════════════╝ -->
+        <div class="advisor-card hide-2 hide-3">
+          <div class="advisor-header">
+            <div class="advisor-avatar"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#404040"/><text x="14" y="18" text-anchor="middle" fill="#fafaf9" font-size="12" font-weight="700" font-family="system-ui">W</text></svg></div>
+            <span class="advisor-name">Weftly Advisor</span>
+          </div>
+          <div class="advisor-body">
+            <div class="advisor-headline">Let's get your fundraise off the ground.</div>
+            <div class="advisor-text">Most successful seed rounds begin with a target list of <strong>40&#8211;60 investors</strong>. Even a short list of 10 gives me enough signal to start surfacing insights about your pipeline health, engagement patterns, and recommended next steps.</div>
+            <button class="advisor-cta">Add investors <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+            <div class="advisor-notice">
+              <svg class="advisor-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <div class="advisor-notice-text">Your company profile is <strong>88% complete</strong>. Add website and tagline to improve investor matching. <a href="#">Complete Profile</a></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ╔═══════════════════════════════════════╗ -->
+        <!-- ║  ADVISOR CARD — State 2 (Building)    ║ -->
+        <!-- ╚═══════════════════════════════════════╝ -->
+        <div class="advisor-card hide-1 hide-3">
+          <div class="advisor-header">
+            <div class="advisor-avatar"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#404040"/><text x="14" y="18" text-anchor="middle" fill="#fafaf9" font-size="12" font-weight="700" font-family="system-ui">W</text></svg></div>
+            <span class="advisor-name">Weftly Advisor</span>
+          </div>
+          <div class="advisor-body">
+            <div class="advisor-headline">Your pipeline is building &#8212; 2 of 4 areas active.</div>
+            <div class="advisor-text"><strong>3 active deals</strong> worth <strong>$1.2M</strong>. I'm already finding patterns in your activity. Next priority: set up your data room so investors can start due diligence when they're ready.</div>
+            <button class="advisor-cta">Set up data room <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+            <div class="advisor-notice">
+              <svg class="advisor-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <div class="advisor-notice-text">Your company profile is <strong>88% complete</strong>. Add website and tagline to improve investor matching. <a href="#">Complete Profile</a></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ╔═══════════════════════════════════════╗ -->
+        <!-- ║  ADVISOR CARD — State 3 (Full)        ║ -->
+        <!-- ╚═══════════════════════════════════════╝ -->
+        <div class="advisor-card hide-1 hide-2">
+          <div class="advisor-header">
+            <div class="advisor-avatar"><svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#404040"/><text x="14" y="18" text-anchor="middle" fill="#fafaf9" font-size="12" font-weight="700" font-family="system-ui">W</text></svg></div>
+            <span class="advisor-name">Weftly Advisor</span>
+          </div>
+          <div class="advisor-body">
+            <div class="advisor-headline">2 items need your attention.</div>
+            <div class="advisor-items">
+              <div class="advisor-item">
+                <div class="advisor-item-icon warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+                <div class="advisor-item-body">
+                  <div class="advisor-item-text">4 investors haven't engaged since October. A quick check-in could reignite interest.</div>
+                  <a class="advisor-item-link" href="#">Draft re-engagement emails <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                </div>
+              </div>
+              <div class="advisor-item">
+                <div class="advisor-item-icon alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+                <div class="advisor-item-body">
+                  <div class="advisor-item-text">You're 2 days past your monthly update cadence. Consistent updates build trust.</div>
+                  <a class="advisor-item-link" href="#">Start November Update <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                </div>
+              </div>
+            </div>
+            <a class="advisor-open" href="#">Open full analysis <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </div>
+
+        <!-- ╔═══════════════════════════════════════╗ -->
+        <!-- ║  CATEGORY CARDS — 2x2 Grid            ║ -->
+        <!-- ╚═══════════════════════════════════════╝ -->
+        <div class="category-grid">
+
+          <!-- ── Pipeline Velocity ── -->
+          <div class="cat-card">
+            <div class="cat-header">
+              <div class="cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+              <div class="cat-title-area"><div class="cat-title">Pipeline Velocity</div><div class="cat-subtitle">How fast deals are moving</div></div>
+              <span class="cat-badge not-started hide-2 hide-3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Not started</span>
+              <span class="cat-badge building hide-1 hide-3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-3 5.5-3S12 12 12 12s3.5-3 5.5-3S22 12 22 12"/></svg> Building</span>
+              <span class="cat-badge strong hide-1 hide-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" fill="currentColor"/></svg> Strong</span>
+            </div>
+            <div class="cat-body">
+              <!-- State 1: empty -->
+              <div class="hide-2 hide-3">
+                <div class="cat-empty">
+                  <div class="cat-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+                  <div class="cat-empty-text">Add investors to start tracking pipeline velocity and deal progression.</div>
+                  <a class="cat-empty-link" href="#">Add investors <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                </div>
+              </div>
+              <!-- State 2: building -->
+              <div class="hide-1 hide-3">
+                <div class="metric-rows">
+                  <div class="metric-row"><span class="metric-label">Active deals</span><span class="metric-value">3</span></div>
+                  <div class="metric-row"><span class="metric-label">Pipeline value</span><span class="metric-value">$1.2M</span></div>
+                  <div class="metric-row"><span class="metric-label">Added this month</span><span class="metric-value">3</span></div>
+                </div>
+                <div class="insight-row">
+                  <svg class="insight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <span class="insight-text">Add 2 more deals to unlock velocity insights</span>
+                </div>
+              </div>
+              <!-- State 3: full -->
+              <div class="hide-1 hide-2">
+                <div class="metric-rows">
+                  <div class="metric-row"><span class="metric-label">Avg days to first meeting</span><span class="metric-value">14 days<span class="metric-delta down">&#8595; 7 vs benchmark</span></span></div>
+                  <div class="metric-row"><span class="metric-label">Deals added this month</span><span class="metric-value">6<span class="metric-delta up">&#8593; 50%</span></span></div>
+                  <div class="metric-row"><span class="metric-label">Stage progression rate</span><span class="metric-value">68%</span></div>
+                </div>
+                <div class="insight-row">
+                  <svg class="insight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <span class="insight-text">Accel and Sequoia are moving fastest. Consider prioritizing their DD requests.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Investor Engagement ── -->
+          <div class="cat-card">
+            <div class="cat-header">
+              <div class="cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+              <div class="cat-title-area"><div class="cat-title">Investor Engagement</div><div class="cat-subtitle">How investors interact with you</div></div>
+              <span class="cat-badge not-started hide-2 hide-3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Not started</span>
+              <span class="cat-badge building hide-1 hide-3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-3 5.5-3S12 12 12 12s3.5-3 5.5-3S22 12 22 12"/></svg> Building</span>
+              <span class="cat-badge attention hide-1 hide-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Needs attention</span>
+            </div>
+            <div class="cat-body">
+              <div class="hide-2 hide-3">
+                <div class="cat-empty">
+                  <div class="cat-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+                  <div class="cat-empty-text">Import or add investor contacts to track engagement signals.</div>
+                  <a class="cat-empty-link" href="#">Add investors <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                </div>
+              </div>
+              <div class="hide-1 hide-3">
+                <div class="metric-rows">
+                  <div class="metric-row"><span class="metric-label">Total investors</span><span class="metric-value">8</span></div>
+                  <div class="metric-row"><span class="metric-label">Active conversations</span><span class="metric-value">3</span></div>
+                  <div class="metric-row"><span class="metric-label">In pipeline</span><span class="metric-value">3</span></div>
+                </div>
+                <div class="insight-row">
+                  <svg class="insight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <span class="insight-text">Send an update to track engagement metrics</span>
+                </div>
+              </div>
+              <div class="hide-1 hide-2">
+                <div class="metric-rows">
+                  <div class="metric-row"><span class="metric-label">Update open rate</span><span class="metric-value">58%<span class="metric-delta down">&#8595; 14%</span></span></div>
+                  <div class="metric-row"><span class="metric-label">Investors gone quiet</span><span class="metric-value">4<span class="metric-target">30+ days</span></span></div>
+                  <div class="metric-row"><span class="metric-label">Active conversations</span><span class="metric-value">8 of 47</span></div>
+                </div>
+                <div class="insight-row">
+                  <svg class="insight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <div class="insight-text">4 investors haven't engaged since October. A quick check-in could reignite interest.<br><a class="insight-link" href="#">Draft re-engagement emails <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Data Room Readiness ── -->
+          <div class="cat-card">
+            <div class="cat-header">
+              <div class="cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+              <div class="cat-title-area"><div class="cat-title">Data Room Readiness</div><div class="cat-subtitle">DD materials and access</div></div>
+              <span class="cat-badge not-started hide-3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Not started</span>
+              <span class="cat-badge strong hide-1 hide-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" fill="currentColor"/></svg> Strong</span>
+            </div>
+            <div class="cat-body">
+              <div class="hide-3">
+                <div class="cat-empty">
+                  <div class="cat-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+                  <div class="cat-empty-text">Upload docs to track investor interest</div>
+                  <a class="cat-empty-link" href="#">Set up data room <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                </div>
+              </div>
+              <div class="hide-1 hide-2">
+                <div class="metric-rows">
+                  <div class="metric-row"><span class="metric-label">Critical docs uploaded</span><span class="metric-value success">12/12</span></div>
+                  <div class="metric-row"><span class="metric-label">Active viewers this week</span><span class="metric-value">5</span></div>
+                  <div class="metric-row"><span class="metric-label">Most viewed</span><span class="metric-value">Financial Model</span></div>
+                </div>
+                <div class="insight-row">
+                  <svg class="insight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <span class="insight-text">a16z spent 12 min on your cap table yesterday. They may have questions about your option pool.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Communication Cadence ── -->
+          <div class="cat-card">
+            <div class="cat-header">
+              <div class="cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+              <div class="cat-title-area"><div class="cat-title">Communication Cadence</div><div class="cat-subtitle">Keeping investors informed</div></div>
+              <span class="cat-badge not-started hide-3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Not started</span>
+              <span class="cat-badge behind hide-1 hide-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Behind</span>
+            </div>
+            <div class="cat-body">
+              <div class="hide-3">
+                <div class="cat-empty">
+                  <div class="cat-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+                  <div class="cat-empty-text">Send your first update to start tracking</div>
+                  <a class="cat-empty-link" href="#">Send an update <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+                </div>
+              </div>
+              <div class="hide-1 hide-2">
+                <div class="metric-rows">
+                  <div class="metric-row"><span class="metric-label">Days since last update</span><span class="metric-value error">32 days<span class="metric-target">target: 30</span></span></div>
+                  <div class="metric-row"><span class="metric-label">Updates this year</span><span class="metric-value">9 of 11</span></div>
+                  <div class="metric-row"><span class="metric-label">Avg time to write</span><span class="metric-value">2.5 hrs</span></div>
+                </div>
+                <div class="insight-row">
+                  <svg class="insight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  <div class="insight-text">You're 2 days past your monthly cadence. Consistent updates build trust.<br><a class="insight-link" href="#">Start November Update <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Deal Docs (State 3 only) ── -->
+        <div class="deal-docs hide-1 hide-2">
+          <div class="deal-docs-header">
+            <div class="deal-docs-title-area">
+              <div class="deal-docs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              <div><div class="deal-docs-title">Deal Docs</div><div class="deal-docs-subtitle">NDAs and deal documents</div></div>
+            </div>
+            <div class="deal-docs-stats">
+              <div class="deal-docs-stat"><div class="deal-docs-dot signed"></div><span>Signed 18</span></div>
+              <div class="deal-docs-stat"><div class="deal-docs-dot pending"></div><span>Pending 6</span></div>
+            </div>
+          </div>
+          <div class="deal-docs-bar"><div class="deal-docs-fill"></div></div>
+          <div class="deal-docs-bar-label">75% conversion &middot; 3 pending 14+ days</div>
+          <div class="deal-docs-followup-label">Needs follow-up</div>
+          <div class="deal-docs-followup">
+            <div class="deal-docs-followup-item"><div class="deal-docs-dot pending"></div><span>Greylock</span><span class="days">18 days</span></div>
+            <div class="deal-docs-followup-item"><div class="deal-docs-dot pending"></div><span>Index Ventures</span><span class="days">15 days</span></div>
+            <div class="deal-docs-followup-item"><div class="deal-docs-dot pending"></div><span>Founders Fund</span><span class="days">14 days</span></div>
+            <a class="deal-docs-send" href="#">Send reminders <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </div>
+
+        <!-- ── Board Meeting Export (State 3 only) ── -->
+        <div class="board-export hide-1 hide-2">
+          <div class="board-export-left">
+            <div class="board-export-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div><div class="board-export-title">Prepare for your board meeting?</div><div class="board-export-desc">Generate a fundraise summary with all key metrics</div></div>
+          </div>
+          <button class="export-btn">Export Summary <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Dev Mode -->
+  <div class="dev-mode">
+    <span class="dev-mode-label">Dev</span>
+    <div class="dev-mode-tabs">
+      <button class="dev-mode-tab active" data-state="1" onclick="switchState(1)">State 1</button>
+      <button class="dev-mode-tab" data-state="2" onclick="switchState(2)">State 2</button>
+      <button class="dev-mode-tab" data-state="3" onclick="switchState(3)">State 3</button>
+    </div>
+  </div>
+
+  <script>
+    function switchState(state) {
+      var shell = document.getElementById('appShell');
+      shell.className = 'app-shell state-' + state;
+      var tabs = document.querySelectorAll('.dev-mode-tab');
+      for (var i = 0; i < tabs.length; i++) {
+        var isActive = parseInt(tabs[i].getAttribute('data-state')) === state;
+        tabs[i].className = 'dev-mode-tab' + (isActive ? ' active' : '');
+      }
+    }
+  </script>
+</body>
+</html>

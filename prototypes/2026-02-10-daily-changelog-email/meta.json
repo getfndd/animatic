@@ -1,0 +1,7 @@
+{
+  "name": "Daily Changelog Email",
+  "description": "Before/after comparison of changelog email formatting — tighter spacing, uppercase section labels, en-dash bullets, verb-first copy",
+  "date": "2026-02-10",
+  "status": "review",
+  "personas": ["maya", "rams"]
+}

@@ -1,0 +1,913 @@
+/* ================================================================
+   CINEMATIC DARK THEME — Animatic
+
+   Dark mode tokens + cinematic animation CSS.
+   Import this into any autoplay prototype to get the cinematic-dark
+   visual treatment: 3D perspective, clip-path wipes, focus-pull
+   entrances, spring interactions, and self-drawing SVG checkmarks.
+
+   Reference: autoplay-v4.html (Data Room Upload prototype)
+   ================================================================ */
+
+/* ================================================================
+   LAYER 1: DESIGN TOKENS
+
+   ITO inky palette + Tailwind 100-shade pastels.
+   These tokens are the ONLY colors allowed in this theme.
+   No arbitrary hex values outside this block.
+   ================================================================ */
+:root {
+  /* ---- Surfaces (Inky Palette) ---- */
+  --cd-bg-body: #1a1a1a;                 /* inky-900 */
+  --cd-surface-card: #262626;             /* inky-800 */
+  --cd-surface-glass: rgba(64,64,64,0.5); /* inky-700 at 50% */
+  --cd-surface-glass-hover: #4d4d4d;      /* inky-600 */
+
+  /* ---- Text (Stone) ---- */
+  --cd-text-primary: #ffffff;
+  --cd-text-secondary: #e7e5e4;           /* stone-200 */
+  --cd-text-tertiary: #c7c4c0;            /* stone-300 */
+  --cd-text-quaternary: #a8a29e;           /* stone-400 */
+
+  /* ---- Borders (Inky) ---- */
+  --cd-border-subtle: #404040;             /* inky-700 */
+  --cd-border-medium: #666666;             /* inky-500 */
+  --cd-border-dashed: #404040;             /* inky-700 */
+  --cd-border-active: #bfdbfe;             /* blue-200 */
+
+  /* ---- Accent Pastels (Tailwind 100-shade) ---- */
+  --cd-success: #d1fae5;                  /* emerald-100 */
+  --cd-success-dim: rgba(209,250,229,0.12);
+  --cd-accent: #dbeafe;                   /* blue-100 */
+  --cd-accent-dim: rgba(219,234,254,0.10);
+  --cd-processing: #fef3c7;               /* amber-100 */
+  --cd-processing-glow: rgba(254,243,199,0.08);
+  --cd-intelligence: #dbeafe;              /* blue-100 */
+
+  /* ---- Category Pastels (100-shade + 800-shade text) ---- */
+  --cd-cat-financials-bg: #fef3c7;         /* amber-100 */
+  --cd-cat-financials-text: #92400e;       /* amber-800 */
+  --cd-cat-fundraising-bg: #ede9fe;        /* violet-100 */
+  --cd-cat-fundraising-text: #5b21b6;      /* violet-800 */
+  --cd-cat-legal-bg: #dbeafe;             /* blue-100 */
+  --cd-cat-legal-text: #1e40af;           /* blue-800 */
+  --cd-cat-operations-bg: #d1fae5;         /* emerald-100 */
+  --cd-cat-operations-text: #065f46;       /* emerald-800 */
+  --cd-cat-governance-bg: #fce7f3;         /* pink-100 */
+  --cd-cat-governance-text: #9d174d;       /* pink-800 */
+  --cd-cat-team-bg: #ccfbf1;              /* teal-100 */
+  --cd-cat-team-text: #115e59;            /* teal-800 */
+
+  /* ---- Easing ---- */
+  --cd-spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50%, 1.015 55%, 1.017 63.9%, 1.001 85.6%, 1);
+  --cd-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --cd-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --cd-ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --cd-ease-spring-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ---- Timing (Speed Hierarchy) ---- */
+  --cd-fast: 180ms;       /* header/footer swaps */
+  --cd-medium: 500ms;     /* body content transitions */
+  --cd-slow: 700ms;       /* container height, staggers */
+  --cd-spring-dur: 1100ms; /* button spring interactions */
+  --cd-spring-dur-gentle: 1350ms; /* drop zone interactions */
+
+  /* ---- Shadows ---- */
+  --cd-shadow-card: 0 4px 16px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.15);
+  --cd-shadow-playback: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+
+/* ================================================================
+   LAYER 2: RESET & BASE
+   ================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+  background: var(--cd-bg-body);
+  color: var(--cd-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+
+/* ================================================================
+   LAYER 3: 3D PERSPECTIVE SCENE
+
+   The scene wrapper creates the 3D space.
+   The card-wrapper preserves 3D for child transforms.
+   ================================================================ */
+.scene {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+  width: 100%;
+  max-width: 640px;
+  padding: 24px;
+}
+
+.card-wrapper {
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+
+/* ================================================================
+   LAYER 4: THE CARD — solid inky surface in 3D space
+
+   No glassmorphism, no gradients.
+   Solid surface-card with subtle border and deep shadow.
+   ================================================================ */
+.card {
+  position: relative;
+  z-index: 1;
+  background: var(--cd-surface-card);
+  border: 1px solid var(--cd-border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--cd-shadow-card);
+  overflow: hidden;
+  transition: transform 800ms var(--cd-spring);
+  will-change: transform;
+}
+
+/* Camera angles — subtle 3D shifts per phase.
+   Each phase gets a slight rotateX/Y to create
+   parallax depth. Phase 4 (success) scales down
+   slightly to "land" the animation. */
+.card.camera-0 { transform: rotateX(2deg)  rotateY(0deg); }
+.card.camera-1 { transform: rotateX(1deg)  rotateY(-1deg); }
+.card.camera-2 { transform: rotateX(0deg)  rotateY(0deg); }
+.card.camera-3 { transform: rotateX(-1deg) rotateY(1deg); }
+.card.camera-4 { transform: rotateX(2deg)  rotateY(0deg) scale(0.97); }
+
+
+/* ================================================================
+   LAYER 5: HEADER
+   ================================================================ */
+.card-header {
+  padding: 28px 28px 0;
+}
+
+.phase-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--cd-text-primary);
+  line-height: 1.2;
+}
+
+.phase-subtitle {
+  font-size: 0.8125rem;
+  color: var(--cd-text-secondary);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+
+/* ================================================================
+   LAYER 6: PHASE CONTAINER & CLIP-PATH TRANSITIONS
+
+   Each phase is a .phase-layer stacked absolutely.
+   Active phase wipes in from the right via clip-path.
+   Exiting phase wipes out to the left.
+   ================================================================ */
+.phase-container {
+  position: relative;
+  overflow: hidden;
+  transition: height var(--cd-slow) var(--cd-ease-smooth);
+}
+
+.phase-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 20px 28px 28px;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--cd-slow) var(--cd-ease-out-expo);
+  pointer-events: none;
+  will-change: clip-path;
+}
+.phase-layer.active {
+  clip-path: inset(0 0 0 0);
+  pointer-events: auto;
+}
+.phase-layer.exiting {
+  clip-path: inset(0 0 0 100%);
+  transition: clip-path var(--cd-medium) var(--cd-ease-in);
+}
+.phase-layer.measuring {
+  clip-path: none;
+  position: static;
+  opacity: 0;
+  pointer-events: none;
+}
+
+
+/* ================================================================
+   LAYER 7: FOCUS-PULL ENTRANCE
+
+   Elements start blurred + scaled down, then sharpen into place.
+   Applied to rows, cards, and any staggered content.
+   ================================================================ */
+.focus-enter {
+  opacity: 0;
+  filter: blur(8px);
+  transform: scale(0.97);
+  transition: opacity var(--cd-medium) var(--cd-ease-out-expo),
+              filter 600ms var(--cd-ease-out-expo),
+              transform var(--cd-medium) var(--cd-ease-out-expo);
+}
+.focus-enter.visible {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+/* Title variant — same effect for header text swaps */
+.title-focus {
+  opacity: 0;
+  filter: blur(8px);
+  transform: scale(0.97);
+  transition: opacity var(--cd-medium) var(--cd-ease-out-expo),
+              filter 600ms var(--cd-ease-out-expo),
+              transform var(--cd-medium) var(--cd-ease-out-expo);
+}
+.title-focus.visible {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+
+/* ================================================================
+   LAYER 8: FOOTER
+   ================================================================ */
+.card-footer {
+  border-top: 1px solid var(--cd-border-subtle);
+  position: relative;
+  min-height: 64px;
+}
+
+.footer-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 16px 28px;
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+.footer-layer.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
+/* ================================================================
+   LAYER 9: BUTTONS
+   ================================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  border: none;
+  transform-origin: center;
+}
+
+.btn-primary {
+  background: var(--cd-text-primary);
+  color: var(--cd-bg-body);
+  padding: 10px 20px;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--cd-text-secondary);
+  padding: 10px 16px;
+  border: 1px solid var(--cd-border-medium);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--cd-text-secondary);
+  padding: 10px 16px;
+}
+
+.btn-disabled {
+  background: var(--cd-text-primary);
+  color: var(--cd-bg-body);
+  padding: 10px 20px;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+/* ================================================================
+   LAYER 10: SPRING INTERACTION KEYFRAMES
+
+   Button press: squash/stretch with brightness signal.
+   Zone receive: border/bg pulse with icon wiggle.
+   Both use independent scaleX/scaleY for volume conservation.
+   ================================================================ */
+
+/* Button press — 1100ms spring */
+@keyframes btn-press {
+  0%   { transform: scale(1);    filter: brightness(1); }
+  15%  { transform: scale(1.02); filter: brightness(1.08); }
+  40%  { transform: scale(0.97); filter: brightness(1.04); }
+  65%  { transform: scale(1.01); filter: brightness(1); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+.btn.pressing {
+  animation: btn-press var(--cd-spring-dur) var(--cd-ease-spring-quint) forwards;
+}
+.btn.pressing svg {
+  animation: icon-wiggle var(--cd-spring-dur) var(--cd-ease-spring-quint) forwards;
+}
+
+@keyframes icon-wiggle {
+  0%   { transform: rotate(0deg); }
+  15%  { transform: rotate(0deg); }
+  30%  { transform: rotate(-14deg); }
+  45%  { transform: rotate(14deg); }
+  60%  { transform: rotate(-6deg); }
+  75%  { transform: rotate(4deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Drop zone receive — 1350ms gentle spring */
+@keyframes zone-receive {
+  0%   { border-color: var(--cd-border-dashed); background-color: transparent; }
+  20%  { border-color: var(--cd-border-active); background-color: rgba(219,234,254,0.06); }
+  45%  { border-color: var(--cd-accent);        background-color: rgba(219,234,254,0.08); }
+  70%  { border-color: var(--cd-border-active); background-color: rgba(219,234,254,0.04); }
+  100% { border-color: var(--cd-border-dashed); background-color: transparent; }
+}
+.drop-zone.receiving {
+  animation: zone-receive var(--cd-spring-dur-gentle) var(--cd-ease-spring-quint) forwards;
+}
+
+@keyframes zone-icon-wiggle {
+  0%   { transform: rotate(0deg) translateY(0); }
+  15%  { transform: rotate(0deg) translateY(0); }
+  25%  { transform: rotate(-10deg) translateY(-2px); }
+  40%  { transform: rotate(10deg) translateY(-2px); }
+  55%  { transform: rotate(-4deg) translateY(-1px); }
+  70%  { transform: rotate(3deg) translateY(0); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+.drop-zone.receiving .upload-icon {
+  animation: zone-icon-wiggle var(--cd-spring-dur-gentle) var(--cd-ease-spring-quint) forwards;
+}
+
+
+/* ================================================================
+   LAYER 11: COMPONENT CLASSES
+
+   Reusable component styles for common prototype patterns:
+   drop zones, file rows, process cards, suggestion rows,
+   success rows, step indicators, progress bars.
+   ================================================================ */
+
+/* --- Drop Zone --- */
+.drop-zone {
+  border: 2px dashed var(--cd-border-dashed);
+  border-radius: 12px;
+  padding: 36px 24px;
+  text-align: center;
+  transform-origin: center;
+  position: relative;
+}
+
+.upload-icon-container {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 12px;
+  background: var(--cd-accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drop-zone-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--cd-text-primary);
+  margin-bottom: 4px;
+}
+
+.drop-zone-sub {
+  font-size: 0.75rem;
+  color: var(--cd-text-tertiary);
+}
+
+.drop-zone-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 0.75rem;
+  color: var(--cd-text-tertiary);
+}
+
+/* --- Divider Row --- */
+.divider-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--cd-border-subtle);
+}
+
+.divider-text {
+  font-size: 0.75rem;
+  color: var(--cd-text-tertiary);
+}
+
+/* --- Google Drive Button (integration example) --- */
+.gdrive-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  color: var(--cd-text-secondary);
+  background: transparent;
+  border: 1px solid var(--cd-border-medium);
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+/* --- Skip Link --- */
+.skip-link {
+  display: block;
+  text-align: center;
+  margin-top: 18px;
+  font-size: 0.75rem;
+  color: var(--cd-text-tertiary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* --- File Rows --- */
+.file-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.file-list-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--cd-text-primary);
+}
+
+.file-list-action {
+  font-size: 0.75rem;
+  color: var(--cd-text-tertiary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.file-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--cd-surface-glass);
+  border: 1px solid var(--cd-border-subtle);
+  margin-bottom: 8px;
+}
+.file-row:last-child { margin-bottom: 0; }
+
+.file-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--cd-surface-glass);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cd-text-tertiary);
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--cd-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size {
+  font-size: 0.75rem;
+  color: var(--cd-text-tertiary);
+  margin-top: 2px;
+}
+
+.file-remove {
+  flex-shrink: 0;
+  color: var(--cd-text-quaternary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  margin-top: 2px;
+}
+
+/* --- Process Cards with Step Dots --- */
+.process-card {
+  background: var(--cd-surface-glass);
+  border: 1px solid var(--cd-border-subtle);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.process-card:last-child { margin-bottom: 0; }
+
+.process-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.process-spinner {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--cd-processing);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.process-file-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--cd-text-primary);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.process-file-size {
+  font-size: 0.75rem;
+  color: var(--cd-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* Step progress: horizontal dots with labels and connectors */
+.steps-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+}
+
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cd-text-quaternary);
+  transition: background 350ms ease, box-shadow 350ms ease;
+}
+
+.step-dot.active {
+  background: var(--cd-processing);
+  box-shadow: 0 0 6px rgba(254,243,199,0.3);
+}
+
+.step-dot.done {
+  background: var(--cd-success);
+  box-shadow: none;
+}
+
+.step-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--cd-text-quaternary);
+  white-space: nowrap;
+  transition: color 300ms ease;
+  letter-spacing: 0.02em;
+}
+
+.step-label.active {
+  color: var(--cd-processing);
+}
+
+.step-label.done {
+  color: var(--cd-text-tertiary);
+}
+
+.step-connector {
+  flex: 1;
+  height: 1px;
+  background: var(--cd-text-quaternary);
+  margin: 0 6px;
+  position: relative;
+  overflow: hidden;
+  align-self: flex-start;
+  margin-top: 3.5px;
+}
+
+.step-connector-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0%;
+  background: var(--cd-success);
+  transition: width 350ms var(--cd-ease-out-expo);
+}
+
+.step-connector.connected .step-connector-fill {
+  width: 100%;
+}
+
+/* Progress bar (thin, below steps) */
+.progress-track {
+  height: 3px;
+  border-radius: 4px;
+  background: var(--cd-border-subtle);
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--cd-processing);
+  width: 0%;
+  transition: width 80ms linear;
+}
+
+/* --- Suggestion Rows --- */
+.suggest-row {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--cd-border-subtle);
+}
+.suggest-row:last-child { border-bottom: none; }
+
+.suggest-original {
+  font-size: 0.8125rem;
+  color: var(--cd-text-tertiary);
+  text-decoration: line-through;
+  text-decoration-color: var(--cd-border-subtle);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.suggest-original .file-type-icon {
+  color: var(--cd-text-quaternary);
+  flex-shrink: 0;
+}
+
+.suggest-arrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.suggest-arrow-icon {
+  color: var(--cd-text-quaternary);
+  flex-shrink: 0;
+}
+
+.suggest-new-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--cd-text-primary);
+}
+
+.suggest-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 4px 10px;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+/* Category-specific folder badge colors */
+.suggest-folder[data-category="financials"]  { background: var(--cd-cat-financials-bg);  color: var(--cd-cat-financials-text); }
+.suggest-folder[data-category="fundraising"] { background: var(--cd-cat-fundraising-bg); color: var(--cd-cat-fundraising-text); }
+.suggest-folder[data-category="legal"]       { background: var(--cd-cat-legal-bg);       color: var(--cd-cat-legal-text); }
+.suggest-folder[data-category="operations"]  { background: var(--cd-cat-operations-bg);  color: var(--cd-cat-operations-text); }
+.suggest-folder[data-category="governance"]  { background: var(--cd-cat-governance-bg);  color: var(--cd-cat-governance-text); }
+.suggest-folder[data-category="team"]        { background: var(--cd-cat-team-bg);        color: var(--cd-cat-team-text); }
+
+.suggest-folder.visible {
+  opacity: 1;
+}
+
+.suggest-folder-icon {
+  color: inherit;
+}
+
+/* --- Success Rows --- */
+.success-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--cd-border-subtle);
+}
+.success-row:last-child { border-bottom: none; }
+
+.success-check {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--cd-success);
+}
+
+.success-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.success-new-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--cd-text-primary);
+}
+
+.success-old-name {
+  font-size: 0.75rem;
+  color: var(--cd-text-tertiary);
+  margin-top: 2px;
+}
+
+.success-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 4px 10px;
+  flex-shrink: 0;
+}
+.success-folder[data-category="financials"]  { background: var(--cd-cat-financials-bg);  color: var(--cd-cat-financials-text); }
+.success-folder[data-category="fundraising"] { background: var(--cd-cat-fundraising-bg); color: var(--cd-cat-fundraising-text); }
+.success-folder[data-category="legal"]       { background: var(--cd-cat-legal-bg);       color: var(--cd-cat-legal-text); }
+.success-folder[data-category="operations"]  { background: var(--cd-cat-operations-bg);  color: var(--cd-cat-operations-text); }
+.success-folder[data-category="governance"]  { background: var(--cd-cat-governance-bg);  color: var(--cd-cat-governance-text); }
+.success-folder[data-category="team"]        { background: var(--cd-cat-team-bg);        color: var(--cd-cat-team-text); }
+
+
+/* ================================================================
+   LAYER 12: ANIMATION EFFECTS
+   ================================================================ */
+
+/* Typewriter cursor */
+.typewriter-text::after {
+  content: '|';
+  color: var(--cd-text-tertiary);
+  animation: blink-cursor 530ms steps(1) infinite;
+  margin-left: 1px;
+}
+.typewriter-text.done::after {
+  display: none;
+}
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Self-drawing SVG checkmarks */
+@keyframes draw-check {
+  to { stroke-dashoffset: 0; }
+}
+.draw-check {
+  stroke-dasharray: 230;
+  stroke-dashoffset: 230;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 20;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.draw-check.check-active {
+  animation: draw-check 600ms var(--cd-ease-out-expo) forwards;
+}
+
+/* Subtle pulse */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+
+/* ================================================================
+   LAYER 13: PLAYBACK CONTROLS
+
+   Fixed bottom-center pill with play/pause, restart,
+   phase dots, and label.
+   ================================================================ */
+.playback-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--cd-surface-card);
+  border: 1px solid var(--cd-border-subtle);
+  color: var(--cd-text-primary);
+  padding: 10px 20px;
+  border-radius: 9999px;
+  box-shadow: var(--cd-shadow-playback);
+  z-index: 50;
+  font-size: 12px;
+}
+
+.playback-bar button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+  transition: opacity 150ms;
+}
+.playback-bar button:hover { opacity: 1; }
+
+.phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cd-text-quaternary);
+  transition: all 300ms ease;
+  cursor: pointer;
+}
+.phase-dot.active {
+  background: var(--cd-text-primary);
+  width: 20px;
+  border-radius: 3px;
+}
+.phase-dot.completed {
+  background: var(--cd-text-tertiary);
+}
+
+.phase-label-text {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
+}

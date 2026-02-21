@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Strip — 10 Directions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 40 7% 97%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 40 6% 95%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-warning: 38 92% 50%;
+      --radius: 0.5rem;
+    }
+
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .direction-card {
+      background: hsl(var(--surface-primary));
+      border: 1px solid hsl(var(--border-default));
+      border-radius: var(--radius);
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+  <!-- Page Header -->
+  <div class="max-w-4xl mx-auto mb-8">
+    <h1 class="text-2xl font-bold text-text-primary mb-1">Onboarding Strip — 10 Directions</h1>
+    <p class="text-sm text-text-secondary mb-4">Compact notification band for platform setup progress. 3 steps: Company profile, Invite team, Connect Google. Toggle states to compare.</p>
+
+    <!-- State Toggle -->
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-xs font-medium text-text-tertiary">State:</span>
+      <button onclick="setState(1)" id="btn-s1" class="px-2.5 py-1 text-xs rounded-md bg-surface-tertiary text-text-secondary hover:bg-surface-hover transition-colors">1 of 3</button>
+      <button onclick="setState(2)" id="btn-s2" class="px-2.5 py-1 text-xs rounded-md bg-text-primary text-text-inverse transition-colors">2 of 3</button>
+      <button onclick="setState(3)" id="btn-s3" class="px-2.5 py-1 text-xs rounded-md bg-surface-tertiary text-text-secondary hover:bg-surface-hover transition-colors">3 of 3</button>
+    </div>
+  </div>
+
+  <!-- Directions Grid -->
+  <div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- ==================== DIRECTION 1 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">1</span>
+        <span class="text-xs font-medium text-text-secondary">Single-line + Thin Bar</span>
+        <span class="text-xs text-text-tertiary ml-auto">Linear-style minimal</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d1"></div>
+    </div>
+
+    <!-- ==================== DIRECTION 2 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">2</span>
+        <span class="text-xs font-medium text-text-secondary">Progress Dots</span>
+        <span class="text-xs text-text-tertiary ml-auto">Three dots, filled/empty</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d2"></div>
+    </div>
+
+    <!-- ==================== DIRECTION 3 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">3</span>
+        <span class="text-xs font-medium text-text-secondary">Segmented Bar</span>
+        <span class="text-xs text-text-tertiary ml-auto">One segment per step</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d3"></div>
+    </div>
+
+    <!-- ==================== DIRECTION 4 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">4</span>
+        <span class="text-xs font-medium text-text-secondary">Inline Checklist</span>
+        <span class="text-xs text-text-tertiary ml-auto">Compact checkbox strip</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d4"></div>
+    </div>
+
+    <!-- ==================== DIRECTION 5 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">5</span>
+        <span class="text-xs font-medium text-text-secondary">Step Pills</span>
+        <span class="text-xs text-text-tertiary ml-auto">Horizontal pill badges</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d5"></div>
+    </div>
+
+    <!-- ==================== DIRECTION 6 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">6</span>
+        <span class="text-xs font-medium text-text-secondary">Mini Ring Counter</span>
+        <span class="text-xs text-text-tertiary ml-auto">Tiny progress circle</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d6"></div>
+    </div>
+
+    <!-- ==================== DIRECTION 7 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">7</span>
+        <span class="text-xs font-medium text-text-secondary">Breadcrumb Trail</span>
+        <span class="text-xs text-text-tertiary ml-auto">Steps as connected path</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d7"></div>
+    </div>
+
+    <!-- ==================== DIRECTION 8 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">8</span>
+        <span class="text-xs font-medium text-text-secondary">Contextual Banner</span>
+        <span class="text-xs text-text-tertiary ml-auto">Icon + counter + action</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d8"></div>
+    </div>
+
+    <!-- ==================== DIRECTION 9 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">9</span>
+        <span class="text-xs font-medium text-text-secondary">Top Edge Band</span>
+        <span class="text-xs text-text-tertiary ml-auto">Progress bar at card top edge</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d9"></div>
+    </div>
+
+    <!-- ==================== DIRECTION 10 ==================== -->
+    <div class="direction-card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xs font-bold text-text-primary bg-surface-tertiary rounded px-1.5 py-0.5">10</span>
+        <span class="text-xs font-medium text-text-secondary">Expandable Accordion</span>
+        <span class="text-xs text-text-tertiary ml-auto">Collapsed strip, click to expand</span>
+      </div>
+      <div class="direction-card p-0 overflow-hidden" id="d10"></div>
+    </div>
+
+  </div>
+
+  <div class="h-16"></div>
+
+  <script>
+    const steps = [
+      { key: 'profile', label: 'Company profile', short: 'Profile' },
+      { key: 'invite', label: 'Invite team', short: 'Team' },
+      { key: 'google', label: 'Connect Google', short: 'Google' },
+    ]
+
+    let currentState = 2
+
+    function getCompleted(state) {
+      if (state === 1) return [true, false, false]
+      if (state === 2) return [true, true, false]
+      return [true, true, true]
+    }
+
+    function getNext(state) {
+      if (state === 1) return { label: 'Invite your team', href: '#' }
+      if (state === 2) return { label: 'Connect Google Workspace', href: '#' }
+      return null
+    }
+
+    function svg(type, size) {
+      const icons = {
+        check: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+        arrow: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`,
+        x: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+        rocket: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path></svg>`,
+        chevron: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
+      }
+      return icons[type] || ''
+    }
+
+    // Completion badge used in several directions
+    function doneBanner(label) {
+      return `<div class="bg-status-success-bg px-4 py-2.5 flex items-center gap-2">
+        <span class="text-status-success">${svg('check', 14)}</span>
+        <span class="text-xs font-medium text-status-success">${label}</span>
+      </div>`
+    }
+
+    function setState(s) {
+      currentState = s
+      document.querySelectorAll('[id^="btn-s"]').forEach(b => {
+        b.className = 'px-2.5 py-1 text-xs rounded-md bg-surface-tertiary text-text-secondary hover:bg-surface-hover transition-colors'
+      })
+      document.getElementById('btn-s' + s).className = 'px-2.5 py-1 text-xs rounded-md bg-text-primary text-text-inverse transition-colors'
+      renderAll()
+    }
+
+    function renderAll() {
+      const s = currentState
+      const completed = getCompleted(s)
+      const next = getNext(s)
+      const count = completed.filter(Boolean).length
+      const allDone = count === 3
+
+      const nextLink = next
+        ? `<a href="#" class="text-xs font-medium text-text-primary hover:underline flex items-center gap-1 shrink-0">${next.label} ${svg('arrow', 11)}</a>`
+        : ''
+
+      const nextLinkShort = next
+        ? `<a href="#" class="text-xs font-medium text-text-primary hover:underline flex items-center gap-1 shrink-0">Continue ${svg('arrow', 11)}</a>`
+        : ''
+
+      // 1 — Single-line + thin bar
+      const el1 = document.getElementById('d1')
+      if (allDone) { el1.replaceChildren(); el1.insertAdjacentHTML('afterbegin', doneBanner('Setup complete')); }
+      else {
+        el1.replaceChildren()
+        el1.insertAdjacentHTML('afterbegin', `
+          <div class="bg-surface-secondary px-4 py-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-medium text-text-secondary">Setup: ${count} of 3 complete</span>
+              ${nextLink}
+            </div>
+            <div class="h-1 rounded-full bg-surface-tertiary overflow-hidden">
+              <div class="h-full rounded-full bg-text-primary transition-all duration-500" style="width: ${(count/3)*100}%"></div>
+            </div>
+          </div>
+        `)
+      }
+
+      // 2 — Progress dots
+      const el2 = document.getElementById('d2')
+      el2.replaceChildren()
+      if (allDone) { el2.insertAdjacentHTML('afterbegin', doneBanner('All set up')); }
+      else {
+        const dots = completed.map(c =>
+          `<div class="w-2 h-2 rounded-full ${c ? 'bg-text-primary' : 'bg-surface-tertiary'}"></div>`
+        ).join('')
+        el2.insertAdjacentHTML('afterbegin', `
+          <div class="bg-surface-secondary px-4 py-2.5 flex items-center gap-3">
+            <div class="flex items-center gap-1.5">${dots}</div>
+            <span class="text-xs text-text-secondary">${count} of 3 complete</span>
+            <span class="text-xs text-text-tertiary">&middot;</span>
+            ${nextLink}
+          </div>
+        `)
+      }
+
+      // 3 — Segmented bar
+      const el3 = document.getElementById('d3')
+      el3.replaceChildren()
+      if (allDone) { el3.insertAdjacentHTML('afterbegin', doneBanner('Setup complete')); }
+      else {
+        const segs = [0,1,2].map(i =>
+          `<div class="flex-1 h-1.5 rounded-full ${completed[i] ? 'bg-text-primary' : 'bg-surface-tertiary'} transition-all duration-300"></div>`
+        ).join('')
+        el3.insertAdjacentHTML('afterbegin', `
+          <div class="bg-surface-secondary px-4 py-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs text-text-secondary">${count} of 3</span>
+              ${nextLink}
+            </div>
+            <div class="flex gap-1">${segs}</div>
+          </div>
+        `)
+      }
+
+      // 4 — Inline checklist
+      const el4 = document.getElementById('d4')
+      el4.replaceChildren()
+      if (allDone) { el4.insertAdjacentHTML('afterbegin', doneBanner('All steps complete')); }
+      else {
+        const items = steps.map((step, i) => `
+          <div class="flex items-center gap-1.5">
+            <div class="w-4 h-4 rounded flex items-center justify-center ${completed[i] ? 'bg-text-primary text-text-inverse' : 'border border-text-tertiary'}">
+              ${completed[i] ? svg('check', 10) : ''}
+            </div>
+            <span class="text-xs ${completed[i] ? 'text-text-secondary line-through' : 'text-text-primary'}">${step.short}</span>
+          </div>
+        `).join('<span class="text-text-tertiary text-xs">&middot;</span>')
+        el4.insertAdjacentHTML('afterbegin', `
+          <div class="bg-surface-secondary px-4 py-2.5 flex items-center gap-4">
+            ${items}
+            ${next ? `<span class="ml-auto">${nextLink}</span>` : ''}
+          </div>
+        `)
+      }
+
+      // 5 — Step pills
+      const el5 = document.getElementById('d5')
+      el5.replaceChildren()
+      if (allDone) { el5.insertAdjacentHTML('afterbegin', doneBanner('Setup complete')); }
+      else {
+        const pills = steps.map((step, i) => {
+          const cls = completed[i]
+            ? 'bg-text-primary text-text-inverse'
+            : i === count
+              ? 'bg-surface-primary border text-text-primary font-medium'
+              : 'bg-surface-tertiary text-text-tertiary'
+          return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${cls}">
+            ${completed[i] ? svg('check', 10) : ''}${step.short}
+          </span>`
+        }).join('')
+        el5.insertAdjacentHTML('afterbegin', `
+          <div class="bg-surface-secondary px-4 py-2.5 flex items-center gap-2">
+            <span class="text-xs text-text-tertiary mr-1">Setup:</span>
+            ${pills}
+            ${next ? `<span class="ml-auto">${svg('arrow', 11)}</span>` : ''}
+          </div>
+        `)
+      }
+
+      // 6 — Mini ring
+      const el6 = document.getElementById('d6')
+      el6.replaceChildren()
+      if (allDone) { el6.insertAdjacentHTML('afterbegin', doneBanner('Setup complete')); }
+      else {
+        const ringCirc = 2 * Math.PI * 8
+        const ringOffset = ringCirc - (count / 3) * ringCirc
+        el6.insertAdjacentHTML('afterbegin', `
+          <div class="bg-surface-secondary px-4 py-2.5 flex items-center gap-3">
+            <div class="relative w-6 h-6 shrink-0">
+              <svg class="w-6 h-6 -rotate-90" viewBox="0 0 20 20">
+                <circle cx="10" cy="10" r="8" fill="none" stroke="hsl(var(--surface-tertiary))" stroke-width="2.5"/>
+                <circle cx="10" cy="10" r="8" fill="none" stroke="hsl(var(--text-primary))" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${ringCirc}" stroke-dashoffset="${ringOffset}" class="transition-all duration-500"/>
+              </svg>
+              <span class="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-text-primary">${count}</span>
+            </div>
+            <span class="text-xs text-text-secondary">${count} of 3 setup steps complete</span>
+            <span class="ml-auto">${nextLink}</span>
+          </div>
+        `)
+      }
+
+      // 7 — Breadcrumb trail
+      const el7 = document.getElementById('d7')
+      el7.replaceChildren()
+      if (allDone) { el7.insertAdjacentHTML('afterbegin', doneBanner('Setup complete')); }
+      else {
+        const crumbs = steps.map((step, i) => {
+          const circleCls = completed[i]
+            ? 'bg-text-primary text-text-inverse'
+            : i === count
+              ? 'border-2 border-text-primary text-text-primary'
+              : 'border border-text-tertiary text-text-tertiary'
+          const labelCls = completed[i]
+            ? 'text-text-secondary'
+            : i === count
+              ? 'text-text-primary font-medium'
+              : 'text-text-tertiary'
+          const connector = i < 2 ? '<div class="w-8 h-px bg-border-default mx-1"></div>' : ''
+          return `
+            <div class="flex items-center gap-1.5">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium ${circleCls}">
+                ${completed[i] ? svg('check', 10) : (i + 1)}
+              </div>
+              <span class="text-xs ${labelCls}">${step.short}</span>
+            </div>
+            ${connector}
+          `
+        }).join('')
+        el7.insertAdjacentHTML('afterbegin', `
+          <div class="bg-surface-secondary px-4 py-2.5 flex items-center">
+            ${crumbs}
+            <span class="ml-auto">${nextLinkShort}</span>
+          </div>
+        `)
+      }
+
+      // 8 — Contextual banner with icon
+      const el8 = document.getElementById('d8')
+      el8.replaceChildren()
+      if (allDone) {
+        el8.insertAdjacentHTML('afterbegin', `
+          <div class="bg-status-success-bg px-4 py-2.5 flex items-center gap-2.5">
+            <span class="text-status-success">${svg('check', 14)}</span>
+            <span class="text-xs font-medium text-status-success">You're all set up</span>
+            <button class="ml-auto text-status-success opacity-60 hover:opacity-100">${svg('x', 14)}</button>
+          </div>
+        `)
+      } else {
+        el8.insertAdjacentHTML('afterbegin', `
+          <div class="bg-surface-secondary px-4 py-2.5 flex items-center gap-2.5">
+            <div class="w-6 h-6 rounded-md bg-surface-tertiary flex items-center justify-center shrink-0 text-text-secondary">
+              ${svg('rocket', 14)}
+            </div>
+            <span class="text-xs text-text-secondary flex-1">Finish setting up your workspace</span>
+            <span class="text-xs font-medium text-text-tertiary tabular-nums">${count}/3</span>
+            ${nextLink}
+          </div>
+        `)
+      }
+
+      // 9 — Top edge band
+      const el9 = document.getElementById('d9')
+      el9.replaceChildren()
+      if (allDone) {
+        el9.insertAdjacentHTML('afterbegin', `
+          <div>
+            <div class="h-1 bg-status-success rounded-t-lg"></div>
+            <div class="bg-surface-secondary px-4 py-2 flex items-center gap-2">
+              <span class="text-status-success">${svg('check', 14)}</span>
+              <span class="text-xs font-medium text-status-success">Setup complete</span>
+            </div>
+          </div>
+        `)
+      } else {
+        el9.insertAdjacentHTML('afterbegin', `
+          <div>
+            <div class="h-1 bg-surface-tertiary rounded-t-lg overflow-hidden">
+              <div class="h-full bg-text-primary transition-all duration-500" style="width: ${(count/3)*100}%"></div>
+            </div>
+            <div class="bg-surface-secondary px-4 py-2 flex items-center justify-between">
+              <span class="text-xs text-text-secondary">${count} of 3 setup steps</span>
+              ${nextLink}
+            </div>
+          </div>
+        `)
+      }
+
+      // 10 — Expandable accordion
+      const el10 = document.getElementById('d10')
+      el10.replaceChildren()
+      if (allDone) { el10.insertAdjacentHTML('afterbegin', doneBanner('Setup complete')); }
+      else {
+        const dots10 = completed.map(c =>
+          `<div class="w-1.5 h-1.5 rounded-full ${c ? 'bg-text-primary' : 'bg-surface-tertiary'}"></div>`
+        ).join('')
+        const stepRows = steps.map((step, i) => `
+          <div class="flex items-center gap-3 px-4 py-2.5 ${i < 2 ? 'border-b border-border-subtle' : ''}">
+            <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+              completed[i] ? 'bg-text-primary text-text-inverse' : 'border border-text-tertiary'
+            }">${completed[i] ? svg('check', 10) : ''}</div>
+            <span class="text-xs ${completed[i] ? 'text-text-secondary line-through' : 'text-text-primary'}">${step.label}</span>
+            ${!completed[i] && i === count
+              ? `<a href="#" class="ml-auto text-xs font-medium text-text-primary hover:underline flex items-center gap-1">Set up ${svg('arrow', 11)}</a>`
+              : ''}
+          </div>
+        `).join('')
+        el10.insertAdjacentHTML('afterbegin', `
+          <div>
+            <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.chev').classList.toggle('rotate-180')" class="w-full bg-surface-secondary px-4 py-2.5 flex items-center gap-3 hover:bg-surface-hover transition-colors text-left">
+              <div class="flex items-center gap-1.5">${dots10}</div>
+              <span class="text-xs font-medium text-text-secondary">Setup: ${count} of 3</span>
+              <span class="chev ml-auto text-text-tertiary transition-transform">${svg('chevron', 12)}</span>
+            </button>
+            <div class="hidden border-t bg-surface-primary">${stepRows}</div>
+          </div>
+        `)
+      }
+    }
+
+    // Initial render
+    renderAll()
+  </script>
+</body>
+</html>

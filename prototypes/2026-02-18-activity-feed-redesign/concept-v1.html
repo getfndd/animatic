@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Feed — v1: Enhanced Timeline</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Satoshi', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            surface: {
+              primary: 'hsl(var(--surface-primary) / <alpha-value>)',
+              secondary: 'hsl(var(--surface-secondary) / <alpha-value>)',
+              tertiary: 'hsl(var(--surface-tertiary) / <alpha-value>)',
+              inverse: 'hsl(var(--surface-inverse) / <alpha-value>)',
+            },
+            text: {
+              primary: 'hsl(var(--text-primary) / <alpha-value>)',
+              secondary: 'hsl(var(--text-secondary) / <alpha-value>)',
+              tertiary: 'hsl(var(--text-tertiary) / <alpha-value>)',
+              inverse: 'hsl(var(--text-inverse) / <alpha-value>)',
+            },
+            border: {
+              DEFAULT: 'hsl(var(--border-default) / <alpha-value>)',
+              subtle: 'hsl(var(--border-subtle) / <alpha-value>)',
+              strong: 'hsl(var(--border-strong) / <alpha-value>)',
+            },
+            status: {
+              success: 'hsl(var(--status-success) / <alpha-value>)',
+              'success-bg': 'hsl(var(--status-success-bg) / <alpha-value>)',
+              error: 'hsl(var(--status-error) / <alpha-value>)',
+              'error-bg': 'hsl(var(--status-error-bg) / <alpha-value>)',
+              warning: 'hsl(var(--status-warning) / <alpha-value>)',
+              'warning-bg': 'hsl(var(--status-warning-bg) / <alpha-value>)',
+            },
+          },
+          borderRadius: {
+            DEFAULT: '0.25rem',   /* 4px - interactive */
+            md: '0.375rem',       /* 6px - grouped */
+            lg: '0.5rem',         /* 8px - structural */
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      color: hsl(var(--text-primary));
+      background: hsl(var(--surface-primary));
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <div class="flex min-h-screen">
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- SIDEBAR                                          -->
+    <!-- ════════════════════════════════════════════════ -->
+    <aside class="w-[232px] bg-surface-primary border-r border-border flex flex-col flex-shrink-0 fixed top-0 left-0 bottom-0 z-50">
+
+      <!-- Logo -->
+      <div class="px-5 pt-5 pb-4">
+        <span class="text-[17px] font-bold tracking-tight text-text-primary">weftly</span>
+      </div>
+
+      <!-- Nav -->
+      <nav class="flex-1 px-2 flex flex-col gap-px">
+        <a href="#" class="flex items-center gap-2.5 px-3 py-[7px] rounded text-[13.5px] font-medium text-text-secondary transition-colors duration-[140ms] hover:bg-surface-secondary hover:text-text-primary">
+          <svg class="w-[18px] h-[18px] opacity-65 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
+          </svg>
+          Dashboard
+        </a>
+        <a href="#" class="flex items-center gap-2.5 px-3 py-[7px] rounded text-[13.5px] font-medium text-text-secondary transition-colors duration-[140ms] hover:bg-surface-secondary hover:text-text-primary">
+          <svg class="w-[18px] h-[18px] opacity-65 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 6v6l4 2" /><circle cx="12" cy="12" r="9" />
+          </svg>
+          Ops Designer
+        </a>
+
+        <!-- Library section -->
+        <div class="mt-4">
+          <div class="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-text-tertiary">Library</div>
+        </div>
+
+        <!-- Favorites -->
+        <div class="mt-1">
+          <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-text-tertiary">Favorites</div>
+          <a href="#" class="flex items-center gap-2.5 px-3 py-[7px] rounded text-[13.5px] font-[550] text-text-primary bg-surface-secondary transition-colors duration-[140ms]">
+            <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+            fndd Seed Round
+          </a>
+          <a href="#" class="flex items-center gap-2.5 px-3 py-[7px] rounded text-[13.5px] font-medium text-text-secondary transition-colors duration-[140ms] hover:bg-surface-secondary hover:text-text-primary">
+            <svg class="w-[18px] h-[18px] opacity-65 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="9" x2="9" y2="21" />
+            </svg>
+            fndd Cap Table
+          </a>
+        </div>
+      </nav>
+
+      <!-- Workspace -->
+      <div class="px-5 py-4 border-t border-border">
+        <div class="text-[10px] font-semibold uppercase tracking-[0.06em] text-text-tertiary mb-1">Workspace</div>
+        <div class="text-[13px] font-[550] text-text-primary">fndd Technologies</div>
+      </div>
+    </aside>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- MAIN AREA                                        -->
+    <!-- ════════════════════════════════════════════════ -->
+    <main class="flex-1 ml-[232px]">
+
+      <!-- Page Header -->
+      <div class="max-w-[980px] px-10 pt-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-md bg-surface-secondary flex items-center justify-center">
+              <svg class="w-4 h-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+              </svg>
+            </div>
+            <h1 class="text-[17px] font-semibold tracking-tight text-text-primary">fndd Seed Round</h1>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex items-center gap-1 mt-4 border-b border-border">
+          <button class="px-3 py-2 text-[13px] font-medium text-text-secondary transition-colors duration-[140ms] hover:text-text-primary border-b-2 border-transparent">
+            Overview
+          </button>
+          <button class="px-3 py-2 text-[13px] font-medium text-text-secondary transition-colors duration-[140ms] hover:text-text-primary border-b-2 border-transparent">
+            Pipeline
+          </button>
+          <button class="px-3 py-2 text-[13px] font-medium text-text-secondary transition-colors duration-[140ms] hover:text-text-primary border-b-2 border-transparent">
+            Investors
+          </button>
+          <button class="px-3 py-2 text-[13px] font-semibold text-text-primary border-b-2 border-text-primary">
+            Activity
+          </button>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════ -->
+      <!-- ACTIVITY TAB CONTENT                             -->
+      <!-- ════════════════════════════════════════════════ -->
+      <div class="max-w-[980px] px-10 pt-6 pb-20">
+
+        <!-- Stats Bar + Log Interaction Button -->
+        <div class="flex items-center justify-between mb-5">
+          <div class="text-sm text-text-secondary">
+            <span class="font-medium text-text-primary tabular-nums">1</span> active investor
+            <span class="mx-1.5 text-text-tertiary">&middot;</span>
+            <span class="font-medium text-text-primary tabular-nums">1</span> need follow-up
+            <span class="mx-1.5 text-text-tertiary">&middot;</span>
+            <span class="font-medium text-text-primary tabular-nums">39</span> signals this week
+          </div>
+          <button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface-inverse text-text-inverse text-sm font-medium transition-opacity duration-[140ms] hover:opacity-85 focus:outline-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1">
+            Log Interaction
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Temperature Filter Pills + View Toggle -->
+        <div class="flex items-center justify-between mb-6">
+          <!-- Filter Pills -->
+          <div class="flex items-center gap-2">
+            <button class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary transition-colors duration-[140ms] hover:bg-surface-tertiary focus:outline-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 9v4m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" />
+              </svg>
+              Needs attention
+              <span class="tabular-nums text-text-tertiary">1</span>
+            </button>
+            <button class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary transition-colors duration-[140ms] hover:bg-surface-tertiary focus:outline-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M17.657 18.657A8 8 0 016.343 7.343M12 3v1m0 16v1m-7.071-2.929l.707-.707m12.728 0l.707.707M3 12h1m16 0h1" />
+              </svg>
+              Hot
+              <span class="tabular-nums text-text-tertiary">0</span>
+            </button>
+            <button class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary transition-colors duration-[140ms] hover:bg-surface-tertiary focus:outline-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 3c-1.5 5-5 7.5-5 11a5 5 0 0010 0c0-3.5-3.5-6-5-11z" />
+              </svg>
+              Warm
+              <span class="tabular-nums text-text-tertiary">0</span>
+            </button>
+            <button class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary transition-colors duration-[140ms] hover:bg-surface-tertiary focus:outline-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+              Cold
+              <span class="tabular-nums text-text-tertiary">1</span>
+            </button>
+          </div>
+
+          <!-- View Toggle -->
+          <div class="inline-flex items-center bg-surface-secondary rounded-full p-0.5">
+            <button class="px-3 py-1.5 text-xs font-medium rounded-full bg-surface-primary text-text-primary shadow-sm transition-all duration-[140ms] focus:outline-none focus:ring-1 focus:ring-zinc-900/50">
+              Timeline
+            </button>
+            <button class="px-3 py-1.5 text-xs font-medium rounded-full text-text-secondary transition-colors duration-[140ms] hover:text-text-primary focus:outline-none focus:ring-1 focus:ring-zinc-900/50">
+              By Investor
+            </button>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════ -->
+        <!-- TIMELINE                                         -->
+        <!-- ════════════════════════════════════════════════ -->
+
+        <!-- Date: January 20, 2026 -->
+        <div class="mb-6">
+          <div class="text-xs font-medium text-text-tertiary mb-2 px-1">January 20, 2026</div>
+          <div class="bg-surface-primary border border-border rounded-lg overflow-hidden">
+
+            <!-- Event: James Schuyler — Visited data room -->
+            <div class="flex items-center gap-3 px-4 py-3 rounded transition-colors duration-[140ms] hover:bg-surface-secondary cursor-pointer group">
+              <!-- Icon -->
+              <div class="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </div>
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">
+                  <span class="font-medium text-text-primary">James Schuyler</span>
+                  <span class="text-text-secondary"> &middot; Visited data room</span>
+                </div>
+                <div class="text-xs text-text-tertiary mt-0.5">Schuyler Family Foundation</div>
+              </div>
+              <!-- Right -->
+              <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-xs text-text-tertiary tabular-nums">28d ago</span>
+                <span class="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-[140ms] cursor-pointer hover:text-text-primary">
+                  Log follow-up &rarr;
+                </span>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="mx-4 border-t border-border-subtle"></div>
+
+            <!-- Event: Sarah Chen — Opened investor update email -->
+            <div class="flex items-center gap-3 px-4 py-3 rounded transition-colors duration-[140ms] hover:bg-surface-secondary cursor-pointer group">
+              <div class="w-8 h-8 rounded-md bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">
+                  <span class="font-medium text-text-primary">Sarah Chen</span>
+                  <span class="text-text-secondary"> &middot; Opened investor update email</span>
+                </div>
+                <div class="text-xs text-text-tertiary mt-0.5">Sequoia Capital</div>
+              </div>
+              <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-xs text-text-tertiary tabular-nums">28d ago</span>
+                <span class="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-[140ms] cursor-pointer hover:text-text-primary">
+                  Log follow-up &rarr;
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Date: January 17, 2026 -->
+        <div class="mb-6">
+          <div class="text-xs font-medium text-text-tertiary mb-2 px-1">January 17, 2026</div>
+          <div class="bg-surface-primary border border-border rounded-lg overflow-hidden">
+
+            <!-- Event: James Schuyler — Visited data room 2x -->
+            <div class="flex items-center gap-3 px-4 py-3 rounded transition-colors duration-[140ms] hover:bg-surface-secondary cursor-pointer group">
+              <div class="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">
+                  <span class="font-medium text-text-primary">James Schuyler</span>
+                  <span class="text-text-secondary"> &middot; Visited data room <span class="font-medium text-text-primary tabular-nums">2&times;</span></span>
+                </div>
+                <div class="text-xs text-text-tertiary mt-0.5">Schuyler Family Foundation</div>
+              </div>
+              <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-xs text-text-tertiary tabular-nums">31d ago</span>
+                <span class="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-[140ms] cursor-pointer hover:text-text-primary">
+                  Log follow-up &rarr;
+                </span>
+              </div>
+            </div>
+
+            <div class="mx-4 border-t border-border-subtle"></div>
+
+            <!-- Event: Marc Michel — Meeting logged -->
+            <div class="flex items-center gap-3 px-4 py-3 rounded transition-colors duration-[140ms] hover:bg-surface-secondary cursor-pointer group">
+              <div class="w-8 h-8 rounded-md bg-violet-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">
+                  <span class="font-medium text-text-primary">Marc Michel</span>
+                  <span class="text-text-secondary"> &middot; Meeting logged: Initial call</span>
+                </div>
+                <div class="text-xs text-text-tertiary mt-0.5">TwentyTwo VC</div>
+              </div>
+              <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-xs text-text-tertiary tabular-nums">31d ago</span>
+                <span class="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-[140ms] cursor-pointer hover:text-text-primary">
+                  Log follow-up &rarr;
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Date: January 16, 2026 -->
+        <div class="mb-6">
+          <div class="text-xs font-medium text-text-tertiary mb-2 px-1">January 16, 2026</div>
+          <div class="bg-surface-primary border border-border rounded-lg overflow-hidden">
+
+            <!-- Event: James Schuyler — Visited data room 10x -->
+            <div class="flex items-center gap-3 px-4 py-3 rounded transition-colors duration-[140ms] hover:bg-surface-secondary cursor-pointer group">
+              <div class="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">
+                  <span class="font-medium text-text-primary">James Schuyler</span>
+                  <span class="text-text-secondary"> &middot; Visited data room <span class="font-medium text-text-primary tabular-nums">10&times;</span></span>
+                </div>
+                <div class="text-xs text-text-tertiary mt-0.5">Schuyler Family Foundation</div>
+              </div>
+              <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-xs text-text-tertiary tabular-nums">32d ago</span>
+                <span class="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-[140ms] cursor-pointer hover:text-text-primary">
+                  Log follow-up &rarr;
+                </span>
+              </div>
+            </div>
+
+            <div class="mx-4 border-t border-border-subtle"></div>
+
+            <!-- Event: James Schuyler — Downloaded Financial Model Q4 -->
+            <div class="flex items-center gap-3 px-4 py-3 rounded transition-colors duration-[140ms] hover:bg-surface-secondary cursor-pointer group">
+              <div class="w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">
+                  <span class="font-medium text-text-primary">James Schuyler</span>
+                  <span class="text-text-secondary"> &middot; Downloaded &ldquo;Financial Model Q4&rdquo;</span>
+                </div>
+                <div class="text-xs text-text-tertiary mt-0.5">Schuyler Family Foundation</div>
+              </div>
+              <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-xs text-text-tertiary tabular-nums">32d ago</span>
+                <span class="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-[140ms] cursor-pointer hover:text-text-primary">
+                  Log follow-up &rarr;
+                </span>
+              </div>
+            </div>
+
+            <div class="mx-4 border-t border-border-subtle"></div>
+
+            <!-- Event: Sarah Chen — Opened investor update email 3x -->
+            <div class="flex items-center gap-3 px-4 py-3 rounded transition-colors duration-[140ms] hover:bg-surface-secondary cursor-pointer group">
+              <div class="w-8 h-8 rounded-md bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">
+                  <span class="font-medium text-text-primary">Sarah Chen</span>
+                  <span class="text-text-secondary"> &middot; Opened investor update email <span class="font-medium text-text-primary tabular-nums">3&times;</span></span>
+                </div>
+                <div class="text-xs text-text-tertiary mt-0.5">Sequoia Capital</div>
+              </div>
+              <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-xs text-text-tertiary tabular-nums">32d ago</span>
+                <span class="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-[140ms] cursor-pointer hover:text-text-primary">
+                  Log follow-up &rarr;
+                </span>
+              </div>
+            </div>
+
+            <div class="mx-4 border-t border-border-subtle"></div>
+
+            <!-- Event: Marc Michel — Downloaded Pitch Deck v3 -->
+            <div class="flex items-center gap-3 px-4 py-3 rounded transition-colors duration-[140ms] hover:bg-surface-secondary cursor-pointer group">
+              <div class="w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">
+                  <span class="font-medium text-text-primary">Marc Michel</span>
+                  <span class="text-text-secondary"> &middot; Downloaded &ldquo;Pitch Deck v3&rdquo;</span>
+                </div>
+                <div class="text-xs text-text-tertiary mt-0.5">TwentyTwo VC</div>
+              </div>
+              <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-xs text-text-tertiary tabular-nums">32d ago</span>
+                <span class="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-[140ms] cursor-pointer hover:text-text-primary">
+                  Log follow-up &rarr;
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Date: January 14, 2026 -->
+        <div class="mb-6">
+          <div class="text-xs font-medium text-text-tertiary mb-2 px-1">January 14, 2026</div>
+          <div class="bg-surface-primary border border-border rounded-lg overflow-hidden">
+
+            <!-- Event: James Schuyler — Visited data room 5x -->
+            <div class="flex items-center gap-3 px-4 py-3 rounded transition-colors duration-[140ms] hover:bg-surface-secondary cursor-pointer group">
+              <div class="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">
+                  <span class="font-medium text-text-primary">James Schuyler</span>
+                  <span class="text-text-secondary"> &middot; Visited data room <span class="font-medium text-text-primary tabular-nums">5&times;</span></span>
+                </div>
+                <div class="text-xs text-text-tertiary mt-0.5">Schuyler Family Foundation</div>
+              </div>
+              <div class="flex items-center gap-4 flex-shrink-0">
+                <span class="text-xs text-text-tertiary tabular-nums">34d ago</span>
+                <span class="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-[140ms] cursor-pointer hover:text-text-primary">
+                  Log follow-up &rarr;
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+</body>
+</html>

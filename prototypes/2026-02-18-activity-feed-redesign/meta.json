@@ -1,0 +1,22 @@
+{
+  "id": "2026-02-18-activity-feed-redesign",
+  "name": "Activity Feed Redesign",
+  "description": "Three approaches to improving the fundraising activity feed: Enhanced Timeline (richer rows with icon containers), Signal Cards (Deel-inspired notification cards), Investor-grouped (ClickUp-inspired entity clustering).",
+  "prompt": "/prototype activity feed redesign --options 3 --chrome sidebar",
+  "fidelity": "concept",
+  "chrome": "sidebar",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Enhanced Timeline — chronological rows with icon containers, colored by event type" },
+    { "file": "concept-v2.html", "notes": "Signal Cards — Deel-inspired elevated cards with category filters and date range picker" },
+    { "file": "concept-v3.html", "notes": "Investor-grouped — ClickUp-inspired entity cards clustering activities under each investor" },
+    { "file": "concept-v4.html", "notes": "Investor-grouped + colored icon containers (V3 layout with V1's event-type color coding)" },
+    { "file": "concept-v5.html", "notes": "Individual-level activities — person names as leading element, multiple people per firm visible" }
+  ],
+  "designSystemUsage": {
+    "tokens": ["surface-primary", "surface-secondary", "surface-tertiary", "text-primary", "text-secondary", "text-tertiary", "border-default", "border-subtle"],
+    "presets": [],
+    "patterns": ["flat-row-hover", "card-row-hover", "icon-containers", "metric-badges", "avatar-colors"]
+  },
+  "inspiration": ["Deel notifications", "ClickUp activity feed"],
+  "createdAt": "2026-02-18T19:30:00Z"
+}

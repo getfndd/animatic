@@ -1,0 +1,43 @@
+{
+  "id": "2026-02-08-portfolio-intelligence",
+  "name": "Portfolio Intelligence",
+  "description": "Attention-prioritized portfolio dashboard combining 6 reporting signals (update cadence, meeting cadence, projection tracking, budget stability, data room freshness, responsiveness) with thesis alignment scoring into a Linear triage-inspired attention queue. Signal feed as right sidebar.",
+  "prompt": "/prototype Portfolio Intelligence View — attention-prioritized portfolio dashboard combining reporting signals with thesis alignment into a Linear triage-inspired attention queue",
+  "fidelity": "concept",
+  "chrome": "sidebar",
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "V1: Three-tab architecture with underline tabs. Attention Queue, Health Grid, Signal Feed as separate views."
+    },
+    {
+      "file": "concept-v2.html",
+      "notes": "V2: Revised layout — no tabs. Single-view: Attention Queue (left) + Signal Feed sidebar (right). Added meeting cadence as 6th signal with dual segment bars (updates + meetings). Thesis Alignment kept as separate nav item. List/grid toggle in header (Linear-style). Snooze dropdown with options. Meeting events in signal feed."
+    },
+    {
+      "file": "concept-v3.html",
+      "notes": "V3: Typography fix (title case headers, no uppercase). Functional health scatter plot via list/grid toggle — companies positioned spatially by reporting health (Y) vs thesis alignment (X) with dot-grid background, crosshair dividers, quadrant labels, status-colored avatar borders, hover tooltips. Border removal throughout. Signal feed on white background. Card hover pattern corrected (border-transparent + hover:border-subtle + shadow-sm + translate-y)."
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--surface-primary", "--surface-secondary", "--surface-tertiary", "--surface-hover",
+      "--text-primary", "--text-secondary", "--text-tertiary",
+      "--border-default", "--border-subtle", "--border-strong",
+      "--status-success", "--status-success-bg",
+      "--status-error", "--status-error-bg",
+      "--status-warning", "--status-warning-bg",
+      "--radius"
+    ],
+    "presets": [],
+    "patterns": [
+      "flat-row-hover (rounded + duration-[140ms] + hover:bg-surface-secondary)",
+      "card-row-hover (rounded-md + border-border-strong on hover)",
+      "avatar-colors (200-shade backgrounds)",
+      "segment-bar (cadence visualization from ReportingSignals)",
+      "ai-assumed-design (Weftly mark, no sparkles)"
+    ]
+  },
+  "relatedPRD": "docs/prd/portfolio-intelligence.md",
+  "createdAt": "2026-02-08T18:30:00Z"
+}

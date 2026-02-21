@@ -1,0 +1,25 @@
+{
+  "id": "2026-02-08-intel-components",
+  "name": "Intel Queue Cards",
+  "description": "9 iterations on the Needs Attention queue card — exploring scannability, signal clarity, action affordance, and accessible encoding",
+  "prompt": "/prototype attention queue cards --fidelity concept --options 7 --chrome none",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Signal-Led — lead with what's wrong, company is context" },
+    { "file": "concept-v2.html", "notes": "REJECTED — Severity Edge bar felt heavy and reductive" },
+    { "file": "concept-v3.html", "notes": "Signal Grid — 3x2 micro-grid showing all 6 signals as colored dots" },
+    { "file": "concept-v4.html", "notes": "Action-Forward — suggested next action as headline, contextual CTA buttons" },
+    { "file": "concept-v5.html", "notes": "Compact Two-Line — max density, severity badge, expandable for detail" },
+    { "file": "concept-v6.html", "notes": "SYNTHESIS: Full Narrative — signal headline + enhanced 6-col grid with values + contextual actions, all visible" },
+    { "file": "concept-v7.html", "notes": "SYNTHESIS: Collapse/Expand — compact with inline health dots, expands to signal detail rows + actions" },
+    { "file": "concept-v8.html", "notes": "Accessible Signal Bar — V8a: icons inside dots (!/▲/✓/?), V8b: tinted columns with simple dots + text values" },
+    { "file": "concept-v9.html", "notes": "RESEARCH-INFORMED: Segment bars for cadence (Sentry-style), two-density encoding (problem=loud, healthy=quiet), text labels replace dots (Carbon 3-of-4)" }
+  ],
+  "designSystemUsage": {
+    "tokens": ["surface-primary", "surface-secondary", "surface-tertiary", "text-primary", "text-secondary", "text-tertiary", "border-default", "border-subtle", "status-success", "status-error", "status-warning", "status-info", "status-*-bg"],
+    "presets": [],
+    "patterns": ["card-row-hover", "flat-row-hover", "avatar-colors", "radius-hierarchy", "collapse-expand"]
+  },
+  "createdAt": "2026-02-08T22:30:00Z"
+}

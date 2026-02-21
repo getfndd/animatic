@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Empty States Audit — Fundraising</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-disabled: 0 0% 78%;
+      --text-inverse: 0 0% 98%;
+      --text-link: 220 60% 50%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+    .violation-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    .violation-error { background: hsl(0 86% 97%); color: hsl(0 84% 45%); }
+    .violation-warning { background: hsl(48 96% 95%); color: hsl(38 80% 35%); }
+    .violation-ok { background: hsl(142 76% 94%); color: hsl(142 71% 35%); }
+    .nav-link {
+      display: block;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: hsl(var(--text-secondary));
+      transition: background 140ms;
+      text-decoration: none;
+    }
+    .nav-link:hover { background: hsl(var(--surface-secondary)); color: hsl(var(--text-primary)); }
+    .card-current {
+      border: 1px solid hsl(var(--border-default));
+      border-radius: 8px;
+      background: hsl(var(--surface-primary));
+    }
+    .card-proposed {
+      border: 1px solid hsl(142 71% 45% / 0.3);
+      border-radius: 8px;
+      background: hsl(142 76% 98%);
+    }
+    /* Phosphor icon approximations using SVG */
+    .icon-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 9999px;
+      background: hsl(var(--surface-secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-circle-sm {
+      width: 48px;
+      height: 48px;
+      border-radius: 9999px;
+      background: hsl(var(--surface-secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-placeholder {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      background: hsl(var(--text-tertiary) / 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-placeholder span {
+      font-size: 11px;
+      color: hsl(var(--text-tertiary));
+      font-weight: 500;
+    }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      border: 1px solid hsl(var(--border-default));
+      font-size: 14px;
+      font-weight: 500;
+      background: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      cursor: pointer;
+      transition: border-color 140ms;
+    }
+    .btn-secondary:hover { border-color: hsl(var(--border-strong)); }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      font-size: 14px;
+      font-weight: 500;
+      background: hsl(var(--surface-inverse));
+      color: hsl(var(--text-inverse));
+      cursor: pointer;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-disabled': 'hsl(var(--text-disabled))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'text-link': 'hsl(var(--text-link))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen">
+
+  <!-- Fixed sidebar nav -->
+  <div class="fixed left-0 top-0 bottom-0 w-56 border-r bg-surface-primary p-4 overflow-y-auto z-10">
+    <div class="mb-6">
+      <h1 class="text-sm font-bold text-text-primary tracking-tight">Empty States Audit</h1>
+      <p class="text-xs text-text-tertiary mt-1">Fundraising Section</p>
+    </div>
+
+    <div class="space-y-0.5">
+      <p class="text-[11px] font-medium text-text-tertiary uppercase tracking-wider mb-2 px-4">Pages</p>
+      <a href="#overview" class="nav-link">Overview</a>
+      <a href="#investors" class="nav-link">Investors</a>
+      <a href="#pipeline" class="nav-link">Pipeline</a>
+      <a href="#activity" class="nav-link">Activity</a>
+      <a href="#round-modeling" class="nav-link">Round Modeling</a>
+      <a href="#data-room" class="nav-link">Data Room</a>
+      <a href="#deal-docs" class="nav-link">Deal Docs</a>
+      <a href="#investor-updates" class="nav-link">Investor Updates</a>
+      <a href="#contacts" class="nav-link">Contacts</a>
+    </div>
+
+    <div class="mt-8 space-y-0.5">
+      <p class="text-[11px] font-medium text-text-tertiary uppercase tracking-wider mb-2 px-4">Sub-pages</p>
+      <a href="#investor-profile" class="nav-link">Investor Profile</a>
+      <a href="#share-management" class="nav-link">Share Management</a>
+      <a href="#dd-readiness" class="nav-link">DD Readiness</a>
+    </div>
+
+    <div class="mt-8 pt-4 border-t">
+      <p class="text-[11px] font-medium text-text-tertiary uppercase tracking-wider mb-2 px-4">Legend</p>
+      <div class="space-y-2 px-4">
+        <span class="violation-error">Violation</span>
+        <span class="violation-warning">Drift</span>
+        <span class="violation-ok">Correct</span>
+      </div>
+    </div>
+
+    <div class="mt-6 pt-4 border-t px-4">
+      <p class="text-[11px] font-medium text-text-tertiary uppercase tracking-wider mb-2">Spec Reference</p>
+      <div class="text-xs text-text-tertiary space-y-1">
+        <p>Icon: 64px circle, 32px icon</p>
+        <p>Icon color: text-tertiary</p>
+        <p>Heading: text-lg font-semibold</p>
+        <p>Body: text-sm text-tertiary</p>
+        <p>Button: secondary-action</p>
+        <p>Spacing: mt-4 / mt-2 / mt-4</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="ml-56">
+    <!-- Header -->
+    <div class="sticky top-0 z-10 bg-surface-primary border-b px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-bold">Empty States Audit — Fundraising</h1>
+          <p class="text-sm text-text-secondary mt-0.5">Current state vs. design pattern spec &middot; 9 pages &middot; 22 empty states</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs">
+          <span class="violation-error">7 violations</span>
+          <span class="violation-warning">11 drifts</span>
+          <span class="violation-ok">4 correct</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-8 space-y-16 max-w-5xl">
+
+      <!-- ==================== OVERVIEW ==================== -->
+      <section id="overview">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">1. Overview</h2>
+          <span class="violation-warning">No empty state</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">The Overview page has no traditional empty state. It always renders dashboard cards even when data is zero. The only "empty" pattern is inside the Command Palette ("No matching commands").</p>
+
+        <div class="card-current p-8">
+          <div class="text-center py-8">
+            <p class="text-sm text-text-tertiary italic">No empty state exists</p>
+            <p class="text-xs text-text-tertiary mt-2">Dashboard always renders with zero-state cards.<br/>Consider: Should there be a first-run welcome state?</p>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="violation-warning">Missing first-run empty state</span>
+        </div>
+      </section>
+
+      <!-- ==================== INVESTORS ==================== -->
+      <section id="investors">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">2. Investors</h2>
+          <span class="violation-error">2 violations</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Uses shared DataTable component. Two states: true empty and filtered empty.</p>
+
+        <div class="grid grid-cols-2 gap-6">
+          <!-- True empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">True Empty (no investors)</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center justify-center rounded-lg border bg-surface-secondary p-12">
+                <div class="icon-placeholder mb-4"><span>DB</span></div>
+                <p class="font-medium text-text-primary">No data available</p>
+                <p class="mt-2 text-sm text-text-secondary">There are no records to display in this table.</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-error">No icon circle (uses inline icon)</span>
+              <span class="violation-error">Generic copy — not contextual</span>
+              <span class="violation-warning">No CTA button</span>
+              <span class="violation-warning">Uses bg-surface-secondary container</span>
+              <span class="violation-warning">Icon: Database (not contextual to investors)</span>
+            </div>
+          </div>
+
+          <!-- Filtered empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Filtered Empty (search, no matches)</p>
+            <div class="card-current p-8">
+              <div class="py-8 text-center">
+                <p class="text-sm text-text-secondary">No results found for "acme ventures"</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-error">No icon</span>
+              <span class="violation-error">No heading — just body text</span>
+              <span class="violation-warning">Missing "clear search" action</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== PIPELINE ==================== -->
+      <section id="pipeline">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">3. Pipeline</h2>
+          <span class="violation-error">2 violations</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Kanban board with per-column empty states. No whole-board empty state exists.</p>
+
+        <div class="grid grid-cols-2 gap-6">
+          <!-- Column empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Empty Kanban Column</p>
+            <div class="card-current p-6">
+              <div class="border rounded-lg p-4" style="min-width: 240px;">
+                <div class="flex items-center justify-between mb-4">
+                  <span class="text-sm font-medium">Outreach</span>
+                  <span class="text-xs text-text-tertiary">0</span>
+                </div>
+                <div class="flex flex-col items-center justify-center py-6 text-center">
+                  <div class="icon-circle-sm">
+                    <div class="icon-placeholder" style="width:20px;height:20px;"><span style="font-size:8px;">K</span></div>
+                  </div>
+                  <p class="mt-2 text-xs text-text-disabled">No deals yet</p>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-error">Icon circle: 48px (spec: 64px)</span>
+              <span class="violation-error">Icon: 20px (spec: 32px)</span>
+              <span class="violation-warning">Uses text-text-disabled (spec: text-tertiary)</span>
+              <span class="violation-warning">text-xs instead of text-lg heading</span>
+              <span class="violation-warning">No description text</span>
+            </div>
+          </div>
+
+          <!-- Missing board empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Whole Board Empty</p>
+            <div class="card-current p-8">
+              <div class="text-center py-8">
+                <p class="text-sm text-text-tertiary italic">No whole-board empty state exists</p>
+                <p class="text-xs text-text-tertiary mt-2">When pipeline has no stages configured,<br/>there's no guidance for the user.</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">Missing board-level empty state</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== ACTIVITY ==================== -->
+      <section id="activity">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">4. Activity</h2>
+          <span class="violation-warning">4 drifts</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Four empty states across two view modes (Timeline and By Investor), each with true/filtered variants.</p>
+
+        <div class="grid grid-cols-2 gap-6">
+          <!-- Timeline true empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Timeline — True Empty</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>CLK</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No activity yet</h3>
+                <p class="mt-2 text-sm text-text-secondary">Activity from emails, meetings, and manual interactions will appear here</p>
+                <button class="btn-secondary mt-6">Log Interaction <span class="text-xs">+</span></button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">Heading: text-base (spec: text-lg)</span>
+              <span class="violation-warning">Body: text-secondary (spec: text-tertiary)</span>
+              <span class="violation-warning">Button spacing: mt-6 (spec: mt-4)</span>
+              <span class="violation-ok">Icon circle correct</span>
+            </div>
+          </div>
+
+          <!-- Timeline filtered empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Timeline — Filtered Empty</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>CLK</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No activity matches your filters</h3>
+                <p class="mt-2 text-sm text-text-secondary">Try adjusting your filters or clear them to see all activity</p>
+                <button class="btn-secondary mt-6">Clear Filters <span class="text-xs">&times;</span></button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">Same drifts as true empty</span>
+              <span class="violation-ok">Good: contextual filtered copy</span>
+            </div>
+          </div>
+
+          <!-- By Investor true empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">By Investor — True Empty</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>USR</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No investor activity yet</h3>
+                <p class="mt-2 text-sm text-text-secondary">Connect your email and calendar to start tracking engagement automatically</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">No CTA button</span>
+              <span class="violation-warning">Heading: text-base (spec: text-lg)</span>
+              <span class="violation-ok">Good: actionable description</span>
+            </div>
+          </div>
+
+          <!-- By Investor filtered empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">By Investor — Filtered Empty</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>USR</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No activity matches this filter</h3>
+                <p class="mt-2 text-sm text-text-secondary">Try switching to "All Activity" to see everything</p>
+                <button class="btn-secondary mt-6">Show All Activity</button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Good: has clear recovery action</span>
+              <span class="violation-warning">Same typography drifts</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== ROUND MODELING ==================== -->
+      <section id="round-modeling">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">5. Round Modeling</h2>
+          <span class="violation-warning">No standard empty state</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Uses a setup wizard (CapTableSetup) when no cap table data exists. No traditional empty state pattern.</p>
+
+        <div class="card-current p-8">
+          <div class="text-center py-8">
+            <p class="text-sm text-text-tertiary italic">Shows CapTableSetup wizard instead of empty state</p>
+            <p class="text-xs text-text-tertiary mt-2">This is intentional — the wizard guides founders through<br/>cap table creation. Not a traditional empty state.</p>
+          </div>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-1.5">
+          <span class="violation-ok">Appropriate: wizard-based onboarding</span>
+        </div>
+      </section>
+
+      <!-- ==================== DATA ROOM ==================== -->
+      <section id="data-room">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">6. Data Room</h2>
+          <span class="violation-error">1 violation</span>
+          <span class="violation-warning">2 drifts</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Multiple empty states: no folders, upload prompt, search states.</p>
+
+        <div class="grid grid-cols-2 gap-6">
+          <!-- No folders -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">No Folders Yet</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>FLD</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No folders yet</h3>
+                <p class="mt-2 text-sm text-text-secondary">Use a template to get started quickly, or create your own folders.</p>
+                <div class="mt-6 flex gap-3">
+                  <button class="btn-primary">Use Template <span class="text-xs">&#9889;</span></button>
+                  <button class="btn-secondary">Create Folder <span class="text-xs">+</span></button>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-error">Uses primary-action button (spec: secondary only)</span>
+              <span class="violation-warning">Two CTAs (spec recommends single)</span>
+              <span class="violation-warning">Heading: text-base (spec: text-lg)</span>
+              <span class="violation-warning">Body: text-secondary (spec: text-tertiary)</span>
+            </div>
+          </div>
+
+          <!-- Upload documents -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Upload Documents (folders exist, no files)</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>FLD</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">Upload Your Documents</h3>
+                <p class="mt-2 text-sm text-text-secondary">AI will summarize, categorize, and organize your files.</p>
+                <button class="btn-primary mt-6">Upload Documents <span class="text-xs">&uarr;</span></button>
+                <p class="mt-3 text-sm text-text-tertiary">Or select a folder to view its documents</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-error">Uses primary-action button</span>
+              <span class="violation-warning">"AI will..." — consider AI-assumed rewrite</span>
+            </div>
+          </div>
+
+          <!-- Search no results -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Search — No Results</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>MAG</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No documents found</h3>
+                <p class="mt-2 text-sm text-text-secondary">No documents match "term sheet draft"</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Good: contextual search message</span>
+              <span class="violation-warning">Same typography drifts</span>
+            </div>
+          </div>
+
+          <!-- Search initial -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Search — Initial (no query)</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>MAG</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">Search Documents</h3>
+                <p class="mt-2 text-sm text-text-secondary">Enter a search term to find documents across all folders</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Good: clear guidance</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== DEAL DOCS ==================== -->
+      <section id="deal-docs">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">7. Deal Docs</h2>
+          <span class="violation-warning">2 drifts</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Three states: true empty, filtered empty, and a generic fallback.</p>
+
+        <div class="grid grid-cols-3 gap-6">
+          <!-- True empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">True Empty</p>
+            <div class="card-current p-6">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>DOC</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No documents tracked yet</h3>
+                <p class="mt-2 text-sm text-text-secondary">Track NDAs, SAFEs, and other deal documents from your pipeline</p>
+                <button class="btn-secondary mt-6">Track Document <span class="text-xs">+</span></button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">Heading: text-base</span>
+              <span class="violation-ok">Good: clear CTA</span>
+            </div>
+          </div>
+
+          <!-- Filtered empty -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Filtered Empty</p>
+            <div class="card-current p-6">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>DOC</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No documents match your filters</h3>
+                <p class="mt-2 text-sm text-text-secondary">Try adjusting your search or filter criteria</p>
+                <button class="mt-6 text-sm font-medium" style="color: hsl(var(--text-link));">Clear all filters</button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">Uses text link instead of button</span>
+              <span class="violation-ok">Good: has recovery action</span>
+            </div>
+          </div>
+
+          <!-- Generic fallback -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Generic Fallback</p>
+            <div class="card-current p-6">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>DOC</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No documents found</h3>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">No description or CTA</span>
+              <span class="violation-warning">Minimal — could merge with filtered</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== INVESTOR UPDATES ==================== -->
+      <section id="investor-updates">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">8. Investor Updates</h2>
+          <span class="violation-warning">2 drifts</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Three filter-dependent states with dynamic icons. Clean implementation.</p>
+
+        <div class="grid grid-cols-3 gap-6">
+          <!-- All updates -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">No Updates (All filter)</p>
+            <div class="card-current p-6">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>ENV</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No updates yet</h3>
+                <p class="mt-2 text-sm text-text-secondary">Create your first update to keep investors in the loop</p>
+                <button class="btn-secondary mt-6">Create First Update <span class="text-xs">+</span></button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">Heading: text-base</span>
+              <span class="violation-ok">Good: contextual per-filter copy</span>
+            </div>
+          </div>
+
+          <!-- Drafts -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">No Drafts</p>
+            <div class="card-current p-6">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>PEN</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No drafts</h3>
+                <p class="mt-2 text-sm text-text-secondary">Start a new update to save it as a draft</p>
+                <button class="btn-secondary mt-6">Start New Draft <span class="text-xs">+</span></button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Good: dynamic icon + copy</span>
+            </div>
+          </div>
+
+          <!-- Sent -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">No Sent Updates</p>
+            <div class="card-current p-6">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>PLN</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No sent updates</h3>
+                <p class="mt-2 text-sm text-text-secondary">Send your first update to see it here</p>
+                <button class="btn-secondary mt-6">Create First Update <span class="text-xs">+</span></button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Good: clear path forward</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== CONTACTS ==================== -->
+      <section id="contacts">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">9. Contacts</h2>
+          <span class="violation-warning">1 drift</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Tab-dependent empty states (People, Organizations, Team) with true/filtered variants. Well-implemented.</p>
+
+        <div class="grid grid-cols-3 gap-6">
+          <!-- People -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">People — True Empty</p>
+            <div class="card-current p-6">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>USR</span></div>
+                </div>
+                <h3 class="mt-4 text-lg font-medium text-text-primary">No people yet</h3>
+                <p class="mt-1 text-sm text-text-secondary">Add your first contact to get started</p>
+                <div class="mt-4 flex gap-3">
+                  <button class="btn-secondary">Add Person <span class="text-xs">+</span></button>
+                  <button class="btn-secondary" style="border-style: none; color: hsl(var(--text-secondary));">Import CSV <span class="text-xs">&uarr;</span></button>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">font-medium (spec: font-semibold)</span>
+              <span class="violation-warning">Two CTAs</span>
+              <span class="violation-ok">Uses text-lg heading</span>
+              <span class="violation-ok">mt-4 button spacing</span>
+            </div>
+          </div>
+
+          <!-- Organizations -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Organizations — True Empty</p>
+            <div class="card-current p-6">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>BLD</span></div>
+                </div>
+                <h3 class="mt-4 text-lg font-medium text-text-primary">No organizations yet</h3>
+                <p class="mt-1 text-sm text-text-secondary">Add your first organization to get started</p>
+                <div class="mt-4 flex gap-3">
+                  <button class="btn-secondary">Add Organization <span class="text-xs">+</span></button>
+                  <button class="btn-secondary" style="border-style: none; color: hsl(var(--text-secondary));">Import CSV <span class="text-xs">&uarr;</span></button>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Consistent with People tab</span>
+            </div>
+          </div>
+
+          <!-- Filtered -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">All Tabs — Filtered Empty</p>
+            <div class="card-current p-6">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>USR</span></div>
+                </div>
+                <h3 class="mt-4 text-lg font-medium text-text-primary">No contacts found</h3>
+                <p class="mt-1 text-sm text-text-secondary">Try adjusting your search or filters</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Good: clear recovery guidance</span>
+              <span class="violation-warning">No "clear filters" CTA</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== SUB-PAGES ==================== -->
+      <div class="border-t pt-12 mt-4">
+        <h2 class="text-sm font-bold text-text-tertiary uppercase tracking-wider mb-8">Sub-page Empty States</h2>
+      </div>
+
+      <!-- Investor Profile -->
+      <section id="investor-profile">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">Investor Profile</h2>
+          <span class="violation-warning">2 drifts</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Tab-level empty states for Partners, Portfolio, plus inline empties for relationship and notes.</p>
+
+        <div class="grid grid-cols-2 gap-6">
+          <!-- Partners -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Partners Tab — No Partners</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>USR</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No partners added yet</h3>
+                <p class="mt-2 text-sm text-text-secondary">Add partner contacts to track your relationships within this firm</p>
+                <button class="btn-secondary mt-6">Add Partner <span class="text-xs">+</span></button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">Icon color: text-secondary (spec: text-tertiary)</span>
+              <span class="violation-ok">Structure correct</span>
+            </div>
+          </div>
+
+          <!-- Portfolio -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Portfolio Tab — No Companies</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>BRF</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No portfolio companies yet</h3>
+                <p class="mt-2 text-sm text-text-secondary">Track companies in this investor's portfolio to identify connections and opportunities</p>
+                <button class="btn-secondary mt-6">Add Company <span class="text-xs">+</span></button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-warning">Icon color: text-secondary</span>
+              <span class="violation-ok">Good: explains value</span>
+            </div>
+          </div>
+
+          <!-- Inline empties -->
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Inline — Relationship Details</p>
+            <div class="card-current p-6">
+              <p class="text-sm text-text-tertiary italic">No details added yet</p>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Appropriate for inline context</span>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">Inline — Notes & Meetings</p>
+            <div class="card-current p-6">
+              <p class="text-sm text-text-tertiary italic">No interactions logged yet</p>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Appropriate for inline context</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Share Management -->
+      <section id="share-management">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">Share Management</h2>
+          <span class="violation-ok">Mostly correct</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">No Investors Have Access</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>USR</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No investors have access yet</h3>
+                <p class="mt-2 text-sm text-text-secondary">Grant access to investors to share your data room</p>
+                <button class="btn-secondary mt-6">Invite Investor <span class="text-xs">+</span></button>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Good structure</span>
+              <span class="violation-warning">Heading: text-base</span>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs font-medium text-text-tertiary mb-3">No Matching Results (filtered)</p>
+            <div class="card-current p-8">
+              <div class="flex flex-col items-center text-center">
+                <div class="icon-circle">
+                  <div class="icon-placeholder"><span>MAG</span></div>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-text-primary">No matching results</h3>
+                <p class="mt-2 text-sm text-text-secondary">Try adjusting your filters or search terms</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              <span class="violation-ok">Good: switches icon for filtered</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DD Readiness -->
+      <section id="dd-readiness">
+        <div class="flex items-center gap-3 mb-4">
+          <h2 class="text-base font-bold">DD Readiness</h2>
+          <span class="violation-error">Non-standard (intentional)</span>
+        </div>
+        <p class="text-sm text-text-secondary mb-6">Full onboarding-style empty state with benefits grid. Intentionally non-standard — serves as feature introduction.</p>
+
+        <div class="card-current p-8">
+          <div class="flex flex-col items-center text-center max-w-lg mx-auto">
+            <div style="width: 64px; height: 64px; border-radius: 16px; background: hsl(var(--surface-secondary)); display: flex; align-items: center; justify-content: center;">
+              <div class="icon-placeholder"><span>CB</span></div>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-text-primary">Be investor-ready, not investor-nervous</h3>
+            <p class="mt-2 text-sm text-text-secondary">Track your due diligence readiness with a checklist tailored to your fundraising stage.</p>
+            <div class="mt-6 grid grid-cols-2 gap-4 text-left w-full">
+              <div class="flex items-start gap-2 text-xs text-text-secondary"><span class="text-text-tertiary">Target</span> Stage-specific checklists</div>
+              <div class="flex items-start gap-2 text-xs text-text-secondary"><span class="text-text-tertiary">Chart</span> Progress tracking</div>
+              <div class="flex items-start gap-2 text-xs text-text-secondary"><span class="text-text-tertiary">Warning</span> Gap identification</div>
+              <div class="flex items-start gap-2 text-xs text-text-secondary"><span class="text-text-tertiary">Bulb</span> Best practices</div>
+            </div>
+            <button class="btn-primary mt-6">Set Up DD Checklist <span class="text-xs">+</span></button>
+            <p class="mt-3 text-xs text-text-tertiary">Takes less than a minute &middot; Choose from Pre-Seed to Series B+ templates</p>
+          </div>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-1.5">
+          <span class="violation-error">Uses rounded-2xl container (spec: rounded-full)</span>
+          <span class="violation-error">Uses primary-action button</span>
+          <span class="violation-warning">Benefits grid is non-standard</span>
+          <span class="violation-ok">Justified: onboarding context needs more guidance</span>
+        </div>
+      </section>
+
+      <!-- ==================== SUMMARY ==================== -->
+      <section class="border-t pt-12 mt-8">
+        <h2 class="text-base font-bold mb-6">Summary of Issues</h2>
+
+        <div class="space-y-6">
+          <!-- Systematic issues -->
+          <div>
+            <h3 class="text-sm font-semibold text-text-primary mb-3">Systematic Issues (affect multiple pages)</h3>
+            <div class="space-y-3">
+              <div class="flex items-start gap-3 p-4 rounded-lg bg-surface-secondary">
+                <span class="violation-error mt-0.5">Fix</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Heading size: text-base vs text-lg</p>
+                  <p class="text-xs text-text-secondary mt-1">Activity, Data Room, Deal Docs, Investor Updates, Share Management, Investor Profile all use <code class="text-xs bg-surface-tertiary px-1 rounded">text-base font-semibold</code>. Spec requires <code class="text-xs bg-surface-tertiary px-1 rounded">text-lg font-semibold</code>.</p>
+                  <p class="text-xs text-text-tertiary mt-1">Affected: 6 pages, ~15 empty states</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-4 rounded-lg bg-surface-secondary">
+                <span class="violation-error mt-0.5">Fix</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Body color: text-secondary vs text-tertiary</p>
+                  <p class="text-xs text-text-secondary mt-1">Spec says description text should be <code class="text-xs bg-surface-tertiary px-1 rounded">text-text-tertiary</code>. Most pages use <code class="text-xs bg-surface-tertiary px-1 rounded">text-text-secondary</code> instead.</p>
+                  <p class="text-xs text-text-tertiary mt-1">Affected: Activity, Data Room, Deal Docs, Investor Updates, Investor Profile</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-4 rounded-lg bg-surface-secondary">
+                <span class="violation-warning mt-0.5">Align</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Button spacing: mt-6 vs mt-4</p>
+                  <p class="text-xs text-text-secondary mt-1">Spec says <code class="text-xs bg-surface-tertiary px-1 rounded">mt-4</code> for CTA button. Many pages use <code class="text-xs bg-surface-tertiary px-1 rounded">mt-6</code>.</p>
+                  <p class="text-xs text-text-tertiary mt-1">Decision: Should we update spec to mt-6? It looks better with breathing room.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-4 rounded-lg bg-surface-secondary">
+                <span class="violation-warning mt-0.5">Align</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Icon color: text-secondary vs text-tertiary</p>
+                  <p class="text-xs text-text-secondary mt-1">Spec says icon should be <code class="text-xs bg-surface-tertiary px-1 rounded">text-text-tertiary</code>. Some pages use <code class="text-xs bg-surface-tertiary px-1 rounded">text-text-secondary</code> (slightly darker).</p>
+                  <p class="text-xs text-text-tertiary mt-1">Affected: Activity, Data Room, Investor Profile, Share Management</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Page-specific issues -->
+          <div>
+            <h3 class="text-sm font-semibold text-text-primary mb-3">Page-Specific Issues</h3>
+            <div class="space-y-3">
+              <div class="flex items-start gap-3 p-4 rounded-lg bg-surface-secondary">
+                <span class="violation-error mt-0.5">Fix</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Investors: Generic DataTable empty state</p>
+                  <p class="text-xs text-text-secondary mt-1">"No data available" with Database icon is generic. Should say "No investors yet" with Users icon, contextual description, and "Add Investor" CTA.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-4 rounded-lg bg-surface-secondary">
+                <span class="violation-error mt-0.5">Fix</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Pipeline: Undersized column empty state</p>
+                  <p class="text-xs text-text-secondary mt-1">48px icon circle with 20px icon, text-xs text-disabled body. Should match spec sizing even if compact variant.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-4 rounded-lg bg-surface-secondary">
+                <span class="violation-error mt-0.5">Fix</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Data Room: Uses primary-action buttons</p>
+                  <p class="text-xs text-text-secondary mt-1">"Use Template" and "Upload Documents" use primary-action. Spec says empty state CTAs should always be secondary-action to preserve page hierarchy.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-4 rounded-lg bg-surface-secondary">
+                <span class="violation-warning mt-0.5">Review</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Data Room: "AI will summarize..." copy</p>
+                  <p class="text-xs text-text-secondary mt-1">Per AI-assumed design philosophy, avoid mentioning AI as the mechanism. Rewrite to focus on outcome: "Your files will be summarized, categorized, and organized automatically."</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-4 rounded-lg bg-surface-secondary">
+                <span class="violation-warning mt-0.5">Review</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Contacts: font-medium vs font-semibold</p>
+                  <p class="text-xs text-text-secondary mt-1">Uses text-lg (correct) but font-medium instead of font-semibold. Minor visual weight difference.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spec update candidates -->
+          <div>
+            <h3 class="text-sm font-semibold text-text-primary mb-3">Spec Update Candidates</h3>
+            <div class="space-y-3">
+              <div class="flex items-start gap-3 p-4 rounded-lg" style="background: hsl(220 60% 97%);">
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full" style="background: hsl(220 60% 93%); color: hsl(220 60% 35%);">Discuss</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Should mt-6 replace mt-4 for button spacing?</p>
+                  <p class="text-xs text-text-secondary mt-1">Most implementations use mt-6. The extra 8px gives better visual breathing room between description and CTA.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-4 rounded-lg" style="background: hsl(220 60% 97%);">
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full" style="background: hsl(220 60% 93%); color: hsl(220 60% 35%);">Discuss</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Allow dual CTAs for first-run onboarding states?</p>
+                  <p class="text-xs text-text-secondary mt-1">Data Room and Contacts both use two buttons. Pattern spec says single CTA. Exception for onboarding contexts?</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-4 rounded-lg" style="background: hsl(220 60% 97%);">
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full" style="background: hsl(220 60% 93%); color: hsl(220 60% 35%);">Discuss</span>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">Should body text be text-secondary or text-tertiary?</p>
+                  <p class="text-xs text-text-secondary mt-1">Spec says text-tertiary. Implementations mostly use text-secondary. text-secondary is more readable, especially for guidance text. Consider updating spec.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <div class="border-t pt-8 mt-16 pb-16">
+        <p class="text-xs text-text-tertiary">
+          Empty States Audit &middot; Fundraising Section &middot; February 18, 2026 &middot;
+          Maya (Design), Rams (UX), Rand (System Compliance)
+        </p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

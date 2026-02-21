@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Save as Template + AI Subject Line</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 0 0% 96%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.2s ease-out; }
+    @keyframes checkPop {
+      0% { transform: scale(0.8); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .check-pop { animation: checkPop 0.3s ease-out; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+
+  <!-- Page Header -->
+  <div class="max-w-7xl mx-auto mb-10">
+    <h1 class="text-2xl font-semibold text-text-primary tracking-tight">Email Composer — Save as Template + AI Subject Line</h1>
+    <p class="text-sm text-text-secondary mt-1">Two new features for the compose view: template saving via overflow menu, and subject line suggestions.</p>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- FEATURE 1: SAVE AS TEMPLATE FLOW                                   -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-16">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="px-2.5 py-1 text-xs font-medium bg-surface-inverse text-text-inverse rounded-full">Feature 1</span>
+      <h2 class="text-lg font-semibold text-text-primary">Save as Template</h2>
+    </div>
+
+    <div class="grid grid-cols-3 gap-6">
+
+      <!-- ─── State 1: Overflow Menu with new item ─── -->
+      <div>
+        <div class="bg-surface-primary rounded-lg border overflow-hidden">
+          <!-- Mini compose header context -->
+          <div class="px-5 py-3 border-b border-border-subtle flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">Q4 Investor Update</span>
+              <span class="text-xs text-text-tertiary px-1.5 py-0.5 bg-surface-secondary rounded">Draft</span>
+            </div>
+            <!-- Three-dot trigger (active state) -->
+            <button class="w-8 h-8 rounded-full flex items-center justify-center bg-surface-hover transition-colors">
+              <svg class="w-4 h-4 text-text-secondary" fill="currentColor" viewBox="0 0 256 256"><path d="M128,96a32,32,0,1,0,32,32A32,32,0,0,0,128,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,128,144Zm80-48a32,32,0,1,0,32,32A32,32,0,0,0,208,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,208,144ZM48,96a32,32,0,1,0,32,32A32,32,0,0,0,48,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,48,144Z"/></svg>
+            </button>
+          </div>
+
+          <!-- Overflow dropdown menu -->
+          <div class="px-5 py-4">
+            <div class="w-[240px] ml-auto bg-surface-primary border rounded-lg shadow-lg p-1.5 fade-in">
+              <!-- Include header logo (toggle) -->
+              <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-surface-hover transition-colors text-left">
+                <svg class="w-4 h-4 text-text-secondary flex-shrink-0" fill="currentColor" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,16V96H40V56Zm0,144H40V112H216v88Z"/></svg>
+                <span class="text-[13px] text-text-primary flex-1">Include header logo</span>
+                <!-- Toggle (on state) -->
+                <div class="w-8 h-[18px] bg-surface-inverse rounded-full relative flex-shrink-0">
+                  <div class="w-3.5 h-3.5 bg-white rounded-full absolute top-[2px] right-[2px] shadow-sm"></div>
+                </div>
+              </button>
+
+              <!-- Divider -->
+              <div class="h-px bg-border-subtle mx-2 my-1"></div>
+
+              <!-- Duplicate email -->
+              <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-surface-hover transition-colors text-left">
+                <svg class="w-4 h-4 text-text-secondary flex-shrink-0" fill="currentColor" viewBox="0 0 256 256"><path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/></svg>
+                <span class="text-[13px] text-text-primary">Duplicate email</span>
+              </button>
+
+              <!-- NEW: Save as template (highlighted with subtle bg) -->
+              <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md bg-surface-hover transition-colors text-left relative">
+                <svg class="w-4 h-4 text-text-secondary flex-shrink-0" fill="currentColor" viewBox="0 0 256 256"><path d="M219.31,72,184,36.69A15.86,15.86,0,0,0,172.69,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V83.31A15.86,15.86,0,0,0,219.31,72ZM168,208H88V152h80Zm40,0H184V152a16,16,0,0,0-16-16H88a16,16,0,0,0-16,16v56H48V48H172.69L208,83.31ZM160,72H96a8,8,0,0,1,0-16h64a8,8,0,0,1,0,16Z"/></svg>
+                <span class="text-[13px] text-text-primary">Save as template</span>
+                <!-- "New" badge -->
+                <span class="text-[10px] font-medium text-text-tertiary bg-surface-secondary px-1.5 py-0.5 rounded-full ml-auto">New</span>
+              </button>
+
+              <!-- View HTML source -->
+              <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-surface-hover transition-colors text-left">
+                <svg class="w-4 h-4 text-text-secondary flex-shrink-0" fill="currentColor" viewBox="0 0 256 256"><path d="M69.12,94.15,28.5,128l40.62,33.85a8,8,0,1,1-10.24,12.29l-48-40a8,8,0,0,1,0-12.29l48-40a8,8,0,0,1,10.24,12.3Zm176,27.7-48-40a8,8,0,1,0-10.24,12.3L227.5,128l-40.62,33.85a8,8,0,1,0,10.24,12.29l48-40a8,8,0,0,0,0-12.29ZM162.73,32.48a8,8,0,0,0-10.25,4.79l-64,176a8,8,0,0,0,4.79,10.26A8.14,8.14,0,0,0,96,224a8,8,0,0,0,7.52-5.27l64-176A8,8,0,0,0,162.73,32.48Z"/></svg>
+                <span class="text-[13px] text-text-primary">View HTML source</span>
+              </button>
+
+              <!-- Divider -->
+              <div class="h-px bg-border-subtle mx-2 my-1"></div>
+
+              <!-- Delete draft -->
+              <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-status-error-bg transition-colors text-left">
+                <svg class="w-4 h-4 text-status-error flex-shrink-0" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"/></svg>
+                <span class="text-[13px] text-status-error">Delete draft</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotation -->
+        <div class="mt-3 px-1">
+          <p class="text-xs text-text-tertiary leading-relaxed">
+            <strong class="text-text-secondary">State 1: Overflow menu trigger.</strong> New "Save as template" item appears after "Duplicate email". Subtle "New" badge draws attention without being disruptive. Same menu pattern as existing items.
+          </p>
+        </div>
+      </div>
+
+      <!-- ─── State 2: Save as Template Dialog ─── -->
+      <div>
+        <div class="bg-surface-primary rounded-lg border overflow-hidden">
+          <!-- Dimmed background context -->
+          <div class="px-5 py-3 border-b border-border-subtle flex items-center justify-between opacity-40">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">Q4 Investor Update</span>
+              <span class="text-xs text-text-tertiary px-1.5 py-0.5 bg-surface-secondary rounded">Draft</span>
+            </div>
+            <button class="w-8 h-8 rounded-full flex items-center justify-center">
+              <svg class="w-4 h-4 text-text-secondary" fill="currentColor" viewBox="0 0 256 256"><path d="M128,96a32,32,0,1,0,32,32A32,32,0,0,0,128,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,128,144Zm80-48a32,32,0,1,0,32,32A32,32,0,0,0,208,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,208,144ZM48,96a32,32,0,1,0,32,32A32,32,0,0,0,48,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,48,144Z"/></svg>
+            </button>
+          </div>
+
+          <!-- Modal dialog -->
+          <div class="px-4 py-6 flex items-center justify-center">
+            <div class="w-full max-w-[400px] bg-surface-primary border rounded-lg shadow-xl fade-in">
+              <!-- Modal header -->
+              <div class="px-5 pt-5 pb-1">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-base font-semibold text-text-primary">Save as template</h3>
+                  <button class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-surface-hover transition-colors">
+                    <svg class="w-4 h-4 text-text-tertiary" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+                  </button>
+                </div>
+                <p class="text-xs text-text-tertiary mt-1">Save the current email content as a reusable template.</p>
+              </div>
+
+              <!-- Modal body -->
+              <div class="px-5 py-4 space-y-4">
+                <!-- Template name -->
+                <div>
+                  <label class="block text-xs font-medium text-text-secondary mb-1.5">Template name <span class="text-status-error">*</span></label>
+                  <input
+                    type="text"
+                    value="Q4 Investor Update"
+                    class="w-full px-3 py-2 text-[13px] text-text-primary bg-surface-primary border border-border-default rounded-md outline-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1 transition-shadow"
+                    placeholder="e.g. Monthly investor update"
+                  />
+                </div>
+
+                <!-- Description -->
+                <div>
+                  <label class="block text-xs font-medium text-text-secondary mb-1.5">Description <span class="text-text-tertiary font-normal">(optional)</span></label>
+                  <input
+                    type="text"
+                    value=""
+                    class="w-full px-3 py-2 text-[13px] text-text-primary bg-surface-primary border border-border-default rounded-md outline-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1 transition-shadow"
+                    placeholder="What is this template for?"
+                  />
+                </div>
+
+                <!-- Category -->
+                <div>
+                  <label class="block text-xs font-medium text-text-secondary mb-1.5">Category</label>
+                  <div class="relative">
+                    <select class="w-full px-3 py-2 text-[13px] text-text-primary bg-surface-primary border border-border-default rounded-md outline-none appearance-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1 transition-shadow pr-8">
+                      <option>Investor Update</option>
+                      <option>Product Update</option>
+                      <option>Team Update</option>
+                      <option>Changelog</option>
+                      <option>Announcement</option>
+                      <option>Custom</option>
+                    </select>
+                    <!-- Chevron -->
+                    <svg class="w-4 h-4 text-text-tertiary absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal footer -->
+              <div class="px-5 py-4 border-t border-border-subtle flex items-center justify-end gap-2.5">
+                <button class="px-4 py-2 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-full transition-colors">
+                  Cancel
+                </button>
+                <button class="px-5 py-2 text-[13px] font-medium text-text-inverse bg-surface-inverse hover:opacity-90 rounded-full transition-opacity">
+                  Save template
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotation -->
+        <div class="mt-3 px-1">
+          <p class="text-xs text-text-tertiary leading-relaxed">
+            <strong class="text-text-secondary">State 2: Save dialog.</strong> Modal pre-fills the template name from the email subject. Category defaults to best guess from content. Description is optional. Standard modal pattern: <code class="text-[11px] bg-surface-secondary px-1 py-0.5 rounded">rounded-lg</code>, max-width 440px, centered overlay.
+          </p>
+        </div>
+      </div>
+
+      <!-- ─── State 3: Success Confirmation ─── -->
+      <div>
+        <div class="bg-surface-primary rounded-lg border overflow-hidden">
+          <!-- Compose header (normal state returned) -->
+          <div class="px-5 py-3 border-b border-border-subtle flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">Q4 Investor Update</span>
+              <span class="text-xs text-text-tertiary px-1.5 py-0.5 bg-surface-secondary rounded">Draft</span>
+            </div>
+            <button class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-hover transition-colors">
+              <svg class="w-4 h-4 text-text-secondary" fill="currentColor" viewBox="0 0 256 256"><path d="M128,96a32,32,0,1,0,32,32A32,32,0,0,0,128,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,128,144Zm80-48a32,32,0,1,0,32,32A32,32,0,0,0,208,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,208,144ZM48,96a32,32,0,1,0,32,32A32,32,0,0,0,48,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,48,144Z"/></svg>
+            </button>
+          </div>
+
+          <!-- Success toast inline -->
+          <div class="px-5 py-4">
+            <!-- Some faded compose content behind -->
+            <div class="space-y-3 mb-6 opacity-50">
+              <div class="h-3 bg-surface-secondary rounded w-3/4"></div>
+              <div class="h-3 bg-surface-secondary rounded w-full"></div>
+              <div class="h-3 bg-surface-secondary rounded w-5/6"></div>
+              <div class="h-3 bg-surface-secondary rounded w-2/3"></div>
+            </div>
+
+            <!-- Inline success message -->
+            <div class="flex items-center gap-2.5 px-4 py-3 bg-status-success-bg rounded-lg check-pop">
+              <svg class="w-4 h-4 text-status-success flex-shrink-0" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+              <span class="text-[13px] text-text-primary font-medium">Template saved</span>
+              <span class="text-[13px] text-text-secondary">— available in template picker</span>
+            </div>
+
+            <!-- More faded content -->
+            <div class="space-y-3 mt-6 opacity-50">
+              <div class="h-3 bg-surface-secondary rounded w-full"></div>
+              <div class="h-3 bg-surface-secondary rounded w-4/5"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotation -->
+        <div class="mt-3 px-1">
+          <p class="text-xs text-text-tertiary leading-relaxed">
+            <strong class="text-text-secondary">State 3: Success confirmation.</strong> Brief inline banner with green check. Auto-dismisses after 3 seconds. No modal, no disruption to compose flow. "Available in template picker" tells the user where to find it.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- FEATURE 2: AI SUBJECT LINE GENERATION                              -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-16">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="px-2.5 py-1 text-xs font-medium bg-surface-inverse text-text-inverse rounded-full">Feature 2</span>
+      <h2 class="text-lg font-semibold text-text-primary">AI Subject Line Generation</h2>
+    </div>
+
+    <div class="grid grid-cols-3 gap-6">
+
+      <!-- ─── State 1: Subject field with Suggest button ─── -->
+      <div>
+        <div class="bg-surface-primary rounded-lg border overflow-hidden">
+          <!-- Mini compose header -->
+          <div class="px-5 pt-4 pb-2">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs font-medium text-text-tertiary w-10">To</span>
+              <div class="flex items-center gap-1.5">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-secondary rounded-full text-xs text-text-primary">
+                  <span class="w-4 h-4 rounded-full bg-blue-200 flex items-center justify-center text-[8px] font-medium text-blue-700">JL</span>
+                  Jane Liu
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-secondary rounded-full text-xs text-text-primary">
+                  <span class="w-4 h-4 rounded-full bg-emerald-200 flex items-center justify-center text-[8px] font-medium text-emerald-700">MK</span>
+                  Mark Kim
+                </span>
+                <span class="text-xs text-text-tertiary">+8 more</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subject field with Suggest button -->
+          <div class="px-5 pb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-text-tertiary w-10">Subject</span>
+              <div class="flex-1 relative">
+                <input
+                  type="text"
+                  value=""
+                  class="w-full text-[13px] text-text-primary bg-transparent outline-none py-1.5 pr-16 border-b border-border-subtle focus:border-border-default transition-colors"
+                  placeholder="Enter subject line..."
+                />
+                <!-- Suggest button (subtle, inside the field) -->
+                <button class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-text-tertiary hover:text-text-secondary transition-colors px-2 py-1 rounded hover:bg-surface-hover">
+                  Suggest
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Simulated email body (shows content exists) -->
+          <div class="px-5 py-4 border-t border-border-subtle mt-2">
+            <div class="text-[13px] text-text-primary leading-relaxed space-y-2.5">
+              <p>Hi investors,</p>
+              <p>Here's your quarterly update. This quarter was strong across all metrics: MRR grew 34%, we closed 3 enterprise deals, and our pipeline heading into Q1 is the largest it's been.</p>
+              <p class="text-text-secondary">Key highlights include...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotation -->
+        <div class="mt-3 px-1">
+          <p class="text-xs text-text-tertiary leading-relaxed">
+            <strong class="text-text-secondary">State 1: Suggest button visible.</strong> A subtle "Suggest" text button sits inside the subject field, right-aligned. Only visible when the email body has content. No sparkle, no "AI" label -- AI-assumed design. Button uses <code class="text-[11px] bg-surface-secondary px-1 py-0.5 rounded">text-xs text-text-tertiary</code>.
+          </p>
+        </div>
+      </div>
+
+      <!-- ─── State 2: Suggestions Popover ─── -->
+      <div>
+        <div class="bg-surface-primary rounded-lg border overflow-hidden">
+          <!-- Mini compose header -->
+          <div class="px-5 pt-4 pb-2">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs font-medium text-text-tertiary w-10">To</span>
+              <div class="flex items-center gap-1.5">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-secondary rounded-full text-xs text-text-primary">
+                  <span class="w-4 h-4 rounded-full bg-blue-200 flex items-center justify-center text-[8px] font-medium text-blue-700">JL</span>
+                  Jane Liu
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-secondary rounded-full text-xs text-text-primary">
+                  <span class="w-4 h-4 rounded-full bg-emerald-200 flex items-center justify-center text-[8px] font-medium text-emerald-700">MK</span>
+                  Mark Kim
+                </span>
+                <span class="text-xs text-text-tertiary">+8 more</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subject field (active, with popover below) -->
+          <div class="px-5 pb-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-text-tertiary w-10">Subject</span>
+              <div class="flex-1 relative">
+                <input
+                  type="text"
+                  value=""
+                  class="w-full text-[13px] text-text-primary bg-transparent outline-none py-1.5 pr-16 border-b border-border-default transition-colors"
+                  placeholder="Enter subject line..."
+                />
+                <button class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-text-secondary transition-colors px-2 py-1 rounded bg-surface-hover">
+                  Suggest
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Suggestions popover -->
+          <div class="px-5 pb-4 pt-1">
+            <div class="ml-12 bg-surface-primary border rounded-lg shadow-lg p-2 fade-in">
+              <!-- Suggestion label -->
+              <div class="px-2.5 py-1.5 text-xs text-text-tertiary">3 suggestions based on email content</div>
+
+              <!-- Option 1 (selected) -->
+              <button class="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-md bg-surface-secondary transition-colors text-left ring-1 ring-zinc-900/10">
+                <div class="w-4 h-4 rounded-full border-[5px] border-surface-inverse flex-shrink-0"></div>
+                <span class="text-[13px] text-text-primary leading-snug">Q4 2025 Portfolio Update: Key Milestones &amp; Metrics</span>
+              </button>
+
+              <!-- Option 2 -->
+              <button class="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-md hover:bg-surface-hover transition-colors text-left">
+                <div class="w-4 h-4 rounded-full border-2 border-border-default flex-shrink-0"></div>
+                <span class="text-[13px] text-text-primary leading-snug">Quarterly Update: Strong Traction Across Portfolio</span>
+              </button>
+
+              <!-- Option 3 -->
+              <button class="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-md hover:bg-surface-hover transition-colors text-left">
+                <div class="w-4 h-4 rounded-full border-2 border-border-default flex-shrink-0"></div>
+                <span class="text-[13px] text-text-primary leading-snug">Q4 Highlights: 3 Exits, 2 New Investments</span>
+              </button>
+
+              <!-- Action row -->
+              <div class="flex items-center justify-between px-2.5 pt-2 mt-1 border-t border-border-subtle">
+                <button class="text-xs text-text-tertiary hover:text-text-secondary transition-colors py-1.5 px-2 rounded hover:bg-surface-hover">
+                  Regenerate
+                </button>
+                <button class="text-xs font-medium text-text-inverse bg-surface-inverse hover:opacity-90 transition-opacity px-3.5 py-1.5 rounded-full">
+                  Use selected
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotation -->
+        <div class="mt-3 px-1">
+          <p class="text-xs text-text-tertiary leading-relaxed">
+            <strong class="text-text-secondary">State 2: Suggestions popover.</strong> Dropdown appears below the subject field showing 3 generated options. Radio-style selection. Selected option gets <code class="text-[11px] bg-surface-secondary px-1 py-0.5 rounded">bg-surface-secondary</code> + subtle ring. "Regenerate" on left, "Use selected" primary pill on right. Popover is full-width relative to the subject input.
+          </p>
+        </div>
+      </div>
+
+      <!-- ─── State 3: Subject Populated ─── -->
+      <div>
+        <div class="bg-surface-primary rounded-lg border overflow-hidden">
+          <!-- Mini compose header -->
+          <div class="px-5 pt-4 pb-2">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs font-medium text-text-tertiary w-10">To</span>
+              <div class="flex items-center gap-1.5">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-secondary rounded-full text-xs text-text-primary">
+                  <span class="w-4 h-4 rounded-full bg-blue-200 flex items-center justify-center text-[8px] font-medium text-blue-700">JL</span>
+                  Jane Liu
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-secondary rounded-full text-xs text-text-primary">
+                  <span class="w-4 h-4 rounded-full bg-emerald-200 flex items-center justify-center text-[8px] font-medium text-emerald-700">MK</span>
+                  Mark Kim
+                </span>
+                <span class="text-xs text-text-tertiary">+8 more</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subject field (populated) -->
+          <div class="px-5 pb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-text-tertiary w-10">Subject</span>
+              <div class="flex-1 relative">
+                <input
+                  type="text"
+                  value="Q4 2025 Portfolio Update: Key Milestones & Metrics"
+                  class="w-full text-[13px] text-text-primary font-medium bg-transparent outline-none py-1.5 pr-16 border-b border-border-subtle focus:border-border-default transition-colors"
+                />
+                <!-- Suggest button (dimmed since subject is filled) -->
+                <button class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-text-tertiary/50 hover:text-text-tertiary transition-colors px-2 py-1 rounded hover:bg-surface-hover">
+                  Suggest
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Email body -->
+          <div class="px-5 py-4 border-t border-border-subtle mt-2">
+            <div class="text-[13px] text-text-primary leading-relaxed space-y-2.5">
+              <p>Hi investors,</p>
+              <p>Here's your quarterly update. This quarter was strong across all metrics: MRR grew 34%, we closed 3 enterprise deals, and our pipeline heading into Q1 is the largest it's been.</p>
+              <p class="text-text-secondary">Key highlights include...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotation -->
+        <div class="mt-3 px-1">
+          <p class="text-xs text-text-tertiary leading-relaxed">
+            <strong class="text-text-secondary">State 3: Subject populated.</strong> Selected suggestion fills the subject field. Text appears with <code class="text-[11px] bg-surface-secondary px-1 py-0.5 rounded">font-medium</code> to confirm the selection. "Suggest" button remains but at reduced opacity -- user can always re-generate. Subject is fully editable.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- IMPLEMENTATION NOTES                                                -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary mb-4">Implementation Notes</h2>
+
+    <div class="bg-surface-primary rounded-lg border p-6">
+      <div class="grid grid-cols-2 gap-8 text-sm">
+        <!-- Save as Template -->
+        <div>
+          <h3 class="font-semibold text-text-primary mb-3">Save as Template</h3>
+          <ul class="space-y-2 text-text-secondary">
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Trigger</span>
+              <span>Overflow menu item in compose view header</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Dialog</span>
+              <span>Modal with name (required), description (optional), category (dropdown)</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Pre-fill</span>
+              <span>Template name from email subject; category from content analysis</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Storage</span>
+              <span><code class="text-[11px] bg-surface-secondary px-1 py-0.5 rounded">email_templates</code> table: name, description, category, html_content, json_content, org_id</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Success</span>
+              <span>Inline banner auto-dismisses after 3s. No page navigation.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Access</span>
+              <span>Templates appear in the existing template picker when creating new emails</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- AI Subject Line -->
+        <div>
+          <h3 class="font-semibold text-text-primary mb-3">Subject Line Suggestions</h3>
+          <ul class="space-y-2 text-text-secondary">
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Trigger</span>
+              <span>"Suggest" text button in subject field (visible when body has content)</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Input</span>
+              <span>Email body text (first ~2000 chars), recipient list context</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Output</span>
+              <span>3 subject line options, ranked by relevance</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Model</span>
+              <span>Claude Haiku (fast, cheap) via <code class="text-[11px] bg-surface-secondary px-1 py-0.5 rounded">ai-suggest-subject</code> edge function</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Selection</span>
+              <span>Click option or "Use selected" to populate. Fully editable after.</span>
+            </li>
+            <li class="flex gap-2.5">
+              <span class="text-text-tertiary flex-shrink-0 w-16">Regen</span>
+              <span>"Regenerate" creates 3 new options. Same prompt, temperature variation.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- AI-assumed design callout -->
+      <div class="mt-6 pt-4 border-t border-border-subtle">
+        <h3 class="font-semibold text-text-primary mb-2 text-sm">AI-Assumed Design Decisions</h3>
+        <ul class="space-y-1 text-sm text-text-secondary">
+          <li>Button says "Suggest" not "AI Suggest" or "Generate with AI" -- the mechanism is invisible</li>
+          <li>No sparkle icons, no gradient, no special AI colors -- just a text button</li>
+          <li>Popover header says "3 suggestions based on email content" -- describes the output, not the source</li>
+          <li>Loading state (not shown) would say "Generating suggestions..." not "AI is thinking..."</li>
+          <li>Suggestions are editable after selection -- the user stays in control</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

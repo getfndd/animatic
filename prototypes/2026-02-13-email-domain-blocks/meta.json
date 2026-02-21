@@ -1,0 +1,17 @@
+{
+  "id": "2026-02-13-email-domain-blocks",
+  "name": "Email Domain Blocks",
+  "description": "MetricCard, Columns, and Ask/Request blocks for the email composer. Shows editor view (editable attributes, drag handles) and email preview (inline-styled HTML) with light and dark themes. Full context example: investor update email using all three block types.",
+  "prompt": "/prototype Email composer domain blocks — MetricCard, Columns, Ask/Request in editor + preview views",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Complete prototype showing slash menu, each block in editor + preview, full investor update context, and implementation notes" }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--text-primary", "--text-secondary", "--text-tertiary", "--border-default", "--border-subtle", "--status-success", "--status-success-bg"],
+    "presets": [],
+    "patterns": ["flat-row hover", "icon-container 10x10 rounded-md", "atom-node-view", "slash-command-menu"]
+  },
+  "createdAt": "2026-02-13T00:00:00Z"
+}

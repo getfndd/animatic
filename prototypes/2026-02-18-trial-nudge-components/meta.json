@@ -1,0 +1,26 @@
+{
+  "id": "2026-02-18-trial-nudge-components",
+  "name": "Trial Nudge Components",
+  "description": "FND-1342 (Founding Member Upgrade Prompt) + FND-1375 (Trial Nudge Banner). Global banner with 3 urgency tiers + upgrade card for Billing page.",
+  "prompt": "/prototype trial nudge banner + upgrade prompt card",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "All banner urgency tiers (subtle/warning/critical/expired) + upgrade card variants (monthly, annual, urgent)"
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--surface-primary", "--surface-secondary", "--surface-inverse",
+      "--text-primary", "--text-secondary", "--text-tertiary", "--text-inverse",
+      "--border-default", "--border-subtle",
+      "--status-info", "--status-info-bg", "--status-error", "--status-error-bg",
+      "--status-success", "--status-warning"
+    ],
+    "presets": ["secondary-action (subscribe CTA)"],
+    "patterns": ["BetaEndingBanner urgency tiers", "Billing.jsx plan overview card"]
+  },
+  "createdAt": "2026-02-18T14:30:00Z"
+}

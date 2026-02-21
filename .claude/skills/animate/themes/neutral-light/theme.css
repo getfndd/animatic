@@ -1,0 +1,705 @@
+/* ================================================================
+   NEUTRAL LIGHT THEME — Animatic System
+
+   ITO Design System light mode tokens + gentle animation CSS.
+   Import this into any autoplay prototype to get the neutral-light
+   visual treatment: spotlight highlights, cursor simulation,
+   step indicators, and slide+fade transitions.
+
+   Reference: reference.html (Data Room Setup onboarding)
+   ================================================================ */
+
+/* ================================================================
+   LAYER 1: DESIGN TOKENS
+
+   ITO light palette + Tailwind accents.
+   These tokens are the ONLY colors allowed in this theme.
+   No arbitrary hex values outside this block.
+   ================================================================ */
+:root {
+  /* ---- Surfaces (Light Stone Palette) ---- */
+  --nl-bg-body: #fafaf9;                 /* stone-50 */
+  --nl-surface-card: #ffffff;
+  --nl-surface-secondary: #f5f5f4;       /* stone-100 */
+  --nl-surface-hover: #e7e5e4;           /* stone-200 */
+
+  /* ---- Text (Stone Dark) ---- */
+  --nl-text-primary: #1c1917;            /* stone-900 */
+  --nl-text-secondary: #44403c;          /* stone-700 */
+  --nl-text-tertiary: #78716c;           /* stone-500 */
+  --nl-text-quaternary: #a8a29e;         /* stone-400 */
+
+  /* ---- Borders ---- */
+  --nl-border-subtle: #e7e5e4;           /* stone-200 */
+  --nl-border-medium: #d6d3d1;           /* stone-300 */
+  --nl-border-active: #3b82f6;           /* blue-500 */
+
+  /* ---- Accents ---- */
+  --nl-accent: #3b82f6;                  /* blue-500 */
+  --nl-accent-bg: #eff6ff;              /* blue-50 */
+  --nl-accent-text: #1d4ed8;            /* blue-700 */
+  --nl-success: #16a34a;                 /* green-600 */
+  --nl-success-bg: #f0fdf4;             /* green-50 */
+  --nl-success-text: #15803d;            /* green-700 */
+
+  /* ---- Easing ---- */
+  --nl-ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --nl-ease-in: cubic-bezier(0.55, 0.06, 0.68, 0.19);
+  --nl-ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* ---- Timing (Speed Hierarchy) ---- */
+  --nl-fast: 180ms;        /* step dots, cursor blink, label swaps */
+  --nl-medium: 350ms;      /* content slide+fade, spotlight */
+  --nl-slow: 550ms;        /* container height, staggers */
+
+  /* ---- Shadows ---- */
+  --nl-shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  --nl-shadow-elevated: 0 4px 16px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04);
+  --nl-shadow-tooltip: 0 2px 8px rgba(0,0,0,0.1);
+  --nl-shadow-playback: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+
+/* ================================================================
+   LAYER 2: RESET & BASE
+   ================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+  background: var(--nl-bg-body);
+  color: var(--nl-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+
+/* ================================================================
+   LAYER 3: SCENE (Flat — no 3D perspective)
+
+   No perspective, no transform-style: preserve-3d.
+   Tutorials are flat and clear.
+   ================================================================ */
+.scene {
+  width: 100%;
+  max-width: 640px;
+  padding: 24px;
+}
+
+.card-wrapper {
+  position: relative;
+}
+
+
+/* ================================================================
+   LAYER 4: THE CARD — clean white surface
+
+   White card on stone-50 body. Subtle border and shadow.
+   No 3D transforms, no camera motion.
+   ================================================================ */
+.card {
+  position: relative;
+  background: var(--nl-surface-card);
+  border: 1px solid var(--nl-border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--nl-shadow-card);
+  overflow: hidden;
+}
+
+
+/* ================================================================
+   LAYER 5: HEADER
+   ================================================================ */
+.card-header {
+  padding: 28px 28px 0;
+}
+
+.phase-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--nl-text-primary);
+  line-height: 1.2;
+  transition: opacity var(--nl-medium) var(--nl-ease-out);
+}
+
+.phase-subtitle {
+  font-size: 0.8125rem;
+  color: var(--nl-text-secondary);
+  margin-top: 6px;
+  line-height: 1.5;
+  transition: opacity var(--nl-medium) var(--nl-ease-out);
+}
+
+/* Title fade transition */
+.title-fade {
+  transition: opacity var(--nl-medium) var(--nl-ease-out);
+}
+.title-fade.hidden {
+  opacity: 0;
+}
+
+
+/* ================================================================
+   LAYER 6: PHASE CONTAINER & OPACITY CROSSFADE
+
+   Each phase is a .phase-layer stacked absolutely.
+   Active phase fades in. Exiting phase fades out.
+   No clip-path wipes — tutorials use gentle crossfade.
+   ================================================================ */
+.phase-container {
+  position: relative;
+  overflow: hidden;
+  transition: height var(--nl-slow) var(--nl-ease-smooth);
+}
+
+.phase-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 20px 28px 28px;
+  opacity: 0;
+  transition: opacity var(--nl-medium) var(--nl-ease-out);
+  pointer-events: none;
+}
+.phase-layer.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.phase-layer.exiting {
+  opacity: 0;
+  transition: opacity var(--nl-fast) var(--nl-ease-in);
+}
+.phase-layer.measuring {
+  opacity: 0;
+  position: static;
+  pointer-events: none;
+}
+
+
+/* ================================================================
+   LAYER 7: SLIDE+FADE ENTRANCE
+
+   Elements enter by sliding up 8px while fading in.
+   No blur — tutorials stay sharp and clear.
+   ================================================================ */
+.slide-enter {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--nl-medium) var(--nl-ease-out),
+              transform var(--nl-medium) var(--nl-ease-out);
+}
+.slide-enter.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+/* ================================================================
+   LAYER 8: FOOTER
+   ================================================================ */
+.card-footer {
+  border-top: 1px solid var(--nl-border-subtle);
+  position: relative;
+  min-height: 64px;
+}
+
+.footer-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 16px 28px;
+  opacity: 0;
+  transition: opacity var(--nl-fast) ease;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+.footer-layer.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
+/* ================================================================
+   LAYER 9: BUTTONS
+   ================================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--nl-text-primary);
+  color: var(--nl-surface-card);
+  padding: 10px 20px;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--nl-text-secondary);
+  padding: 10px 16px;
+  border: 1px solid var(--nl-border-medium);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--nl-text-secondary);
+  padding: 10px 16px;
+}
+
+/* CTA glow — applied after tutorial completion */
+@keyframes cta-glow {
+  0%, 100% { filter: brightness(1); box-shadow: 0 0 0 0 rgba(28,25,23,0); }
+  50% { filter: brightness(1.08); box-shadow: 0 0 16px 2px rgba(28,25,23,0.12); }
+}
+.btn.cta-glow {
+  animation: cta-glow 1.8s ease-in-out 2;
+}
+
+
+/* ================================================================
+   LAYER 10: SPOTLIGHT OVERLAY
+
+   Semi-transparent overlay with a cutout around the target element.
+   The cutout is positioned via CSS custom properties set by JS.
+   ================================================================ */
+.spotlight-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  opacity: 0;
+  transition: opacity var(--nl-medium) var(--nl-ease-out);
+  pointer-events: none;
+  border-radius: 16px;
+}
+.spotlight-overlay.active {
+  opacity: 1;
+}
+
+/* Spotlight cutout — uses box-shadow to create the dimming effect
+   with a transparent center. Position via inline styles on the child. */
+.spotlight-cutout {
+  position: absolute;
+  border-radius: 12px;
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.06);
+  border: 2px solid var(--nl-accent);
+  transition: all var(--nl-medium) var(--nl-ease-out);
+}
+
+
+/* ================================================================
+   LAYER 11: TUTORIAL CURSOR
+
+   SVG arrow cursor that animates to target positions.
+   Simulates a user clicking on highlighted elements.
+   ================================================================ */
+.tutorial-cursor {
+  position: absolute;
+  z-index: 20;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  transition: left var(--nl-slow) var(--nl-ease-out),
+              top var(--nl-slow) var(--nl-ease-out),
+              opacity var(--nl-fast) ease;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+.tutorial-cursor.visible {
+  opacity: 1;
+}
+
+/* Cursor click pulse */
+@keyframes cursor-click {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.85); }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.tutorial-cursor.clicking {
+  animation: cursor-click 400ms var(--nl-ease-out) forwards;
+}
+
+
+/* ================================================================
+   LAYER 12: STEP INDICATORS
+
+   Numbered horizontal dots with connector lines.
+   Shows progress through a multi-step tutorial.
+   ================================================================ */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 4px;
+  margin-bottom: 20px;
+}
+
+.step-indicator-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.step-indicator-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--nl-surface-secondary);
+  border: 2px solid var(--nl-border-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--nl-text-quaternary);
+  transition: all var(--nl-medium) var(--nl-ease-out);
+}
+
+.step-indicator-dot.active {
+  background: var(--nl-accent-bg);
+  border-color: var(--nl-accent);
+  color: var(--nl-accent);
+}
+
+.step-indicator-dot.done {
+  background: var(--nl-success);
+  border-color: var(--nl-success);
+  color: white;
+}
+
+/* Scale pop when transitioning to done */
+@keyframes step-done-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.step-indicator-dot.pop {
+  animation: step-done-pop 400ms var(--nl-ease-out) forwards;
+}
+
+.step-indicator-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--nl-text-quaternary);
+  white-space: nowrap;
+  transition: color var(--nl-medium) ease;
+}
+
+.step-indicator-label.active {
+  color: var(--nl-accent-text);
+}
+
+.step-indicator-label.done {
+  color: var(--nl-text-tertiary);
+}
+
+.step-indicator-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--nl-border-medium);
+  margin: 0 8px;
+  position: relative;
+  overflow: hidden;
+  align-self: flex-start;
+  margin-top: 11px; /* center with 24px dot */
+}
+
+.step-indicator-connector-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0%;
+  background: var(--nl-success);
+  transition: width var(--nl-medium) var(--nl-ease-out);
+}
+
+.step-indicator-connector.connected .step-indicator-connector-fill {
+  width: 100%;
+}
+
+
+/* ================================================================
+   LAYER 13: TOOLTIP CALLOUT
+
+   Positioned tooltip box with arrow.
+   Used to explain what a UI element does.
+   ================================================================ */
+.tutorial-tooltip {
+  position: absolute;
+  z-index: 15;
+  background: var(--nl-surface-card);
+  border: 1px solid var(--nl-border-medium);
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: var(--nl-shadow-tooltip);
+  max-width: 220px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--nl-medium) var(--nl-ease-out),
+              transform var(--nl-medium) var(--nl-ease-out);
+  pointer-events: none;
+}
+.tutorial-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tutorial-tooltip-text {
+  font-size: 0.75rem;
+  color: var(--nl-text-secondary);
+  line-height: 1.5;
+}
+
+/* Arrow pointing up */
+.tutorial-tooltip-arrow {
+  position: absolute;
+  top: -6px;
+  left: 20px;
+  width: 10px;
+  height: 10px;
+  background: var(--nl-surface-card);
+  border-left: 1px solid var(--nl-border-medium);
+  border-top: 1px solid var(--nl-border-medium);
+  transform: rotate(45deg);
+}
+
+/* Arrow pointing down (for tooltips above target) */
+.tutorial-tooltip.above .tutorial-tooltip-arrow {
+  top: auto;
+  bottom: -6px;
+  transform: rotate(225deg);
+}
+
+
+/* ================================================================
+   LAYER 14: COMPONENT CLASSES
+
+   Reusable component styles for tutorial prototype patterns:
+   content areas, file rows, action areas.
+   ================================================================ */
+
+/* --- Content Row --- */
+.content-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--nl-surface-secondary);
+  border: 1px solid var(--nl-border-subtle);
+  margin-bottom: 8px;
+}
+.content-row:last-child { margin-bottom: 0; }
+
+.content-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--nl-surface-card);
+  border: 1px solid var(--nl-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nl-text-tertiary);
+}
+
+.content-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.content-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--nl-text-primary);
+}
+
+.content-meta {
+  font-size: 0.75rem;
+  color: var(--nl-text-tertiary);
+  margin-top: 2px;
+}
+
+/* --- Action Area (drop zone equivalent, lighter) --- */
+.action-area {
+  border: 2px dashed var(--nl-border-medium);
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  position: relative;
+}
+
+.action-area.highlighted {
+  border-color: var(--nl-accent);
+  background: var(--nl-accent-bg);
+}
+
+.action-icon-container {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 12px;
+  background: var(--nl-accent-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nl-accent);
+}
+
+.action-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--nl-text-primary);
+  margin-bottom: 4px;
+}
+
+.action-sub {
+  font-size: 0.75rem;
+  color: var(--nl-text-tertiary);
+}
+
+/* --- Success State --- */
+.success-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--nl-border-subtle);
+}
+.success-row:last-child { border-bottom: none; }
+
+.success-check {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--nl-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.success-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.success-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--nl-text-primary);
+}
+
+.success-detail {
+  font-size: 0.75rem;
+  color: var(--nl-text-tertiary);
+  margin-top: 2px;
+}
+
+/* --- Section Label --- */
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--nl-text-tertiary);
+  margin-bottom: 12px;
+}
+
+
+/* ================================================================
+   LAYER 15: PLAYBACK CONTROLS (Light Mode)
+
+   Fixed bottom-center pill with play/pause, restart,
+   phase dots, and label. Light variant.
+   ================================================================ */
+.playback-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--nl-surface-card);
+  border: 1px solid var(--nl-border-subtle);
+  color: var(--nl-text-primary);
+  padding: 10px 20px;
+  border-radius: 9999px;
+  box-shadow: var(--nl-shadow-playback);
+  z-index: 50;
+  font-size: 12px;
+}
+
+.playback-bar button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  opacity: 0.5;
+  transition: opacity 150ms;
+}
+.playback-bar button:hover { opacity: 1; }
+
+.phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nl-text-quaternary);
+  transition: all 300ms ease;
+  cursor: pointer;
+}
+.phase-dot.active {
+  background: var(--nl-text-primary);
+  width: 20px;
+  border-radius: 3px;
+}
+.phase-dot.completed {
+  background: var(--nl-text-tertiary);
+}
+
+.phase-label-text {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
+}
+
+
+/* ================================================================
+   LAYER 16: KEYFRAME ANIMATIONS
+   ================================================================ */
+
+/* Subtle pulse for processing indicators */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Cursor blink for tooltips */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

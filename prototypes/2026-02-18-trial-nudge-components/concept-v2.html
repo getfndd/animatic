@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trial Nudge Banner — In Context</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --status-info: 217 91% 60%;
+      --status-info-bg: 214 95% 95%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+            'status-info': 'hsl(var(--status-info))',
+            'status-info-bg': 'hsl(var(--status-info-bg))',
+          },
+          borderRadius: {
+            lg: 'var(--radius)',
+            md: 'calc(var(--radius) - 2px)',
+            sm: 'calc(var(--radius) - 4px)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+
+  <!-- ============================================================ -->
+  <!-- GLOBAL BANNER SLOT — sits above entire SidebarLayout -->
+  <!-- This is the real position: SharedAppLayout renders banners -->
+  <!-- BEFORE SidebarLayout, so they span the full viewport width -->
+  <!-- ============================================================ -->
+
+  <!-- Banner: Subtle (14+ days) -->
+  <div id="banner-subtle" class="banner-tier hidden">
+    <div class="flex items-center justify-between bg-surface-secondary px-4 py-2.5 text-sm border-b border-border-default">
+      <div class="flex items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="text-text-tertiary shrink-0">
+          <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z" fill="currentColor"/>
+        </svg>
+        <span class="text-text-secondary">
+          <strong class="text-text-primary">22 days</strong> left to lock in your founding member rate
+        </span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="#" class="text-sm font-medium text-text-primary underline decoration-text-tertiary underline-offset-2 hover:decoration-text-primary transition-colors">Subscribe</a>
+        <button onclick="hideBanner()" class="flex h-6 w-6 items-center justify-center rounded text-text-tertiary hover:text-text-primary transition-colors" aria-label="Dismiss">
+          <svg width="14" height="14" viewBox="0 0 256 256" fill="none"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner: Warning (<=7 days) -->
+  <div id="banner-warning" class="banner-tier hidden">
+    <div class="flex items-center justify-between bg-amber-50 px-4 py-2.5 text-sm">
+      <div class="flex items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="text-amber-500 shrink-0">
+          <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z" fill="currentColor"/>
+        </svg>
+        <span class="text-amber-800">
+          <strong>5 days</strong> left to lock in your founding member rate — subscribe to keep $39/mo pricing
+        </span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="#" class="text-sm font-medium text-amber-900 underline decoration-amber-300 underline-offset-2 hover:decoration-amber-600 transition-colors">Subscribe</a>
+        <button onclick="hideBanner()" class="flex h-6 w-6 items-center justify-center rounded text-amber-400 hover:text-amber-700 transition-colors" aria-label="Dismiss">
+          <svg width="14" height="14" viewBox="0 0 256 256" fill="none"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner: Critical (<=3 days) -->
+  <div id="banner-critical" class="banner-tier hidden">
+    <div class="flex items-center justify-between bg-red-50 px-4 py-2.5 text-sm">
+      <div class="flex items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="text-red-500 shrink-0">
+          <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z" fill="currentColor"/>
+        </svg>
+        <span class="text-red-800">
+          Your trial ends <strong>tomorrow</strong> — subscribe now to keep your founding member rate
+        </span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="#" class="text-sm font-medium text-red-900 underline decoration-red-300 underline-offset-2 hover:decoration-red-600 transition-colors">Subscribe now</a>
+        <button onclick="hideBanner()" class="flex h-6 w-6 items-center justify-center rounded text-red-400 hover:text-red-700 transition-colors" aria-label="Dismiss">
+          <svg width="14" height="14" viewBox="0 0 256 256" fill="none"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner: Expired -->
+  <div id="banner-expired" class="banner-tier hidden">
+    <div class="flex items-center justify-between bg-red-50 px-4 py-2.5 text-sm">
+      <div class="flex items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="text-red-500 shrink-0">
+          <path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z" fill="currentColor"/>
+        </svg>
+        <span class="text-red-800">
+          Your trial has ended. Subscribe to restore full access to your workspace.
+        </span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="#" class="text-sm font-medium text-red-900 underline decoration-red-300 underline-offset-2 hover:decoration-red-600 transition-colors">Subscribe now</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- No banner state -->
+  <div id="banner-none" class="banner-tier hidden"></div>
+
+  <!-- ============================================================ -->
+  <!-- App Shell: Sidebar + Content -->
+  <!-- ============================================================ -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-60 h-full border-r flex flex-col bg-surface-primary shrink-0">
+      <div class="h-14 flex items-center px-5 border-b">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-md bg-surface-inverse flex items-center justify-center">
+            <span class="text-text-inverse text-xs font-bold">W</span>
+          </div>
+          <span class="font-semibold text-sm">Weftly</span>
+        </div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-3 px-3">
+        <p class="text-[11px] font-medium text-text-tertiary px-2 mb-2 uppercase tracking-wider">Workspace</p>
+        <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-sm text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors">
+          <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="shrink-0"><path d="M218.83,103.77l-80-75.48a1.14,1.14,0,0,1-.11-.11,16,16,0,0,0-21.53,0l-.11.11L37.17,103.77A16,16,0,0,0,32,115.55V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V160h32v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V115.55A16,16,0,0,0,218.83,103.77ZM208,208H160V160a16,16,0,0,0-16-16H112a16,16,0,0,0-16,16v48H48V115.55l.11-.1L128,40l79.9,75.43.11.1Z" fill="currentColor"/></svg>
+          Dashboard
+        </a>
+        <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-sm text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors">
+          <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="shrink-0"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM184,96a8,8,0,0,1-8,8H80a8,8,0,0,1,0-16h96A8,8,0,0,1,184,96Zm0,32a8,8,0,0,1-8,8H80a8,8,0,0,1,0-16h96A8,8,0,0,1,184,128Zm0,32a8,8,0,0,1-8,8H80a8,8,0,0,1,0-16h96A8,8,0,0,1,184,160Z" fill="currentColor"/></svg>
+          Fundraising
+        </a>
+        <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-sm text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors">
+          <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="shrink-0"><path d="M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.86,8C27.54,186.09,50.54,174,84,174s56.46,12.09,66.61,29.63a8,8,0,1,0,13.86-8A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33C228.84,186.09,205.84,174,172.3,174a8,8,0,0,1,0-16c20.47,0,38.15-6.79,50.09-19.22,13.35-13.85,18.8-33.63,15.36-55.76a60.09,60.09,0,0,0-47.27-50,8,8,0,0,1,2.67-15.78,76.08,76.08,0,0,1,59.79,63.29c4.42,28.26-2.67,54-19.94,72.47A86.22,86.22,0,0,1,220,186a97.09,97.09,0,0,1,32.47,18.36A8,8,0,0,1,250.14,206.7Z" fill="currentColor"/></svg>
+          Investors
+        </a>
+        <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-sm text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors">
+          <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="shrink-0"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z" fill="currentColor"/></svg>
+          Data Room
+        </a>
+        <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-sm text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors">
+          <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="shrink-0"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z" fill="currentColor"/></svg>
+          Cap Table
+        </a>
+
+        <div class="my-3 border-t border-border-subtle"></div>
+        <p class="text-[11px] font-medium text-text-tertiary px-2 mb-2 uppercase tracking-wider">Settings</p>
+        <a href="#" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-sm bg-surface-secondary text-text-primary font-medium transition-colors">
+          <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="shrink-0"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16V88H32V64Zm0,128H32V104H224v88Zm-16-24a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h32A8,8,0,0,1,208,168Zm-64,0a8,8,0,0,1-8,8H120a8,8,0,0,1,0-16h16A8,8,0,0,1,144,168Z" fill="currentColor"/></svg>
+          Billing
+        </a>
+      </nav>
+      <div class="border-t p-3">
+        <div class="flex items-center gap-2.5 px-2.5 py-1.5">
+          <div class="w-7 h-7 rounded-full bg-blue-200 flex items-center justify-center text-xs font-medium text-blue-800">JS</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-text-primary truncate">John S.</p>
+            <p class="text-xs text-text-tertiary truncate">john@acme.com</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+
+      <!-- Page Content: Billing -->
+      <main class="flex-1 overflow-auto">
+        <!-- Page Header -->
+        <div class="pb-5 pt-6">
+          <div class="px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-md bg-surface-secondary">
+                <svg width="20" height="20" viewBox="0 0 256 256" fill="none" class="text-text-primary"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16V88H32V64Zm0,128H32V104H224v88Zm-16-24a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h32A8,8,0,0,1,208,168Zm-64,0a8,8,0,0,1-8,8H120a8,8,0,0,1,0-16h16A8,8,0,0,1,144,168Z" fill="currentColor"/></svg>
+              </div>
+              <div>
+                <h1 class="text-xl font-semibold text-text-primary">Billing</h1>
+                <p class="text-sm text-text-tertiary">Manage your subscription and payment</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="border-t border-border-default"></div>
+
+        <div class="max-w-4xl space-y-6 px-4 sm:px-6 lg:px-8 pt-6">
+          <!-- Plan Overview Card -->
+          <div class="rounded-md border border-border-default bg-surface-primary p-6">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-medium text-text-primary">Founding Member</h3>
+                  <span id="badge-text" class="inline-flex items-center rounded-sm bg-status-info-bg px-2 py-0.5 text-xs font-medium text-status-info">
+                    Free trial — 22 days remaining
+                  </span>
+                </div>
+                <div class="mt-3">
+                  <span class="text-2xl font-bold text-text-primary" style="font-variant-numeric: tabular-nums;">$39</span>
+                  <span class="text-text-tertiary">/mo</span>
+                </div>
+                <p id="trial-date-text" class="mt-2 text-sm text-text-tertiary">Trial ends Mar 20, 2026</p>
+
+                <!-- Billing interval toggle -->
+                <div class="mt-4 flex items-center gap-3">
+                  <button class="rounded-sm px-3 py-1.5 text-sm font-medium bg-surface-inverse text-text-inverse transition-colors">Monthly</button>
+                  <button class="rounded-sm px-3 py-1.5 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">
+                    Annual <span class="ml-1.5 text-xs text-status-success">Save 15%</span>
+                  </button>
+                </div>
+              </div>
+              <button id="subscribe-btn" class="inline-flex items-center gap-2 rounded-full border border-border-default bg-surface-primary px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-secondary transition-colors">
+                Subscribe now
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="none"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z" fill="currentColor"/></svg>
+              </button>
+            </div>
+
+            <div class="mt-6 border-t border-border-default"></div>
+
+            <div class="mt-4 grid grid-cols-3 gap-4">
+              <div class="flex items-start gap-2.5">
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="text-text-tertiary mt-0.5 shrink-0"><path d="M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.86,8C27.54,186.09,50.54,174,84,174s56.46,12.09,66.61,29.63a8,8,0,1,0,13.86-8A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Z" fill="currentColor"/></svg>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">3 seats included</p>
+                  <p class="text-xs text-text-tertiary">Add more at $9/mo each</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2.5">
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="text-text-tertiary mt-0.5 shrink-0"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,123.97,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.29A169.47,169.47,0,0,1,24.4,128,169.47,169.47,0,0,1,48.07,97.29C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.29A169.47,169.47,0,0,1,231.6,128C185.67,180.81,158.78,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z" fill="currentColor"/></svg>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">24-month rate lock</p>
+                  <p class="text-xs text-text-tertiary">Price guaranteed</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2.5">
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="none" class="text-text-tertiary mt-0.5 shrink-0"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16V88H32V64Zm0,128H32V104H224v88Zm-16-24a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h32A8,8,0,0,1,208,168Zm-64,0a8,8,0,0,1-8,8H120a8,8,0,0,1,0-16h16A8,8,0,0,1,144,168Z" fill="currentColor"/></svg>
+                <div>
+                  <p class="text-sm font-medium text-text-primary">No card required</p>
+                  <p class="text-xs text-text-tertiary">Pay when trial ends</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seats Card -->
+          <div class="rounded-md border border-border-default bg-surface-primary p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-medium text-text-primary">Team seats</h3>
+                <p class="mt-1 text-sm text-text-tertiary">1 of 3 seats used</p>
+              </div>
+            </div>
+            <div class="mt-4">
+              <div class="h-2 overflow-hidden rounded-full bg-surface-tertiary">
+                <div class="h-full bg-status-info transition-all" style="width: 33%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Billing History -->
+          <div class="space-y-3">
+            <h2 class="text-sm font-medium text-text-primary">Billing history</h2>
+            <p class="text-sm text-text-tertiary py-4">No invoices yet. Your billing history will appear here after your first payment.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Tier Switcher (floating, for prototype review) -->
+  <!-- ============================================================ -->
+  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-border-default bg-surface-primary px-2 py-1.5 shadow-lg">
+    <span class="text-xs text-text-tertiary px-2">Banner tier:</span>
+    <button onclick="showTier('none')" class="tier-btn rounded-full px-3 py-1 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition-colors" data-tier="none">None</button>
+    <button onclick="showTier('subtle')" class="tier-btn rounded-full px-3 py-1 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition-colors" data-tier="subtle">22 days</button>
+    <button onclick="showTier('warning')" class="tier-btn rounded-full px-3 py-1 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition-colors" data-tier="warning">5 days</button>
+    <button onclick="showTier('critical')" class="tier-btn rounded-full px-3 py-1 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition-colors" data-tier="critical">1 day</button>
+    <button onclick="showTier('expired')" class="tier-btn rounded-full px-3 py-1 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition-colors" data-tier="expired">Expired</button>
+  </div>
+
+  <script>
+    // Show the subtle banner by default
+    function showTier(tier) {
+      document.querySelectorAll('.banner-tier').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tier-btn').forEach(btn => {
+        btn.classList.remove('bg-surface-inverse', 'text-text-inverse');
+      });
+
+      const banner = document.getElementById('banner-' + tier);
+      if (banner) banner.classList.remove('hidden');
+
+      const btn = document.querySelector('[data-tier="' + tier + '"]');
+      if (btn) btn.classList.add('bg-surface-inverse', 'text-text-inverse');
+
+      // Update the badge and card to match tier
+      const badge = document.getElementById('badge-text');
+      const trialDate = document.getElementById('trial-date-text');
+      const subscribeBtn = document.getElementById('subscribe-btn');
+
+      if (tier === 'subtle') {
+        badge.className = 'inline-flex items-center rounded-sm bg-status-info-bg px-2 py-0.5 text-xs font-medium text-status-info';
+        badge.textContent = 'Free trial \u2014 22 days remaining';
+        trialDate.textContent = 'Trial ends Mar 20, 2026';
+        subscribeBtn.className = 'inline-flex items-center gap-2 rounded-full border border-border-default bg-surface-primary px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-secondary transition-colors';
+      } else if (tier === 'warning') {
+        badge.className = 'inline-flex items-center rounded-sm bg-status-warning-bg px-2 py-0.5 text-xs font-medium text-status-warning';
+        badge.textContent = 'Free trial \u2014 5 days remaining';
+        trialDate.textContent = 'Trial ends Mar 3, 2026';
+        subscribeBtn.className = 'inline-flex items-center gap-2 rounded-full border border-border-default bg-surface-primary px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-secondary transition-colors';
+      } else if (tier === 'critical') {
+        badge.className = 'inline-flex items-center rounded-sm bg-status-error-bg px-2 py-0.5 text-xs font-medium text-status-error';
+        badge.textContent = 'Trial ends tomorrow';
+        trialDate.textContent = 'Subscribe to keep your founding member rate';
+        subscribeBtn.className = 'inline-flex items-center gap-2 rounded-full bg-surface-inverse text-text-inverse px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity';
+      } else if (tier === 'expired') {
+        badge.className = 'inline-flex items-center rounded-sm bg-status-error-bg px-2 py-0.5 text-xs font-medium text-status-error';
+        badge.textContent = 'Trial expired';
+        trialDate.textContent = 'Subscribe to restore full access';
+        subscribeBtn.className = 'inline-flex items-center gap-2 rounded-full bg-surface-inverse text-text-inverse px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity';
+      } else {
+        badge.className = 'inline-flex items-center rounded-sm bg-status-info-bg px-2 py-0.5 text-xs font-medium text-status-info';
+        badge.textContent = 'Free trial \u2014 22 days remaining';
+        trialDate.textContent = 'Trial ends Mar 20, 2026';
+        subscribeBtn.className = 'inline-flex items-center gap-2 rounded-full border border-border-default bg-surface-primary px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-secondary transition-colors';
+      }
+    }
+
+    function hideBanner() {
+      document.querySelectorAll('.banner-tier').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tier-btn').forEach(btn => {
+        btn.classList.remove('bg-surface-inverse', 'text-text-inverse');
+      });
+      const btn = document.querySelector('[data-tier="none"]');
+      if (btn) btn.classList.add('bg-surface-inverse', 'text-text-inverse');
+    }
+
+    // Start with subtle banner
+    showTier('subtle');
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "id": "2026-02-20-fundraising-matching-steps",
+  "name": "Fundraising Matching Steps",
+  "description": "3-phase static snapshots based on actual implementation: Investors page (stats + action row + segments + table), AIMatchingModal (form + loading), InvestorMatchResults (full-page card results with match scores, reason pills, contacts, actions).",
+  "prompt": "/prototype \"Fundraising Investor Matching flow — step-by-step states for animation\" --fidelity concept --chrome sidebar --name fundraising-matching-steps",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "3 phases: action row, processing with step dots, card-based results" },
+    { "file": "autoplay-v1.html", "notes": "Light theme autoplay: 4 phases — start → processing → results → profile/message. Monochrome SVG logos, score count-up, dot-pop, shimmer, sequential compose with typewriter, CTA glow, send-off. ~21s loop. Supports ?embed mode." },
+    { "file": "autoplay-v1-cinematic.html", "notes": "Cinematic-dark theme: 4 phases — prompt → processing → results → profile/message. Clip-path wipes, focus-pull, 3D camera. Button press interactions on phases 0 & 2. ~19s loop." }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-tertiary", "--surface-inverse", "--text-primary", "--text-secondary", "--text-tertiary", "--text-inverse", "--border-default", "--border-subtle", "--border-strong"],
+    "presets": ["secondary-action", "primary-action", "cancel-action", "tertiary-action"],
+    "patterns": ["stats-strip", "inline-action-row", "segment-pills", "data-table", "filter-bar", "investor-cards", "match-score-pills", "reason-badges"]
+  },
+  "sourceComponents": [
+    "src/pages/fundraising/Investors.jsx",
+    "src/components/fundraising/AIMatchingModal.jsx",
+    "src/pages/fundraising/InvestorMatchResults.jsx"
+  ],
+  "createdAt": "2026-02-20T20:00:00Z"
+}

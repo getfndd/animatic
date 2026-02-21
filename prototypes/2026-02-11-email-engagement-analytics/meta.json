@@ -1,0 +1,41 @@
+{
+  "id": "2026-02-11-email-engagement-analytics",
+  "name": "Email Engagement Analytics",
+  "description": "Two views: (v1) per-email slide-out with hero metrics, recipient list, link performance, 24h timeline; (v2) audience engagement overview showing all contacts ranked by engagement with sparkline history, going-cold warnings, and relationship insights.",
+  "prompt": "/prototype \"Email engagement analytics\" --fidelity concept --chrome sidebar --options 2",
+  "fidelity": "concept",
+  "chrome": "sidebar",
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "Per-email detail: Slide-out panel over email hub list. Hero metric cards (Delivered, Clicked, Bounced with rates). Recipients grouped into 5 tiers. Link performance table with avatar stacks. 24-hour engagement timeline bar chart."
+    },
+    {
+      "file": "concept-v2.html",
+      "notes": "Audience engagement overview: Full-page view showing all contacts ranked by engagement across last 6 emails. Four tiers: Highly Engaged (green), Active (blue), Going Cold (amber warning bg + missed count), Unreachable (red + update email action). Each row has a 6-bar sparkline (clicked/opened/delivered/none/bounced). Summary stats at top. Relationship Insights section at bottom with AI-assumed intelligence (no sparkles) — specific callouts like 'Chris Martinez hasn't opened your last 3 updates' and 'Sarah Vance clicked financial links in 5 of 6 emails'."
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--surface-primary", "--surface-secondary", "--surface-tertiary",
+      "--text-primary", "--text-secondary", "--text-tertiary",
+      "--border-default", "--border-subtle", "--border-strong",
+      "--status-success", "--status-success-bg",
+      "--status-error", "--status-error-bg",
+      "--status-warning", "--status-warning-bg",
+      "--status-info", "--status-info-bg",
+      "--radius"
+    ],
+    "presets": [],
+    "patterns": [
+      "flat-row-hover (rounded + transition-colors duration-[140ms] + hover:bg-surface-secondary)",
+      "avatar-200-shade-palette (8 colors)",
+      "tabular-nums for all metrics",
+      "grouped sections with dot indicator + count",
+      "sparkline bars (6px wide, color-coded by engagement level)",
+      "warning background rows (bg-status-warning-bg/20)",
+      "AI-assumed relationship insights (no sparkles, no branding)"
+    ]
+  },
+  "createdAt": "2026-02-11T00:00:00Z"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "2026-02-08-email-composer-v2-research",
+  "name": "Email Composer V2 — Research-Informed Improvements",
+  "description": "Prototype of key UI enhancements identified through competitive analysis of Resend, Loops, Beehiiv, Kit, Buttondown, Postmark, and Linear. Covers: 4-way preview toggle, enhanced content suggestions, investor engagement panel, template picker upgrades, action bar improvements, and send test prominence.",
+  "prompt": "/prototype 'Email Composer V2 — Research-Informed Improvements' --fidelity concept --chrome none",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Full editor view with all six enhancement areas" }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-tertiary", "--text-primary", "--text-secondary", "--text-tertiary", "--border-default", "--border-subtle", "--border-strong", "--status-success", "--status-success-bg", "--status-warning", "--status-warning-bg", "--status-error", "--status-error-bg"],
+    "presets": [],
+    "patterns": ["segmented-control", "card-hover", "dropdown-menu", "badge"]
+  },
+  "createdAt": "2026-02-08T16:00:00Z",
+  "researchSources": ["Resend", "Loops", "Beehiiv", "Kit/ConvertKit", "Buttondown", "Postmark", "Linear"],
+  "linearIssue": "FND-1301"
+}

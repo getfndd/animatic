@@ -1,0 +1,17 @@
+{
+  "id": "2026-02-14-ai-spend-tab",
+  "name": "AI Spend Tab",
+  "description": "5th tab for Beta Management dashboard showing AI cost analytics: stat cards (total spend, avg cost/user, cache savings, requests), spend by feature horizontal bars, model usage breakdown table, stacked daily spend trend chart, and top users by AI spend table.",
+  "prompt": "/prototype 'AI Spend tab for Beta Management dashboard' --fidelity concept --chrome none --name ai-spend-tab",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Full tab layout matching existing Engagement tab patterns: time range pills, 4-column stat cards with sparklines, two-column feature/model breakdown, stacked area chart, user spend table" }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-inverse", "--text-primary", "--text-secondary", "--text-tertiary", "--text-quaternary", "--text-inverse", "--border-default", "--border-subtle", "--status-success", "--status-error"],
+    "presets": [],
+    "patterns": ["stat-card-with-sparkline", "time-range-pills", "data-table", "horizontal-bar-chart", "stacked-area-chart"]
+  },
+  "createdAt": "2026-02-14T16:30:00Z"
+}

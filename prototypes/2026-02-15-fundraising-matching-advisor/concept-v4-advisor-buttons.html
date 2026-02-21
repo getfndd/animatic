@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Advisor Button — 5 Variations</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+    .tooltip-wrap:hover .tip { opacity: 1; transform: translateY(0); }
+    .tip { opacity: 0; transform: translateY(-4px); transition: all 150ms ease; pointer-events: none; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+
+  <h1 class="text-lg font-semibold mb-1">AI Advisor Button — 5 Variations</h1>
+  <p class="text-sm text-text-secondary mb-8">Each shown in context with the ⌘K button and overflow menu. Hover to see interactive states.</p>
+
+  <div class="space-y-10">
+
+    <!-- ====== VARIATION 1: Compact pill, 18px W mark ====== -->
+    <div class="rounded-lg bg-surface-primary border p-0 overflow-hidden">
+      <div class="px-4 py-2 border-b bg-surface-secondary">
+        <span class="text-xs font-medium text-text-tertiary">V1 — Compact pill, 18px W mark</span>
+      </div>
+      <header class="h-14 flex items-center justify-between px-6">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold">Fundraising</h1>
+          <span class="text-xs font-medium text-text-tertiary bg-surface-secondary px-2 py-0.5 rounded-full">Series A</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- V1: 18px W mark, compact pill -->
+          <button class="flex items-center gap-1.5 rounded-full border border-border-default bg-surface-primary pl-1.5 pr-3 py-1 text-sm font-medium text-text-primary transition-all hover:bg-surface-secondary hover:border-border-strong active:scale-[0.98]">
+            <svg width="18" height="18" viewBox="0 0 40 40" fill="none" class="shrink-0"><path d="M0 20C0 8.95431 8.95431 0 20 0C31.0457 0 40 8.95431 40 20C40 31.0457 31.0457 40 20 40C8.95431 40 0 31.0457 0 20Z" fill="#404040"/><path d="M28.7331 10.9285L25.9568 25.5768C25.9568 25.6167 25.9528 25.6485 25.941 25.6764C25.9331 25.7043 25.9173 25.7203 25.8976 25.7203C25.8779 25.7203 25.8661 25.7043 25.8542 25.6764C25.8424 25.6485 25.8306 25.6127 25.8109 25.5768L22.9991 13.3274C22.7349 12.1598 22.3169 11.315 21.749 10.789C21.1811 10.263 20.4713 10 19.6194 10C18.7676 10 18.0578 10.263 17.4899 10.789C16.922 11.315 16.504 12.1717 16.2398 13.3552L13.4872 25.5768C13.4872 25.6326 13.4793 25.6724 13.4596 25.6924C13.4399 25.7123 13.4201 25.7203 13.4044 25.7203C13.3886 25.7203 13.3728 25.7123 13.361 25.6924C13.3531 25.6724 13.3373 25.6366 13.3176 25.5768L10.9633 13.6103L7 14.212L9.68952 26.8719C9.91825 27.884 10.3442 28.6611 10.9672 29.1951C11.5903 29.729 12.3475 30 13.2387 30C14.0708 30 14.8083 29.737 15.455 29.211C16.0978 28.685 16.5237 27.9637 16.7327 27.0432L19.6155 14.2797L19.5997 14.22C19.5997 14.1801 19.5997 14.1682 19.5997 14.1761C19.5997 14.1881 19.6076 14.1921 19.6273 14.1921C19.6471 14.1921 19.6471 14.2 19.6273 14.22L19.6116 14.2797L22.5495 26.9556C22.7782 27.9119 23.212 28.6571 23.8548 29.1951C24.4976 29.729 25.2351 30 26.0711 30C26.9979 30 27.7629 29.7211 28.3702 29.1672C28.9776 28.6133 29.3837 27.8203 29.5928 26.7842L33 10.2869H32.9882L28.7331 10.9285Z" fill="#FAFAF9"/></svg>
+            Advisor
+          </button>
+
+          <button class="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-primary px-3 py-1.5 text-sm text-text-secondary transition-all hover:bg-surface-secondary hover:border-border-strong">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <kbd class="text-xs text-text-tertiary font-mono">⌘K</kbd>
+          </button>
+
+          <button class="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-primary">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 256 256"><path d="M112,60a16,16,0,1,1,16,16A16,16,0,0,1,112,60Zm16,52a16,16,0,1,0,16,16A16,16,0,0,0,128,112Zm0,68a16,16,0,1,0,16,16A16,16,0,0,0,128,180Z"/></svg>
+          </button>
+        </div>
+      </header>
+      <div class="px-6 pb-3">
+        <p class="text-xs text-text-tertiary">18px W mark · pl-1.5 pr-3 py-1 · border-default · Slightly smaller avatar, still labeled</p>
+      </div>
+    </div>
+
+    <!-- ====== VARIATION 2: Icon-only circle, 20px W mark, tooltip ====== -->
+    <div class="rounded-lg bg-surface-primary border p-0 overflow-hidden">
+      <div class="px-4 py-2 border-b bg-surface-secondary">
+        <span class="text-xs font-medium text-text-tertiary">V2 — Icon-only circle, 20px W mark, tooltip on hover</span>
+      </div>
+      <header class="h-14 flex items-center justify-between px-6">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold">Fundraising</h1>
+          <span class="text-xs font-medium text-text-tertiary bg-surface-secondary px-2 py-0.5 rounded-full">Series A</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- V2: Icon circle only -->
+          <div class="tooltip-wrap relative">
+            <button class="flex h-8 w-8 items-center justify-center rounded-full border border-border-default bg-surface-primary transition-all hover:bg-surface-secondary hover:border-border-strong hover:scale-[1.02] active:scale-[0.98]" aria-label="Advisor">
+              <svg width="20" height="20" viewBox="0 0 40 40" fill="none"><path d="M0 20C0 8.95431 8.95431 0 20 0C31.0457 0 40 8.95431 40 20C40 31.0457 31.0457 40 20 40C8.95431 40 0 31.0457 0 20Z" fill="#404040"/><path d="M28.7331 10.9285L25.9568 25.5768C25.9568 25.6167 25.9528 25.6485 25.941 25.6764C25.9331 25.7043 25.9173 25.7203 25.8976 25.7203C25.8779 25.7203 25.8661 25.7043 25.8542 25.6764C25.8424 25.6485 25.8306 25.6127 25.8109 25.5768L22.9991 13.3274C22.7349 12.1598 22.3169 11.315 21.749 10.789C21.1811 10.263 20.4713 10 19.6194 10C18.7676 10 18.0578 10.263 17.4899 10.789C16.922 11.315 16.504 12.1717 16.2398 13.3552L13.4872 25.5768C13.4872 25.6326 13.4793 25.6724 13.4596 25.6924C13.4399 25.7123 13.4201 25.7203 13.4044 25.7203C13.3886 25.7203 13.3728 25.7123 13.361 25.6924C13.3531 25.6724 13.3373 25.6366 13.3176 25.5768L10.9633 13.6103L7 14.212L9.68952 26.8719C9.91825 27.884 10.3442 28.6611 10.9672 29.1951C11.5903 29.729 12.3475 30 13.2387 30C14.0708 30 14.8083 29.737 15.455 29.211C16.0978 28.685 16.5237 27.9637 16.7327 27.0432L19.6155 14.2797L19.5997 14.22C19.5997 14.1801 19.5997 14.1682 19.5997 14.1761C19.5997 14.1881 19.6076 14.1921 19.6273 14.1921C19.6471 14.1921 19.6471 14.2 19.6273 14.22L19.6116 14.2797L22.5495 26.9556C22.7782 27.9119 23.212 28.6571 23.8548 29.1951C24.4976 29.729 25.2351 30 26.0711 30C26.9979 30 27.7629 29.7211 28.3702 29.1672C28.9776 28.6133 29.3837 27.8203 29.5928 26.7842L33 10.2869H32.9882L28.7331 10.9285Z" fill="#FAFAF9"/></svg>
+            </button>
+            <div class="tip absolute top-full mt-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-surface-inverse text-text-inverse text-xs px-2.5 py-1.5 font-medium shadow-lg z-50">Advisor</div>
+          </div>
+
+          <button class="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-primary px-3 py-1.5 text-sm text-text-secondary transition-all hover:bg-surface-secondary hover:border-border-strong">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <kbd class="text-xs text-text-tertiary font-mono">⌘K</kbd>
+          </button>
+
+          <button class="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-primary">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 256 256"><path d="M112,60a16,16,0,1,1,16,16A16,16,0,0,1,112,60Zm16,52a16,16,0,1,0,16,16A16,16,0,0,0,128,112Zm0,68a16,16,0,1,0,16,16A16,16,0,0,0,128,180Z"/></svg>
+          </button>
+        </div>
+      </header>
+      <div class="px-6 pb-3">
+        <p class="text-xs text-text-tertiary">20px W mark in 32px circle · Matches overflow menu shape · Tooltip reveals "Advisor" · Most compact</p>
+      </div>
+    </div>
+
+    <!-- ====== VARIATION 3: Text-only ghost with tiny W mark ====== -->
+    <div class="rounded-lg bg-surface-primary border p-0 overflow-hidden">
+      <div class="px-4 py-2 border-b bg-surface-secondary">
+        <span class="text-xs font-medium text-text-tertiary">V3 — Ghost button, 14px W mark inline with text</span>
+      </div>
+      <header class="h-14 flex items-center justify-between px-6">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold">Fundraising</h1>
+          <span class="text-xs font-medium text-text-tertiary bg-surface-secondary px-2 py-0.5 rounded-full">Series A</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- V3: Ghost, no border, W mark as inline glyph -->
+          <button class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-text-secondary transition-all hover:bg-surface-secondary hover:text-text-primary active:scale-[0.98]">
+            <svg width="14" height="14" viewBox="0 0 40 40" fill="none" class="shrink-0"><path d="M0 20C0 8.95431 8.95431 0 20 0C31.0457 0 40 8.95431 40 20C40 31.0457 31.0457 40 20 40C8.95431 40 0 31.0457 0 20Z" fill="#404040"/><path d="M28.7331 10.9285L25.9568 25.5768C25.9568 25.6167 25.9528 25.6485 25.941 25.6764C25.9331 25.7043 25.9173 25.7203 25.8976 25.7203C25.8779 25.7203 25.8661 25.7043 25.8542 25.6764C25.8424 25.6485 25.8306 25.6127 25.8109 25.5768L22.9991 13.3274C22.7349 12.1598 22.3169 11.315 21.749 10.789C21.1811 10.263 20.4713 10 19.6194 10C18.7676 10 18.0578 10.263 17.4899 10.789C16.922 11.315 16.504 12.1717 16.2398 13.3552L13.4872 25.5768C13.4872 25.6326 13.4793 25.6724 13.4596 25.6924C13.4399 25.7123 13.4201 25.7203 13.4044 25.7203C13.3886 25.7203 13.3728 25.7123 13.361 25.6924C13.3531 25.6724 13.3373 25.6366 13.3176 25.5768L10.9633 13.6103L7 14.212L9.68952 26.8719C9.91825 27.884 10.3442 28.6611 10.9672 29.1951C11.5903 29.729 12.3475 30 13.2387 30C14.0708 30 14.8083 29.737 15.455 29.211C16.0978 28.685 16.5237 27.9637 16.7327 27.0432L19.6155 14.2797L19.5997 14.22C19.5997 14.1801 19.5997 14.1682 19.5997 14.1761C19.5997 14.1881 19.6076 14.1921 19.6273 14.1921C19.6471 14.1921 19.6471 14.2 19.6273 14.22L19.6116 14.2797L22.5495 26.9556C22.7782 27.9119 23.212 28.6571 23.8548 29.1951C24.4976 29.729 25.2351 30 26.0711 30C26.9979 30 27.7629 29.7211 28.3702 29.1672C28.9776 28.6133 29.3837 27.8203 29.5928 26.7842L33 10.2869H32.9882L28.7331 10.9285Z" fill="#FAFAF9"/></svg>
+            Advisor
+          </button>
+
+          <button class="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-primary px-3 py-1.5 text-sm text-text-secondary transition-all hover:bg-surface-secondary hover:border-border-strong">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <kbd class="text-xs text-text-tertiary font-mono">⌘K</kbd>
+          </button>
+
+          <button class="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-primary">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 256 256"><path d="M112,60a16,16,0,1,1,16,16A16,16,0,0,1,112,60Zm16,52a16,16,0,1,0,16,16A16,16,0,0,0,128,112Zm0,68a16,16,0,1,0,16,16A16,16,0,0,0,128,180Z"/></svg>
+          </button>
+        </div>
+      </header>
+      <div class="px-6 pb-3">
+        <p class="text-xs text-text-tertiary">No border · 14px W mark reads as icon glyph · text-secondary default, text-primary on hover · Lightest weight, most recessive</p>
+      </div>
+    </div>
+
+    <!-- ====== VARIATION 4: Outline pill with keyboard shortcut hint ====== -->
+    <div class="rounded-lg bg-surface-primary border p-0 overflow-hidden">
+      <div class="px-4 py-2 border-b bg-surface-secondary">
+        <span class="text-xs font-medium text-text-tertiary">V4 — Outline pill with 16px W mark + keyboard shortcut</span>
+      </div>
+      <header class="h-14 flex items-center justify-between px-6">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold">Fundraising</h1>
+          <span class="text-xs font-medium text-text-tertiary bg-surface-secondary px-2 py-0.5 rounded-full">Series A</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- V4: Outline pill with W mark + kbd hint -->
+          <button class="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-primary pl-2 pr-2.5 py-1 text-sm text-text-primary transition-all hover:bg-surface-secondary hover:border-border-strong active:scale-[0.98]">
+            <svg width="16" height="16" viewBox="0 0 40 40" fill="none" class="shrink-0"><path d="M0 20C0 8.95431 8.95431 0 20 0C31.0457 0 40 8.95431 40 20C40 31.0457 31.0457 40 20 40C8.95431 40 0 31.0457 0 20Z" fill="#404040"/><path d="M28.7331 10.9285L25.9568 25.5768C25.9568 25.6167 25.9528 25.6485 25.941 25.6764C25.9331 25.7043 25.9173 25.7203 25.8976 25.7203C25.8779 25.7203 25.8661 25.7043 25.8542 25.6764C25.8424 25.6485 25.8306 25.6127 25.8109 25.5768L22.9991 13.3274C22.7349 12.1598 22.3169 11.315 21.749 10.789C21.1811 10.263 20.4713 10 19.6194 10C18.7676 10 18.0578 10.263 17.4899 10.789C16.922 11.315 16.504 12.1717 16.2398 13.3552L13.4872 25.5768C13.4872 25.6326 13.4793 25.6724 13.4596 25.6924C13.4399 25.7123 13.4201 25.7203 13.4044 25.7203C13.3886 25.7203 13.3728 25.7123 13.361 25.6924C13.3531 25.6724 13.3373 25.6366 13.3176 25.5768L10.9633 13.6103L7 14.212L9.68952 26.8719C9.91825 27.884 10.3442 28.6611 10.9672 29.1951C11.5903 29.729 12.3475 30 13.2387 30C14.0708 30 14.8083 29.737 15.455 29.211C16.0978 28.685 16.5237 27.9637 16.7327 27.0432L19.6155 14.2797L19.5997 14.22C19.5997 14.1801 19.5997 14.1682 19.5997 14.1761C19.5997 14.1881 19.6076 14.1921 19.6273 14.1921C19.6471 14.1921 19.6471 14.2 19.6273 14.22L19.6116 14.2797L22.5495 26.9556C22.7782 27.9119 23.212 28.6571 23.8548 29.1951C24.4976 29.729 25.2351 30 26.0711 30C26.9979 30 27.7629 29.7211 28.3702 29.1672C28.9776 28.6133 29.3837 27.8203 29.5928 26.7842L33 10.2869H32.9882L28.7331 10.9285Z" fill="#FAFAF9"/></svg>
+            <span class="font-medium">Advisor</span>
+            <kbd class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 font-mono text-[10px] font-medium bg-surface-secondary border border-border-default rounded text-text-tertiary">⌘J</kbd>
+          </button>
+
+          <button class="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-primary px-3 py-1.5 text-sm text-text-secondary transition-all hover:bg-surface-secondary hover:border-border-strong">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <kbd class="text-xs text-text-tertiary font-mono">⌘K</kbd>
+          </button>
+
+          <button class="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-primary">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 256 256"><path d="M112,60a16,16,0,1,1,16,16A16,16,0,0,1,112,60Zm16,52a16,16,0,1,0,16,16A16,16,0,0,0,128,112Zm0,68a16,16,0,1,0,16,16A16,16,0,0,0,128,180Z"/></svg>
+          </button>
+        </div>
+      </header>
+      <div class="px-6 pb-3">
+        <p class="text-xs text-text-tertiary">16px W mark · Mirrors ⌘K pattern exactly (icon + label + kbd) · Teaches the shortcut · Harmonizes with command palette</p>
+      </div>
+    </div>
+
+    <!-- ====== VARIATION 5: W mark left, "Ask" label, border-subtle ====== -->
+    <div class="rounded-lg bg-surface-primary border p-0 overflow-hidden">
+      <div class="px-4 py-2 border-b bg-surface-secondary">
+        <span class="text-xs font-medium text-text-tertiary">V5 — "Ask" label + 16px W mark, border-subtle, softer presence</span>
+      </div>
+      <header class="h-14 flex items-center justify-between px-6">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold">Fundraising</h1>
+          <span class="text-xs font-medium text-text-tertiary bg-surface-secondary px-2 py-0.5 rounded-full">Series A</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- V5: "Ask" + W mark, subtle border -->
+          <button class="flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-primary pl-3 pr-2 py-1 text-sm text-text-secondary transition-all hover:bg-surface-secondary hover:border-border-strong hover:text-text-primary active:scale-[0.98]">
+            <span class="font-medium">Ask</span>
+            <svg width="18" height="18" viewBox="0 0 40 40" fill="none" class="shrink-0"><path d="M0 20C0 8.95431 8.95431 0 20 0C31.0457 0 40 8.95431 40 20C40 31.0457 31.0457 40 20 40C8.95431 40 0 31.0457 0 20Z" fill="#404040"/><path d="M28.7331 10.9285L25.9568 25.5768C25.9568 25.6167 25.9528 25.6485 25.941 25.6764C25.9331 25.7043 25.9173 25.7203 25.8976 25.7203C25.8779 25.7203 25.8661 25.7043 25.8542 25.6764C25.8424 25.6485 25.8306 25.6127 25.8109 25.5768L22.9991 13.3274C22.7349 12.1598 22.3169 11.315 21.749 10.789C21.1811 10.263 20.4713 10 19.6194 10C18.7676 10 18.0578 10.263 17.4899 10.789C16.922 11.315 16.504 12.1717 16.2398 13.3552L13.4872 25.5768C13.4872 25.6326 13.4793 25.6724 13.4596 25.6924C13.4399 25.7123 13.4201 25.7203 13.4044 25.7203C13.3886 25.7203 13.3728 25.7123 13.361 25.6924C13.3531 25.6724 13.3373 25.6366 13.3176 25.5768L10.9633 13.6103L7 14.212L9.68952 26.8719C9.91825 27.884 10.3442 28.6611 10.9672 29.1951C11.5903 29.729 12.3475 30 13.2387 30C14.0708 30 14.8083 29.737 15.455 29.211C16.0978 28.685 16.5237 27.9637 16.7327 27.0432L19.6155 14.2797L19.5997 14.22C19.5997 14.1801 19.5997 14.1682 19.5997 14.1761C19.5997 14.1881 19.6076 14.1921 19.6273 14.1921C19.6471 14.1921 19.6471 14.2 19.6273 14.22L19.6116 14.2797L22.5495 26.9556C22.7782 27.9119 23.212 28.6571 23.8548 29.1951C24.4976 29.729 25.2351 30 26.0711 30C26.9979 30 27.7629 29.7211 28.3702 29.1672C28.9776 28.6133 29.3837 27.8203 29.5928 26.7842L33 10.2869H32.9882L28.7331 10.9285Z" fill="#FAFAF9"/></svg>
+          </button>
+
+          <button class="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-primary px-3 py-1.5 text-sm text-text-secondary transition-all hover:bg-surface-secondary hover:border-border-strong">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <kbd class="text-xs text-text-tertiary font-mono">⌘K</kbd>
+          </button>
+
+          <button class="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-primary">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 256 256"><path d="M112,60a16,16,0,1,1,16,16A16,16,0,0,1,112,60Zm16,52a16,16,0,1,0,16,16A16,16,0,0,0,128,112Zm0,68a16,16,0,1,0,16,16A16,16,0,0,0,128,180Z"/></svg>
+          </button>
+        </div>
+      </header>
+      <div class="px-6 pb-3">
+        <p class="text-xs text-text-tertiary">Text-first: "Ask" label left, W mark right (18px) · border-subtle · text-secondary default · Invites action ("Ask" is a verb) · W mark as signature, not leading element</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Comparison notes -->
+  <div class="mt-10 p-5 rounded-lg bg-surface-primary border border-dashed">
+    <h3 class="text-sm font-semibold mb-3">Comparison Summary</h3>
+    <table class="w-full text-xs">
+      <thead>
+        <tr class="border-b">
+          <th class="text-left py-2 pr-4 text-text-tertiary font-medium">Variation</th>
+          <th class="text-left py-2 pr-4 text-text-tertiary font-medium">W Mark</th>
+          <th class="text-left py-2 pr-4 text-text-tertiary font-medium">Label</th>
+          <th class="text-left py-2 pr-4 text-text-tertiary font-medium">Border</th>
+          <th class="text-left py-2 text-text-tertiary font-medium">Character</th>
+        </tr>
+      </thead>
+      <tbody class="text-text-secondary">
+        <tr class="border-b">
+          <td class="py-2 pr-4 font-medium text-text-primary">V1</td>
+          <td class="py-2 pr-4">18px, leading</td>
+          <td class="py-2 pr-4">"Advisor"</td>
+          <td class="py-2 pr-4">border-default</td>
+          <td class="py-2">Compact branded pill — avatar feel, clear purpose</td>
+        </tr>
+        <tr class="border-b">
+          <td class="py-2 pr-4 font-medium text-text-primary">V2</td>
+          <td class="py-2 pr-4">20px, centered</td>
+          <td class="py-2 pr-4">None (tooltip)</td>
+          <td class="py-2 pr-4">border-default</td>
+          <td class="py-2">Icon-only circle — minimal, learn via tooltip</td>
+        </tr>
+        <tr class="border-b">
+          <td class="py-2 pr-4 font-medium text-text-primary">V3</td>
+          <td class="py-2 pr-4">14px, inline</td>
+          <td class="py-2 pr-4">"Advisor"</td>
+          <td class="py-2 pr-4">None (ghost)</td>
+          <td class="py-2">Ghost text button — most recessive, blends into nav</td>
+        </tr>
+        <tr class="border-b">
+          <td class="py-2 pr-4 font-medium text-text-primary">V4</td>
+          <td class="py-2 pr-4">16px, leading</td>
+          <td class="py-2 pr-4">"Advisor" + ⌘J</td>
+          <td class="py-2 pr-4">border-subtle</td>
+          <td class="py-2">Mirrors ⌘K — teaches shortcut, harmonizes pair</td>
+        </tr>
+        <tr>
+          <td class="py-2 pr-4 font-medium text-text-primary">V5</td>
+          <td class="py-2 pr-4">18px, trailing</td>
+          <td class="py-2 pr-4">"Ask"</td>
+          <td class="py-2 pr-4">border-subtle</td>
+          <td class="py-2">Verb-first — invites action, W as signature</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>

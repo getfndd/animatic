@@ -1,0 +1,32 @@
+{
+  "id": "2026-02-13-beta-onboarding-wizard",
+  "name": "Beta Onboarding Wizard",
+  "description": "Interactive 4-step post-accept onboarding wizard. Two-column layout (40% form, 60% contextual preview). Step 1: About You with AI chat preview. Step 2: Your Company with live sidebar preview. Step 3: Your Fundraise (skippable) with pipeline preview. Step 4: Get Started action cards. Full step navigation, working chat, live-updating previews.",
+  "prompt": "/prototype \"Interactive beta onboarding setup wizard — 4-step flow from /beta/accept to dashboard\" --fidelity concept --chrome none",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "Full interactive flow with working chat, live sidebar preview, pill toggles, and action cards. Sana AI-inspired two-column layout with progress dots."
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--surface-primary",
+      "--surface-secondary",
+      "--surface-tertiary",
+      "--text-primary",
+      "--text-secondary",
+      "--text-tertiary",
+      "--border-default",
+      "--border-subtle",
+      "--status-success",
+      "--status-success-bg"
+    ],
+    "presets": [],
+    "patterns": ["two-column-wizard", "pill-toggles", "progress-dots", "live-preview", "action-cards-grid"]
+  },
+  "linearIssue": "FND-1331",
+  "createdAt": "2026-02-13T22:00:00Z"
+}

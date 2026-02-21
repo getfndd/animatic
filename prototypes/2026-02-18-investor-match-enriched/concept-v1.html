@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Investor Match Results — Enriched Cards + Aligned Slideout</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <style>
+    /* ── Design System Tokens ── */
+    :root {
+      --surface-primary: #FAFAF9;
+      --surface-secondary: #F5F5F4;
+      --surface-hover: #ECECEA;
+      --text-primary: #1C1917;
+      --text-secondary: #57534E;
+      --text-tertiary: #A8A29E;
+      --text-quaternary: #D6D3D1;
+      --border-default: #E7E5E4;
+      --border-subtle: #F0EEEC;
+      --status-success: #16A34A;
+      --status-success-muted: #DCFCE7;
+      --accent-blue: #2563EB;
+      --accent-blue-muted: #DBEAFE;
+    }
+
+    body {
+      background: var(--surface-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    /* ── Dot loading animation ── */
+    @keyframes dotPulse {
+      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+    .dot-1 { animation: dotPulse 1.4s ease-in-out infinite; }
+    .dot-2 { animation: dotPulse 1.4s ease-in-out 0.2s infinite; }
+    .dot-3 { animation: dotPulse 1.4s ease-in-out 0.4s infinite; }
+  </style>
+</head>
+<body class="min-h-screen" style="background: var(--surface-primary);">
+
+  <!-- ── Page Shell ── -->
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- LEFT: Match Cards                                    -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="flex-1 overflow-y-auto p-8">
+      <div class="max-w-2xl mx-auto">
+
+        <!-- Page header -->
+        <div class="mb-6">
+          <h1 class="text-lg font-semibold" style="color: var(--text-primary);">Investor Matches</h1>
+          <p class="text-sm mt-1" style="color: var(--text-secondary);">3 investors matched your criteria</p>
+        </div>
+
+        <!-- Cards container -->
+        <div class="flex flex-col" style="gap: 12px;">
+
+          <!-- ── Card 1: Sequoia Capital (selected / slideout open) ── -->
+          <div
+            class="rounded-lg border p-5 transition-all duration-150"
+            style="background: var(--surface-primary); border-color: var(--text-tertiary); box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--text-tertiary);"
+          >
+            <!-- Row 1: Logo + Name + Firm Type -->
+            <div class="flex items-center gap-3">
+              <div
+                class="w-10 h-10 rounded-md flex items-center justify-center text-sm font-semibold shrink-0"
+                style="background: #DBEAFE; color: #2563EB;"
+              >SC</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold" style="color: var(--text-primary);">Sequoia Capital</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--surface-secondary); color: var(--text-secondary);">Venture Capital</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: Metadata -->
+            <div class="mt-2.5 flex items-center gap-1.5 text-xs" style="color: var(--text-secondary);">
+              <i class="ph ph-map-pin" style="font-size: 13px; color: var(--text-tertiary);"></i>
+              <span>Menlo Park, CA</span>
+              <span style="color: var(--text-tertiary);">·</span>
+              <span>$500K – $25M</span>
+              <span style="color: var(--text-tertiary);">·</span>
+              <span>312 portfolio companies</span>
+            </div>
+
+            <!-- Row 3: Match score + reason pills -->
+            <div class="mt-3 flex flex-wrap items-center gap-1.5">
+              <span
+                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
+                style="background: var(--status-success-muted); color: var(--status-success);"
+              >
+                <i class="ph-fill ph-check-circle" style="font-size: 13px;"></i>
+                92% match
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style="background: var(--surface-secondary); color: var(--text-secondary);"
+              >
+                <i class="ph ph-check" style="font-size: 12px; color: var(--status-success);"></i>
+                Stage fit
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style="background: var(--surface-secondary); color: var(--text-secondary);"
+              >
+                <i class="ph ph-check" style="font-size: 12px; color: var(--status-success);"></i>
+                Sector overlap
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style="background: var(--surface-secondary); color: var(--text-secondary);"
+              >
+                <i class="ph ph-check" style="font-size: 12px; color: var(--status-success);"></i>
+                Thesis match
+              </span>
+            </div>
+
+            <!-- Row 4: Leads rounds badge -->
+            <div class="mt-3">
+              <span
+                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
+                style="background: var(--status-success-muted); color: var(--status-success);"
+              >
+                <i class="ph-fill ph-flag-pennant" style="font-size: 12px;"></i>
+                Leads rounds
+              </span>
+            </div>
+
+            <!-- Row 5: Portfolio highlights -->
+            <div class="mt-3 text-xs" style="color: var(--text-secondary);">
+              <span class="font-medium" style="color: var(--text-primary);">Portfolio:</span>
+              Stripe, Figma, Notion, Airbnb, DoorDash
+              <span style="color: var(--text-tertiary);">+307 more</span>
+            </div>
+
+            <!-- Row 6: Key contact -->
+            <div class="mt-3 flex items-center gap-2">
+              <div
+                class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-medium shrink-0"
+                style="background: #E0E7FF; color: #4F46E5;"
+              >SC</div>
+              <span class="text-xs" style="color: var(--text-primary);">Sarah Chen</span>
+              <span class="text-xs" style="color: var(--text-tertiary);">·</span>
+              <span class="text-xs" style="color: var(--text-secondary);">General Partner</span>
+              <a href="#" class="ml-0.5 flex items-center" style="color: var(--text-tertiary);" title="LinkedIn profile">
+                <i class="ph ph-linkedin-logo" style="font-size: 14px;"></i>
+              </a>
+            </div>
+
+            <!-- Row 7: Description (expandable) -->
+            <div class="mt-3">
+              <p class="text-xs leading-relaxed" style="color: var(--text-secondary);">
+                Sequoia Capital is a leading venture capital firm focused on energy, financial, enterprise, healthcare, internet, and mobile technology companies. They partner with founders from idea stage through IPO and beyond.
+              </p>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Series A</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Series B</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">SaaS</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Fintech</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">AI/ML</span>
+              </div>
+            </div>
+
+            <!-- Row 8: Action row -->
+            <div class="mt-4 pt-3 flex items-center gap-3" style="border-top: 1px solid var(--border-subtle);">
+              <a
+                href="#"
+                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 transition-colors duration-150"
+                style="color: var(--text-secondary); background: var(--surface-secondary);"
+              >
+                <i class="ph ph-globe" style="font-size: 13px;"></i>
+                Website
+              </a>
+              <a
+                href="#"
+                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 transition-colors duration-150"
+                style="color: var(--text-secondary); background: var(--surface-secondary);"
+              >
+                <i class="ph ph-linkedin-logo" style="font-size: 13px;"></i>
+                LinkedIn
+              </a>
+              <button
+                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 transition-colors duration-150 ml-auto"
+                style="color: var(--text-primary); background: var(--surface-secondary);"
+              >
+                Why this match?
+                <i class="ph ph-arrow-right" style="font-size: 13px;"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Card 2: a16z ── -->
+          <div
+            class="rounded-lg border p-5 transition-all duration-150"
+            style="background: var(--surface-primary); border-color: var(--border-default);"
+          >
+            <!-- Row 1: Logo + Name + Firm Type -->
+            <div class="flex items-center gap-3">
+              <div
+                class="w-10 h-10 rounded-md flex items-center justify-center text-sm font-semibold shrink-0"
+                style="background: #F3E8FF; color: #7C3AED;"
+              >a16</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold" style="color: var(--text-primary);">Andreessen Horowitz</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--surface-secondary); color: var(--text-secondary);">Venture Capital</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: Metadata -->
+            <div class="mt-2.5 flex items-center gap-1.5 text-xs" style="color: var(--text-secondary);">
+              <i class="ph ph-map-pin" style="font-size: 13px; color: var(--text-tertiary);"></i>
+              <span>Menlo Park, CA</span>
+              <span style="color: var(--text-tertiary);">·</span>
+              <span>$1M – $100M</span>
+              <span style="color: var(--text-tertiary);">·</span>
+              <span>487 portfolio companies</span>
+            </div>
+
+            <!-- Row 3: Match score + reason pills -->
+            <div class="mt-3 flex flex-wrap items-center gap-1.5">
+              <span
+                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
+                style="background: var(--status-success-muted); color: var(--status-success);"
+              >
+                <i class="ph-fill ph-check-circle" style="font-size: 13px;"></i>
+                87% match
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style="background: var(--surface-secondary); color: var(--text-secondary);"
+              >
+                <i class="ph ph-check" style="font-size: 12px; color: var(--status-success);"></i>
+                Stage fit
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style="background: var(--surface-secondary); color: var(--text-secondary);"
+              >
+                <i class="ph ph-check" style="font-size: 12px; color: var(--status-success);"></i>
+                Thesis match
+              </span>
+            </div>
+
+            <!-- Row 4: Leads rounds badge -->
+            <div class="mt-3">
+              <span
+                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
+                style="background: var(--status-success-muted); color: var(--status-success);"
+              >
+                <i class="ph-fill ph-flag-pennant" style="font-size: 12px;"></i>
+                Leads rounds
+              </span>
+            </div>
+
+            <!-- Row 5: Portfolio highlights -->
+            <div class="mt-3 text-xs" style="color: var(--text-secondary);">
+              <span class="font-medium" style="color: var(--text-primary);">Portfolio:</span>
+              GitHub, Coinbase, Instacart, Slack, Roblox
+              <span style="color: var(--text-tertiary);">+482 more</span>
+            </div>
+
+            <!-- Row 6: Key contact -->
+            <div class="mt-3 flex items-center gap-2">
+              <div
+                class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-medium shrink-0"
+                style="background: #FEF3C7; color: #D97706;"
+              >MK</div>
+              <span class="text-xs" style="color: var(--text-primary);">Martin Kasabian</span>
+              <span class="text-xs" style="color: var(--text-tertiary);">·</span>
+              <span class="text-xs" style="color: var(--text-secondary);">Partner</span>
+              <a href="#" class="ml-0.5 flex items-center" style="color: var(--text-tertiary);" title="LinkedIn profile">
+                <i class="ph ph-linkedin-logo" style="font-size: 14px;"></i>
+              </a>
+            </div>
+
+            <!-- Row 7: Description -->
+            <div class="mt-3">
+              <p class="text-xs leading-relaxed" style="color: var(--text-secondary);">
+                Andreessen Horowitz (a16z) backs bold entrepreneurs building the future through technology. Their platform provides operational support across recruiting, marketing, and go-to-market strategy.
+              </p>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Seed</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Series A</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">AI/ML</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Enterprise</span>
+              </div>
+            </div>
+
+            <!-- Row 8: Action row -->
+            <div class="mt-4 pt-3 flex items-center gap-3" style="border-top: 1px solid var(--border-subtle);">
+              <a
+                href="#"
+                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 transition-colors duration-150"
+                style="color: var(--text-secondary); background: var(--surface-secondary);"
+              >
+                <i class="ph ph-globe" style="font-size: 13px;"></i>
+                Website
+              </a>
+              <a
+                href="#"
+                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 transition-colors duration-150"
+                style="color: var(--text-secondary); background: var(--surface-secondary);"
+              >
+                <i class="ph ph-linkedin-logo" style="font-size: 13px;"></i>
+                LinkedIn
+              </a>
+              <button
+                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 transition-colors duration-150 ml-auto"
+                style="color: var(--text-primary); background: var(--surface-secondary);"
+              >
+                Why this match?
+                <i class="ph ph-arrow-right" style="font-size: 13px;"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Card 3: First Round Capital ── -->
+          <div
+            class="rounded-lg border p-5 transition-all duration-150"
+            style="background: var(--surface-primary); border-color: var(--border-default);"
+          >
+            <!-- Row 1: Logo + Name + Firm Type -->
+            <div class="flex items-center gap-3">
+              <div
+                class="w-10 h-10 rounded-md flex items-center justify-center text-sm font-semibold shrink-0"
+                style="background: #D1FAE5; color: #059669;"
+              >FR</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold" style="color: var(--text-primary);">First Round Capital</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--surface-secondary); color: var(--text-secondary);">Seed Fund</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: Metadata -->
+            <div class="mt-2.5 flex items-center gap-1.5 text-xs" style="color: var(--text-secondary);">
+              <i class="ph ph-map-pin" style="font-size: 13px; color: var(--text-tertiary);"></i>
+              <span>San Francisco, CA</span>
+              <span style="color: var(--text-tertiary);">·</span>
+              <span>$100K – $3M</span>
+              <span style="color: var(--text-tertiary);">·</span>
+              <span>198 portfolio companies</span>
+            </div>
+
+            <!-- Row 3: Match score + reason pills -->
+            <div class="mt-3 flex flex-wrap items-center gap-1.5">
+              <span
+                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
+                style="background: var(--status-success-muted); color: var(--status-success);"
+              >
+                <i class="ph-fill ph-check-circle" style="font-size: 13px;"></i>
+                84% match
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style="background: var(--surface-secondary); color: var(--text-secondary);"
+              >
+                <i class="ph ph-check" style="font-size: 12px; color: var(--status-success);"></i>
+                Stage fit
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style="background: var(--surface-secondary); color: var(--text-secondary);"
+              >
+                <i class="ph ph-check" style="font-size: 12px; color: var(--status-success);"></i>
+                Sector overlap
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                style="background: var(--surface-secondary); color: var(--text-secondary);"
+              >
+                <i class="ph ph-check" style="font-size: 12px; color: var(--status-success);"></i>
+                Geography
+              </span>
+            </div>
+
+            <!-- No "leads rounds" for this one — demonstrating absence -->
+
+            <!-- Row 5: Portfolio highlights -->
+            <div class="mt-3 text-xs" style="color: var(--text-secondary);">
+              <span class="font-medium" style="color: var(--text-primary);">Portfolio:</span>
+              Uber, Square, Roblox, Notion, Warby Parker
+              <span style="color: var(--text-tertiary);">+193 more</span>
+            </div>
+
+            <!-- Row 6: Key contact -->
+            <div class="mt-3 flex items-center gap-2">
+              <div
+                class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-medium shrink-0"
+                style="background: #FFE4E6; color: #E11D48;"
+              >JB</div>
+              <span class="text-xs" style="color: var(--text-primary);">Josh Buckley</span>
+              <span class="text-xs" style="color: var(--text-tertiary);">·</span>
+              <span class="text-xs" style="color: var(--text-secondary);">Managing Partner</span>
+              <a href="#" class="ml-0.5 flex items-center" style="color: var(--text-tertiary);" title="LinkedIn profile">
+                <i class="ph ph-linkedin-logo" style="font-size: 14px;"></i>
+              </a>
+            </div>
+
+            <!-- Row 7: Description -->
+            <div class="mt-3">
+              <p class="text-xs leading-relaxed" style="color: var(--text-secondary);">
+                First Round Capital partners with founders at the earliest stages, often before a product exists. Known for the First Round Review and a strong community-driven approach to founder support.
+              </p>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Pre-Seed</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Seed</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">SaaS</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Consumer</span>
+                <span class="text-xs px-2 py-0.5 rounded" style="background: var(--surface-secondary); color: var(--text-secondary);">Marketplace</span>
+              </div>
+            </div>
+
+            <!-- Row 8: Action row -->
+            <div class="mt-4 pt-3 flex items-center gap-3" style="border-top: 1px solid var(--border-subtle);">
+              <a
+                href="#"
+                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 transition-colors duration-150"
+                style="color: var(--text-secondary); background: var(--surface-secondary);"
+              >
+                <i class="ph ph-globe" style="font-size: 13px;"></i>
+                Website
+              </a>
+              <a
+                href="#"
+                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 transition-colors duration-150"
+                style="color: var(--text-secondary); background: var(--surface-secondary);"
+              >
+                <i class="ph ph-linkedin-logo" style="font-size: 13px;"></i>
+                LinkedIn
+              </a>
+              <button
+                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 transition-colors duration-150 ml-auto"
+                style="color: var(--text-primary); background: var(--surface-secondary);"
+              >
+                Why this match?
+                <i class="ph ph-arrow-right" style="font-size: 13px;"></i>
+              </button>
+            </div>
+          </div>
+
+        </div><!-- /cards container -->
+      </div><!-- /max-w -->
+    </div><!-- /left panel -->
+
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- RIGHT: "Why this match?" Slideout Panel               -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div
+      class="w-[420px] shrink-0 border-l flex flex-col h-full overflow-hidden"
+      style="background: var(--surface-primary); border-color: var(--border-default);"
+    >
+      <!-- Slideout Header -->
+      <div
+        class="flex items-center justify-between px-5 py-4 border-b shrink-0"
+        style="border-color: var(--border-subtle);"
+      >
+        <h2 class="text-sm font-medium" style="color: var(--text-primary);">Why Sequoia Capital?</h2>
+        <button
+          class="w-7 h-7 rounded-md flex items-center justify-center transition-colors duration-150"
+          style="color: var(--text-tertiary);"
+          title="Close panel"
+        >
+          <i class="ph ph-x" style="font-size: 16px;"></i>
+        </button>
+      </div>
+
+      <!-- Chat Messages Area -->
+      <div class="flex-1 overflow-y-auto px-5 py-5">
+        <div class="flex flex-col gap-5">
+
+          <!-- AI Message 1 — no avatar, no bubble, just text -->
+          <div>
+            <p class="text-sm leading-relaxed" style="color: var(--text-primary);">
+              Sequoia Capital is a strong match for your Series A raise. Here are the key reasons:
+            </p>
+            <div class="mt-3 flex flex-col gap-2.5">
+              <div class="flex items-start gap-2">
+                <i class="ph-fill ph-check-circle shrink-0 mt-0.5" style="font-size: 14px; color: var(--status-success);"></i>
+                <p class="text-sm leading-relaxed" style="color: var(--text-primary);">
+                  <span class="font-medium">Stage alignment</span>
+                  <span style="color: var(--text-secondary);"> — 68% of their last 20 investments were Series A rounds between $8M-$25M, matching your target raise of $12M.</span>
+                </p>
+              </div>
+              <div class="flex items-start gap-2">
+                <i class="ph-fill ph-check-circle shrink-0 mt-0.5" style="font-size: 14px; color: var(--status-success);"></i>
+                <p class="text-sm leading-relaxed" style="color: var(--text-primary);">
+                  <span class="font-medium">Sector expertise</span>
+                  <span style="color: var(--text-secondary);"> — Active in fintech and developer tools. Recent investments in Plaid, Mercury, and Linear show strong thesis overlap.</span>
+                </p>
+              </div>
+              <div class="flex items-start gap-2">
+                <i class="ph-fill ph-check-circle shrink-0 mt-0.5" style="font-size: 14px; color: var(--status-success);"></i>
+                <p class="text-sm leading-relaxed" style="color: var(--text-primary);">
+                  <span class="font-medium">Active deployer</span>
+                  <span style="color: var(--text-secondary);"> — Made 14 new investments in the last 6 months, indicating available dry powder and active deal flow.</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Message — right-aligned bubble -->
+          <div class="flex justify-end">
+            <div
+              class="max-w-[80%] px-4 py-2.5 text-sm leading-relaxed"
+              style="background: var(--surface-secondary); color: var(--text-primary); border-radius: 16px;"
+            >
+              What about Sarah Chen specifically? Has she led deals in our space?
+            </div>
+          </div>
+
+          <!-- AI Message 2 -->
+          <div>
+            <p class="text-sm leading-relaxed" style="color: var(--text-primary);">
+              Sarah Chen joined Sequoia in 2021 and has led 8 deals since, primarily in B2B SaaS and fintech infrastructure. Notable leads include:
+            </p>
+            <ul class="mt-2 flex flex-col gap-1.5">
+              <li class="flex items-start gap-2 text-sm" style="color: var(--text-secondary);">
+                <span style="color: var(--text-tertiary);">-</span>
+                <span><span class="font-medium" style="color: var(--text-primary);">Mercury</span> (Series B, $120M) — Banking for startups</span>
+              </li>
+              <li class="flex items-start gap-2 text-sm" style="color: var(--text-secondary);">
+                <span style="color: var(--text-tertiary);">-</span>
+                <span><span class="font-medium" style="color: var(--text-primary);">Brex</span> (Series C, $300M) — Corporate cards</span>
+              </li>
+              <li class="flex items-start gap-2 text-sm" style="color: var(--text-secondary);">
+                <span style="color: var(--text-tertiary);">-</span>
+                <span><span class="font-medium" style="color: var(--text-primary);">Ramp</span> (Series A, $30M) — Spend management</span>
+              </li>
+            </ul>
+            <p class="mt-3 text-sm leading-relaxed" style="color: var(--text-secondary);">
+              Her focus on financial infrastructure tools with strong product-led growth aligns well with your company profile.
+            </p>
+          </div>
+
+          <!-- Loading indicator — three neutral dots -->
+          <div class="flex items-center gap-1.5 py-1">
+            <div class="h-1.5 w-1.5 rounded-full dot-1" style="background: var(--text-tertiary);"></div>
+            <div class="h-1.5 w-1.5 rounded-full dot-2" style="background: var(--text-tertiary);"></div>
+            <div class="h-1.5 w-1.5 rounded-full dot-3" style="background: var(--text-tertiary);"></div>
+          </div>
+
+        </div>
+      </div><!-- /messages area -->
+
+      <!-- Suggestion Pills -->
+      <div class="px-5 pb-3 pt-1 shrink-0">
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            class="text-xs px-3 py-1.5 rounded-full border transition-colors duration-150"
+            style="border-color: var(--border-subtle); background: var(--surface-primary); color: var(--text-secondary);"
+          >
+            Recent fund size?
+          </button>
+          <button
+            class="text-xs px-3 py-1.5 rounded-full border transition-colors duration-150"
+            style="border-color: var(--border-subtle); background: var(--surface-primary); color: var(--text-secondary);"
+          >
+            Board seat requirements
+          </button>
+          <button
+            class="text-xs px-3 py-1.5 rounded-full border transition-colors duration-150"
+            style="border-color: var(--border-subtle); background: var(--surface-primary); color: var(--text-secondary);"
+          >
+            Portfolio conflicts?
+          </button>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="px-5 pb-5 shrink-0">
+        <div
+          class="flex items-center gap-2 border rounded-lg px-3 py-2.5 transition-colors duration-150"
+          style="border-color: var(--border-subtle); background: var(--surface-primary);"
+        >
+          <input
+            type="text"
+            placeholder="Ask about this investor..."
+            class="flex-1 text-sm bg-transparent outline-none"
+            style="color: var(--text-primary);"
+          />
+          <button
+            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150"
+            style="color: var(--text-tertiary);"
+          >
+            <i class="ph ph-arrow-up" style="font-size: 16px;"></i>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /slideout panel -->
+
+  </div><!-- /page shell -->
+
+</body>
+</html>

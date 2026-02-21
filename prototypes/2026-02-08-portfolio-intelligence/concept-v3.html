@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 0 0% 96%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --radius: 0.5rem;
+    }
+
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up {
+      animation: fadeUp 0.2s ease-out forwards;
+      opacity: 0;
+    }
+    .delay-1 { animation-delay: 50ms; }
+    .delay-2 { animation-delay: 100ms; }
+    .delay-3 { animation-delay: 150ms; }
+    .delay-4 { animation-delay: 200ms; }
+    .delay-5 { animation-delay: 250ms; }
+
+    .segment { width: 100%; height: 3px; border-radius: 1.5px; }
+    .segment-filled { background: hsl(var(--text-tertiary)); }
+    .segment-empty { background: hsl(var(--border-subtle)); }
+    .segment-current { background: hsl(var(--text-primary)); }
+
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 4px;
+      font-size: 10px;
+      font-family: 'Satoshi', system-ui;
+      font-weight: 500;
+      border-radius: 3px;
+      background: hsl(var(--surface-tertiary));
+      color: hsl(var(--text-tertiary));
+      border: 1px solid hsl(var(--border-default));
+    }
+
+    /* Snooze dropdown */
+    .snooze-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 100%;
+      margin-top: 4px;
+      z-index: 30;
+    }
+    .snooze-menu.open { display: block; }
+
+    /* Scatter Plot */
+    .scatter-plot {
+      position: relative;
+      border: 1px solid hsl(var(--border-subtle));
+      border-radius: 6px;
+      background:
+        radial-gradient(circle, hsl(var(--border-subtle)) 1px, transparent 1px);
+      background-size: 32px 32px;
+      background-position: 16px 16px;
+    }
+    .scatter-crosshair-h {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      border-top: 1px dashed hsl(var(--border-default));
+    }
+    .scatter-crosshair-v {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      border-left: 1px dashed hsl(var(--border-default));
+    }
+    .scatter-label {
+      position: absolute;
+      font-size: 11px;
+      font-weight: 500;
+      color: hsl(var(--text-tertiary));
+      opacity: 0.7;
+    }
+    .scatter-dot {
+      position: absolute;
+      cursor: pointer;
+      transition: all 150ms ease-out;
+      z-index: 2;
+    }
+    .scatter-dot:hover {
+      transform: translate(-50%, -50%) scale(1.15);
+      z-index: 10;
+    }
+    .scatter-dot .dot-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      border: 2px solid transparent;
+      transition: border-color 150ms, box-shadow 150ms;
+    }
+    .scatter-dot:hover .dot-avatar {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .scatter-dot .dot-tooltip {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: hsl(var(--surface-inverse));
+      color: hsl(var(--text-inverse));
+      font-size: 11px;
+      z-index: 20;
+    }
+    .scatter-dot:hover .dot-tooltip { display: block; }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar Nav -->
+    <aside class="w-60 h-screen border-r flex flex-col bg-surface-primary shrink-0">
+      <div class="h-14 flex items-center px-6 border-b">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded bg-surface-inverse"></div>
+          <span class="font-semibold">Weftly</span>
+        </div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-4 px-3">
+        <div class="text-xs font-medium text-text-tertiary px-3 mb-2">Portfolio</div>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Home
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+          Chat
+        </a>
+
+        <!-- Intelligence — active -->
+        <a href="#" class="flex items-center justify-between px-3 py-2 rounded text-sm bg-surface-tertiary font-medium transition-colors duration-[140ms]">
+          <span class="flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Intelligence
+          </span>
+          <span class="flex items-center justify-center w-5 h-5 rounded-full bg-status-error text-white text-[10px] font-bold">2</span>
+        </a>
+
+        <!-- Thesis — separate -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Thesis Alignment
+        </a>
+
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          Cap Table
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Documents
+        </a>
+
+        <div class="text-xs font-medium text-text-tertiary px-3 mb-2 mt-6">Meeting Prep</div>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          LP Meetings
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          IC Memos
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+          Meeting Notes
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <!-- Top Bar -->
+      <header class="h-14 border-b flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold">Portfolio Intelligence</h1>
+          <span class="text-xs text-text-tertiary">Lakefront Angels Fund I</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- View toggle: list / grid -->
+          <div class="flex items-center border rounded-md overflow-hidden">
+            <button id="toggle-list" onclick="toggleLayout('list')" class="px-2 py-1.5 bg-surface-tertiary" title="List view">
+              <svg class="w-3.5 h-3.5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <button id="toggle-grid" onclick="toggleLayout('grid')" class="px-2 py-1.5 hover:bg-surface-secondary transition-colors" title="Health grid">
+              <svg class="w-3.5 h-3.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+            </button>
+          </div>
+          <span class="text-xs text-text-tertiary flex items-center gap-1"><kbd>?</kbd> shortcuts</span>
+        </div>
+      </header>
+
+      <!-- Content: Queue (left) + Signal Feed (right sidebar) -->
+      <div class="flex-1 flex overflow-hidden">
+
+        <!-- ============================================================ -->
+        <!-- LEFT: Attention Queue (list view)                             -->
+        <!-- ============================================================ -->
+        <div id="view-list" class="flex-1 overflow-auto">
+          <!-- AI Summary -->
+          <div class="px-6 py-4 bg-surface-secondary">
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-full bg-surface-inverse flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span class="text-[10px] font-bold text-text-inverse">W</span>
+              </div>
+              <div>
+                <p class="text-sm text-text-primary leading-relaxed">
+                  <span class="font-medium">2 companies need attention.</span>
+                  QuantumSens has gone quiet — no updates in 10 weeks and no meetings scheduled. NanoSuture's data room is stale and they have 2 unanswered questions.
+                  MeshGuard and Archipelago are tracking well across all signals.
+                </p>
+                <p class="text-xs text-text-tertiary mt-1">Last analyzed 2 hours ago</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-6">
+            <!-- ===== NEEDS ATTENTION ===== -->
+            <div class="mb-8">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs font-medium text-text-tertiary">Needs attention</span>
+                <span class="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-status-error/10 text-status-error text-[10px] font-bold px-1.5">2</span>
+              </div>
+
+              <div class="space-y-2">
+                <!-- QuantumSens — Critical -->
+                <div class="animate-fade-up delay-1 border border-transparent rounded-md hover:border-border-subtle hover:shadow-sm hover:-translate-y-px transition-all duration-150 ease-out group bg-surface-primary" data-item="quantumsens">
+                  <div class="p-4">
+                    <div class="flex items-start gap-3">
+                      <div class="flex flex-col items-center gap-1.5 pt-0.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-status-error flex-shrink-0"></div>
+                        <div class="w-8 h-8 rounded-md bg-violet-200 flex items-center justify-center text-xs font-bold text-violet-700">QS</div>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-4 mb-1.5">
+                          <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium">QuantumSens Medical</span>
+                            <span class="text-xs text-text-tertiary">Medtech</span>
+                            <span class="text-xs text-text-tertiary">Excluded</span>
+                          </div>
+                          <!-- Actions on hover -->
+                          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div class="relative">
+                              <button onclick="toggleSnooze(this)" class="px-2 py-1 rounded text-xs font-medium text-text-secondary hover:bg-surface-hover transition-colors duration-[140ms]">Snooze</button>
+                              <div class="snooze-menu w-48 bg-surface-primary rounded-md shadow-lg p-2">
+                                <button class="w-full text-left px-3 py-2 text-xs rounded hover:bg-surface-hover transition-colors duration-[140ms]">Until next update</button>
+                                <button class="w-full text-left px-3 py-2 text-xs rounded hover:bg-surface-hover transition-colors duration-[140ms]">For 1 week</button>
+                                <button class="w-full text-left px-3 py-2 text-xs rounded hover:bg-surface-hover transition-colors duration-[140ms]">For 2 weeks</button>
+                                <button class="w-full text-left px-3 py-2 text-xs rounded hover:bg-surface-hover transition-colors duration-[140ms]">Until specific date...</button>
+                              </div>
+                            </div>
+                            <button class="px-2 py-1 rounded text-xs font-medium text-text-secondary hover:bg-surface-hover transition-colors duration-[140ms]">Note</button>
+                            <button class="px-2 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms]">View</button>
+                          </div>
+                        </div>
+
+                        <!-- Signal evidence -->
+                        <div class="space-y-1">
+                          <div class="flex items-center gap-2 text-xs">
+                            <span class="w-[108px] text-status-error font-medium flex-shrink-0">Declining cadence</span>
+                            <span class="text-text-tertiary">No update in 10 weeks (was monthly)</span>
+                          </div>
+                          <div class="flex items-center gap-2 text-xs">
+                            <span class="w-[108px] text-status-warning font-medium flex-shrink-0">No meetings</span>
+                            <span class="text-text-tertiary">Last meeting 14 weeks ago (was every 6 weeks)</span>
+                          </div>
+                          <div class="flex items-center gap-2 text-xs">
+                            <span class="w-[108px] text-status-warning font-medium flex-shrink-0">Data room stale</span>
+                            <span class="text-text-tertiary">3 of 8 categories current</span>
+                          </div>
+                          <div class="flex items-center gap-2 text-xs">
+                            <span class="w-[108px] text-text-tertiary font-medium flex-shrink-0">Budget</span>
+                            <span class="text-text-tertiary">3 revisions in 12 months</span>
+                          </div>
+                        </div>
+
+                        <!-- Cadence bars -->
+                        <div class="flex items-center gap-4 mt-2.5">
+                          <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-text-tertiary w-12">Updates</span>
+                            <div class="flex gap-[2px]" style="width: 96px;">
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                            </div>
+                            <span class="text-[10px] text-text-tertiary tabular-nums">7/12</span>
+                          </div>
+                          <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-text-tertiary w-12">Meetings</span>
+                            <div class="flex gap-[2px]" style="width: 96px;">
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                            </div>
+                            <span class="text-[10px] text-text-tertiary tabular-nums">3/12</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- NanoSuture — Needs Attention -->
+                <div class="animate-fade-up delay-2 border border-transparent rounded-md hover:border-border-subtle hover:shadow-sm hover:-translate-y-px transition-all duration-150 ease-out group bg-surface-primary" data-item="nanosuture">
+                  <div class="p-4">
+                    <div class="flex items-start gap-3">
+                      <div class="flex flex-col items-center gap-1.5 pt-0.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-status-warning flex-shrink-0"></div>
+                        <div class="w-8 h-8 rounded-md bg-teal-200 flex items-center justify-center text-xs font-bold text-teal-700">NS</div>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-4 mb-1.5">
+                          <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium">NanoSuture Therapeutics</span>
+                            <span class="text-xs text-text-tertiary">Medtech</span>
+                            <span class="text-xs text-text-tertiary">Partial fit</span>
+                          </div>
+                          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="px-2 py-1 rounded text-xs font-medium text-text-secondary hover:bg-surface-hover transition-colors duration-[140ms]">Snooze</button>
+                            <button class="px-2 py-1 rounded text-xs font-medium text-text-secondary hover:bg-surface-hover transition-colors duration-[140ms]">Note</button>
+                            <button class="px-2 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms]">View</button>
+                          </div>
+                        </div>
+
+                        <div class="space-y-1">
+                          <div class="flex items-center gap-2 text-xs">
+                            <span class="w-[108px] text-status-warning font-medium flex-shrink-0">Data room stale</span>
+                            <span class="text-text-tertiary">3 of 8 categories current, 3 weeks since last upload</span>
+                          </div>
+                          <div class="flex items-center gap-2 text-xs">
+                            <span class="w-[108px] text-status-warning font-medium flex-shrink-0">Unresponsive</span>
+                            <span class="text-text-tertiary">2 questions pending 5 days (avg response is 2 days)</span>
+                          </div>
+                          <div class="flex items-center gap-2 text-xs">
+                            <span class="w-[108px] text-text-tertiary font-medium flex-shrink-0">Meeting cadence</span>
+                            <span class="text-text-tertiary">Last met 4 weeks ago (typical interval: 6 weeks)</span>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 mt-2.5">
+                          <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-text-tertiary w-12">Updates</span>
+                            <div class="flex gap-[2px]" style="width: 96px;">
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-current"></div>
+                            </div>
+                            <span class="text-[10px] text-text-tertiary tabular-nums">5/12</span>
+                          </div>
+                          <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-text-tertiary w-12">Meetings</span>
+                            <div class="flex gap-[2px]" style="width: 96px;">
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-empty"></div>
+                              <div class="segment segment-filled"></div>
+                              <div class="segment segment-empty"></div>
+                            </div>
+                            <span class="text-[10px] text-text-tertiary tabular-nums">4/12</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ===== TRACKING WELL ===== -->
+            <div class="mb-8">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs font-medium text-text-tertiary">Tracking well</span>
+                <span class="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-status-success/10 text-status-success text-[10px] font-bold px-1.5">2</span>
+              </div>
+
+              <div class="space-y-2">
+                <!-- MeshGuard -->
+                <div class="animate-fade-up delay-3 border border-transparent rounded-md hover:border-border-subtle hover:shadow-sm hover:-translate-y-px transition-all duration-150 ease-out group bg-surface-primary" data-item="meshguard">
+                  <div class="px-4 py-3">
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-status-success flex-shrink-0"></div>
+                        <div class="w-8 h-8 rounded-md bg-blue-200 flex items-center justify-center text-xs font-bold text-blue-700">MG</div>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm font-medium">MeshGuard Security</span>
+                          <span class="text-xs text-text-tertiary">Cybersecurity</span>
+                          <span class="text-xs text-status-success font-medium">Strong fit</span>
+                        </div>
+                        <p class="text-xs text-text-tertiary mt-0.5">All 6 signals healthy. 135% NRR, monthly updates, bi-weekly meetings, daily responsiveness.</p>
+                      </div>
+                      <div class="flex items-center gap-3 tabular-nums">
+                        <div class="flex items-center gap-1">
+                          <span class="text-[10px] text-text-tertiary">Upd</span>
+                          <div class="flex gap-[2px]" style="width: 72px;">
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-current"></div>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <span class="text-[10px] text-text-tertiary">Mtg</span>
+                          <div class="flex gap-[2px]" style="width: 72px;">
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-current"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <button class="px-2 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms] opacity-0 group-hover:opacity-100">View</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Archipelago -->
+                <div class="animate-fade-up delay-4 border border-transparent rounded-md hover:border-border-subtle hover:shadow-sm hover:-translate-y-px transition-all duration-150 ease-out group bg-surface-primary" data-item="archipelago">
+                  <div class="px-4 py-3">
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-status-success flex-shrink-0"></div>
+                        <div class="w-8 h-8 rounded-md bg-amber-200 flex items-center justify-center text-xs font-bold text-amber-700">AA</div>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm font-medium">Archipelago AI</span>
+                          <span class="text-xs text-text-tertiary">Enterprise AI</span>
+                          <span class="text-xs text-status-success font-medium">Strong fit</span>
+                        </div>
+                        <p class="text-xs text-text-tertiary mt-0.5">118% NRR, steady cadence every 4-5 weeks, met 2 weeks ago. Series A extension under discussion.</p>
+                      </div>
+                      <div class="flex items-center gap-3 tabular-nums">
+                        <div class="flex items-center gap-1">
+                          <span class="text-[10px] text-text-tertiary">Upd</span>
+                          <div class="flex gap-[2px]" style="width: 72px;">
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-current"></div>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <span class="text-[10px] text-text-tertiary">Mtg</span>
+                          <div class="flex gap-[2px]" style="width: 72px;">
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-current"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <button class="px-2 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms] opacity-0 group-hover:opacity-100">View</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ===== NEW SIGNALS ===== -->
+            <div class="mb-8">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs font-medium text-text-tertiary">New signals</span>
+                <span class="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-surface-tertiary text-text-tertiary text-[10px] font-bold px-1.5">1</span>
+              </div>
+
+              <div class="space-y-2">
+                <!-- LedgerLogic -->
+                <div class="animate-fade-up delay-5 border border-transparent rounded-md hover:border-border-subtle hover:shadow-sm hover:-translate-y-px transition-all duration-150 ease-out group bg-surface-primary" data-item="ledgerlogic">
+                  <div class="px-4 py-3">
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-blue-400 flex-shrink-0"></div>
+                        <div class="w-8 h-8 rounded-md bg-emerald-200 flex items-center justify-center text-xs font-bold text-emerald-700">LL</div>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm font-medium">LedgerLogic</span>
+                          <span class="text-xs text-text-tertiary">Insurtech</span>
+                          <span class="text-xs text-text-secondary font-medium">Good fit</span>
+                        </div>
+                        <p class="text-xs text-text-tertiary mt-0.5">
+                          <span class="text-text-secondary font-medium">New:</span>
+                          Projection tracking activated (3+ updates). Revenue within 8% of plan.
+                        </p>
+                      </div>
+                      <div class="flex items-center gap-3 tabular-nums">
+                        <div class="flex items-center gap-1">
+                          <span class="text-[10px] text-text-tertiary">Upd</span>
+                          <div class="flex gap-[2px]" style="width: 72px;">
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-current"></div>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <span class="text-[10px] text-text-tertiary">Mtg</span>
+                          <div class="flex gap-[2px]" style="width: 72px;">
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-filled"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-empty"></div>
+                            <div class="segment segment-current"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <button class="px-2 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms] opacity-0 group-hover:opacity-100">View</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Keyboard hints -->
+            <div class="flex items-center gap-4 pt-6 text-xs text-text-tertiary">
+              <span class="flex items-center gap-1"><kbd>&uarr;</kbd><kbd>&darr;</kbd> Navigate</span>
+              <span class="flex items-center gap-1"><kbd>Enter</kbd> View</span>
+              <span class="flex items-center gap-1"><kbd>H</kbd> Snooze</span>
+              <span class="flex items-center gap-1"><kbd>N</kbd> Note</span>
+              <span class="flex items-center gap-1"><kbd>1</kbd> Acknowledge</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- LEFT: Health Grid (grid view — hidden by default)             -->
+        <!-- ============================================================ -->
+        <div id="view-grid" class="flex-1 overflow-auto hidden">
+          <!-- AI Summary (same as list view) -->
+          <div class="px-6 py-4 bg-surface-secondary">
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-full bg-surface-inverse flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span class="text-[10px] font-bold text-text-inverse">W</span>
+              </div>
+              <div>
+                <p class="text-sm text-text-primary leading-relaxed">
+                  <span class="font-medium">2 companies need attention.</span>
+                  QuantumSens has gone quiet — no updates in 10 weeks and no meetings scheduled. NanoSuture's data room is stale and they have 2 unanswered questions.
+                </p>
+                <p class="text-xs text-text-tertiary mt-1">Last analyzed 2 hours ago</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-6">
+            <!-- Health Grid: Scatter Plot -->
+            <div class="flex">
+              <!-- Y-axis label -->
+              <div class="flex flex-col items-center justify-center mr-3">
+                <span class="text-[11px] font-medium text-text-tertiary whitespace-nowrap" style="writing-mode: vertical-lr; transform: rotate(180deg);">
+                  Reporting Health
+                </span>
+              </div>
+
+              <div class="flex-1">
+                <!-- Scatter area -->
+                <div class="scatter-plot" style="height: 480px;">
+                  <!-- Crosshairs -->
+                  <div class="scatter-crosshair-h"></div>
+                  <div class="scatter-crosshair-v"></div>
+
+                  <!-- Quadrant labels -->
+                  <div class="scatter-label" style="top: 12px; left: 16px;">Stars</div>
+                  <div class="scatter-label" style="top: 12px; right: 16px;">Strategic Mismatch</div>
+                  <div class="scatter-label" style="bottom: 12px; left: 16px;">Engagement Risk</div>
+                  <div class="scatter-label" style="bottom: 12px; right: 16px;">Critical Attention</div>
+
+                  <!-- Axis hint labels on crosshairs -->
+                  <div class="text-[10px] text-text-tertiary absolute" style="left: 8px; top: calc(50% - 16px);">Good &uarr;</div>
+                  <div class="text-[10px] text-text-tertiary absolute" style="bottom: calc(50% - 16px); right: 8px;">&larr; Strong</div>
+
+                  <!-- ===== Company dots (positioned by scores) ===== -->
+
+                  <!-- MeshGuard: Best health (top), Strong alignment (left) -->
+                  <div class="scatter-dot" style="left: 22%; top: 18%; transform: translate(-50%, -50%);" data-item="meshguard-grid">
+                    <div class="dot-avatar bg-blue-200 text-blue-700" style="border-color: hsl(var(--status-success));">MG</div>
+                    <div class="dot-tooltip">MeshGuard — All signals healthy</div>
+                  </div>
+
+                  <!-- Archipelago: Good health, Strong alignment (slightly lower than MG) -->
+                  <div class="scatter-dot" style="left: 30%; top: 30%; transform: translate(-50%, -50%);" data-item="archipelago-grid">
+                    <div class="dot-avatar bg-amber-200 text-amber-700" style="border-color: hsl(var(--status-success));">AA</div>
+                    <div class="dot-tooltip">Archipelago — Steady cadence, 118% NRR</div>
+                  </div>
+
+                  <!-- LedgerLogic: Decent health (mid), Moderate alignment (center-right) -->
+                  <div class="scatter-dot" style="left: 44%; top: 40%; transform: translate(-50%, -50%);" data-item="ledgerlogic-grid">
+                    <div class="dot-avatar bg-emerald-200 text-emerald-700" style="border-color: #60a5fa;">LL</div>
+                    <div class="dot-tooltip">LedgerLogic — New: projection tracking</div>
+                  </div>
+
+                  <!-- NanoSuture: Poor health (below mid), Weak alignment -->
+                  <div class="scatter-dot" style="left: 62%; top: 68%; transform: translate(-50%, -50%);" data-item="nanosuture-grid">
+                    <div class="dot-avatar bg-teal-200 text-teal-700" style="border-color: hsl(var(--status-warning));">NS</div>
+                    <div class="dot-tooltip">NanoSuture — Data room stale, 2 questions pending</div>
+                  </div>
+
+                  <!-- QuantumSens: Worst health (bottom), Weakest alignment (far right) -->
+                  <div class="scatter-dot" style="left: 78%; top: 82%; transform: translate(-50%, -50%);" data-item="quantumsens-grid">
+                    <div class="dot-avatar bg-violet-200 text-violet-700" style="border-color: hsl(var(--status-error));">QS</div>
+                    <div class="dot-tooltip">QuantumSens — 10 weeks silent, excluded</div>
+                  </div>
+                </div>
+
+                <!-- X-axis label -->
+                <div class="flex justify-center mt-3">
+                  <span class="text-[11px] font-medium text-text-tertiary">Thesis Alignment</span>
+                </div>
+
+                <!-- Legend -->
+                <div class="flex items-center gap-5 mt-4 text-[10px] text-text-tertiary">
+                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-status-success"></span> Tracking well</span>
+                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-status-warning"></span> Needs attention</span>
+                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-status-error"></span> Critical</span>
+                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-400"></span> New signal</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- RIGHT SIDEBAR: Signal Feed                                    -->
+        <!-- ============================================================ -->
+        <div class="w-[320px] overflow-auto flex-shrink-0 bg-surface-primary">
+          <div class="px-4 py-3">
+            <span class="text-xs font-medium text-text-tertiary">Signal feed</span>
+          </div>
+
+          <div class="px-4 pb-4">
+            <!-- Today -->
+            <div class="mb-5">
+              <div class="text-xs font-medium text-text-tertiary mb-2">Today</div>
+              <div class="space-y-0.5">
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-error mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">QuantumSens</span> — Update cadence declined to 10+ weeks</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">2h ago</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">LedgerLogic</span> — Projection tracking activated</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">2h ago</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- This Week -->
+            <div class="mb-5">
+              <div class="text-xs font-medium text-text-tertiary mb-2">This Week</div>
+              <div class="space-y-0.5">
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-warning mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">NanoSuture</span> — 2 questions pending (5 days, avg is 2)</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">3 days ago</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-success mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">Archipelago</span> — Monthly update received (8/12)</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">4 days ago</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-success mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">MeshGuard</span> — Board meeting completed (3rd this quarter)</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">4 days ago</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-warning mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">NanoSuture</span> — Data room: 3/8 categories stale</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">5 days ago</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Last Week -->
+            <div class="mb-5">
+              <div class="text-xs font-medium text-text-tertiary mb-2">Last Week</div>
+              <div class="space-y-0.5">
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-success mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">MeshGuard</span> — Data room fully refreshed (8/8)</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">8 days ago</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">LedgerLogic</span> — Thesis alignment: Partial &rarr; Good fit</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">10 days ago</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-warning mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">QuantumSens</span> — 3rd budget revision in 12 months</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">12 days ago</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-warning mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">QuantumSens</span> — Last meeting was 14 weeks ago</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">14 days ago</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2.5 rounded p-2 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-success mt-1.5 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs text-text-primary leading-relaxed"><span class="font-medium">Archipelago</span> — Investor check-in completed</p>
+                    <p class="text-[10px] text-text-tertiary mt-0.5">14 days ago</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Toggle snooze dropdown
+    function toggleSnooze(btn) {
+      const menu = btn.nextElementSibling;
+      menu.classList.toggle('open');
+      document.addEventListener('click', function handler(e) {
+        if (!btn.contains(e.target) && !menu.contains(e.target)) {
+          menu.classList.remove('open');
+          document.removeEventListener('click', handler);
+        }
+      });
+    }
+
+    // Toggle list/grid layout
+    function toggleLayout(mode) {
+      const listBtn = document.getElementById('toggle-list');
+      const gridBtn = document.getElementById('toggle-grid');
+      const listView = document.getElementById('view-list');
+      const gridView = document.getElementById('view-grid');
+
+      if (mode === 'list') {
+        listBtn.classList.add('bg-surface-tertiary');
+        listBtn.querySelector('svg').classList.replace('text-text-tertiary', 'text-text-primary');
+        gridBtn.classList.remove('bg-surface-tertiary');
+        gridBtn.querySelector('svg').classList.replace('text-text-primary', 'text-text-tertiary');
+        listView.classList.remove('hidden');
+        gridView.classList.add('hidden');
+      } else {
+        gridBtn.classList.add('bg-surface-tertiary');
+        gridBtn.querySelector('svg').classList.replace('text-text-tertiary', 'text-text-primary');
+        listBtn.classList.remove('bg-surface-tertiary');
+        listBtn.querySelector('svg').classList.replace('text-text-primary', 'text-text-tertiary');
+        gridView.classList.remove('hidden');
+        listView.classList.add('hidden');
+      }
+    }
+
+    // Keyboard navigation
+    let selectedIndex = -1;
+    function getVisibleItems() {
+      const listView = document.getElementById('view-list');
+      if (!listView.classList.contains('hidden')) {
+        return listView.querySelectorAll('[data-item]');
+      }
+      const gridView = document.getElementById('view-grid');
+      return gridView.querySelectorAll('[data-item]');
+    }
+    document.addEventListener('keydown', (e) => {
+      const items = getVisibleItems();
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        highlightItem(items);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        highlightItem(items);
+      }
+    });
+    function highlightItem(items) {
+      // Clear all highlights
+      document.querySelectorAll('[data-item]').forEach(item => {
+        item.classList.remove('ring-1', 'ring-blue-400/40', 'ring-offset-1');
+      });
+      items.forEach((item, i) => {
+        if (i === selectedIndex) {
+          item.classList.add('ring-1', 'ring-blue-400/40', 'ring-offset-1');
+          item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    }
+  </script>
+</body>
+</html>

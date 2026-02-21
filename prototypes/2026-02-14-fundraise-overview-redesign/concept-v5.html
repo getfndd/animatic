@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fundraise Overview — Direction E: Shadow States</title>
+  <style>
+    /* ═══════════════════════════════════════════════════════
+       Design Tokens (ITO Design System)
+       ═══════════════════════════════════════════════════════ */
+    :root {
+      --surface-primary: #ffffff;
+      --surface-secondary: #f5f5f4;
+      --surface-tertiary: #e7e5e4;
+      --surface-elevated: #ffffff;
+      --surface-hover: #f5f5f4;
+      --text-primary: #1c1917;
+      --text-secondary: #57534e;
+      --text-tertiary: #a8a29e;
+      --text-inverse: #fafaf9;
+      --border-default: #e7e5e4;
+      --border-subtle: #f5f5f4;
+      --status-success: #10b981;
+      --status-warning: #f59e0b;
+      --status-error: #ef4444;
+      --status-info: #6366f1;
+      --cat-pipeline: #10b981;
+      --cat-engagement: #3b82f6;
+      --cat-dataroom: #8b5cf6;
+      --cat-communication: #f97316;
+      --ghost-bg: #fafaf9;
+      --ghost-border: #d6d3d1;
+      --ghost-text: #d6d3d1;
+      --radius-structural: 8px;
+      --radius-grouped: 6px;
+      --radius-interactive: 4px;
+      --radius-pill: 9999px;
+      --sidebar-width: 232px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text-primary);
+      background: var(--surface-secondary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-shell { display: flex; min-height: 100vh; }
+
+    /* ═══════════════════════════════════════════════════════
+       Sidebar (same as v1)
+       ═══════════════════════════════════════════════════════ */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--surface-primary);
+      border-right: 1px solid var(--border-default);
+      display: flex; flex-direction: column; flex-shrink: 0;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+    }
+    .sidebar-logo { padding: 20px 20px 16px; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+    .sidebar-nav { flex: 1; padding: 0 8px; display: flex; flex-direction: column; gap: 1px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 7px 12px;
+      border-radius: var(--radius-interactive); font-size: 13.5px; font-weight: 450;
+      color: var(--text-secondary); cursor: pointer; transition: background-color 140ms, color 140ms;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .nav-item.active { background: var(--surface-secondary); color: var(--text-primary); font-weight: 550; }
+    .nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.65; }
+    .nav-item.active .nav-icon { opacity: 1; }
+    .sidebar-workspace { padding: 16px 20px; border-top: 1px solid var(--border-default); }
+    .workspace-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 4px; }
+    .workspace-name { font-size: 13px; font-weight: 550; }
+
+    /* ═══════════════════════════════════════════════════════
+       Main Content
+       ═══════════════════════════════════════════════════════ */
+    .main-content {
+      flex: 1; margin-left: var(--sidebar-width);
+      padding: 32px 40px 80px; max-width: 960px;
+    }
+
+    /* Page header */
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+    .page-subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ═══════════════════════════════════════════════════════
+       Health Score Hero
+       ═══════════════════════════════════════════════════════ */
+    .health-hero {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 24px 0 20px; margin-bottom: 24px;
+    }
+    .health-ring-wrap { position: relative; width: 100px; height: 100px; margin-bottom: 12px; }
+    .health-ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .health-ring-track {
+      fill: none; stroke: var(--ghost-border); stroke-width: 5;
+      stroke-dasharray: 6, 6; opacity: 0.6;
+      transition: stroke-dasharray 0.6s ease, opacity 0.6s ease;
+    }
+    .health-ring-fill {
+      fill: none; stroke: url(#healthGradient); stroke-width: 5;
+      stroke-linecap: round; stroke-dasharray: 0 314;
+      transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .health-score {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .health-score-value {
+      font-size: 28px; font-weight: 650; color: var(--ghost-text);
+      font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1;
+      transition: color 0.4s ease;
+    }
+    .health-score-value.filled { color: var(--text-primary); }
+    .health-score-label { font-size: 10px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+    /* Category indicators */
+    .cat-indicators { display: flex; gap: 8px; margin-bottom: 8px; }
+    .cat-indicator {
+      width: 20px; height: 20px; border-radius: var(--radius-pill);
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px dashed var(--ghost-border);
+      transition: all 0.4s ease;
+    }
+    .cat-indicator.ghost svg { opacity: 0.25; }
+    .cat-indicator.lit { border-style: solid; }
+    .cat-indicator.lit.pipeline { border-color: var(--cat-pipeline); background: #ecfdf5; }
+    .cat-indicator.lit.pipeline svg { opacity: 1; color: #059669; }
+    .cat-indicator.lit.engagement { border-color: var(--cat-engagement); background: #eff6ff; }
+    .cat-indicator.lit.engagement svg { opacity: 1; color: #2563eb; }
+    .cat-indicator.lit.dataroom { border-color: var(--cat-dataroom); background: #f5f3ff; }
+    .cat-indicator.lit.dataroom svg { opacity: 1; color: #7c3aed; }
+    .cat-indicator.lit.communication { border-color: var(--cat-communication); background: #fff7ed; }
+    .cat-indicator.lit.communication svg { opacity: 1; color: #ea580c; }
+    .cat-indicator svg { width: 10px; height: 10px; color: var(--ghost-text); transition: all 0.3s ease; }
+    .health-hero-hint { font-size: 13px; color: var(--text-tertiary); text-align: center; }
+
+    /* ═══════════════════════════════════════════════════════
+       Category Cards Grid
+       ═══════════════════════════════════════════════════════ */
+    .category-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
+    }
+    .category-card {
+      background: var(--surface-primary); border: 1px solid var(--border-default);
+      border-radius: var(--radius-structural); overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 10px; padding: 16px 18px 0;
+    }
+    .card-icon {
+      width: 32px; height: 32px; border-radius: var(--radius-grouped);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .card-icon svg { width: 16px; height: 16px; }
+    .card-icon.pipeline { background: #ecfdf5; color: #059669; }
+    .card-icon.engagement { background: #eff6ff; color: #2563eb; }
+    .card-icon.dataroom { background: #f5f3ff; color: #7c3aed; }
+    .card-icon.communication { background: #fff7ed; color: #ea580c; }
+    .card-title { font-size: 14px; font-weight: 600; flex: 1; }
+    .card-status-badge {
+      font-size: 10.5px; font-weight: 550; padding: 2px 8px;
+      border-radius: var(--radius-pill); white-space: nowrap;
+    }
+    .card-status-badge.ghost { background: var(--surface-secondary); color: var(--ghost-text); }
+    .card-status-badge.active-status { background: #ecfdf5; color: #059669; }
+    .card-status-badge.healthy { background: #ecfdf5; color: #059669; }
+    .card-status-badge.building { background: #f5f3ff; color: #7c3aed; }
+
+    /* Shadow content area */
+    .card-shadow-content { padding: 14px 18px; flex: 1; }
+
+    /* Ghost visual language */
+    .ghost-metric-row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .ghost-metric-item { font-size: 12px; color: var(--ghost-text); }
+    .ghost-metric-item .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .real-metric-item { font-size: 12px; color: var(--text-secondary); }
+    .real-metric-item .value { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+    /* Ghost pipeline visualization */
+    .ghost-pipeline { display: flex; gap: 8px; margin-bottom: 12px; }
+    .ghost-pipeline-col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .ghost-pipeline-label { font-size: 10px; font-weight: 500; color: var(--ghost-text); margin-bottom: 2px; }
+    .ghost-pipeline-slot {
+      height: 28px; border: 1px dashed var(--ghost-border); border-radius: var(--radius-interactive);
+      background: var(--ghost-bg);
+    }
+    .pipeline-card-real {
+      height: 28px; border: 1px solid var(--border-default); border-radius: var(--radius-interactive);
+      background: var(--surface-primary); font-size: 11px; font-weight: 500;
+      display: flex; align-items: center; padding: 0 8px; color: var(--text-secondary);
+    }
+
+    /* Ghost avatars */
+    .ghost-avatars { display: flex; gap: 6px; margin-bottom: 4px; }
+    .ghost-avatar {
+      width: 32px; height: 32px; border-radius: var(--radius-pill);
+      border: 1.5px dashed var(--ghost-border); display: flex;
+      align-items: center; justify-content: center; background: var(--ghost-bg);
+    }
+    .ghost-avatar svg { width: 14px; height: 14px; color: var(--ghost-text); opacity: 0.4; }
+    .real-avatar {
+      width: 32px; height: 32px; border-radius: var(--radius-pill);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600; color: white;
+    }
+
+    /* Ghost checklist */
+    .ghost-checklist { display: flex; flex-direction: column; gap: 3px; }
+    .ghost-check-item { display: flex; align-items: center; gap: 8px; }
+    .ghost-checkbox {
+      width: 14px; height: 14px; border: 1.5px dashed var(--ghost-border);
+      border-radius: 3px; flex-shrink: 0;
+    }
+    .ghost-checkbox.checked {
+      border-style: solid; border-color: var(--status-success);
+      background: #ecfdf5; display: flex; align-items: center; justify-content: center;
+    }
+    .ghost-checkbox.checked svg { width: 10px; height: 10px; color: var(--status-success); }
+    .ghost-check-label { font-size: 12px; color: var(--ghost-text); }
+    .ghost-check-label.checked { color: var(--text-secondary); text-decoration: line-through; text-decoration-color: var(--border-default); }
+
+    /* Ghost timeline */
+    .ghost-timeline { display: flex; flex-direction: column; gap: 6px; }
+    .ghost-timeline-entry { display: flex; align-items: center; gap: 8px; }
+    .ghost-timeline-dot {
+      width: 8px; height: 8px; border-radius: var(--radius-pill);
+      border: 1.5px dashed var(--ghost-border); flex-shrink: 0;
+    }
+    .ghost-timeline-bar {
+      height: 6px; border-radius: var(--radius-pill);
+      background: var(--ghost-bg); border: 1px dashed var(--ghost-border);
+    }
+    .ghost-timeline-bar.short { width: 40%; }
+    .ghost-timeline-bar.medium { width: 60%; }
+    .ghost-timeline-date { font-size: 10px; color: var(--ghost-text); margin-left: auto; }
+    .real-timeline-dot {
+      width: 8px; height: 8px; border-radius: var(--radius-pill);
+      background: var(--cat-communication); flex-shrink: 0;
+    }
+    .real-timeline-bar {
+      height: 6px; border-radius: var(--radius-pill); background: #fed7aa;
+    }
+    .real-timeline-date { font-size: 10px; color: var(--text-secondary); margin-left: auto; }
+
+    /* Ghost bar chart */
+    .ghost-bar-group { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .ghost-bar-chart-bar {
+      width: 18px; border-radius: 2px 2px 0 0;
+      background: var(--ghost-bg); border: 1px dashed var(--ghost-border);
+    }
+    .ghost-bar-chart-bar.real-bar {
+      background: #fed7aa; border: none;
+    }
+    .ghost-bar-chart-label { font-size: 9px; color: var(--ghost-text); }
+
+    /* CTA layer */
+    .card-cta { padding: 0 18px 14px; }
+    .card-cta-divider { height: 1px; background: var(--border-subtle); margin-bottom: 10px; }
+    .card-cta-text { font-size: 12px; color: var(--text-tertiary); margin-bottom: 8px; }
+    .card-cta-button {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 550; color: var(--status-info);
+      background: none; border: none; cursor: pointer; padding: 0;
+      transition: opacity 140ms;
+    }
+    .card-cta-button:hover { opacity: 0.75; }
+    .card-cta-button svg { width: 12px; height: 12px; }
+
+    /* Ghost pulse animation */
+    @keyframes ghostPulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+    .ghost-pulse { animation: ghostPulse 4s ease-in-out infinite; }
+
+    /* ═══════════════════════════════════════════════════════
+       AI Insight Area
+       ═══════════════════════════════════════════════════════ */
+    .insight-area {
+      background: var(--surface-primary); border: 1px solid var(--border-default);
+      border-radius: var(--radius-structural); padding: 16px 18px;
+    }
+    .insight-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .insight-icon {
+      width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    }
+    .insight-icon svg { width: 16px; height: 16px; color: var(--ghost-text); opacity: 0.4; transition: all 0.3s ease; }
+    .insight-icon.active svg { color: var(--text-secondary); opacity: 1; }
+    .insight-title { font-size: 13px; font-weight: 600; }
+    .insight-hint { font-size: 12px; color: var(--text-tertiary); margin-left: auto; }
+    .insight-rows { display: flex; flex-direction: column; gap: 6px; }
+    .ghost-insight-row {
+      height: 12px; border-radius: var(--radius-interactive);
+      background: var(--ghost-bg); border: 1px dashed var(--ghost-border);
+    }
+    .ghost-insight-row:nth-child(1) { width: 85%; }
+    .ghost-insight-row:nth-child(2) { width: 72%; }
+    .ghost-insight-row:nth-child(3) { width: 60%; }
+    .insight-row { display: flex; align-items: flex-start; gap: 8px; }
+    .insight-row-dot {
+      width: 6px; height: 6px; border-radius: var(--radius-pill);
+      background: var(--status-info); flex-shrink: 0; margin-top: 5px;
+    }
+    .insight-row-text { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+
+    /* ═══════════════════════════════════════════════════════
+       Dev Mode Toggle
+       ═══════════════════════════════════════════════════════ */
+    .dev-mode {
+      position: fixed; bottom: 16px; left: 16px;
+      display: flex; align-items: center; gap: 8px; z-index: 100;
+    }
+    .dev-mode-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-tertiary);
+      background: var(--surface-primary); border: 1px solid var(--border-default);
+      padding: 3px 7px; border-radius: var(--radius-interactive);
+    }
+    .dev-mode-tabs {
+      display: flex; background: var(--surface-primary);
+      border: 1px solid var(--border-default); border-radius: var(--radius-interactive);
+      overflow: hidden;
+    }
+    .dev-mode-tab {
+      font-size: 10px; font-weight: 500; padding: 4px 8px;
+      color: var(--text-tertiary); cursor: pointer; transition: background-color 140ms, color 140ms;
+      border: none; background: none;
+    }
+    .dev-mode-tab:not(:last-child) { border-right: 1px solid var(--border-default); }
+    .dev-mode-tab.active { background: var(--text-primary); color: var(--text-inverse); font-weight: 600; }
+    .dev-mode-tab:hover:not(.active) { background: var(--surface-hover); color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">Weftly</div>
+      <nav class="sidebar-nav">
+        <a class="nav-item active" href="#">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Overview
+        </a>
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Investors</a>
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Pipeline</a>
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Data Room</a>
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Investor Updates</a>
+      </nav>
+      <div class="sidebar-workspace">
+        <div class="workspace-label">Workspace</div>
+        <div class="workspace-name">fndd Seed Round</div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <div class="page-title">fndd Seed Round</div>
+        <div class="page-subtitle" id="pageSubtitle">Your fundraise dashboard is ready — add activity to bring it to life</div>
+      </div>
+
+      <!-- Health Score Hero -->
+      <div class="health-hero">
+        <div class="health-ring-wrap">
+          <svg class="health-ring-svg" viewBox="0 0 120 120">
+            <defs>
+              <linearGradient id="healthGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#6366f1"/>
+                <stop offset="50%" stop-color="#a855f7"/>
+                <stop offset="100%" stop-color="#ec4899"/>
+              </linearGradient>
+            </defs>
+            <circle id="healthRingTrack" class="health-ring-track" cx="60" cy="60" r="50"/>
+            <circle id="healthRingFill" class="health-ring-fill" cx="60" cy="60" r="50"/>
+          </svg>
+          <div class="health-score">
+            <div class="health-score-value" id="healthScore">&#8212;</div>
+            <div class="health-score-label">Health</div>
+          </div>
+        </div>
+        <div class="cat-indicators">
+          <div class="cat-indicator ghost" id="catPipeline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
+          <div class="cat-indicator ghost" id="catEngagement"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="7" r="3"/><path d="M16 21v-1a5 5 0 0 0-5-5H7a5 5 0 0 0-5 5v1"/></svg></div>
+          <div class="cat-indicator ghost" id="catDataroom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="cat-indicator ghost" id="catComms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        </div>
+        <div class="health-hero-hint" id="healthHeroHint">Add activity to each area to build your health score</div>
+      </div>
+
+      <!-- Category Cards 2x2 -->
+      <div class="category-grid">
+
+        <!-- 1. Pipeline Velocity -->
+        <div class="category-card" id="pipelineCard">
+          <div class="card-header">
+            <div class="card-icon pipeline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+            <div class="card-title">Pipeline Velocity</div>
+            <span class="card-status-badge ghost" id="pipelineBadge">&#8212;</span>
+          </div>
+          <div class="card-shadow-content">
+            <div id="pipelineGhost">
+              <div class="ghost-pipeline">
+                <div class="ghost-pipeline-col"><div class="ghost-pipeline-label">Contacted</div><div class="ghost-pipeline-slot ghost-pulse"></div><div class="ghost-pipeline-slot"></div></div>
+                <div class="ghost-pipeline-col"><div class="ghost-pipeline-label">Meeting</div><div class="ghost-pipeline-slot"></div><div class="ghost-pipeline-slot"></div></div>
+                <div class="ghost-pipeline-col"><div class="ghost-pipeline-label">Term Sheet</div><div class="ghost-pipeline-slot"></div></div>
+              </div>
+              <div class="ghost-metric-row">
+                <span class="ghost-metric-item"><span class="value">&#8212;</span> deals</span>
+                <span class="ghost-metric-item"><span class="value">&#8212;%</span> progression</span>
+                <span class="ghost-metric-item"><span class="value">$&#8212;</span> pipeline</span>
+              </div>
+            </div>
+            <div id="pipelineReal" style="display: none;">
+              <div class="ghost-pipeline">
+                <div class="ghost-pipeline-col"><div class="ghost-pipeline-label" style="color: var(--text-secondary);">Contacted</div><div class="pipeline-card-real">Sequoia</div><div class="pipeline-card-real">a16z</div></div>
+                <div class="ghost-pipeline-col"><div class="ghost-pipeline-label" style="color: var(--text-secondary);">Meeting</div><div class="pipeline-card-real">First Check</div><div class="pipeline-card-real">Benchmark</div></div>
+                <div class="ghost-pipeline-col"><div class="ghost-pipeline-label" style="color: var(--text-secondary);">Term Sheet</div><div class="pipeline-card-real">Greylock</div></div>
+              </div>
+              <div class="ghost-metric-row">
+                <span class="real-metric-item"><span class="value">6</span> deals</span>
+                <span class="real-metric-item"><span class="value">33%</span> progression</span>
+                <span class="real-metric-item"><span class="value">$2.4M</span> pipeline</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-cta" id="pipelineCta">
+            <div class="card-cta-divider"></div>
+            <div class="card-cta-text">Add investors to see your pipeline velocity</div>
+            <button class="card-cta-button" onclick="activateCategory('pipeline')">Add Investors <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+
+        <!-- 2. Investor Engagement -->
+        <div class="category-card" id="engagementCard">
+          <div class="card-header">
+            <div class="card-icon engagement"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <div class="card-title">Investor Engagement</div>
+            <span class="card-status-badge ghost" id="engagementBadge">&#8212;</span>
+          </div>
+          <div class="card-shadow-content">
+            <div id="engagementGhost">
+              <div class="ghost-avatars">
+                <div class="ghost-avatar ghost-pulse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21v-2a6.5 6.5 0 0 1 13 0v2"/></svg></div>
+                <div class="ghost-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21v-2a6.5 6.5 0 0 1 13 0v2"/></svg></div>
+                <div class="ghost-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21v-2a6.5 6.5 0 0 1 13 0v2"/></svg></div>
+                <div class="ghost-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21v-2a6.5 6.5 0 0 1 13 0v2"/></svg></div>
+              </div>
+              <div class="ghost-metric-row" style="margin-top: 14px;">
+                <span class="ghost-metric-item"><span class="value">&#8212;</span> investors</span>
+                <span class="ghost-metric-item"><span class="value">&#8212;%</span> open rate</span>
+                <span class="ghost-metric-item"><span class="value">&#8212;</span> conversations</span>
+              </div>
+            </div>
+            <div id="engagementReal" style="display: none;">
+              <div class="ghost-avatars">
+                <div class="real-avatar" style="background: #3b82f6;">SC</div>
+                <div class="real-avatar" style="background: #10b981;">AH</div>
+                <div class="real-avatar" style="background: #8b5cf6;">FR</div>
+                <div class="real-avatar" style="background: #f97316;">BM</div>
+                <div class="real-avatar" style="background: #ef4444;">GP</div>
+              </div>
+              <div class="ghost-metric-row" style="margin-top: 14px;">
+                <span class="real-metric-item"><span class="value">12</span> investors</span>
+                <span class="real-metric-item"><span class="value">68%</span> open rate</span>
+                <span class="real-metric-item"><span class="value">5</span> conversations</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-cta" id="engagementCta">
+            <div class="card-cta-divider"></div>
+            <div class="card-cta-text">Import your investor contacts to track engagement</div>
+            <button class="card-cta-button" onclick="activateCategory('engagement')">Add Investors <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+
+        <!-- 3. Data Room Readiness -->
+        <div class="category-card" id="dataroomCard">
+          <div class="card-header">
+            <div class="card-icon dataroom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+            <div class="card-title">Data Room Readiness</div>
+            <span class="card-status-badge ghost" id="dataroomBadge">&#8212;</span>
+          </div>
+          <div class="card-shadow-content">
+            <div id="dataroomGhost">
+              <div class="ghost-checklist">
+                <div class="ghost-check-item"><div class="ghost-checkbox"></div><span class="ghost-check-label">Pitch Deck</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox"></div><span class="ghost-check-label">Financial Model</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox ghost-pulse"></div><span class="ghost-check-label">Cap Table</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox"></div><span class="ghost-check-label">Articles of Incorporation</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox"></div><span class="ghost-check-label">Team Bios</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox"></div><span class="ghost-check-label">Product Demo / Screenshots</span></div>
+              </div>
+              <div class="ghost-metric-row" style="margin-top: 10px;">
+                <span class="ghost-metric-item"><span class="value">&#8212;</span> of 6 critical documents</span>
+              </div>
+            </div>
+            <div id="dataroomReal" style="display: none;">
+              <div class="ghost-checklist">
+                <div class="ghost-check-item"><div class="ghost-checkbox checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><span class="ghost-check-label checked">Pitch Deck</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><span class="ghost-check-label checked">Financial Model</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><span class="ghost-check-label checked">Cap Table</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><span class="ghost-check-label checked">Articles of Incorporation</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><span class="ghost-check-label checked">Team Bios</span></div>
+                <div class="ghost-check-item"><div class="ghost-checkbox"></div><span class="ghost-check-label">Product Demo / Screenshots</span></div>
+              </div>
+              <div class="ghost-metric-row" style="margin-top: 10px;">
+                <span class="real-metric-item"><span class="value">5</span> of 6 critical documents</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-cta" id="dataroomCta">
+            <div class="card-cta-divider"></div>
+            <div class="card-cta-text">Upload your fundraise documents</div>
+            <button class="card-cta-button" onclick="activateCategory('dataroom')">Set Up Data Room <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+
+        <!-- 4. Communication Cadence -->
+        <div class="category-card" id="commsCard">
+          <div class="card-header">
+            <div class="card-icon communication"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <div class="card-title">Communication Cadence</div>
+            <span class="card-status-badge ghost" id="commsBadge">&#8212;</span>
+          </div>
+          <div class="card-shadow-content">
+            <div id="commsGhost">
+              <div class="ghost-timeline">
+                <div class="ghost-timeline-entry"><div class="ghost-timeline-dot ghost-pulse"></div><div class="ghost-timeline-bar medium"></div><span class="ghost-timeline-date">&#8212;</span></div>
+                <div class="ghost-timeline-entry"><div class="ghost-timeline-dot"></div><div class="ghost-timeline-bar short"></div><span class="ghost-timeline-date">&#8212;</span></div>
+                <div class="ghost-timeline-entry"><div class="ghost-timeline-dot"></div><div class="ghost-timeline-bar medium"></div><span class="ghost-timeline-date">&#8212;</span></div>
+              </div>
+              <div style="margin-top: 12px;">
+                <div style="font-size: 10px; color: var(--ghost-text); margin-bottom: 4px;">Updates per month</div>
+                <div style="display: flex; gap: 6px; align-items: flex-end; height: 32px;">
+                  <div class="ghost-bar-group"><div class="ghost-bar-chart-bar" style="height: 10px;"></div><div class="ghost-bar-chart-label">Dec</div></div>
+                  <div class="ghost-bar-group"><div class="ghost-bar-chart-bar" style="height: 6px;"></div><div class="ghost-bar-chart-label">Jan</div></div>
+                  <div class="ghost-bar-group"><div class="ghost-bar-chart-bar" style="height: 6px;"></div><div class="ghost-bar-chart-label">Feb</div></div>
+                </div>
+              </div>
+              <div class="ghost-metric-row" style="margin-top: 10px;">
+                <span class="ghost-metric-item"><span class="value">&#8212;</span> days since last</span>
+                <span class="ghost-metric-item"><span class="value">&#8212;</span>/mo target</span>
+                <span class="ghost-metric-item"><span class="value">&#8212;%</span> open rate</span>
+              </div>
+            </div>
+            <div id="commsReal" style="display: none;">
+              <div class="ghost-timeline">
+                <div class="ghost-timeline-entry"><div class="real-timeline-dot"></div><div class="real-timeline-bar" style="width: 75%;"></div><span class="real-timeline-date">Feb 10</span></div>
+                <div class="ghost-timeline-entry"><div class="real-timeline-dot"></div><div class="real-timeline-bar" style="width: 60%;"></div><span class="real-timeline-date">Jan 15</span></div>
+                <div class="ghost-timeline-entry"><div class="real-timeline-dot"></div><div class="real-timeline-bar" style="width: 68%;"></div><span class="real-timeline-date">Dec 20</span></div>
+              </div>
+              <div style="margin-top: 12px;">
+                <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px;">Updates per month</div>
+                <div style="display: flex; gap: 6px; align-items: flex-end; height: 32px;">
+                  <div class="ghost-bar-group"><div class="ghost-bar-chart-bar real-bar" style="height: 20px;"></div><div class="ghost-bar-chart-label" style="color: var(--text-secondary);">Dec</div></div>
+                  <div class="ghost-bar-group"><div class="ghost-bar-chart-bar real-bar" style="height: 12px;"></div><div class="ghost-bar-chart-label" style="color: var(--text-secondary);">Jan</div></div>
+                  <div class="ghost-bar-group"><div class="ghost-bar-chart-bar real-bar" style="height: 28px;"></div><div class="ghost-bar-chart-label" style="color: var(--text-secondary);">Feb</div></div>
+                </div>
+              </div>
+              <div class="ghost-metric-row" style="margin-top: 10px;">
+                <span class="real-metric-item"><span class="value">4</span> days since last</span>
+                <span class="real-metric-item"><span class="value">2</span>/mo target</span>
+                <span class="real-metric-item"><span class="value">72%</span> open rate</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-cta" id="commsCta">
+            <div class="card-cta-divider"></div>
+            <div class="card-cta-text">Send your first investor update</div>
+            <button class="card-cta-button" onclick="activateCategory('comms')">Draft Update <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Insight Area -->
+      <div class="insight-area" id="insightArea">
+        <div class="insight-header">
+          <div class="insight-icon" id="insightIconWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></div>
+          <span class="insight-title">Insights</span>
+          <span class="insight-hint" id="insightHint">Will appear as your fundraise progresses</span>
+        </div>
+        <div class="insight-rows" id="insightGhostRows">
+          <div class="ghost-insight-row"></div>
+          <div class="ghost-insight-row"></div>
+          <div class="ghost-insight-row"></div>
+        </div>
+        <div class="insight-rows" id="insightRealRows" style="display: none;">
+          <div class="insight-row"><div class="insight-row-dot"></div><div class="insight-row-text">a16z spent 12 min reviewing your cap table yesterday &#8212; consider a follow-up</div></div>
+          <div class="insight-row"><div class="insight-row-dot"></div><div class="insight-row-text">3 investors have gone quiet after initial meetings &#8212; time for a warm touchpoint</div></div>
+          <div class="insight-row"><div class="insight-row-dot"></div><div class="insight-row-text">Your pipeline progression rate (33%) outperforms the median seed round &#8212; keep momentum</div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Dev Mode Toggle -->
+  <div class="dev-mode">
+    <span class="dev-mode-label">DEV MODE</span>
+    <div class="dev-mode-tabs">
+      <button class="dev-mode-tab active" onclick="setState('empty')">Empty</button>
+      <button class="dev-mode-tab" onclick="setState('partial')">Partial</button>
+      <button class="dev-mode-tab" onclick="setState('full')">Full</button>
+    </div>
+  </div>
+
+  <script>
+    /* Static prototype - all data is hardcoded. No user input. Safe DOM methods only. */
+    var cats = { pipeline: false, engagement: false, dataroom: false, comms: false };
+
+    function setState(s) {
+      if (s === 'empty') { cats.pipeline = false; cats.engagement = false; cats.dataroom = false; cats.comms = false; }
+      else if (s === 'partial') { cats.pipeline = true; cats.engagement = true; cats.dataroom = false; cats.comms = false; }
+      else { cats.pipeline = true; cats.engagement = true; cats.dataroom = true; cats.comms = true; }
+      var tabs = document.querySelectorAll('.dev-mode-tab');
+      for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('active', (s==='empty'&&i===0)||(s==='partial'&&i===1)||(s==='full'&&i===2));
+      render();
+    }
+
+    function activateCategory(c) { cats[c] = true; render(); }
+
+    function countActive() {
+      var n = 0; if (cats.pipeline) n++; if (cats.engagement) n++; if (cats.dataroom) n++; if (cats.comms) n++; return n;
+    }
+
+    function render() {
+      var n = countActive(), circ = 2 * Math.PI * 50;
+      var fill = document.getElementById('healthRingFill');
+      var track = document.getElementById('healthRingTrack');
+      var score = document.getElementById('healthScore');
+      var hint = document.getElementById('healthHeroHint');
+      var sub = document.getElementById('pageSubtitle');
+
+      if (n === 0) {
+        fill.style.strokeDasharray = '0 ' + circ;
+        score.textContent = '\u2014'; score.classList.remove('filled');
+        hint.textContent = 'Add activity to each area to build your health score';
+        track.style.strokeDasharray = '6, 6'; track.style.opacity = '0.6';
+        sub.textContent = 'Your fundraise dashboard is ready \u2014 add activity to bring it to life';
+      } else {
+        var s = Math.round((n/4)*100), fl = (n/4)*circ;
+        fill.style.strokeDasharray = fl + ' ' + (circ - fl);
+        score.textContent = String(s); score.classList.add('filled');
+        if (n === 4) {
+          track.style.strokeDasharray = 'none'; track.style.opacity = '0.2';
+          hint.textContent = 'All categories active \u2014 your fundraise is on track';
+          sub.textContent = "Here\u2019s your fundraise at a glance";
+        } else {
+          track.style.strokeDasharray = '6, 6'; track.style.opacity = '0.4';
+          hint.textContent = n + ' of 4 categories active \u2014 keep building';
+          sub.textContent = 'Your fundraise is taking shape \u2014 keep adding activity';
+        }
+      }
+
+      /* Category indicators */
+      var map = {pipeline:'pipeline',engagement:'engagement',dataroom:'dataroom',comms:'communication'};
+      var ids = {pipeline:'catPipeline',engagement:'catEngagement',dataroom:'catDataroom',comms:'catComms'};
+      for (var k in ids) {
+        var el = document.getElementById(ids[k]);
+        if (cats[k]) { el.classList.remove('ghost'); el.classList.add('lit', map[k]); }
+        else { el.classList.add('ghost'); el.classList.remove('lit', map[k]); }
+      }
+
+      /* Cards */
+      toggleCard(cats.pipeline, 'pipelineGhost','pipelineReal','pipelineCta','pipelineBadge','6 active','active-status');
+      toggleCard(cats.engagement, 'engagementGhost','engagementReal','engagementCta','engagementBadge','Healthy','healthy');
+      toggleCard(cats.dataroom, 'dataroomGhost','dataroomReal','dataroomCta','dataroomBadge','5 of 6','building');
+      toggleCard(cats.comms, 'commsGhost','commsReal','commsCta','commsBadge','On cadence','healthy');
+
+      /* Insights */
+      var ig = document.getElementById('insightGhostRows'), ir = document.getElementById('insightRealRows');
+      var ih = document.getElementById('insightHint'), ii = document.getElementById('insightIconWrap');
+      if (n >= 2) { ig.style.display='none'; ir.style.display='flex'; ih.textContent=''; ii.classList.add('active'); }
+      else { ig.style.display='flex'; ir.style.display='none'; ih.textContent='Will appear as your fundraise progresses'; ii.classList.remove('active'); }
+    }
+
+    function toggleCard(on, gId, rId, cId, bId, bText, bClass) {
+      var g=document.getElementById(gId), r=document.getElementById(rId), c=document.getElementById(cId), b=document.getElementById(bId);
+      if (on) { g.style.display='none'; r.style.display='block'; c.style.display='none'; b.textContent=bText; b.className='card-status-badge '+bClass; }
+      else { g.style.display='block'; r.style.display='none'; c.style.display='block'; b.textContent='\u2014'; b.className='card-status-badge ghost'; }
+    }
+
+    render();
+  </script>
+</body>
+</html>

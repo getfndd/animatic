@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V4 — Action-Forward Cards</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --status-info: 217 91% 60%;
+      --status-info-bg: 214 95% 93%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+            'status-info': 'hsl(var(--status-info))',
+            'status-info-bg': 'hsl(var(--status-info-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+  <div class="mx-auto max-w-[420px]">
+    <div class="mb-6">
+      <h1 class="text-lg font-medium text-text-primary">V4 — Action-Forward</h1>
+      <p class="mt-1 text-xs text-text-tertiary">Suggested next action is the headline. The card answers "what should I do?" not "what happened?" The company and signal context are supporting details. CTA button is always visible.</p>
+    </div>
+
+    <h2 class="mb-2 text-xs font-medium text-text-tertiary">Needs Attention</h2>
+    <div class="space-y-1.5">
+
+      <!-- Card 1 — Critical: action-led -->
+      <div class="group relative rounded-md border border-transparent bg-surface-primary p-3 transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="flex items-start gap-3">
+          <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-violet-200 text-xs font-medium text-violet-700">QM</div>
+          <div class="min-w-0 flex-1">
+            <!-- Suggested action as headline -->
+            <p class="text-sm font-medium text-text-primary">Schedule check-in with QuantumSens Medical</p>
+            <!-- Context: why this action -->
+            <p class="mt-0.5 text-xs text-text-secondary">Last meeting 14 weeks ago · Update cadence declining</p>
+            <!-- Action row -->
+            <div class="mt-2 flex items-center gap-2">
+              <button class="rounded bg-surface-tertiary px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-border-default hover:text-text-primary">
+                Schedule meeting
+              </button>
+              <button class="rounded px-2 py-1 text-xs text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-secondary">
+                Send update request
+              </button>
+              <span class="flex-1"></span>
+              <button class="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-primary" title="Dismiss">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Severity dot -->
+          <span class="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-status-error"></span>
+        </div>
+      </div>
+
+      <!-- Card 2 — Warning -->
+      <div class="group relative rounded-md border border-transparent bg-surface-primary p-3 transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="flex items-start gap-3">
+          <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-emerald-200 text-xs font-medium text-emerald-700">NT</div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-text-primary">Request data room refresh from NanoSuture</p>
+            <p class="mt-0.5 text-xs text-text-secondary">3 of 8 categories current · Budget revised 2x in 6mo</p>
+            <div class="mt-2 flex items-center gap-2">
+              <button class="rounded bg-surface-tertiary px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-border-default hover:text-text-primary">
+                Request update
+              </button>
+              <button class="rounded px-2 py-1 text-xs text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-secondary">
+                View data room
+              </button>
+              <span class="flex-1"></span>
+              <button class="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-primary" title="Dismiss">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <span class="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-status-warning"></span>
+        </div>
+      </div>
+
+      <!-- Card 3 — Info -->
+      <div class="group relative rounded-md border border-transparent bg-surface-primary p-3 transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="flex items-start gap-3">
+          <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-blue-200 text-xs font-medium text-blue-700">LL</div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-text-primary">Review LedgerLogic projection data</p>
+            <p class="mt-0.5 text-xs text-text-secondary">Only 1 update received · Need 3+ to assess trajectory</p>
+            <div class="mt-2 flex items-center gap-2">
+              <button class="rounded bg-surface-tertiary px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-border-default hover:text-text-primary">
+                View projections
+              </button>
+              <span class="flex-1"></span>
+              <button class="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-primary" title="Dismiss">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <span class="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-status-info"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fundraise Overview — Direction B: Scorecard-First</title>
+  <style>
+    :root {
+      --surface-primary: #ffffff;
+      --surface-secondary: #f5f5f4;
+      --surface-tertiary: #e7e5e4;
+      --surface-elevated: #ffffff;
+      --surface-hover: #f5f5f4;
+
+      --text-primary: #1c1917;
+      --text-secondary: #57534e;
+      --text-tertiary: #a8a29e;
+      --text-inverse: #fafaf9;
+
+      --border-default: #e7e5e4;
+      --border-subtle: #f5f5f4;
+
+      --status-success: #10b981;
+      --status-warning: #f59e0b;
+      --status-error: #ef4444;
+      --status-info: #6366f1;
+
+      /* Badge backgrounds */
+      --badge-success-bg: #ecfdf5;
+      --badge-success-text: #065f46;
+      --badge-warning-bg: #fffbeb;
+      --badge-warning-text: #92400e;
+      --badge-error-bg: #fef2f2;
+      --badge-error-text: #991b1b;
+      --badge-violet-bg: #f5f3ff;
+      --badge-violet-text: #5b21b6;
+      --badge-gray-bg: #f5f5f4;
+      --badge-gray-text: #57534e;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .layout {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── Sidebar ─── */
+    .sidebar {
+      width: 240px;
+      background: var(--surface-primary);
+      border-right: 1px solid var(--border-default);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+    }
+
+    .sidebar-logo {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    .sidebar-logo .logo-mark {
+      width: 24px;
+      height: 24px;
+      background: #404040;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+    }
+
+    .sidebar-logo .logo-mark span {
+      color: #fafaf9;
+      font-weight: 700;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .sidebar-logo .logo-text {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-primary);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 140ms ease;
+      text-decoration: none;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+    }
+
+    .nav-item svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      opacity: 0.65;
+    }
+
+    .nav-item.active svg {
+      opacity: 1;
+    }
+
+    .sidebar-workspace {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-default);
+    }
+
+    .workspace-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .workspace-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ─── Main Content ─── */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 40px 80px;
+    }
+
+    .page-header {
+      margin-bottom: 28px;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* ─── Score Hero Card ─── */
+    .score-hero {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 32px 36px;
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      margin-bottom: 24px;
+    }
+
+    .score-ring-container {
+      flex-shrink: 0;
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+
+    .score-ring-container svg {
+      width: 120px;
+      height: 120px;
+      transform: rotate(-90deg);
+    }
+
+    .score-ring-track {
+      fill: none;
+      stroke: rgba(168, 162, 158, 0.2);
+      stroke-width: 8;
+    }
+
+    .score-ring-progress {
+      fill: none;
+      stroke: var(--text-primary);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 283;
+      stroke-dashoffset: 70.75; /* 25% remaining = 75% filled. 283 * 0.25 = 70.75 */
+      transition: stroke-dashoffset 800ms ease;
+    }
+
+    .score-ring-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .score-ring-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    .score-ring-caption {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .score-hero-content {
+      flex: 1;
+    }
+
+    .score-hero-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .score-hero-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 20px;
+      max-width: 520px;
+    }
+
+    .remaining-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--surface-secondary);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .remaining-step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: var(--badge-warning-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .remaining-step-icon svg {
+      width: 16px;
+      height: 16px;
+      color: var(--status-warning);
+    }
+
+    .remaining-step-text {
+      flex: 1;
+    }
+
+    .remaining-step-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .remaining-step-progress {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-left: 6px;
+      font-weight: 500;
+    }
+
+    .remaining-step-link {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 140ms;
+      white-space: nowrap;
+    }
+
+    .remaining-step-link:hover {
+      color: var(--status-info);
+    }
+
+    .score-hero-footnote {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+      padding-left: 4px;
+    }
+
+    /* ─── Accordion Sections ─── */
+    .accordion-section {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      transition: box-shadow 200ms ease;
+    }
+
+    .accordion-section:hover {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .accordion-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 140ms ease;
+    }
+
+    .accordion-header:hover {
+      background: var(--surface-hover);
+    }
+
+    .accordion-icon-container {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      background: var(--surface-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .accordion-icon-container svg {
+      width: 20px;
+      height: 20px;
+      color: var(--text-secondary);
+    }
+
+    .accordion-title-area {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .accordion-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1px;
+    }
+
+    .accordion-subtitle {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .accordion-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .badge-success {
+      background: var(--badge-success-bg);
+      color: var(--badge-success-text);
+    }
+
+    .badge-warning {
+      background: var(--badge-warning-bg);
+      color: var(--badge-warning-text);
+    }
+
+    .badge-error {
+      background: var(--badge-error-bg);
+      color: var(--badge-error-text);
+    }
+
+    .badge-violet {
+      background: var(--badge-violet-bg);
+      color: var(--badge-violet-text);
+    }
+
+    .badge-gray {
+      background: var(--badge-gray-bg);
+      color: var(--badge-gray-text);
+    }
+
+    .accordion-chevron {
+      width: 20px;
+      height: 20px;
+      color: var(--text-tertiary);
+      transition: transform 200ms ease;
+      flex-shrink: 0;
+    }
+
+    .accordion-section.open .accordion-chevron {
+      transform: rotate(180deg);
+    }
+
+    .accordion-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 300ms ease, opacity 200ms ease;
+      opacity: 0;
+    }
+
+    .accordion-section.open .accordion-body {
+      max-height: 600px;
+      opacity: 1;
+    }
+
+    .accordion-content {
+      padding: 0 20px 20px 74px; /* 20px + 40px icon + 14px gap = 74px left indent */
+    }
+
+    /* ─── Metrics Row ─── */
+    .metrics-row {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 16px;
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .metric-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-value.warning {
+      color: var(--status-warning);
+    }
+
+    .accordion-divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin-bottom: 16px;
+    }
+
+    /* ─── Insight Area ─── */
+    .insight-area {
+      background: var(--surface-secondary);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+
+    .insight-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ─── Action Row ─── */
+    .action-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-default);
+      background: var(--surface-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 140ms ease;
+      text-decoration: none;
+    }
+
+    .action-btn:hover {
+      background: var(--surface-secondary);
+      border-color: var(--text-tertiary);
+    }
+
+    .action-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* ─── Bottom Bar ─── */
+    .bottom-bar {
+      background: var(--surface-secondary);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+
+    .bottom-bar-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .bottom-bar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-default);
+      background: var(--surface-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 140ms ease;
+    }
+
+    .bottom-bar-btn:hover {
+      background: var(--surface-primary);
+      border-color: var(--text-tertiary);
+    }
+
+    .bottom-bar-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* ─── Dev Mode Toggle ─── */
+    .dev-toggle {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      z-index: 100;
+      user-select: none;
+      transition: all 140ms ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .dev-toggle:hover {
+      border-color: var(--text-tertiary);
+    }
+
+    .dev-toggle.active {
+      background: var(--text-primary);
+      color: var(--text-inverse);
+      border-color: var(--text-primary);
+    }
+
+    .dev-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+    }
+
+    .dev-toggle.active .dev-dot {
+      background: var(--status-success);
+    }
+
+    /* ─── Dev Mode Annotations ─── */
+    .dev-annotation {
+      display: none;
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      padding: 2px 6px;
+      background: var(--status-info);
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      border-radius: 4px;
+      white-space: nowrap;
+      z-index: 10;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    body.dev-mode .dev-annotation {
+      display: block;
+    }
+
+    body.dev-mode .score-hero,
+    body.dev-mode .accordion-section,
+    body.dev-mode .bottom-bar {
+      outline: 1px dashed rgba(99, 102, 241, 0.3);
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ─── Sidebar ─── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark"><span>W</span></div>
+        <span class="logo-text">Weftly</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item active" href="#">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+          Overview
+        </a>
+        <a class="nav-item" href="#">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+          Investors
+        </a>
+        <a class="nav-item" href="#">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+          Pipeline
+        </a>
+        <a class="nav-item" href="#">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Activity
+        </a>
+        <a class="nav-item" href="#">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V13.5zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z"/></svg>
+          Round Modeling
+        </a>
+        <a class="nav-item" href="#">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>
+          Data Room
+        </a>
+        <a class="nav-item" href="#">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          Deal Docs
+        </a>
+        <a class="nav-item" href="#">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+          Investor Updates
+        </a>
+      </nav>
+      <div class="sidebar-workspace">
+        <div class="workspace-label">Workspace</div>
+        <div class="workspace-name">fndd Seed Round</div>
+      </div>
+    </aside>
+
+    <!-- ─── Main Content ─── -->
+    <main class="main">
+      <div style="max-width: 800px;">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <h1 class="page-title">Fundraise Overview</h1>
+          <p class="page-subtitle">Your fundraise health at a glance</p>
+        </div>
+
+        <!-- ─── Score Hero ─── -->
+        <div class="score-hero">
+          <div class="dev-annotation">score-hero</div>
+          <div class="score-ring-container">
+            <svg viewBox="0 0 100 100">
+              <circle class="score-ring-track" cx="50" cy="50" r="45" />
+              <circle class="score-ring-progress" cx="50" cy="50" r="45" />
+            </svg>
+            <div class="score-ring-label">
+              <span class="score-ring-value">3 of 4</span>
+              <span class="score-ring-caption">steps done</span>
+            </div>
+          </div>
+          <div class="score-hero-content">
+            <h2 class="score-hero-title">Building your fundraise health</h2>
+            <p class="score-hero-subtitle">Complete the remaining steps to unlock your full score. We're already finding patterns in your activity.</p>
+            <div class="remaining-step">
+              <div class="remaining-step-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+              </div>
+              <div class="remaining-step-text">
+                <span class="remaining-step-label">Complete your company profile</span>
+                <span class="remaining-step-progress">(88%)</span>
+              </div>
+              <a class="remaining-step-link" href="#">Complete Profile &rarr;</a>
+            </div>
+            <p class="score-hero-footnote">Your profile helps with investor matching and personalized insights</p>
+          </div>
+        </div>
+
+        <!-- ─── Category Accordion Sections ─── -->
+
+        <!-- Pipeline Velocity — EXPANDED -->
+        <div class="accordion-section open" data-accordion>
+          <div class="dev-annotation">pipeline-velocity</div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-icon-container">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.58-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/></svg>
+            </div>
+            <div class="accordion-title-area">
+              <div class="accordion-title">Pipeline Velocity</div>
+              <div class="accordion-subtitle">How fast deals are moving</div>
+            </div>
+            <span class="accordion-badge badge-warning">Needs attention</span>
+            <svg class="accordion-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="metrics-row">
+                <div class="metric-item">
+                  <span class="metric-label">Active Deals</span>
+                  <span class="metric-value">2</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Pipeline Value</span>
+                  <span class="metric-value">$0.7M</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Added This Month</span>
+                  <span class="metric-value warning">0</span>
+                </div>
+              </div>
+              <div class="accordion-divider"></div>
+              <div class="insight-area">
+                <p class="insight-text">Your pipeline has slowed -- no new deals added this month. Consider reaching out to 2-3 new investors this week to maintain momentum.</p>
+              </div>
+              <div class="action-row">
+                <a class="action-btn" href="#">Review Pipeline <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a>
+                <a class="action-btn" href="#">Find Investors <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Investor Engagement — EXPANDED -->
+        <div class="accordion-section open" data-accordion>
+          <div class="dev-annotation">investor-engagement</div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-icon-container">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+            </div>
+            <div class="accordion-title-area">
+              <div class="accordion-title">Investor Engagement</div>
+              <div class="accordion-subtitle">How investors interact with you</div>
+            </div>
+            <span class="accordion-badge badge-warning">Needs attention</span>
+            <svg class="accordion-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="metrics-row">
+                <div class="metric-item">
+                  <span class="metric-label">Total Investors</span>
+                  <span class="metric-value">4</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Active Conversations</span>
+                  <span class="metric-value warning">0</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">In Pipeline</span>
+                  <span class="metric-value">2</span>
+                </div>
+              </div>
+              <div class="accordion-divider"></div>
+              <div class="insight-area">
+                <p class="insight-text">None of your 4 investors have active conversations. Engagement drops off quickly -- send a brief update or schedule check-ins this week.</p>
+              </div>
+              <div class="action-row">
+                <a class="action-btn" href="#">Send Update <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a>
+                <a class="action-btn" href="#">View Investors <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Room Readiness — COLLAPSED -->
+        <div class="accordion-section" data-accordion>
+          <div class="dev-annotation">data-room-readiness</div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-icon-container">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>
+            </div>
+            <div class="accordion-title-area">
+              <div class="accordion-title">Data Room Readiness</div>
+              <div class="accordion-subtitle">Documents and materials for due diligence</div>
+            </div>
+            <span class="accordion-badge badge-violet">Building</span>
+            <svg class="accordion-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="metrics-row">
+                <div class="metric-item">
+                  <span class="metric-label">Documents</span>
+                  <span class="metric-value">6</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Categories Covered</span>
+                  <span class="metric-value">3 of 8</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Last Updated</span>
+                  <span class="metric-value" style="font-size: 16px;">2 days ago</span>
+                </div>
+              </div>
+              <div class="accordion-divider"></div>
+              <div class="insight-area">
+                <p class="insight-text">Good progress on your data room. You're missing financials, team bios, and market analysis sections. Most investors expect these during due diligence.</p>
+              </div>
+              <div class="action-row">
+                <a class="action-btn" href="#">Open Data Room <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a>
+                <a class="action-btn" href="#">Upload Documents <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Communication Cadence — COLLAPSED -->
+        <div class="accordion-section" data-accordion>
+          <div class="dev-annotation">communication-cadence</div>
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-icon-container">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+            </div>
+            <div class="accordion-title-area">
+              <div class="accordion-title">Communication Cadence</div>
+              <div class="accordion-subtitle">Regular touchpoints with your investors</div>
+            </div>
+            <span class="accordion-badge badge-gray">Not started</span>
+            <svg class="accordion-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="metrics-row">
+                <div class="metric-item">
+                  <span class="metric-label">Updates Sent</span>
+                  <span class="metric-value warning">0</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Last Update</span>
+                  <span class="metric-value" style="font-size: 16px;">Never</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Scheduled</span>
+                  <span class="metric-value warning">0</span>
+                </div>
+              </div>
+              <div class="accordion-divider"></div>
+              <div class="insight-area">
+                <p class="insight-text">You haven't sent any investor updates yet. Regular communication builds trust and keeps investors engaged. Start with a monthly cadence to build the habit.</p>
+              </div>
+              <div class="action-row">
+                <a class="action-btn" href="#">Create First Update <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a>
+                <a class="action-btn" href="#">Set Cadence <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── Bottom Bar ─── -->
+        <div class="bottom-bar">
+          <div class="dev-annotation">bottom-bar</div>
+          <span class="bottom-bar-text">Prepare for your board meeting?</span>
+          <button class="bottom-bar-btn">Export Summary <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg></button>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Dev Mode Toggle -->
+  <div class="dev-toggle" onclick="toggleDevMode(this)">
+    <span class="dev-dot"></span>
+    DEV MODE
+  </div>
+
+  <script>
+    function toggleAccordion(header) {
+      const section = header.closest('.accordion-section');
+      section.classList.toggle('open');
+    }
+
+    function toggleDevMode(toggle) {
+      toggle.classList.toggle('active');
+      document.body.classList.toggle('dev-mode');
+    }
+  </script>
+</body>
+</html>

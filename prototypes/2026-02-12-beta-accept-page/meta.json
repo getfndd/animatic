@@ -1,0 +1,17 @@
+{
+  "id": "2026-02-12-beta-accept-page",
+  "name": "Beta Accept Page",
+  "description": "Beta invitation acceptance page with three states: valid invite (account creation form), expired/revoked invite, and invalid token. Centered card layout, no chrome, public-facing.",
+  "prompt": "/prototype Beta accept page (/beta/accept?t=TOKEN) — three states: valid invite, expired invite, invalid token. Centered card, max-width 480px, no chrome.",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Centered card with state switcher. Valid: greeting + benefits + password form. Expired: clock icon + message + contact CTA. Invalid: minimal with help link." }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--text-primary", "--text-secondary", "--text-tertiary", "--border-default", "--border-subtle"],
+    "presets": [],
+    "patterns": ["centered-card", "pill-button", "read-only-input", "icon-container"]
+  },
+  "createdAt": "2026-02-12T00:00:00Z"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "2026-02-19-investor-columns-groups",
+  "name": "Investor Table — Column Management + Custom Groups",
+  "description": "Two features for the Investors table: (1) Manage Columns modal matching the Contacts pattern — two-panel drag-to-reorder with hidden/visible columns, (2) Custom investor groups — user-created lists that appear as tabs alongside the lifecycle segments, with create/rename/delete flows. Interactive prototype with working column toggle, group creation, and table re-rendering.",
+  "prompt": "/prototype \"Investor table column management and custom groups\"",
+  "fidelity": "concept",
+  "chrome": "sidebar",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Full interactive prototype: column management modal with drag handles and +/x buttons, custom groups as tabs with create group inline flow, group management dropdown, and responsive table that reflects column changes." }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-tertiary", "--surface-inverse", "--text-primary", "--text-secondary", "--text-tertiary", "--text-inverse", "--border-default", "--border-subtle", "--border-strong", "--status-success", "--status-success-bg"],
+    "presets": ["primary-action (pill CTA)", "secondary-action (outline pill)", "cancel-action (text button)", "save-action (save button)", "tertiary-action (ghost button)"],
+    "patterns": ["flat-row-hover", "manage-columns-modal", "segment-tabs", "inline-create", "dropdown-menu"]
+  },
+  "createdAt": "2026-02-19T23:00:00Z"
+}

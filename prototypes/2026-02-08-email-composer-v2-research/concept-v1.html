@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Composer V2 — Research-Informed Improvements</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-elevated: 0 0% 100%;
+      --surface-hover: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --border-hover: 0 0% 80%;
+      --border-focus: 0 0% 9%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --radius: 0.5rem;
+    }
+
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .seg-wrap {
+      display: inline-flex;
+      background: hsl(var(--surface-secondary));
+      border-radius: calc(var(--radius) - 2px);
+      padding: 2px;
+      gap: 2px;
+    }
+    .seg-btn {
+      padding: 4px 10px;
+      border-radius: calc(var(--radius) - 4px);
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 150ms;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: hsl(var(--text-secondary));
+    }
+    .seg-btn.active {
+      background: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .seg-btn:hover:not(.active) {
+      color: hsl(var(--text-primary));
+    }
+
+    /* Light/dark toggle pill */
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      background: hsl(var(--surface-secondary));
+      border-radius: 9999px;
+      padding: 2px;
+    }
+    .theme-toggle button {
+      width: 28px;
+      height: 28px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: hsl(var(--text-tertiary));
+      transition: all 150ms;
+    }
+    .theme-toggle button.active {
+      background: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .theme-toggle button:hover:not(.active) {
+      color: hsl(var(--text-secondary));
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .toast-animate {
+      animation: slideUp 200ms ease-out;
+    }
+
+    .content-card {
+      border: 1px solid hsl(var(--border-default));
+      border-radius: calc(var(--radius) - 2px);
+      padding: 10px;
+      transition: border-color 150ms;
+    }
+    .content-card:hover {
+      border-color: hsl(var(--border-hover));
+    }
+
+    .metric-mini {
+      border: 1px solid hsl(var(--border-default));
+      border-radius: calc(var(--radius) - 2px);
+      padding: 10px;
+      transition: all 150ms;
+      cursor: pointer;
+    }
+    .metric-mini:hover {
+      border-color: hsl(var(--border-hover));
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: hsl(var(--border-default)); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: hsl(var(--border-strong)); }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-elevated': 'hsl(var(--surface-elevated))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'border-hover': 'hsl(var(--border-hover))',
+            'border-focus': 'hsl(var(--border-focus))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+          },
+          borderRadius: {
+            lg: 'var(--radius)',
+            md: 'calc(var(--radius) - 2px)',
+            sm: 'calc(var(--radius) - 4px)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen">
+
+  <!-- ============================================================== -->
+  <!-- SECTION 1: FULL EDITOR VIEW                                     -->
+  <!-- ============================================================== -->
+  <div class="flex flex-col h-screen">
+
+    <!-- ── TOP BAR ── -->
+    <div class="flex items-center justify-between px-5 py-2.5 border-b bg-surface-primary flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <button class="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors rounded-full px-2.5 py-1.5 -ml-1 hover:bg-surface-secondary">
+          <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"/></svg>
+          Emails
+        </button>
+        <div class="flex items-center gap-1.5 text-xs text-text-tertiary">
+          <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+          Draft saved
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button class="w-8 h-8 flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-colors">
+          <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M128,96a32,32,0,1,0,32,32A32,32,0,0,0,128,96Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,128,144Zm0-80a32,32,0,1,0,32,32A32,32,0,0,0,128,16Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,128,48Zm0,112a32,32,0,1,0,32,32A32,32,0,0,0,128,176Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,128,224Z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Toast (hidden) -->
+    <div id="test-toast" class="hidden fixed top-16 right-5 z-50">
+      <div class="toast-animate flex items-center gap-2 px-4 py-2.5 bg-surface-inverse text-text-inverse text-sm font-medium rounded-lg shadow-lg">
+        <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Z"/></svg>
+        Test sent to you@weftly.com
+      </div>
+    </div>
+
+    <!-- ── EDITOR + PREVIEW ── -->
+    <div class="flex flex-1 min-h-0">
+
+      <!-- EDITOR PANE (60%) -->
+      <div class="w-[60%] flex flex-col min-w-0 overflow-y-auto bg-surface-primary">
+        <!-- Recipient bar -->
+        <div class="flex items-center gap-2 px-6 py-2.5 border-b border-border-subtle text-sm">
+          <button class="px-2.5 py-1 text-xs font-medium border border-border-default rounded-full text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors">Edit</button>
+          <span class="text-text-secondary">To: All subscribers <span class="text-text-tertiary">(847)</span></span>
+        </div>
+
+        <!-- Subject + Preview text -->
+        <div class="px-10 pt-8 pb-4">
+          <!-- ENHANCEMENT 6: Subject with character count -->
+          <div class="relative">
+            <input type="text" value="What's new in Weftly — February 2026" class="w-full text-2xl font-semibold text-text-primary placeholder:text-text-tertiary tracking-tight outline-none bg-transparent pr-20" id="subject-input" oninput="updateCharCount()" />
+            <div class="absolute right-0 top-1/2 -translate-y-1/2 text-xs tabular-nums" id="char-count">
+              <span id="char-count-num" class="text-status-success font-medium">37</span><span class="text-text-tertiary"> / 50</span>
+            </div>
+          </div>
+          <input type="text" value="New features, tips, and what's coming next" placeholder="Preview text shown in inbox..." class="w-full text-sm text-text-secondary placeholder:text-text-tertiary mt-2 outline-none bg-transparent" />
+        </div>
+
+        <!-- Block editor (simulated) -->
+        <div class="px-10 pb-8">
+          <div class="min-h-[400px] text-[13px] leading-relaxed text-text-primary" style="padding-left: 32px;">
+            <h2 class="text-[15px] font-semibold mb-2 mt-4">What's new in Weftly</h2>
+            <p class="mb-3">Here's what we shipped this month, plus a few tips to get more out of Weftly.</p>
+            <hr class="border-border-default my-4">
+            <h3 class="text-[14px] font-semibold mb-1.5 mt-4">New this month</h3>
+            <ul class="list-disc pl-5 mb-3 space-y-1">
+              <li><strong>Scenario Modeling</strong> — Model future rounds, exits, and dilution with real-time ownership projections</li>
+              <li><strong>Cross-source Intelligence</strong> — Get context from multiple data sources in a single view with dynamic follow-ups</li>
+              <li><strong>Filter Pill Persistence</strong> — Your filter selections now persist across sessions so you pick up right where you left off</li>
+            </ul>
+            <h3 class="text-[14px] font-semibold mb-1.5 mt-4">Tips & tricks</h3>
+            <ul class="list-disc pl-5 mb-3 space-y-1">
+              <li>Use <strong>/</strong> in any text field to access slash commands — add images, CTAs, and dividers without leaving the keyboard</li>
+              <li>Pin your most-used filters to the top bar for one-click access</li>
+            </ul>
+            <div class="my-4 p-4 bg-surface-secondary rounded-md text-center">
+              <p class="text-sm font-medium text-text-primary mb-2">Try Scenario Modeling today</p>
+              <p class="text-xs text-text-secondary mb-3">See how different funding scenarios affect your cap table in real time.</p>
+              <span class="inline-block px-4 py-2 bg-zinc-900 text-white text-xs font-medium rounded-full">Explore scenarios</span>
+            </div>
+            <hr class="border-border-default my-4">
+            <p class="text-text-secondary">Questions or feedback? Just reply to this email — we read every one.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREVIEW/CONTENT/ENGAGEMENT PANE (40%) -->
+      <div class="w-[40%] border-l flex flex-col bg-surface-primary">
+
+        <!-- ENHANCEMENT 5: Three-tab panel -->
+        <div class="px-4 pt-3">
+          <div class="seg-wrap w-full">
+            <button class="seg-btn active flex-1" onclick="switchTab('preview', this)">Preview</button>
+            <button class="seg-btn flex-1" onclick="switchTab('content', this)">Content</button>
+            <button class="seg-btn flex-1 relative" onclick="switchTab('engagement', this)">
+              Engagement
+              <span class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PREVIEW TAB -->
+        <div id="tab-preview" class="flex-1 flex flex-col min-h-0">
+          <!-- ENHANCEMENT 1: Device + Theme controls (two independent controls) -->
+          <div class="flex items-center justify-between px-4 pt-3 pb-1">
+            <!-- Device: Desktop / Mobile -->
+            <div class="seg-wrap">
+              <button class="seg-btn active" onclick="setDevice('desktop', this)">
+                <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" style="display:inline; vertical-align:-2px; margin-right:3px;"><path d="M208,40H48A24,24,0,0,0,24,64V176a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V64A24,24,0,0,0,208,40Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H208a8,8,0,0,1,8,8ZM176,216a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,216Z"/></svg>
+                Desktop
+              </button>
+              <button class="seg-btn" onclick="setDevice('mobile', this)">
+                <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" style="display:inline; vertical-align:-2px; margin-right:3px;"><path d="M176,16H80A24,24,0,0,0,56,40V216a24,24,0,0,0,24,24h96a24,24,0,0,0,24-24V40A24,24,0,0,0,176,16Zm8,200a8,8,0,0,1-8,8H80a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h96a8,8,0,0,1,8,8Z"/></svg>
+                Mobile
+              </button>
+            </div>
+            <!-- Theme: Sun / Moon toggle -->
+            <div class="theme-toggle" id="theme-toggle">
+              <button class="active" onclick="setTheme('light', this)" title="Light mode">
+                <!-- Sun icon -->
+                <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm72,88a64,64,0,1,1-64-64A64.07,64.07,0,0,1,192,128Zm-16,0a48,48,0,1,0-48,48A48.05,48.05,0,0,0,176,128ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"/></svg>
+              </button>
+              <button onclick="setTheme('dark', this)" title="Dark mode">
+                <!-- Moon icon -->
+                <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M233.54,142.23a8,8,0,0,0-8-2,88.08,88.08,0,0,1-109.8-109.8,8,8,0,0,0-10-10,104.84,104.84,0,0,0-52.91,37A104,104,0,0,0,136,224a103.09,103.09,0,0,0,62.52-20.88,104.84,104.84,0,0,0,37-52.91A8,8,0,0,0,233.54,142.23ZM188.9,190.36A88,88,0,0,1,65.64,67.09,89,89,0,0,1,98,41.64a104.11,104.11,0,0,0,116.36,116.36A89,89,0,0,1,188.9,190.36Z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-4">
+            <div class="text-xs text-text-secondary mb-3 space-y-0.5">
+              <div class="flex gap-2">
+                <span class="text-text-tertiary w-8">From</span>
+                <span class="text-text-primary">Weftly <span class="text-text-tertiary">&lt;updates@weftly.com&gt;</span></span>
+              </div>
+              <div class="flex gap-2">
+                <span class="text-text-tertiary w-8">Re</span>
+                <span class="text-text-primary">What's new in Weftly — February 2026</span>
+              </div>
+            </div>
+
+            <div id="preview-card" class="mx-auto border border-border-default rounded-lg overflow-hidden transition-all w-full">
+              <div id="preview-inner" class="bg-white p-8 transition-colors" style="font-family: 'Satoshi', sans-serif;">
+                <img src="https://mzctymakcnzhpmjdvybl.supabase.co/storage/v1/object/public/public-assets/weftly-wordmark.png" alt="Weftly" style="height: 32px; margin-bottom: 24px; display: block;">
+                <h1 id="preview-title" style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 16px;">What's new in Weftly</h1>
+                <p id="preview-body" style="font-size: 14px; line-height: 1.6; color: #111827; margin-bottom: 12px;">Here's what we shipped this month, plus a few tips to get more out of Weftly.</p>
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
+                <h2 style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 8px;">New this month</h2>
+                <ul style="padding-left: 18px; font-size: 14px; line-height: 1.6; color: #111827; margin-bottom: 16px;">
+                  <li style="margin-bottom: 4px;"><strong>Scenario Modeling</strong> — Real-time ownership projections</li>
+                  <li style="margin-bottom: 4px;"><strong>Cross-source Intelligence</strong> — Multi-source context in one view</li>
+                  <li style="margin-bottom: 4px;"><strong>Filter Persistence</strong> — Filters saved across sessions</li>
+                </ul>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                  <tr>
+                    <td id="metric-td-1" style="padding: 12px; background: #f9fafb; border-radius: 6px; text-align: center;">
+                      <div style="font-size: 14px; font-weight: 600; color: #111827;">Try Scenario Modeling today</div>
+                      <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">See how funding scenarios affect your cap table</div>
+                    </td>
+                  </tr>
+                </table>
+                <h2 style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 8px;">Tips & tricks</h2>
+                <ul style="padding-left: 18px; font-size: 14px; line-height: 1.6; color: #111827; margin-bottom: 16px;">
+                  <li style="margin-bottom: 4px;">Use <strong>/</strong> for slash commands in any text field</li>
+                  <li style="margin-bottom: 4px;">Pin most-used filters for one-click access</li>
+                </ul>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb;">powered by weftlyai.com</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTENT TAB (Enhanced) -->
+        <div id="tab-content" class="flex-1 flex-col min-h-0 hidden">
+          <div class="flex-1 overflow-y-auto p-4">
+            <!-- ENHANCEMENT 2: Auto-populate banner -->
+            <div class="mb-4 p-3 bg-surface-secondary rounded-md border border-border-subtle">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xs font-medium text-text-primary">Product Update detected</span>
+                <span class="text-[10px] text-text-tertiary">Template match</span>
+              </div>
+              <p class="text-xs text-text-secondary mb-2.5">Auto-populate with recently shipped features, platform metrics, and content from your last update.</p>
+              <button class="w-full py-2 text-xs font-medium text-text-primary bg-surface-primary border border-border-default rounded-md hover:bg-surface-hover hover:border-border-hover transition-all">
+                Auto-populate template
+              </button>
+            </div>
+
+            <!-- AI Suggestion -->
+            <div class="mb-4 p-3 rounded-md border border-border-subtle bg-surface-secondary">
+              <div class="flex items-center gap-2 mb-2">
+                <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" class="text-text-secondary"><path d="M197.58,129.06l-51.61-19-19-51.65a15.92,15.92,0,0,0-29.88,0L78.07,110l-51.65,19a15.92,15.92,0,0,0,0,29.88L78,178l19,51.62a15.92,15.92,0,0,0,29.88,0l19-51.61,51.65-19a15.92,15.92,0,0,0,0-29.88Z"/></svg>
+                <span class="text-xs font-medium text-text-primary">Suggested highlights</span>
+              </div>
+              <p class="text-xs text-text-secondary leading-relaxed mb-2">Based on recent releases: Scenario Modeling (2 days ago), 3x faster investor profiles, and filter pill persistence are strong highlights for your users.</p>
+              <button class="text-[11px] font-medium text-text-secondary px-2.5 py-1 border border-border-default rounded-full hover:bg-surface-primary hover:text-text-primary transition-colors">
+                Apply suggestions
+              </button>
+            </div>
+
+            <!-- Activity this sprint -->
+            <div class="mb-5">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-text-tertiary">Activity this sprint</span>
+                <span class="text-xs text-text-tertiary">5 items</span>
+              </div>
+
+              <div class="content-card mb-1.5">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[13px] font-medium text-text-primary">Scenario Modeling</span>
+                      <span class="text-[10px] text-text-tertiary">2 days ago</span>
+                    </div>
+                    <p class="text-xs text-text-secondary leading-snug mt-0.5">Model future rounds, exits, and dilution with real-time ownership projections</p>
+                  </div>
+                  <button class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium text-text-primary bg-surface-primary border border-border-default rounded-md hover:bg-surface-hover hover:border-border-hover transition-all shadow-sm">
+                    <svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/></svg>
+                    Insert
+                  </button>
+                </div>
+              </div>
+
+              <div class="content-card mb-1.5">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[13px] font-medium text-text-primary">Cross-source Intelligence</span>
+                      <span class="text-[10px] text-text-tertiary">5 days ago</span>
+                    </div>
+                    <p class="text-xs text-text-secondary leading-snug mt-0.5">Get context from multiple data sources in a single view with dynamic follow-ups</p>
+                  </div>
+                  <button class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium text-text-primary bg-surface-primary border border-border-default rounded-md hover:bg-surface-hover hover:border-border-hover transition-all shadow-sm">
+                    <svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/></svg>
+                    Insert
+                  </button>
+                </div>
+              </div>
+
+              <div class="content-card mb-1.5">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[13px] font-medium text-text-primary">Filter Pill Persistence</span>
+                      <span class="text-[10px] text-text-tertiary">1 week ago</span>
+                    </div>
+                    <p class="text-xs text-text-secondary leading-snug mt-0.5">Filter selections persist across sessions so users pick up where they left off</p>
+                  </div>
+                  <button class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium text-text-primary bg-surface-primary border border-border-default rounded-md hover:bg-surface-hover hover:border-border-hover transition-all shadow-sm">
+                    <svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/></svg>
+                    Insert
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="mb-5">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-text-tertiary">Metrics</span>
+                <button class="text-[10px] font-medium text-text-secondary hover:text-text-primary transition-colors">Insert all</button>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5">
+                <div class="metric-mini group">
+                  <div class="text-base font-bold text-text-primary tabular-nums tracking-tight">847</div>
+                  <div class="text-[11px] text-text-tertiary mt-0.5">Active Users</div>
+                  <div class="text-[11px] font-medium text-green-600 mt-0.5">+12% MoM</div>
+                  <div class="mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="text-[10px] font-medium text-text-secondary hover:text-text-primary transition-colors">Insert card</button>
+                  </div>
+                </div>
+                <div class="metric-mini group">
+                  <div class="text-base font-bold text-text-primary tabular-nums tracking-tight">3</div>
+                  <div class="text-[11px] text-text-tertiary mt-0.5">Features Shipped</div>
+                  <div class="text-[11px] font-medium text-green-600 mt-0.5">this month</div>
+                  <div class="mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="text-[10px] font-medium text-text-secondary hover:text-text-primary transition-colors">Insert card</button>
+                  </div>
+                </div>
+                <div class="metric-mini group">
+                  <div class="text-base font-bold text-text-primary tabular-nums tracking-tight">85%</div>
+                  <div class="text-[11px] text-text-tertiary mt-0.5">Open Rate</div>
+                  <div class="text-[11px] font-medium text-green-600 mt-0.5">+5% vs last</div>
+                  <div class="mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="text-[10px] font-medium text-text-secondary hover:text-text-primary transition-colors">Insert card</button>
+                  </div>
+                </div>
+                <div class="metric-mini group">
+                  <div class="text-base font-bold text-text-primary tabular-nums tracking-tight">62%</div>
+                  <div class="text-[11px] text-text-tertiary mt-0.5">CTA Click Rate</div>
+                  <div class="text-[11px] font-medium text-green-600 mt-0.5">+8% vs last</div>
+                  <div class="mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="text-[10px] font-medium text-text-secondary hover:text-text-primary transition-colors">Insert card</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Last sent -->
+            <div class="mb-5">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-text-tertiary">Last sent</span>
+              </div>
+              <div class="content-card">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[13px] font-medium text-text-primary">January Product Update</span>
+                  <span class="text-[10px] text-text-tertiary">Jan 2026</span>
+                </div>
+                <p class="text-xs text-text-secondary leading-snug mt-0.5 italic">"Happy new year! We shipped 4 new features in January including cross-source intelligence and..."</p>
+                <div class="flex gap-2 mt-2">
+                  <button class="text-[11px] font-medium text-text-secondary px-2.5 py-1 border border-border-default rounded-full hover:bg-surface-secondary hover:text-text-primary transition-colors">Reuse intro</button>
+                  <button class="text-[11px] font-medium text-text-secondary px-2.5 py-1 border border-border-default rounded-full hover:bg-surface-secondary hover:text-text-primary transition-colors">View full</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ENGAGEMENT TAB (NEW) -->
+        <div id="tab-engagement" class="flex-1 flex-col min-h-0 hidden">
+          <div class="flex-1 overflow-y-auto p-4">
+            <!-- Overview metrics -->
+            <div class="mb-5">
+              <div class="grid grid-cols-3 gap-2">
+                <div class="p-3 bg-surface-secondary rounded-md text-center">
+                  <div class="text-lg font-bold text-text-primary tabular-nums">85%</div>
+                  <div class="text-[10px] text-text-tertiary">Open Rate</div>
+                  <div class="flex items-center justify-center gap-1 mt-1">
+                    <svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor" class="text-green-600"><path d="M207.39,115.06A8,8,0,0,1,200,120H136v96a8,8,0,0,1-16,0V120H56a8,8,0,0,1-5.66-13.66l72-72a8,8,0,0,1,11.32,0l72,72A8,8,0,0,1,207.39,115.06Z"/></svg>
+                    <span class="text-[10px] font-medium text-green-600">+5%</span>
+                  </div>
+                </div>
+                <div class="p-3 bg-surface-secondary rounded-md text-center">
+                  <div class="text-lg font-bold text-text-primary tabular-nums">42%</div>
+                  <div class="text-[10px] text-text-tertiary">Click Rate</div>
+                  <div class="flex items-center justify-center gap-1 mt-1">
+                    <svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor" class="text-green-600"><path d="M207.39,115.06A8,8,0,0,1,200,120H136v96a8,8,0,0,1-16,0V120H56a8,8,0,0,1-5.66-13.66l72-72a8,8,0,0,1,11.32,0l72,72A8,8,0,0,1,207.39,115.06Z"/></svg>
+                    <span class="text-[10px] font-medium text-green-600">+8%</span>
+                  </div>
+                </div>
+                <div class="p-3 bg-surface-secondary rounded-md text-center">
+                  <div class="text-lg font-bold text-text-primary tabular-nums">2.4m</div>
+                  <div class="text-[10px] text-text-tertiary">Avg Read</div>
+                  <div class="flex items-center justify-center gap-1 mt-1">
+                    <span class="text-[10px] text-text-tertiary">avg</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Warning card -->
+            <div class="mb-4 p-3 bg-status-warning-bg border border-amber-200 rounded-md">
+              <div class="flex items-start gap-2">
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" class="text-status-warning flex-shrink-0 mt-0.5"><path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z"/></svg>
+                <div>
+                  <p class="text-xs font-medium text-amber-800">3 recipients haven't opened in 2+ months</p>
+                  <p class="text-[11px] text-amber-700 mt-0.5">Consider a re-engagement email or checking email health.</p>
+                  <button class="mt-1.5 text-[11px] font-medium text-amber-800 underline hover:no-underline">View disengaged</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Per-investor tracking -->
+            <div class="mb-5">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-text-tertiary">Last update engagement</span>
+                <span class="text-xs text-text-tertiary">Jan product update</span>
+              </div>
+
+              <div class="space-y-0.5">
+                <div class="flex items-center gap-3 px-2 py-2 rounded hover:bg-surface-secondary transition-colors">
+                  <div class="w-7 h-7 rounded-full bg-blue-200 flex items-center justify-center text-[10px] font-medium text-blue-800 flex-shrink-0">SV</div>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm text-text-primary">Sarah Vance</span>
+                    <span class="text-xs text-text-tertiary ml-1.5">sarah@acme.co</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    <span class="text-xs text-text-secondary">Opened 2h ago</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 px-2 py-2 rounded hover:bg-surface-secondary transition-colors">
+                  <div class="w-7 h-7 rounded-full bg-violet-200 flex items-center justify-center text-[10px] font-medium text-violet-800 flex-shrink-0">MK</div>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm text-text-primary">Michael Kim</span>
+                    <span class="text-xs text-text-tertiary ml-1.5">m.kim@startupx.io</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    <span class="text-xs text-text-secondary">Opened 5h ago</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 px-2 py-2 rounded hover:bg-surface-secondary transition-colors">
+                  <div class="w-7 h-7 rounded-full bg-emerald-200 flex items-center justify-center text-[10px] font-medium text-emerald-800 flex-shrink-0">JC</div>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm text-text-primary">Jennifer Chen</span>
+                    <span class="text-xs text-text-tertiary ml-1.5">jchen@buildco.com</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    <span class="text-xs text-text-secondary">Opened 1d ago</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 px-2 py-2 rounded hover:bg-surface-secondary transition-colors">
+                  <div class="w-7 h-7 rounded-full bg-amber-200 flex items-center justify-center text-[10px] font-medium text-amber-800 flex-shrink-0">RP</div>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm text-text-primary">Raj Patel</span>
+                    <span class="text-xs text-text-tertiary ml-1.5">raj@ventureworks.co</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    <span class="text-xs text-text-secondary">Opened 1d ago</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 px-2 py-2 rounded hover:bg-surface-secondary transition-colors">
+                  <div class="w-7 h-7 rounded-full bg-rose-200 flex items-center justify-center text-[10px] font-medium text-rose-800 flex-shrink-0">AT</div>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm text-text-primary">Amanda Torres</span>
+                    <span class="text-xs text-text-tertiary ml-1.5">amanda@launchpad.io</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    <span class="text-xs text-text-secondary">Opened 2d ago</span>
+                  </div>
+                </div>
+
+                <!-- NOT OPENED divider -->
+                <div class="flex items-center gap-2 px-2 py-1.5 mt-1">
+                  <div class="h-px flex-1 bg-border-subtle"></div>
+                  <span class="text-[10px] text-text-tertiary font-medium">NOT OPENED</span>
+                  <div class="h-px flex-1 bg-border-subtle"></div>
+                </div>
+
+                <div class="flex items-center gap-3 px-2 py-2 rounded hover:bg-surface-secondary transition-colors opacity-60">
+                  <div class="w-7 h-7 rounded-full bg-cyan-200 flex items-center justify-center text-[10px] font-medium text-cyan-800 flex-shrink-0">DL</div>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm text-text-primary">David Liu</span>
+                    <span class="text-xs text-text-tertiary ml-1.5">david@growthops.co</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-border-strong"></div>
+                    <span class="text-xs text-text-tertiary">Not opened</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 px-2 py-2 rounded hover:bg-surface-secondary transition-colors opacity-60">
+                  <div class="w-7 h-7 rounded-full bg-orange-200 flex items-center justify-center text-[10px] font-medium text-orange-800 flex-shrink-0">NW</div>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm text-text-primary">Nina Williams</span>
+                    <span class="text-xs text-text-tertiary ml-1.5">nina@scalefast.io</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-border-strong"></div>
+                    <span class="text-xs text-text-tertiary">Not opened</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 px-2 py-2 rounded hover:bg-surface-secondary transition-colors opacity-60">
+                  <div class="w-7 h-7 rounded-full bg-teal-200 flex items-center justify-center text-[10px] font-medium text-teal-800 flex-shrink-0">BH</div>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm text-text-primary">Ben Harris</span>
+                    <span class="text-xs text-text-tertiary ml-1.5">ben@founderhq.com</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-status-warning"></div>
+                    <span class="text-xs text-status-warning">Last opened: Aug</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CTA clicks -->
+            <div class="mb-5">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-text-tertiary">CTA clicks</span>
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between px-2.5 py-2 bg-surface-secondary rounded-md">
+                  <span class="text-xs text-text-primary">"Get started" button</span>
+                  <div class="flex items-center gap-2">
+                    <div class="w-20 h-1.5 bg-border-default rounded-full overflow-hidden">
+                      <div class="h-full bg-green-500 rounded-full" style="width: 62%"></div>
+                    </div>
+                    <span class="text-xs tabular-nums text-text-secondary w-8 text-right">62%</span>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between px-2.5 py-2 bg-surface-secondary rounded-md">
+                  <span class="text-xs text-text-primary">"View changelog" link</span>
+                  <div class="flex items-center gap-2">
+                    <div class="w-20 h-1.5 bg-border-default rounded-full overflow-hidden">
+                      <div class="h-full bg-green-500 rounded-full" style="width: 35%"></div>
+                    </div>
+                    <span class="text-xs tabular-nums text-text-secondary w-8 text-right">35%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTION BAR -->
+    <div class="flex items-center justify-between px-5 py-2.5 border-t bg-surface-primary flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-default rounded-full hover:bg-surface-secondary hover:text-text-primary transition-all">
+          Save Draft
+          <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM78,48h68V88H78Zm80,160H80V144h78Zm58,0H174V136a8,8,0,0,0-8-8H72a8,8,0,0,0-8,8v72H48V48h14V96a8,8,0,0,0,8,8h84a8,8,0,0,0,8-8V48h46Z"/></svg>
+        </button>
+        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-default rounded-full hover:bg-surface-secondary hover:text-text-primary transition-all">
+          Preview
+          <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/></svg>
+        </button>
+        <!-- ENHANCEMENT 6: Reading time + word count -->
+        <div class="flex items-center gap-3 text-xs text-text-tertiary">
+          <span class="tabular-nums">347 words</span>
+          <span>·</span>
+          <span>~2 min read</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary border border-border-default rounded-full hover:bg-surface-secondary hover:text-text-primary transition-all">
+          Send Test
+          <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.17,0L19.57,82.06a16,16,0,0,0-2.49,29.8L96,137.53V200a16,16,0,0,0,27.31,11.31l22.59-22.58L191.85,225a15.93,15.93,0,0,0,10.51,4,16.16,16.16,0,0,0,5-.79,15.89,15.89,0,0,0,10.67-11.63L231.4,44.31A16,16,0,0,0,227.32,28.68Z"/></svg>
+        </button>
+        <div class="relative inline-flex">
+          <button class="px-4 py-1.5 text-xs font-medium text-white bg-zinc-900 rounded-l-full hover:bg-zinc-800 transition-colors">Send</button>
+          <button class="px-2 py-1.5 text-white bg-zinc-900 rounded-r-full border-l border-zinc-700 hover:bg-zinc-800 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- SECTION 2: TEMPLATE PICKER                                      -->
+  <!-- ============================================================== -->
+  <div class="border-t-4 border-border-strong"></div>
+  <div class="py-16 bg-surface-primary">
+    <div class="max-w-5xl mx-auto px-8">
+      <div class="text-center mb-4">
+        <span class="text-xs font-medium text-text-tertiary tracking-wider uppercase">Enhancement 4 — Template Picker</span>
+      </div>
+      <div class="text-center mb-10">
+        <h1 class="text-3xl font-semibold text-text-primary tracking-tight mb-2">What are you sending?</h1>
+        <p class="text-base text-text-secondary">Pick a template to get started, or start from scratch</p>
+      </div>
+
+      <!-- Recently used -->
+      <div class="mb-8">
+        <h3 class="text-xs font-medium text-text-tertiary mb-3">Recently used</h3>
+        <div class="flex gap-3">
+          <button class="group flex items-center gap-3 px-4 py-3 border border-border-default rounded-lg hover:border-border-hover hover:shadow-sm transition-all bg-surface-primary">
+            <div class="w-8 h-8 rounded-md bg-surface-secondary flex items-center justify-center text-text-secondary">
+              <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,144H32V64H224Z"/></svg>
+            </div>
+            <div class="text-left">
+              <div class="text-sm font-medium text-text-primary">Investor Update</div>
+              <div class="text-xs text-text-tertiary">Last used 2 weeks ago</div>
+            </div>
+          </button>
+          <button class="group flex items-center gap-3 px-4 py-3 border border-border-default rounded-lg hover:border-border-hover hover:shadow-sm transition-all bg-surface-primary">
+            <div class="w-8 h-8 rounded-md bg-surface-secondary flex items-center justify-center text-text-secondary">
+              <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,144H32V64H224Z"/></svg>
+            </div>
+            <div class="text-left">
+              <div class="text-sm font-medium text-text-primary">Product Update</div>
+              <div class="text-xs text-text-tertiary">Last used 1 month ago</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Template grid with thumbnails -->
+      <div class="grid grid-cols-3 gap-4">
+        <!-- Product Update -->
+        <button class="group flex flex-col text-left rounded-lg border border-border-subtle bg-surface-primary hover:border-border-hover hover:shadow-md transition-all overflow-hidden">
+          <div class="h-32 bg-surface-secondary p-4 border-b border-border-subtle">
+            <div class="transform scale-[0.35] origin-top-left w-[280%]" style="pointer-events: none;">
+              <div style="font-family: 'Satoshi', sans-serif; background: white; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="width: 120px; height: 12px; background: #111827; border-radius: 4px; margin-bottom: 12px;"></div>
+                <div style="width: 200px; height: 8px; background: #d1d5db; border-radius: 4px; margin-bottom: 6px;"></div>
+                <div style="width: 180px; height: 8px; background: #d1d5db; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="width: 100%; height: 1px; background: #e5e7eb; margin-bottom: 16px;"></div>
+                <div style="width: 80px; height: 10px; background: #111827; border-radius: 4px; margin-bottom: 8px;"></div>
+                <div style="display: flex; gap: 4px; margin-bottom: 4px;"><div style="width: 4px; height: 4px; background: #111827; border-radius: 50%; margin-top: 4px;"></div><div style="width: 160px; height: 8px; background: #d1d5db; border-radius: 4px;"></div></div>
+                <div style="display: flex; gap: 4px;"><div style="width: 4px; height: 4px; background: #111827; border-radius: 50%; margin-top: 4px;"></div><div style="width: 140px; height: 8px; background: #d1d5db; border-radius: 4px;"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="p-5">
+            <div class="text-sm font-semibold text-text-primary mb-0.5">Product Update</div>
+            <div class="text-xs text-text-tertiary">Hero image, features, and CTA</div>
+          </div>
+        </button>
+
+        <!-- Changelog -->
+        <button class="group flex flex-col text-left rounded-lg border border-border-subtle bg-surface-primary hover:border-border-hover hover:shadow-md transition-all overflow-hidden">
+          <div class="h-32 bg-surface-secondary p-4 border-b border-border-subtle">
+            <div class="transform scale-[0.35] origin-top-left w-[280%]" style="pointer-events: none;">
+              <div style="font-family: 'Satoshi', sans-serif; background: white; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="width: 160px; height: 12px; background: #111827; border-radius: 4px; margin-bottom: 12px;"></div>
+                <div style="width: 180px; height: 8px; background: #d1d5db; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="width: 60px; height: 10px; background: #16a34a; border-radius: 4px; margin-bottom: 8px;"></div>
+                <div style="display: flex; gap: 4px; margin-bottom: 4px;"><div style="width: 4px; height: 4px; background: #111827; border-radius: 50%; margin-top: 4px;"></div><div style="width: 160px; height: 8px; background: #d1d5db; border-radius: 4px;"></div></div>
+                <div style="display: flex; gap: 4px;"><div style="width: 4px; height: 4px; background: #111827; border-radius: 50%; margin-top: 4px;"></div><div style="width: 140px; height: 8px; background: #d1d5db; border-radius: 4px;"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="p-5">
+            <div class="text-sm font-semibold text-text-primary mb-0.5">Changelog</div>
+            <div class="text-xs text-text-tertiary">Version notes and release details</div>
+          </div>
+        </button>
+
+        <!-- Investor Update -->
+        <button class="group flex flex-col text-left rounded-lg border border-border-subtle bg-surface-primary hover:border-border-hover hover:shadow-md transition-all overflow-hidden">
+          <div class="h-32 bg-surface-secondary p-4 border-b border-border-subtle">
+            <div class="transform scale-[0.35] origin-top-left w-[280%]" style="pointer-events: none;">
+              <div style="font-family: 'Satoshi', sans-serif; background: white; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="width: 140px; height: 12px; background: #111827; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+                  <div style="background: #f9fafb; border-radius: 6px; padding: 8px; text-align: center;"><div style="width: 40px; height: 10px; background: #111827; border-radius: 4px; margin: 0 auto 4px;"></div><div style="width: 20px; height: 6px; background: #d1d5db; border-radius: 4px; margin: 0 auto;"></div></div>
+                  <div style="background: #f9fafb; border-radius: 6px; padding: 8px; text-align: center;"><div style="width: 30px; height: 10px; background: #111827; border-radius: 4px; margin: 0 auto 4px;"></div><div style="width: 20px; height: 6px; background: #d1d5db; border-radius: 4px; margin: 0 auto;"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="p-5">
+            <div class="text-sm font-semibold text-text-primary mb-0.5">Investor Update</div>
+            <div class="text-xs text-text-tertiary">Metrics, highlights, and asks</div>
+          </div>
+        </button>
+
+        <!-- Team Update (NEW) -->
+        <button class="group flex flex-col text-left rounded-lg border border-border-subtle bg-surface-primary hover:border-border-hover hover:shadow-md transition-all overflow-hidden">
+          <div class="h-32 bg-surface-secondary p-4 border-b border-border-subtle">
+            <div class="transform scale-[0.35] origin-top-left w-[280%]" style="pointer-events: none;">
+              <div style="font-family: 'Satoshi', sans-serif; background: white; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="width: 140px; height: 12px; background: #111827; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="width: 80px; height: 10px; background: #111827; border-radius: 4px; margin-bottom: 8px;"></div>
+                <div style="display: flex; gap: 4px; margin-bottom: 4px;"><div style="width: 8px; height: 8px; background: #16a34a; border-radius: 2px; margin-top: 2px;"></div><div style="width: 160px; height: 8px; background: #d1d5db; border-radius: 4px;"></div></div>
+                <div style="display: flex; gap: 4px; margin-bottom: 12px;"><div style="width: 8px; height: 8px; background: #16a34a; border-radius: 2px; margin-top: 2px;"></div><div style="width: 140px; height: 8px; background: #d1d5db; border-radius: 4px;"></div></div>
+                <div style="width: 80px; height: 10px; background: #111827; border-radius: 4px; margin-bottom: 8px;"></div>
+                <div style="display: flex; gap: 4px;"><div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px; margin-top: 2px;"></div><div style="width: 150px; height: 8px; background: #d1d5db; border-radius: 4px;"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="p-5">
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="text-sm font-semibold text-text-primary">Team Update</span>
+              <span class="text-[10px] font-medium text-text-tertiary bg-surface-secondary px-1.5 py-0.5 rounded">New</span>
+            </div>
+            <div class="text-xs text-text-tertiary">This week, next week, metrics, shout-outs</div>
+          </div>
+        </button>
+
+        <!-- Announcement -->
+        <button class="group flex flex-col text-left rounded-lg border border-border-subtle bg-surface-primary hover:border-border-hover hover:shadow-md transition-all overflow-hidden">
+          <div class="h-32 bg-surface-secondary p-4 border-b border-border-subtle">
+            <div class="transform scale-[0.35] origin-top-left w-[280%]" style="pointer-events: none;">
+              <div style="font-family: 'Satoshi', sans-serif; background: white; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="width: 120px; height: 14px; background: #111827; border-radius: 4px; margin-bottom: 12px;"></div>
+                <div style="width: 200px; height: 8px; background: #d1d5db; border-radius: 4px; margin-bottom: 6px;"></div>
+                <div style="width: 160px; height: 8px; background: #d1d5db; border-radius: 4px; margin-bottom: 16px;"></div>
+                <div style="width: 100px; height: 28px; background: #111827; border-radius: 14px;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="p-5">
+            <div class="text-sm font-semibold text-text-primary mb-0.5">Announcement</div>
+            <div class="text-xs text-text-tertiary">Short update with a single CTA</div>
+          </div>
+        </button>
+
+        <!-- Blank -->
+        <button class="group flex flex-col text-left rounded-lg border border-border-subtle bg-surface-primary hover:border-border-hover hover:shadow-md transition-all overflow-hidden">
+          <div class="h-32 bg-surface-secondary flex items-center justify-center border-b border-border-subtle">
+            <div class="w-12 h-12 rounded-lg border-2 border-dashed border-border-default flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor" class="text-text-tertiary"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/></svg>
+            </div>
+          </div>
+          <div class="p-5">
+            <div class="text-sm font-semibold text-text-primary mb-0.5">Blank</div>
+            <div class="text-xs text-text-tertiary">Start from scratch</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANNOTATIONS -->
+  <div class="border-t-4 border-border-strong bg-surface-secondary py-12 px-8">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-xl font-semibold text-text-primary mb-6">Prototype Annotations</h2>
+      <div class="space-y-4">
+        <div class="p-4 bg-surface-primary border border-border-default rounded-lg">
+          <h3 class="text-sm font-semibold text-text-primary mb-1">1. Preview: Device + Theme Controls</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">Two independent controls: Desktop/Mobile segmented control for device, Sun/Moon toggle for light/dark theme. Cleaner than a 2x2 grid — each dimension is independent and the controls read naturally.</p>
+        </div>
+        <div class="p-4 bg-surface-primary border border-border-default rounded-lg">
+          <h3 class="text-sm font-semibold text-text-primary mb-1">2. Enhanced Content Suggestions</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">Auto-populate banner detects template type (product update, tips, etc.). AI suggestion row (no sparkles). Prominent "Insert" buttons. Metrics "Insert card" on hover. "Last sent" with "Reuse intro". Framed for Weftly product team sending to users.</p>
+        </div>
+        <div class="p-4 bg-surface-primary border border-border-default rounded-lg">
+          <h3 class="text-sm font-semibold text-text-primary mb-1">3. Send Test (Action Bar Only)</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">Single Send Test button in the action bar alongside Send. No duplicate in top bar. Inline toast confirmation on click ("Test sent to you@weftly.com").</p>
+        </div>
+        <div class="p-4 bg-surface-primary border border-border-default rounded-lg">
+          <h3 class="text-sm font-semibold text-text-primary mb-1">4. Template Picker</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">"Recently used" section for quick access. Preview thumbnails showing email structure. New "Team Update" template (research: founders send these weekly). Reframed as "What are you sending?" for Weftly product team context. 3-column grid.</p>
+        </div>
+        <div class="p-4 bg-surface-primary border border-border-default rounded-lg">
+          <h3 class="text-sm font-semibold text-text-primary mb-1">5. Recipient Engagement Panel</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">New "Engagement" tab. Per-recipient tracking with avatars (200-shade colors). "NOT OPENED" divider. Disengagement warning card. CTA click breakdown with progress bars. Works for any audience — users, investors, team. Extensible infrastructure.</p>
+        </div>
+        <div class="p-4 bg-surface-primary border border-border-default rounded-lg">
+          <h3 class="text-sm font-semibold text-text-primary mb-1">6. Action Bar: Word Count + Subject Health</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">Word count + reading time ("347 words · ~2 min read"). Subject line character count with green/amber/red indicator. Send Test lives here alongside Send split button.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab, btn) {
+      document.querySelectorAll('[id^="tab-"]').forEach(function(el) {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      });
+      document.getElementById('tab-' + tab).classList.remove('hidden');
+      document.getElementById('tab-' + tab).classList.add('flex');
+      btn.parentElement.querySelectorAll('.seg-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    }
+
+    var currentDevice = 'desktop';
+    var currentTheme = 'light';
+
+    function setDevice(device, btn) {
+      currentDevice = device;
+      btn.parentElement.querySelectorAll('.seg-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      applyPreview();
+    }
+
+    function setTheme(theme, btn) {
+      currentTheme = theme;
+      btn.parentElement.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      applyPreview();
+    }
+
+    function applyPreview() {
+      var card = document.getElementById('preview-card');
+      var inner = document.getElementById('preview-inner');
+
+      card.style.maxWidth = currentDevice === 'mobile' ? '375px' : 'none';
+
+      var title = document.getElementById('preview-title');
+      var body = document.getElementById('preview-body');
+      var cta = document.getElementById('metric-td-1');
+
+      if (currentTheme === 'dark') {
+        inner.style.background = '#1a1a1a';
+        inner.style.color = '#e5e7eb';
+        title.style.color = '#e5e7eb';
+        if (body) body.style.color = '#d1d5db';
+        if (cta) cta.style.background = '#262626';
+      } else {
+        inner.style.background = '#ffffff';
+        inner.style.color = '#111827';
+        title.style.color = '#111827';
+        if (body) body.style.color = '#111827';
+        if (cta) cta.style.background = '#f9fafb';
+      }
+    }
+
+    function showTestToast() {
+      var toast = document.getElementById('test-toast');
+      toast.classList.remove('hidden');
+      setTimeout(function() {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    function updateCharCount() {
+      var input = document.getElementById('subject-input');
+      var numEl = document.getElementById('char-count-num');
+      var len = input.value.length;
+      numEl.textContent = len;
+      numEl.className = 'font-medium';
+      if (len > 70) {
+        numEl.classList.add('text-status-error');
+      } else if (len > 50) {
+        numEl.classList.add('text-status-warning');
+      } else {
+        numEl.classList.add('text-status-success');
+      }
+    }
+  </script>
+</body>
+</html>

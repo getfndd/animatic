@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Engagement Analytics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* ITO Light mode tokens */
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --status-info: 217 91% 60%;
+      --status-info-bg: 214 95% 93%;
+      --radius: 0.5rem;
+    }
+
+    .dark {
+      --surface-primary: 0 0% 9%;
+      --surface-secondary: 0 0% 13%;
+      --surface-tertiary: 0 0% 17%;
+      --surface-inverse: 0 0% 98%;
+      --text-primary: 0 0% 98%;
+      --text-secondary: 0 0% 65%;
+      --text-tertiary: 0 0% 50%;
+      --text-inverse: 0 0% 9%;
+      --border-default: 0 0% 20%;
+      --border-subtle: 0 0% 15%;
+      --border-strong: 0 0% 30%;
+    }
+
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+
+    /* Slide-out overlay */
+    .slideout-overlay {
+      background: rgba(0,0,0,0.08);
+      transition: opacity 200ms ease;
+    }
+
+    /* Timeline bar chart */
+    .timeline-bar {
+      background: hsl(var(--status-info));
+      border-radius: 2px 2px 0 0;
+      transition: opacity 150ms ease;
+    }
+    .timeline-bar:hover {
+      opacity: 0.8;
+    }
+
+    /* Avatar colors — 200-shade */
+    .avatar-blue { background-color: #bfdbfe; color: #1e40af; }
+    .avatar-emerald { background-color: #a7f3d0; color: #065f46; }
+    .avatar-amber { background-color: #fde68a; color: #92400e; }
+    .avatar-violet { background-color: #ddd6fe; color: #5b21b6; }
+    .avatar-rose { background-color: #fecdd3; color: #9f1239; }
+    .avatar-cyan { background-color: #a5f3fc; color: #155e75; }
+    .avatar-orange { background-color: #fed7aa; color: #9a3412; }
+    .avatar-teal { background-color: #99f6e4; color: #115e59; }
+
+    .avatar-stack > *:not(:first-child) {
+      margin-left: -6px;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+            'status-info': 'hsl(var(--status-info))',
+            'status-info-bg': 'hsl(var(--status-info-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-60 h-screen border-r flex flex-col bg-surface-primary shrink-0">
+      <div class="h-14 flex items-center px-6 border-b">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded bg-surface-inverse"></div>
+          <span class="font-semibold">Weftly</span>
+        </div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-4 px-3">
+        <div class="text-[11px] font-medium text-text-tertiary px-3 mb-2">Workspace</div>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Home
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          People
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-surface-tertiary font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          Email
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Analytics
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Settings
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <!-- Top Bar -->
+      <header class="h-14 border-b flex items-center px-6 shrink-0">
+        <h1 class="text-lg font-semibold">Email</h1>
+      </header>
+
+      <!-- Page Content (Email Hub list behind the slide-out) -->
+      <main class="flex-1 overflow-auto relative">
+
+        <!-- Simplified hub list (background context) -->
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+              <button class="text-sm font-medium text-text-primary px-3 py-1.5 rounded bg-surface-tertiary">Sent</button>
+              <button class="text-sm text-text-secondary px-3 py-1.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">Drafts</button>
+            </div>
+            <button class="text-sm font-medium text-text-inverse bg-surface-inverse px-4 py-2 rounded-full hover:opacity-90 transition-opacity">New Email</button>
+          </div>
+
+          <!-- Email list rows (dimmed, behind overlay) -->
+          <div class="space-y-px">
+            <div class="flex items-center gap-4 px-3 py-3 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer bg-surface-secondary">
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate">Q4 2025 Investor Update</div>
+                <div class="text-xs text-text-tertiary mt-0.5">28 recipients &middot; Sent Feb 10, 2026</div>
+              </div>
+              <div class="flex items-center gap-6 text-xs tabular-nums">
+                <div class="text-text-secondary"><span class="text-text-primary font-medium">67%</span> delivered</div>
+                <div class="text-text-secondary"><span class="text-text-primary font-medium">29%</span> clicked</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 px-3 py-3 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer opacity-40">
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate">Product Launch Announcement</div>
+                <div class="text-xs text-text-tertiary mt-0.5">142 recipients &middot; Sent Feb 3, 2026</div>
+              </div>
+              <div class="flex items-center gap-6 text-xs tabular-nums">
+                <div class="text-text-secondary"><span class="text-text-primary font-medium">94%</span> delivered</div>
+                <div class="text-text-secondary"><span class="text-text-primary font-medium">12%</span> clicked</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 px-3 py-3 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer opacity-40">
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium truncate">January Board Summary</div>
+                <div class="text-xs text-text-tertiary mt-0.5">12 recipients &middot; Sent Jan 28, 2026</div>
+              </div>
+              <div class="flex items-center gap-6 text-xs tabular-nums">
+                <div class="text-text-secondary"><span class="text-text-primary font-medium">100%</span> delivered</div>
+                <div class="text-text-secondary"><span class="text-text-primary font-medium">42%</span> clicked</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide-out Overlay -->
+        <div class="slideout-overlay absolute inset-0 z-10" onclick="document.getElementById('slideout').classList.add('translate-x-full')"></div>
+
+        <!-- Slide-out Panel -->
+        <div id="slideout" class="absolute top-0 right-0 w-[520px] h-full bg-surface-primary border-l z-20 overflow-y-auto shadow-lg">
+
+          <!-- Slide-out Header -->
+          <div class="sticky top-0 bg-surface-primary border-b z-10">
+            <div class="flex items-center justify-between px-6 h-14">
+              <div class="flex-1 min-w-0">
+                <h2 class="text-sm font-semibold truncate">Q4 2025 Investor Update</h2>
+                <p class="text-xs text-text-tertiary mt-0.5">Sent Feb 10, 2026 at 9:14 AM &middot; 28 recipients</p>
+              </div>
+              <button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-secondary transition-colors duration-[140ms] text-text-secondary hover:text-text-primary ml-3 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-6 space-y-8">
+
+            <!-- Hero Metrics -->
+            <div class="grid grid-cols-3 gap-3">
+              <!-- Delivered -->
+              <div class="border rounded-md p-4">
+                <div class="text-xs font-medium text-text-tertiary mb-1">Delivered</div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-2xl font-semibold tabular-nums">19</span>
+                  <span class="text-xs text-text-tertiary tabular-nums">/ 28</span>
+                </div>
+                <div class="text-xs text-text-secondary mt-1 tabular-nums">67.9%</div>
+              </div>
+
+              <!-- Clicked -->
+              <div class="border rounded-md p-4 border-status-success/30 bg-status-success-bg/40">
+                <div class="text-xs font-medium text-text-tertiary mb-1">Clicked</div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-2xl font-semibold tabular-nums">8</span>
+                  <span class="text-xs text-text-tertiary tabular-nums">/ 28</span>
+                </div>
+                <div class="text-xs text-status-success mt-1 tabular-nums">28.6%</div>
+              </div>
+
+              <!-- Bounced -->
+              <div class="border rounded-md p-4 border-status-error/30 bg-status-error-bg/40">
+                <div class="text-xs font-medium text-text-tertiary mb-1">Bounced</div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-2xl font-semibold tabular-nums">1</span>
+                  <span class="text-xs text-text-tertiary tabular-nums">/ 28</span>
+                </div>
+                <div class="text-xs text-status-error mt-1 tabular-nums">3.6%</div>
+              </div>
+            </div>
+
+            <!-- Secondary Metrics -->
+            <div class="flex items-center gap-6 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="text-text-tertiary">Open rate</span>
+                <span class="font-medium tabular-nums">42.9%</span>
+                <span class="text-text-tertiary">(12/28)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-text-tertiary">CTOR</span>
+                <span class="font-medium tabular-nums">66.7%</span>
+                <span class="text-text-tertiary">(8/12 openers clicked)</span>
+              </div>
+            </div>
+
+            <!-- 24-Hour Engagement Timeline -->
+            <div>
+              <div class="text-xs font-medium text-text-tertiary mb-3">Engagement Timeline</div>
+              <div class="border rounded-md p-4">
+                <div class="flex items-end gap-1 h-16">
+                  <!-- Hour bars: realistic engagement decay pattern -->
+                  <!-- 9 AM (send) - big spike -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 64px"></div>
+                  </div>
+                  <!-- 10 AM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 48px"></div>
+                  </div>
+                  <!-- 11 AM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 24px"></div>
+                  </div>
+                  <!-- 12 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 16px"></div>
+                  </div>
+                  <!-- 1 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 8px"></div>
+                  </div>
+                  <!-- 2 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 12px"></div>
+                  </div>
+                  <!-- 3 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 4px"></div>
+                  </div>
+                  <!-- 4 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 8px"></div>
+                  </div>
+                  <!-- 5 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 4px"></div>
+                  </div>
+                  <!-- 6 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <!-- 7 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 4px"></div>
+                  </div>
+                  <!-- 8 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <!-- 9 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <!-- 10 PM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 4px"></div>
+                  </div>
+                  <!-- 11 PM+ -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <!-- 12 AM -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <!-- remainder -->
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 4px"></div>
+                  </div>
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                  <div class="flex-1 flex flex-col items-center gap-1">
+                    <div class="timeline-bar w-full" style="height: 0px"></div>
+                  </div>
+                </div>
+                <div class="flex justify-between mt-2 text-[10px] text-text-tertiary tabular-nums">
+                  <span>9 AM</span>
+                  <span>3 PM</span>
+                  <span>9 PM</span>
+                  <span>3 AM</span>
+                  <span>9 AM</span>
+                </div>
+                <div class="text-center text-[10px] text-text-tertiary mt-1">74% of engagement in first 2 hours</div>
+              </div>
+            </div>
+
+            <!-- Recipients by Engagement Level -->
+            <div>
+              <div class="text-xs font-medium text-text-tertiary mb-3">Recipients</div>
+
+              <!-- Clicked Section -->
+              <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-success"></div>
+                  <span class="text-xs font-medium">Clicked</span>
+                  <span class="text-xs text-text-tertiary tabular-nums">8</span>
+                </div>
+                <div class="space-y-px">
+                  <!-- Recipient rows -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms] group">
+                    <div class="w-7 h-7 rounded-full avatar-blue flex items-center justify-center text-[9px] font-medium shrink-0">SV</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Sarah Vance</div>
+                      <div class="text-xs text-text-tertiary truncate">Clicked "View Q4 Metrics" &middot; 9:22 AM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms] group">
+                    <div class="w-7 h-7 rounded-full avatar-emerald flex items-center justify-center text-[9px] font-medium shrink-0">MK</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Mike Kim</div>
+                      <div class="text-xs text-text-tertiary truncate">Clicked "View Q4 Metrics", "Team Page" &middot; 9:31 AM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms] group">
+                    <div class="w-7 h-7 rounded-full avatar-violet flex items-center justify-center text-[9px] font-medium shrink-0">RP</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Raj Patel</div>
+                      <div class="text-xs text-text-tertiary truncate">Clicked "Product Roadmap" &middot; 10:05 AM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms] group">
+                    <div class="w-7 h-7 rounded-full avatar-amber flex items-center justify-center text-[9px] font-medium shrink-0">LT</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Lisa Thompson</div>
+                      <div class="text-xs text-text-tertiary truncate">Clicked "View Q4 Metrics" &middot; 10:17 AM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms] group">
+                    <div class="w-7 h-7 rounded-full avatar-rose flex items-center justify-center text-[9px] font-medium shrink-0">JW</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">James Wu</div>
+                      <div class="text-xs text-text-tertiary truncate">Clicked "Financial Summary" &middot; 11:42 AM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms] group">
+                    <div class="w-7 h-7 rounded-full avatar-cyan flex items-center justify-center text-[9px] font-medium shrink-0">AC</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Anya Chen</div>
+                      <div class="text-xs text-text-tertiary truncate">Clicked "View Q4 Metrics", "Product Roadmap" &middot; 2:08 PM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms] group">
+                    <div class="w-7 h-7 rounded-full avatar-orange flex items-center justify-center text-[9px] font-medium shrink-0">DM</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">David Moreno</div>
+                      <div class="text-xs text-text-tertiary truncate">Clicked "Financial Summary" &middot; 4:33 PM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms] group">
+                    <div class="w-7 h-7 rounded-full avatar-teal flex items-center justify-center text-[9px] font-medium shrink-0">NB</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Nadia Barre</div>
+                      <div class="text-xs text-text-tertiary truncate">Clicked "Team Page" &middot; next day, 7:15 AM</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Opened Section -->
+              <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-info"></div>
+                  <span class="text-xs font-medium">Opened</span>
+                  <span class="text-xs text-text-tertiary tabular-nums">4</span>
+                </div>
+                <div class="space-y-px">
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-blue flex items-center justify-center text-[9px] font-medium shrink-0">TN</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Tara Nguyen</div>
+                      <div class="text-xs text-text-tertiary">Opened &middot; 9:18 AM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-emerald flex items-center justify-center text-[9px] font-medium shrink-0">BK</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Ben Kowalski</div>
+                      <div class="text-xs text-text-tertiary">Opened &middot; 10:41 AM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-violet flex items-center justify-center text-[9px] font-medium shrink-0">EL</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Elena Lopez</div>
+                      <div class="text-xs text-text-tertiary">Opened &middot; 12:09 PM</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-amber flex items-center justify-center text-[9px] font-medium shrink-0">PG</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Priya Gupta</div>
+                      <div class="text-xs text-text-tertiary">Opened &middot; 5:22 PM</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Delivered (no engagement) Section -->
+              <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-1.5 h-1.5 rounded-full bg-border-strong"></div>
+                  <span class="text-xs font-medium text-text-secondary">Delivered</span>
+                  <span class="text-xs text-text-tertiary tabular-nums">7</span>
+                </div>
+                <div class="space-y-px opacity-60">
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-rose flex items-center justify-center text-[9px] font-medium shrink-0">CM</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Chris Martinez</div>
+                      <div class="text-xs text-text-tertiary">Delivered &middot; no engagement</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-cyan flex items-center justify-center text-[9px] font-medium shrink-0">KR</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Kim Reeves</div>
+                      <div class="text-xs text-text-tertiary">Delivered &middot; no engagement</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-orange flex items-center justify-center text-[9px] font-medium shrink-0">AF</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Amir Farooq</div>
+                      <div class="text-xs text-text-tertiary">Delivered &middot; no engagement</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-teal flex items-center justify-center text-[9px] font-medium shrink-0">JO</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Julia Okafor</div>
+                      <div class="text-xs text-text-tertiary">Delivered &middot; no engagement</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-blue flex items-center justify-center text-[9px] font-medium shrink-0">HS</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Henrik Strand</div>
+                      <div class="text-xs text-text-tertiary">Delivered &middot; no engagement</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-emerald flex items-center justify-center text-[9px] font-medium shrink-0">MT</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Maya Torres</div>
+                      <div class="text-xs text-text-tertiary">Delivered &middot; no engagement</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">
+                    <div class="w-7 h-7 rounded-full avatar-violet flex items-center justify-center text-[9px] font-medium shrink-0">RD</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Roberto Diaz</div>
+                      <div class="text-xs text-text-tertiary">Delivered &middot; no engagement</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Not Delivered Section -->
+              <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-1.5 h-1.5 rounded-full bg-text-tertiary"></div>
+                  <span class="text-xs font-medium text-text-secondary">Pending</span>
+                  <span class="text-xs text-text-tertiary tabular-nums">8</span>
+                </div>
+                <div class="space-y-px opacity-40">
+                  <div class="flex items-center gap-3 px-3 py-2 rounded">
+                    <div class="w-7 h-7 rounded-full bg-surface-tertiary flex items-center justify-center text-[9px] font-medium text-text-tertiary shrink-0">WL</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm text-text-tertiary">Wei Li</div>
+                      <div class="text-xs text-text-tertiary">Sent &middot; awaiting delivery</div>
+                    </div>
+                  </div>
+                  <div class="px-3 py-1.5 text-xs text-text-tertiary">+ 7 more pending delivery</div>
+                </div>
+              </div>
+
+              <!-- Bounced Section -->
+              <div>
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-error"></div>
+                  <span class="text-xs font-medium text-status-error">Bounced</span>
+                  <span class="text-xs text-text-tertiary tabular-nums">1</span>
+                </div>
+                <div class="space-y-px">
+                  <div class="flex items-center gap-3 px-3 py-2 rounded bg-status-error-bg/50">
+                    <div class="w-7 h-7 rounded-full bg-status-error-bg flex items-center justify-center text-[9px] font-medium text-status-error shrink-0">FH</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">Frank Henderson</div>
+                      <div class="text-xs text-status-error">Hard bounce &middot; f.henderson@oldcorp.com</div>
+                    </div>
+                    <button class="text-xs text-text-secondary hover:text-text-primary px-2 py-1 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">Remove</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Link Performance -->
+            <div>
+              <div class="text-xs font-medium text-text-tertiary mb-3">Link Performance</div>
+              <div class="border rounded-md divide-y">
+                <!-- Link row 1 -->
+                <div class="flex items-center gap-3 px-4 py-3">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm truncate">View Q4 Metrics</div>
+                    <div class="text-xs text-text-tertiary truncate">app.weftly.com/reports/q4-2025</div>
+                  </div>
+                  <div class="flex items-center gap-3 shrink-0">
+                    <div class="avatar-stack flex items-center">
+                      <div class="w-5 h-5 rounded-full avatar-blue flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">SV</div>
+                      <div class="w-5 h-5 rounded-full avatar-emerald flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">MK</div>
+                      <div class="w-5 h-5 rounded-full avatar-amber flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">LT</div>
+                      <div class="w-5 h-5 rounded-full avatar-cyan flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">AC</div>
+                    </div>
+                    <span class="text-sm font-medium tabular-nums">4</span>
+                  </div>
+                </div>
+                <!-- Link row 2 -->
+                <div class="flex items-center gap-3 px-4 py-3">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm truncate">Product Roadmap</div>
+                    <div class="text-xs text-text-tertiary truncate">app.weftly.com/roadmap/2026</div>
+                  </div>
+                  <div class="flex items-center gap-3 shrink-0">
+                    <div class="avatar-stack flex items-center">
+                      <div class="w-5 h-5 rounded-full avatar-violet flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">RP</div>
+                      <div class="w-5 h-5 rounded-full avatar-cyan flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">AC</div>
+                    </div>
+                    <span class="text-sm font-medium tabular-nums">2</span>
+                  </div>
+                </div>
+                <!-- Link row 3 -->
+                <div class="flex items-center gap-3 px-4 py-3">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm truncate">Financial Summary</div>
+                    <div class="text-xs text-text-tertiary truncate">app.weftly.com/finance/summary-q4</div>
+                  </div>
+                  <div class="flex items-center gap-3 shrink-0">
+                    <div class="avatar-stack flex items-center">
+                      <div class="w-5 h-5 rounded-full avatar-rose flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">JW</div>
+                      <div class="w-5 h-5 rounded-full avatar-orange flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">DM</div>
+                    </div>
+                    <span class="text-sm font-medium tabular-nums">2</span>
+                  </div>
+                </div>
+                <!-- Link row 4 -->
+                <div class="flex items-center gap-3 px-4 py-3">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm truncate">Team Page</div>
+                    <div class="text-xs text-text-tertiary truncate">app.weftly.com/team</div>
+                  </div>
+                  <div class="flex items-center gap-3 shrink-0">
+                    <div class="avatar-stack flex items-center">
+                      <div class="w-5 h-5 rounded-full avatar-emerald flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">MK</div>
+                      <div class="w-5 h-5 rounded-full avatar-teal flex items-center justify-center text-[8px] font-medium ring-2 ring-surface-primary">NB</div>
+                    </div>
+                    <span class="text-sm font-medium tabular-nums">2</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom padding -->
+            <div class="h-4"></div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

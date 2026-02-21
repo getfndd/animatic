@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Match Analysis — Consolidated Card (v2)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --radius: 0.5rem;
+    }
+
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+
+  <!-- State labels -->
+  <div class="max-w-5xl mx-auto mb-8">
+    <h1 class="text-lg font-semibold text-text-primary mb-1">Match Analysis — Consolidated Card</h1>
+    <p class="text-sm text-text-secondary">Two states side by side: AI-matched investor (left) vs manually-added investor (right)</p>
+  </div>
+
+  <div class="max-w-5xl mx-auto grid grid-cols-2 gap-8">
+
+    <!-- ==========================================
+         STATE A: AI-matched investor
+         Match Analysis exists → replaces Investment Fit
+         ========================================== -->
+    <div>
+      <div class="mb-4 flex items-center gap-2">
+        <span class="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-text-primary">State A</span>
+        <span class="text-xs text-text-secondary">AI-matched investor (has match analysis)</span>
+      </div>
+
+      <div class="space-y-6">
+
+        <!-- Quick Actions -->
+        <div class="rounded-lg border border-border-default bg-surface-primary p-6">
+          <h3 class="text-sm font-medium text-text-primary mb-3">Quick Actions</h3>
+          <div class="space-y-2">
+            <button class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-surface-inverse px-4 py-2.5 text-sm font-medium text-text-inverse">
+              Log Interaction
+              <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M232,128A104,104,0,0,1,79.12,219.82L45.07,231.17a16,16,0,0,1-20.24-20.24l11.35-34.05A104,104,0,1,1,232,128Z" opacity="0.2"></path><path d="M128,24A104,104,0,0,0,36.18,176.88L24.83,211.29a16,16,0,0,0,20.24,20.24l34.05-11.35A104,104,0,1,0,128,24Z"></path></svg>
+            </button>
+            <button class="w-full inline-flex items-center justify-center gap-2 rounded-full border border-border-default bg-surface-primary px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-secondary transition-colors">
+              Add Partner
+              <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M256,136a8,8,0,0,1-8,8H232v16a8,8,0,0,1-16,0V144H200a8,8,0,0,1,0-16h16V112a8,8,0,0,1,16,0v16h16A8,8,0,0,1,256,136ZM144,157.68a68,68,0,1,0-71.91,0c-20.65,6.76-39.23,19.39-54.17,37.17a8,8,0,0,0,12.25,10.3C50.25,181.19,77.91,168,108,168s57.75,13.19,77.88,37.15a8,8,0,0,0,12.25-10.3C183.18,177.07,164.6,164.44,144,157.68Z"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- CONSOLIDATED: Match Analysis + Investment Fit -->
+        <div class="rounded-lg border border-border-default bg-surface-primary p-6">
+          <!-- Header: title + score -->
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-medium text-text-primary">Match Analysis</h3>
+            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-text-primary">
+              <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor"><path d="M232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Z" opacity="0.2" style="fill: rgb(34 197 94)"></path><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z"></path></svg>
+              87% match
+            </span>
+          </div>
+
+          <!-- Investment Fit checklist (replaces reason pills — more informative) -->
+          <div class="space-y-1.5 mb-4">
+            <div class="flex items-center gap-2 text-xs">
+              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" class="text-status-success shrink-0"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z"></path></svg>
+              <span class="text-text-secondary">Stage focus includes Seed</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" class="text-status-success shrink-0"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z"></path></svg>
+              <span class="text-text-secondary">Sector overlap: SaaS, AI</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" class="text-status-success shrink-0"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z"></path></svg>
+              <span class="text-text-secondary">Check size in range</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" class="text-text-tertiary shrink-0"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg>
+              <span class="text-text-tertiary">Geography: no direct match</span>
+            </div>
+          </div>
+
+          <!-- Divider before AI narrative -->
+          <div class="border-t border-border-subtle pt-4 mb-0">
+
+            <!-- Collapsed preview -->
+            <div id="a-preview">
+              <p class="text-xs text-text-secondary leading-relaxed line-clamp-3">
+                TwentyTwo VC is a strong match for your seed-stage SaaS startup. Their focus on early-stage founders who haven't publicly launched aligns well with your current stage, and their sector coverage in SaaS, Fintech, and AI directly overlaps with your positioning...
+              </p>
+            </div>
+
+            <!-- Expanded conversation -->
+            <div id="a-full" style="display: none;">
+              <div class="space-y-3 text-xs text-text-secondary leading-relaxed">
+                <div>
+                  <p class="font-medium text-text-primary mb-1">Why This Match Works</p>
+                  <p>TwentyTwo VC is a strong match for your seed-stage SaaS startup. Their focus on early-stage founders who haven't publicly launched aligns well with your current stage, and their sector coverage in SaaS, Fintech, and AI directly overlaps with your positioning.</p>
+                </div>
+
+                <div>
+                  <p class="font-medium text-text-primary mb-1">Key Alignment Points</p>
+                  <ul class="list-disc list-outside pl-4 space-y-1">
+                    <li><strong>Stage:</strong> They invest at seed, often pre-launch. Your current stage is exactly their sweet spot.</li>
+                    <li><strong>Check size:</strong> $50K-$250K aligns with your target raise.</li>
+                    <li><strong>Thesis:</strong> They value "magnetic, tenacious, adaptable founders" who ship.</li>
+                    <li><strong>Decision speed:</strong> They explicitly call out fast decision-making as a differentiator.</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <p class="font-medium text-text-primary mb-1">Potential Concerns</p>
+                  <ul class="list-disc list-outside pl-4 space-y-1">
+                    <li>Smaller check size means they may not fill your entire round alone</li>
+                    <li>Geography focus includes North America but also Latam and Asia</li>
+                  </ul>
+                </div>
+
+                <!-- User follow-up -->
+                <div class="border-l-2 border-border-default pl-3 py-1">
+                  <p class="text-xs text-text-tertiary italic">What should I emphasize when reaching out?</p>
+                </div>
+
+                <!-- AI response -->
+                <div>
+                  <p>Lead with your shipping velocity and traction metrics. TwentyTwo values founders who "just want to get back to work" rather than pitch endlessly. A concise outreach that shows what you've built will land better than a generic deck.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Toggle -->
+            <button
+              onclick="toggleA()"
+              class="mt-3 flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+            >
+              <span id="a-toggle-text">Show full analysis</span>
+              <svg id="a-caret" width="12" height="12" viewBox="0 0 256 256" fill="currentColor" class="transition-transform duration-200">
+                <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Attribution -->
+          <p class="mt-3 pt-3 border-t border-border-subtle text-[11px] text-text-tertiary">
+            Saved from investor matching
+          </p>
+        </div>
+
+        <!-- AI Research -->
+        <div class="rounded-lg border border-border-default bg-surface-primary p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium text-text-primary">AI Research</h3>
+            <span class="text-xs px-1.5 py-0.5 rounded-full bg-surface-secondary text-text-tertiary">Coming Soon</span>
+          </div>
+          <p class="text-xs text-text-secondary mb-3">
+            Get insights on portfolio connections, warm intros, recent news, and outreach suggestions.
+          </p>
+          <button class="w-full inline-flex items-center justify-center gap-2 rounded-full border border-border-default px-4 py-2 text-sm text-text-tertiary opacity-50 cursor-not-allowed" disabled>
+            Research Investor
+            <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </button>
+        </div>
+
+        <!-- NO Investment Fit card — absorbed into Match Analysis above -->
+        <div class="rounded border border-dashed border-border-strong bg-surface-secondary/50 p-4 text-center">
+          <p class="text-xs text-text-tertiary italic">Investment Fit card hidden — data folded into Match Analysis above</p>
+        </div>
+
+        <!-- Firm Overview -->
+        <div class="rounded-lg border border-border-default bg-surface-primary p-6">
+          <h3 class="text-sm font-medium text-text-primary mb-4">Firm Overview</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-text-tertiary">Partners</span>
+              <span class="text-sm font-medium text-text-primary tabular-nums">3</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-text-tertiary">Portfolio Cos</span>
+              <span class="text-sm font-medium text-text-primary tabular-nums">19</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-text-tertiary">Founded</span>
+              <span class="text-sm text-text-primary tabular-nums">2019</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         STATE B: Manually-added investor
+         No Match Analysis → Investment Fit stays as-is
+         ========================================== -->
+    <div>
+      <div class="mb-4 flex items-center gap-2">
+        <span class="rounded bg-surface-secondary px-2 py-0.5 text-xs font-medium text-text-secondary">State B</span>
+        <span class="text-xs text-text-secondary">Manually-added investor (no match analysis)</span>
+      </div>
+
+      <div class="space-y-6">
+
+        <!-- Quick Actions -->
+        <div class="rounded-lg border border-border-default bg-surface-primary p-6">
+          <h3 class="text-sm font-medium text-text-primary mb-3">Quick Actions</h3>
+          <div class="space-y-2">
+            <button class="w-full inline-flex items-center justify-center gap-2 rounded-full bg-surface-inverse px-4 py-2.5 text-sm font-medium text-text-inverse">
+              Log Interaction
+              <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M232,128A104,104,0,0,1,79.12,219.82L45.07,231.17a16,16,0,0,1-20.24-20.24l11.35-34.05A104,104,0,1,1,232,128Z" opacity="0.2"></path><path d="M128,24A104,104,0,0,0,36.18,176.88L24.83,211.29a16,16,0,0,0,20.24,20.24l34.05-11.35A104,104,0,1,0,128,24Z"></path></svg>
+            </button>
+            <button class="w-full inline-flex items-center justify-center gap-2 rounded-full border border-border-default bg-surface-primary px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-surface-secondary transition-colors">
+              Add Partner
+              <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M256,136a8,8,0,0,1-8,8H232v16a8,8,0,0,1-16,0V144H200a8,8,0,0,1,0-16h16V112a8,8,0,0,1,16,0v16h16A8,8,0,0,1,256,136ZM144,157.68a68,68,0,1,0-71.91,0c-20.65,6.76-39.23,19.39-54.17,37.17a8,8,0,0,0,12.25,10.3C50.25,181.19,77.91,168,108,168s57.75,13.19,77.88,37.15a8,8,0,0,0,12.25-10.3C183.18,177.07,164.6,164.44,144,157.68Z"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- AI Research -->
+        <div class="rounded-lg border border-border-default bg-surface-primary p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium text-text-primary">AI Research</h3>
+            <span class="text-xs px-1.5 py-0.5 rounded-full bg-surface-secondary text-text-tertiary">Coming Soon</span>
+          </div>
+          <p class="text-xs text-text-secondary mb-3">
+            Get insights on portfolio connections, warm intros, recent news, and outreach suggestions.
+          </p>
+          <button class="w-full inline-flex items-center justify-center gap-2 rounded-full border border-border-default px-4 py-2 text-sm text-text-tertiary opacity-50 cursor-not-allowed" disabled>
+            Research Investor
+            <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </button>
+        </div>
+
+        <!-- Investment Fit — standalone (no match analysis available) -->
+        <div class="rounded-lg border border-border-default bg-surface-primary p-6">
+          <h3 class="text-sm font-medium text-text-primary mb-4">Investment Fit</h3>
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-2 text-xs">
+              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" class="text-status-success shrink-0"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z"></path></svg>
+              <span class="text-text-secondary">Stage focus includes Seed</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" class="text-status-success shrink-0"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z"></path></svg>
+              <span class="text-text-secondary">Sector overlap: SaaS, AI</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" class="text-status-success shrink-0"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z"></path></svg>
+              <span class="text-text-secondary">Check size in range</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" class="text-text-tertiary shrink-0"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg>
+              <span class="text-text-tertiary">Geography: no direct match</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Firm Overview -->
+        <div class="rounded-lg border border-border-default bg-surface-primary p-6">
+          <h3 class="text-sm font-medium text-text-primary mb-4">Firm Overview</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-text-tertiary">Partners</span>
+              <span class="text-sm font-medium text-text-primary tabular-nums">4</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-text-tertiary">Portfolio Cos</span>
+              <span class="text-sm font-medium text-text-primary tabular-nums">32</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-text-tertiary">Founded</span>
+              <span class="text-sm text-text-primary tabular-nums">2017</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function toggleA() {
+      const preview = document.getElementById('a-preview');
+      const full = document.getElementById('a-full');
+      const text = document.getElementById('a-toggle-text');
+      const caret = document.getElementById('a-caret');
+      const isExpanded = full.style.display !== 'none';
+
+      if (isExpanded) {
+        full.style.display = 'none';
+        preview.style.display = 'block';
+        text.textContent = 'Show full analysis';
+        caret.style.transform = '';
+      } else {
+        full.style.display = 'block';
+        preview.style.display = 'none';
+        text.textContent = 'Hide analysis';
+        caret.style.transform = 'rotate(180deg)';
+      }
+    }
+  </script>
+
+</body>
+</html>

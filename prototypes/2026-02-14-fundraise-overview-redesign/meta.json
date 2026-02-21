@@ -1,0 +1,84 @@
+{
+  "id": "2026-02-14-fundraise-overview-redesign",
+  "name": "Fundraise Overview Redesign",
+  "description": "Multi-direction exploration of the fundraising overview page redesign. Direction A: Dashboard-Inspired, Direction B: Scorecard-First, Direction C: (v3), Direction D: Sana-Inspired Product-First, Direction E: Shadow States. Explores the 'Blank Page Problem' — every empty state should show the shadow of what it becomes.",
+  "prompt": "Fundraise overview redesign exploring multiple directions — solving the Blank Page Problem with product-first and shadow state approaches",
+  "fidelity": "concept",
+  "chrome": "sidebar",
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "Direction A: Dashboard-Inspired. Early Insights state. Hero greeting + 4 metric cards (Pipeline Value, Active Deals, Investors, Data Room). Left column: attention items (2 urgent, 2 this-week) + compact setup progress bar. Right column: Fundraise Health building state, Quick Actions 2x2 grid, Category Snapshot flat rows."
+    },
+    {
+      "file": "concept-v2.html",
+      "notes": "Direction B: Scorecard-First. Health score is the hero (3 of 4 ring). Categories as expandable accordion sections with embedded metrics, insights, and action buttons. Needing-attention sections auto-expanded, others collapsed. Diagnostic report feel. Bottom bar for board meeting export."
+    },
+    {
+      "file": "concept-v3.html",
+      "notes": "Direction C: Iteration on previous directions (created between sessions)."
+    },
+    {
+      "file": "concept-v4.html",
+      "notes": "Direction D: Personal Briefing (Sana-Inspired). Fundamental shift from feature showcase to personal briefing. Single-column editorial flow (no right sidebar). Personal greeting with contextual summary. 'Your Next Move' hero card — full-width editorial card that IS the onboarding (empty: 'Start with your investor pipeline' with data-backed advice; populated: 'Follow up with Sarah Chen' with engagement signals and conversion stats). Pipeline + Readiness in 60/40 grid. Investor Signals + For You in 50/50 grid. Signals show real-time engagement (document views, email opens, meeting accepts) with signal badges. For You evolves from generic resources (empty) to personalized content (populated: ICP analysis, meeting prep, gap analysis). No Getting Started checklist — the hero card replaces it entirely."
+    },
+    {
+      "file": "concept-v5.html",
+      "notes": "Direction E: Shadow States. Core principle: 'Every empty state should show the shadow of what it becomes.' Full health dashboard visible from day one in ghost/shadow state. Dashed SVG health score ring, 4 category indicator dots. 4 category cards (Pipeline Velocity, Investor Engagement, Data Room Readiness, Communication Cadence) with ghost content — dashed borders, em-dash placeholders, ghostPulse animation. Interactive: per-category CTA buttons activate ghost→real transitions. AI Insights area with ghost rows that reveal at 2+ active categories. Dev mode toggle (Empty/Partial/Full)."
+    },
+    {
+      "file": "concept-v6.html",
+      "notes": "Direction F: Advisor-Led Category Dashboard. Keeps 4-category card grid from production. Adds Weftly Advisor hero card above: State 1 conversational onboarding, State 2 contextual progress, State 3 triage with attention items. Category cards with metrics, status badges, insight rows. Deal Docs and Board Export sections for State 3. Advisor replaces progress ring as hero element."
+    },
+    {
+      "file": "concept-v7.html",
+      "notes": "Direction G: Neutral Score Ring + Category Dots. Merges health score from production with Advisor narrative from v6. Score ring uses neutral stone color (#78716c) instead of eliminated AI gradient. 4 category indicator dots below ring bridge score to category cards (green=strong, amber=attention, rose=behind, gray=not-started). State 1: dashed empty ring + onboarding narrative. State 2: partial fill at 35 + building narrative. State 3: 72 score + contextual triage text. All radii corrected: rounded-lg for cards, rounded-md for icon containers. Insight rows use bg-surface-secondary (no AI gradient backgrounds). No AI ceremony anywhere."
+    },
+    {
+      "file": "concept-v8-onboarding-strip.html",
+      "notes": "Onboarding Strip — 10 Directions. Compact notification band for platform setup progress (3 core steps: Company profile, Invite team, Connect Google). All 10 directions shown on one comparison page with state toggle (1/3, 2/3, 3/3). Directions: (1) Single-line + thin bar, (2) Progress dots, (3) Segmented bar, (4) Inline checklist, (5) Step pills, (6) Mini ring counter, (7) Breadcrumb trail, (8) Contextual banner with icon, (9) Top edge band, (10) Expandable accordion. All use bg-surface-secondary, text-xs, no card borders. Completion state shows green success banner."
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--surface-primary",
+      "--surface-secondary",
+      "--surface-tertiary",
+      "--surface-elevated",
+      "--surface-hover",
+      "--text-primary",
+      "--text-secondary",
+      "--text-tertiary",
+      "--text-inverse",
+      "--border-default",
+      "--border-subtle",
+      "--status-success",
+      "--status-warning",
+      "--status-error",
+      "--status-info"
+    ],
+    "presets": [],
+    "patterns": [
+      "hero-metrics-bar",
+      "flat-row-hover",
+      "two-column-layout",
+      "category-badge",
+      "progress-bar",
+      "quick-actions-grid",
+      "stat-card",
+      "score-ring",
+      "accordion-section",
+      "inline-metrics",
+      "insight-area",
+      "action-pill-buttons",
+      "shadow-state-ghost-content",
+      "ghost-to-real-transition",
+      "dashed-ring-placeholder",
+      "ghost-pulse-animation",
+      "product-first-empty-state",
+      "sidebar-checklist",
+      "advisor-card"
+    ]
+  },
+  "createdAt": "2026-02-14T00:00:00Z"
+}

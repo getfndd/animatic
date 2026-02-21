@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fundraise Overview — Direction D: Personal Briefing (Sana-Inspired)</title>
+  <style>
+    :root {
+      --surface-primary: #ffffff;
+      --surface-secondary: #f5f5f4;
+      --surface-tertiary: #e7e5e4;
+      --surface-hover: #f5f5f4;
+      --text-primary: #1c1917;
+      --text-secondary: #57534e;
+      --text-tertiary: #a8a29e;
+      --text-quaternary: #d6d3d1;
+      --text-inverse: #fafaf9;
+      --border-default: #e7e5e4;
+      --border-subtle: #f5f5f4;
+      --status-success: #10b981;
+      --status-warning: #f59e0b;
+      --status-error: #ef4444;
+      --status-info: #6366f1;
+      --radius-structural: 8px;
+      --radius-grouped: 6px;
+      --radius-interactive: 4px;
+      --radius-pill: 9999px;
+      --sidebar-width: 232px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text-primary); background: var(--surface-secondary);
+      line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    .app-shell { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-width); background: var(--surface-primary);
+      border-right: 1px solid var(--border-default);
+      display: flex; flex-direction: column; flex-shrink: 0;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+    }
+    .sidebar-logo { padding: 20px 20px 16px; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+    .sidebar-nav { flex: 1; padding: 0 8px; display: flex; flex-direction: column; gap: 1px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 7px 12px;
+      border-radius: var(--radius-interactive); font-size: 13.5px; font-weight: 450;
+      color: var(--text-secondary); cursor: pointer; transition: background-color 140ms, color 140ms;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .nav-item.active { background: var(--surface-secondary); color: var(--text-primary); font-weight: 550; }
+    .nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.65; }
+    .nav-item.active .nav-icon { opacity: 1; }
+    .sidebar-workspace { padding: 16px 20px; border-top: 1px solid var(--border-default); }
+    .workspace-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 4px; }
+    .workspace-name { font-size: 13px; font-weight: 550; }
+
+    /* ── Main content ── */
+    .main-area { flex: 1; margin-left: var(--sidebar-width); }
+    .content-flow {
+      max-width: 860px; margin: 0 auto;
+      padding: 40px 48px 80px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    /* State toggle */
+    .app-shell.state-empty .pop { display: none !important; }
+    .app-shell.state-empty .emp { display: block !important; }
+    .app-shell.state-empty .emp-flex { display: flex !important; }
+    .app-shell.state-populated .pop { display: block !important; }
+    .app-shell.state-populated .pop-flex { display: flex !important; }
+    .app-shell.state-populated .emp { display: none !important; }
+    .app-shell.state-populated .emp-flex { display: none !important; }
+
+    /* ── Greeting ── */
+    .greeting { margin-bottom: 4px; }
+    .greeting-name { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+    .greeting-context { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ── Hero card: Your Next Move ── */
+    .hero-card {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-structural);
+      padding: 24px 28px;
+      transition: border-color 150ms, box-shadow 150ms;
+    }
+    .hero-card:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .hero-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 14px;
+    }
+    .hero-content { display: flex; gap: 20px; align-items: flex-start; }
+    .hero-icon-wrap {
+      width: 40px; height: 40px; border-radius: var(--radius-grouped);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .hero-icon-wrap svg { width: 20px; height: 20px; }
+    .hero-icon-wrap.onboard { background: var(--surface-secondary); color: var(--text-secondary); }
+    .hero-icon-wrap.signal { background: #eff6ff; color: #2563eb; }
+    .hero-body { flex: 1; min-width: 0; }
+    .hero-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; line-height: 1.3; }
+    .hero-description {
+      font-size: 13.5px; color: var(--text-secondary); line-height: 1.55;
+      max-width: 560px;
+    }
+    .hero-description strong { font-weight: 600; color: var(--text-primary); }
+    .hero-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 550; color: var(--text-primary);
+      text-decoration: none; margin-top: 14px;
+      padding: 7px 14px; background: var(--text-primary); color: var(--text-inverse);
+      border-radius: var(--radius-pill); transition: opacity 140ms;
+    }
+    .hero-cta:hover { opacity: 0.85; }
+    .hero-cta svg { width: 14px; height: 14px; }
+
+    /* ── Two-column sections ── */
+    .grid-60-40 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; }
+    .grid-50-50 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ── Standard card ── */
+    .card {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-structural);
+      padding: 20px;
+      transition: border-color 150ms, box-shadow 150ms;
+    }
+    .card:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .card-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 14px;
+    }
+
+    /* ── Pipeline card ── */
+    .pipeline-stages { display: flex; gap: 6px; }
+    .pipeline-col { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .pipeline-col-label {
+      font-size: 11px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 2px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .pipeline-col-label .count { font-variant-numeric: tabular-nums; }
+    .pipeline-col-label.has-items { color: var(--text-secondary); }
+    .pipeline-slot {
+      height: 32px; border: 1px dashed var(--border-default);
+      border-radius: var(--radius-interactive); background: #fafaf9;
+    }
+    .pipeline-slot.add {
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color 140ms, background-color 140ms;
+    }
+    .pipeline-slot.add:hover { border-color: var(--text-tertiary); background: var(--surface-secondary); }
+    .pipeline-slot.add svg { width: 14px; height: 14px; color: var(--text-tertiary); }
+    .pipeline-deal {
+      height: 32px; border: 1px solid var(--border-default);
+      border-radius: var(--radius-interactive); background: var(--surface-primary);
+      display: flex; align-items: center; gap: 7px; padding: 0 9px;
+      transition: background-color 140ms;
+    }
+    .pipeline-deal:hover { background: var(--surface-hover); }
+    .deal-avatar {
+      width: 20px; height: 20px; border-radius: var(--radius-pill);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 600; color: white; flex-shrink: 0;
+    }
+    .deal-avatar.blue { background: #3b82f6; }
+    .deal-avatar.emerald { background: #10b981; }
+    .deal-avatar.violet { background: #8b5cf6; }
+    .deal-name { font-size: 11.5px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pipeline-summary {
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .pipeline-stat { font-size: 12px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+    .pipeline-stat strong { color: var(--text-primary); font-weight: 600; }
+    .pipeline-link {
+      font-size: 12px; font-weight: 550; color: var(--status-info);
+      text-decoration: none; display: flex; align-items: center; gap: 4px;
+      transition: opacity 140ms;
+    }
+    .pipeline-link:hover { opacity: 0.75; }
+    .pipeline-link svg { width: 13px; height: 13px; }
+
+    /* ── Readiness card ── */
+    .readiness-center { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .readiness-ring-wrap { position: relative; width: 80px; height: 80px; margin-bottom: 10px; }
+    .readiness-ring-wrap svg { width: 100%; height: 100%; }
+
+    /* Empty ring */
+    .ring-empty-track { fill: none; stroke: var(--border-default); stroke-width: 5; stroke-dasharray: 4,4; }
+    .ring-empty-center-text {
+      font-size: 10px; font-weight: 600; fill: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    /* Populated ring */
+    .ring-track { fill: none; stroke: var(--surface-tertiary); stroke-width: 5; }
+    .ring-fill {
+      fill: none; stroke: url(#readinessGrad); stroke-width: 5;
+      stroke-linecap: round; stroke-dasharray: 92 220;
+      transform: rotate(-90deg); transform-origin: center;
+    }
+    .ring-score { font-size: 24px; font-weight: 650; fill: var(--text-primary); }
+    .ring-max { font-size: 10px; font-weight: 500; fill: var(--text-tertiary); }
+
+    .readiness-headline { font-size: 13px; font-weight: 550; margin-bottom: 2px; }
+    .readiness-subtext { font-size: 12px; color: var(--text-tertiary); max-width: 200px; margin-bottom: 14px; }
+    .readiness-categories { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+    .readiness-cat {
+      display: flex; align-items: center; gap: 8px; font-size: 12px;
+    }
+    .readiness-cat-dot {
+      width: 7px; height: 7px; border-radius: var(--radius-pill); flex-shrink: 0;
+    }
+    .readiness-cat-dot.inactive { background: var(--surface-tertiary); }
+    .readiness-cat-dot.active { background: var(--status-success); }
+    .readiness-cat-dot.partial { background: var(--status-warning); }
+    .readiness-cat-name { color: var(--text-secondary); flex: 1; text-align: left; }
+    .readiness-cat-status { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+    .readiness-cat-status.done { color: var(--status-success); }
+    .readiness-cta {
+      font-size: 12px; font-weight: 550; color: var(--status-info);
+      text-decoration: none; margin-top: 12px; display: inline-flex;
+      align-items: center; gap: 4px; transition: opacity 140ms;
+    }
+    .readiness-cta:hover { opacity: 0.75; }
+    .readiness-cta svg { width: 13px; height: 13px; }
+
+    /* ── Signals card ── */
+    .signals-empty { padding: 8px 0; }
+    .signals-empty-text { font-size: 13px; color: var(--text-tertiary); line-height: 1.55; }
+    .signal-types { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .signal-type { display: flex; align-items: center; gap: 10px; }
+    .signal-type-icon {
+      width: 28px; height: 28px; border-radius: var(--radius-grouped);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      background: var(--surface-secondary);
+    }
+    .signal-type-icon svg { width: 14px; height: 14px; color: var(--text-tertiary); }
+    .signal-type-label { font-size: 12px; color: var(--text-tertiary); }
+
+    .signal-list { display: flex; flex-direction: column; }
+    .signal-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 9px 8px; border-radius: var(--radius-interactive);
+      transition: background-color 140ms; cursor: pointer;
+    }
+    .signal-item:hover { background: var(--surface-hover); }
+    .signal-avatar {
+      width: 28px; height: 28px; border-radius: var(--radius-pill);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600; color: white; flex-shrink: 0;
+    }
+    .signal-avatar.blue { background: #3b82f6; }
+    .signal-avatar.rose { background: #f43f5e; }
+    .signal-avatar.amber { background: #f59e0b; }
+    .signal-body { flex: 1; min-width: 0; }
+    .signal-headline { font-size: 13px; color: var(--text-primary); line-height: 1.35; }
+    .signal-headline strong { font-weight: 600; }
+    .signal-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+    .signal-badge {
+      font-size: 10px; font-weight: 600; padding: 1px 6px;
+      border-radius: var(--radius-interactive); display: inline-block; margin-top: 3px;
+    }
+    .signal-badge.hot { background: #fef2f2; color: #dc2626; }
+    .signal-badge.warm { background: #fffbeb; color: #d97706; }
+
+    /* ── For You card ── */
+    .foryou-list { display: flex; flex-direction: column; }
+    .foryou-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 8px; border-radius: var(--radius-interactive);
+      transition: background-color 140ms; cursor: pointer;
+      text-decoration: none; color: inherit;
+    }
+    .foryou-item:hover { background: var(--surface-hover); }
+    .foryou-item:not(:last-child) { border-bottom: 1px solid var(--border-subtle); }
+    .foryou-icon {
+      width: 32px; height: 32px; border-radius: var(--radius-grouped);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .foryou-icon svg { width: 16px; height: 16px; }
+    .foryou-icon.guide { background: #eff6ff; color: #2563eb; }
+    .foryou-icon.template { background: #f5f3ff; color: #7c3aed; }
+    .foryou-icon.analysis { background: #ecfdf5; color: #059669; }
+    .foryou-icon.prep { background: #fff7ed; color: #ea580c; }
+    .foryou-body { flex: 1; min-width: 0; }
+    .foryou-title { font-size: 13px; font-weight: 550; color: var(--text-primary); line-height: 1.3; }
+    .foryou-desc { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+    .foryou-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+    .foryou-tag {
+      font-size: 10px; font-weight: 550; padding: 1px 5px;
+      border-radius: var(--radius-interactive); background: var(--surface-secondary);
+      color: var(--text-secondary);
+    }
+
+    /* ── Dev mode ── */
+    .dev-mode {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 8px; z-index: 100;
+    }
+    .dev-mode-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-tertiary);
+      background: var(--surface-primary); border: 1px solid var(--border-default);
+      padding: 3px 7px; border-radius: var(--radius-interactive);
+    }
+    .dev-mode-tabs {
+      display: flex; background: var(--surface-primary);
+      border: 1px solid var(--border-default); border-radius: var(--radius-interactive);
+      overflow: hidden;
+    }
+    .dev-mode-tab {
+      font-size: 10px; font-weight: 500; padding: 5px 10px;
+      color: var(--text-tertiary); cursor: pointer; border: none; background: none;
+      transition: background-color 140ms, color 140ms;
+    }
+    .dev-mode-tab:not(:last-child) { border-right: 1px solid var(--border-default); }
+    .dev-mode-tab.active { background: var(--text-primary); color: var(--text-inverse); font-weight: 600; }
+    .dev-mode-tab:hover:not(.active) { background: var(--surface-hover); color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <div class="app-shell state-empty" id="appShell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">Weftly</div>
+      <nav class="sidebar-nav">
+        <a class="nav-item active" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Investors</a>
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Pipeline</a>
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Data Room</a>
+        <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Updates</a>
+      </nav>
+      <div class="sidebar-workspace">
+        <div class="workspace-label">Workspace</div>
+        <div class="workspace-name">fndd Seed Round</div>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <div class="content-flow">
+
+        <!-- ── Greeting ── -->
+        <div class="greeting">
+          <div class="greeting-name">Good morning, Josh.</div>
+          <div class="greeting-context emp">Here's your fundraise workspace. Let's get it set up.</div>
+          <div class="greeting-context pop">3 investor signals since yesterday.</div>
+        </div>
+
+        <!-- ── Hero: Your Next Move ── -->
+        <!-- Empty state: contextual onboarding advice -->
+        <div class="hero-card emp">
+          <div class="hero-label">Your next move</div>
+          <div class="hero-content">
+            <div class="hero-icon-wrap onboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            </div>
+            <div class="hero-body">
+              <div class="hero-title">Start with your investor pipeline</div>
+              <div class="hero-description">Most successful seed rounds begin with a target list of <strong>40&#8211;60 investors</strong>. Even a short list of 10 gives Weftly enough signal to start surfacing insights about your fundraise health, engagement patterns, and recommended next steps.</div>
+              <a class="hero-cta" href="#">Add investors <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+            </div>
+          </div>
+        </div>
+        <!-- Populated state: actionable signal -->
+        <div class="hero-card pop">
+          <div class="hero-label">Your next move</div>
+          <div class="hero-content">
+            <div class="hero-icon-wrap signal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="hero-body">
+              <div class="hero-title">Follow up with Sarah Chen at Sequoia</div>
+              <div class="hero-description">She viewed your pitch deck <strong>3 times this week</strong> and spent 4 minutes on the financials page. Founders who follow up within 48 hours of repeated views close first meetings <strong>2.4x more often</strong>.</div>
+              <a class="hero-cta" href="#">Draft follow-up <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Pipeline + Readiness ── -->
+        <div class="grid-60-40">
+
+          <!-- Pipeline -->
+          <div class="card">
+            <div class="card-label">Pipeline</div>
+
+            <!-- Empty pipeline -->
+            <div class="emp">
+              <div class="pipeline-stages">
+                <div class="pipeline-col">
+                  <div class="pipeline-col-label">Contacted</div>
+                  <div class="pipeline-slot add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                  <div class="pipeline-slot"></div>
+                  <div class="pipeline-slot"></div>
+                </div>
+                <div class="pipeline-col">
+                  <div class="pipeline-col-label">Meeting</div>
+                  <div class="pipeline-slot"></div>
+                  <div class="pipeline-slot"></div>
+                </div>
+                <div class="pipeline-col">
+                  <div class="pipeline-col-label">Due Diligence</div>
+                  <div class="pipeline-slot"></div>
+                </div>
+                <div class="pipeline-col">
+                  <div class="pipeline-col-label">Term Sheet</div>
+                  <div class="pipeline-slot"></div>
+                </div>
+              </div>
+              <div class="pipeline-summary">
+                <span class="pipeline-stat">0 investors &middot; $0 pipeline</span>
+                <a class="pipeline-link" href="#">Add investors <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+              </div>
+            </div>
+
+            <!-- Populated pipeline -->
+            <div class="pop">
+              <div class="pipeline-stages">
+                <div class="pipeline-col">
+                  <div class="pipeline-col-label has-items">Contacted <span class="count">2</span></div>
+                  <div class="pipeline-deal"><div class="deal-avatar blue">SC</div><span class="deal-name">Sequoia</span></div>
+                  <div class="pipeline-deal"><div class="deal-avatar emerald">A</div><span class="deal-name">a16z</span></div>
+                  <div class="pipeline-slot add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                </div>
+                <div class="pipeline-col">
+                  <div class="pipeline-col-label has-items">Meeting <span class="count">1</span></div>
+                  <div class="pipeline-deal"><div class="deal-avatar violet">FC</div><span class="deal-name">First Check</span></div>
+                  <div class="pipeline-slot"></div>
+                </div>
+                <div class="pipeline-col">
+                  <div class="pipeline-col-label">Due Diligence</div>
+                  <div class="pipeline-slot"></div>
+                </div>
+                <div class="pipeline-col">
+                  <div class="pipeline-col-label">Term Sheet</div>
+                  <div class="pipeline-slot"></div>
+                </div>
+              </div>
+              <div class="pipeline-summary">
+                <span class="pipeline-stat"><strong>3</strong> investors &middot; <strong>$2.5M</strong> pipeline</span>
+                <a class="pipeline-link" href="#">View pipeline <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Readiness -->
+          <div class="card">
+            <div class="card-label">Readiness</div>
+
+            <!-- Empty readiness -->
+            <div class="emp">
+              <div class="readiness-center">
+                <div class="readiness-ring-wrap">
+                  <svg viewBox="0 0 80 80">
+                    <circle class="ring-empty-track" cx="40" cy="40" r="35"/>
+                    <text class="ring-empty-center-text" x="40" y="41" text-anchor="middle" dominant-baseline="central">&mdash;</text>
+                  </svg>
+                </div>
+                <div class="readiness-headline">Not yet scored</div>
+                <div class="readiness-subtext">Your score builds as you add investors, upload documents, and engage.</div>
+                <div class="readiness-categories">
+                  <div class="readiness-cat"><div class="readiness-cat-dot inactive"></div><span class="readiness-cat-name">Pipeline</span><span class="readiness-cat-status">&mdash;</span></div>
+                  <div class="readiness-cat"><div class="readiness-cat-dot inactive"></div><span class="readiness-cat-name">Data Room</span><span class="readiness-cat-status">&mdash;</span></div>
+                  <div class="readiness-cat"><div class="readiness-cat-dot inactive"></div><span class="readiness-cat-name">Engagement</span><span class="readiness-cat-status">&mdash;</span></div>
+                  <div class="readiness-cat"><div class="readiness-cat-dot inactive"></div><span class="readiness-cat-name">Communication</span><span class="readiness-cat-status">&mdash;</span></div>
+                </div>
+                <a class="readiness-cta" href="#">Start building <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+              </div>
+            </div>
+
+            <!-- Populated readiness -->
+            <div class="pop">
+              <div class="readiness-center">
+                <div class="readiness-ring-wrap">
+                  <svg viewBox="0 0 80 80">
+                    <defs><linearGradient id="readinessGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs>
+                    <circle class="ring-track" cx="40" cy="40" r="35"/>
+                    <circle class="ring-fill" cx="40" cy="40" r="35"/>
+                    <text class="ring-score" x="40" y="38" text-anchor="middle" dominant-baseline="central">42</text>
+                    <text class="ring-max" x="40" y="52" text-anchor="middle">/100</text>
+                  </svg>
+                </div>
+                <div class="readiness-headline">Getting started</div>
+                <div class="readiness-subtext">2 of 4 areas active. Upload your remaining docs to jump to 60+.</div>
+                <div class="readiness-categories">
+                  <div class="readiness-cat"><div class="readiness-cat-dot active"></div><span class="readiness-cat-name">Pipeline</span><span class="readiness-cat-status done">Active</span></div>
+                  <div class="readiness-cat"><div class="readiness-cat-dot partial"></div><span class="readiness-cat-name">Data Room</span><span class="readiness-cat-status">4/6 docs</span></div>
+                  <div class="readiness-cat"><div class="readiness-cat-dot inactive"></div><span class="readiness-cat-name">Engagement</span><span class="readiness-cat-status">&mdash;</span></div>
+                  <div class="readiness-cat"><div class="readiness-cat-dot inactive"></div><span class="readiness-cat-name">Communication</span><span class="readiness-cat-status">&mdash;</span></div>
+                </div>
+                <a class="readiness-cta" href="#">Upload Articles of Inc. <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Signals + For You ── -->
+        <div class="grid-50-50">
+
+          <!-- Investor Signals -->
+          <div class="card">
+            <div class="card-label">Investor Signals</div>
+
+            <!-- Empty signals -->
+            <div class="emp">
+              <div class="signals-empty">
+                <div class="signals-empty-text">When investors engage with your materials, you'll see their activity here in real-time.</div>
+                <div class="signal-types">
+                  <div class="signal-type">
+                    <div class="signal-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <span class="signal-type-label">Document views and time spent</span>
+                  </div>
+                  <div class="signal-type">
+                    <div class="signal-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+                    <span class="signal-type-label">Email opens and link clicks</span>
+                  </div>
+                  <div class="signal-type">
+                    <div class="signal-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                    <span class="signal-type-label">Meeting responses and scheduling</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Populated signals -->
+            <div class="pop">
+              <div class="signal-list">
+                <div class="signal-item">
+                  <div class="signal-avatar blue">SC</div>
+                  <div class="signal-body">
+                    <div class="signal-headline"><strong>Sarah Chen</strong> viewed Pitch Deck</div>
+                    <div class="signal-meta">3 views &middot; 4 min on financials &middot; 2 hours ago</div>
+                    <span class="signal-badge hot">Strong signal</span>
+                  </div>
+                </div>
+                <div class="signal-item">
+                  <div class="signal-avatar rose">AM</div>
+                  <div class="signal-body">
+                    <div class="signal-headline"><strong>Alex Moreno</strong> opened Feb Update</div>
+                    <div class="signal-meta">Clicked 2 links &middot; Yesterday</div>
+                  </div>
+                </div>
+                <div class="signal-item">
+                  <div class="signal-avatar amber">FC</div>
+                  <div class="signal-body">
+                    <div class="signal-headline"><strong>First Check</strong> accepted meeting</div>
+                    <div class="signal-meta">Feb 18 at 2:00 PM &middot; 2 days ago</div>
+                    <span class="signal-badge warm">Meeting booked</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- For You -->
+          <div class="card">
+            <div class="card-label">For you</div>
+
+            <!-- Empty: generic resources -->
+            <div class="emp">
+              <div class="foryou-list">
+                <a class="foryou-item" href="#">
+                  <div class="foryou-icon guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+                  <div class="foryou-body">
+                    <div class="foryou-title">The Seed Fundraising Playbook</div>
+                    <div class="foryou-desc">End-to-end guide for first-time founders</div>
+                    <div class="foryou-meta"><span class="foryou-tag">Guide</span> 12 min read</div>
+                  </div>
+                </a>
+                <a class="foryou-item" href="#">
+                  <div class="foryou-icon template"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                  <div class="foryou-body">
+                    <div class="foryou-title">Build a Pitch Deck Investors Love</div>
+                    <div class="foryou-desc">Structure, narrative, and common mistakes</div>
+                    <div class="foryou-meta"><span class="foryou-tag">Template</span> 8 min read</div>
+                  </div>
+                </a>
+                <a class="foryou-item" href="#">
+                  <div class="foryou-icon template"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+                  <div class="foryou-body">
+                    <div class="foryou-title">Investor Outreach Templates</div>
+                    <div class="foryou-desc">Cold intro, warm intro, and follow-up emails</div>
+                    <div class="foryou-meta"><span class="foryou-tag">Template</span> 5 min read</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+
+            <!-- Populated: personalized content -->
+            <div class="pop">
+              <div class="foryou-list">
+                <a class="foryou-item" href="#">
+                  <div class="foryou-icon analysis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+                  <div class="foryou-body">
+                    <div class="foryou-title">Your Pipeline ICP Analysis</div>
+                    <div class="foryou-desc">Pattern analysis across your 3 target investors</div>
+                    <div class="foryou-meta"><span class="foryou-tag">Personalized</span></div>
+                  </div>
+                </a>
+                <a class="foryou-item" href="#">
+                  <div class="foryou-icon prep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                  <div class="foryou-body">
+                    <div class="foryou-title">Meeting Prep: First Check Ventures</div>
+                    <div class="foryou-desc">Recent investments, partner context, key questions</div>
+                    <div class="foryou-meta"><span class="foryou-tag">Personalized</span> Feb 18 meeting</div>
+                  </div>
+                </a>
+                <a class="foryou-item" href="#">
+                  <div class="foryou-icon guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+                  <div class="foryou-body">
+                    <div class="foryou-title">Data Room Gap Analysis</div>
+                    <div class="foryou-desc">2 documents remaining for investor-ready status</div>
+                    <div class="foryou-meta"><span class="foryou-tag">Personalized</span></div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Dev Mode -->
+  <div class="dev-mode">
+    <span class="dev-mode-label">Dev</span>
+    <div class="dev-mode-tabs">
+      <button class="dev-mode-tab active" data-state="empty" onclick="switchState('empty')">New User</button>
+      <button class="dev-mode-tab" data-state="populated" onclick="switchState('populated')">Active User</button>
+    </div>
+  </div>
+
+  <script>
+    function switchState(state) {
+      var shell = document.getElementById('appShell');
+      shell.className = 'app-shell state-' + state;
+      var tabs = document.querySelectorAll('.dev-mode-tab');
+      for (var i = 0; i < tabs.length; i++) {
+        var isActive = tabs[i].getAttribute('data-state') === state;
+        tabs[i].className = 'dev-mode-tab' + (isActive ? ' active' : '');
+      }
+    }
+  </script>
+</body>
+</html>

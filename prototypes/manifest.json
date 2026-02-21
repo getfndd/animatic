@@ -1,0 +1,224 @@
+{
+  "prototypes": [
+    {
+      "id": "2026-02-08-portfolio-intelligence",
+      "name": "Portfolio Intelligence",
+      "description": "Attention-prioritized portfolio dashboard combining reporting signals with thesis alignment into a triage queue",
+      "fidelity": "concept",
+      "chrome": "sidebar",
+      "versions": 3,
+      "createdAt": "2026-02-08T18:30:00Z",
+      "tags": ["portal", "intelligence", "portfolio", "triage"]
+    },
+    {
+      "id": "2026-02-08-intel-components",
+      "name": "Intel Queue Cards",
+      "description": "9 iterations on Needs Attention queue cards — scannability, signal clarity, action affordance, accessibility",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 9,
+      "createdAt": "2026-02-08T22:30:00Z",
+      "tags": ["portal", "intelligence", "cards", "triage", "iteration"]
+    },
+    {
+      "id": "2026-02-11-email-engagement-analytics",
+      "name": "Email Engagement Analytics",
+      "description": "Slide-out panel showing per-email performance: hero metrics, recipient list grouped by engagement level, link performance table, 24h timeline",
+      "fidelity": "concept",
+      "chrome": "sidebar",
+      "versions": 2,
+      "createdAt": "2026-02-11T00:00:00Z",
+      "tags": ["email", "analytics", "engagement", "slide-out"]
+    },
+    {
+      "id": "2026-02-12-beta-accept-page",
+      "name": "Beta Accept Page",
+      "description": "Beta invitation acceptance page — valid invite (account creation), expired invite, invalid token states. Public-facing, centered card, no chrome.",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 1,
+      "createdAt": "2026-02-12T00:00:00Z",
+      "tags": ["beta", "accept", "onboarding", "public"]
+    },
+    {
+      "id": "2026-02-12-beta-management-dashboard",
+      "name": "Beta Management Dashboard",
+      "description": "Internal admin tool for managing beta users through the lifecycle. Overview tab with funnel, health summary, stat cards. Users tab with filter pills, data table, engagement scores, and user detail slideout.",
+      "fidelity": "concept",
+      "chrome": "sidebar",
+      "versions": 1,
+      "createdAt": "2026-02-12T00:00:00Z",
+      "tags": ["beta", "admin", "dashboard", "dev-tools"]
+    },
+    {
+      "id": "2026-02-13-email-domain-blocks",
+      "name": "Email Domain Blocks",
+      "description": "MetricCard, Columns, Ask/Request blocks for email composer — editor view with editable attributes and email preview with inline-styled HTML, light and dark themes",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 1,
+      "createdAt": "2026-02-13T00:00:00Z",
+      "tags": ["email", "composer", "blocks", "domain", "FND-1280"]
+    },
+    {
+      "id": "2026-02-13-inline-ai-cmdj",
+      "name": "Inline AI Cmd+J",
+      "description": "Four-state Cmd+J inline AI flow: selection hint, action menu (Polish/Expand/Summarize), processing, result with undo. AI-assumed design.",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 1,
+      "createdAt": "2026-02-13T00:00:00Z",
+      "tags": ["email", "composer", "ai", "inline", "FND-1281"]
+    },
+    {
+      "id": "2026-02-13-save-template-ai-subject",
+      "name": "Save as Template + AI Subject Line",
+      "description": "Two compose-level features: Save current email as reusable template (overflow menu → dialog → success) and AI subject line generation (Suggest button → 3-option popover → selection)",
+      "fidelity": "concept",
+      "chrome": "minimal",
+      "versions": 1,
+      "createdAt": "2026-02-13T18:30:00Z",
+      "tags": ["email", "composer", "template", "ai", "FND-1280"]
+    },
+    {
+      "id": "2026-02-13-new-domain-blocks",
+      "name": "New Domain Blocks — Milestone, Attachment, Quote",
+      "description": "Three new email composer block types: Milestone (icon + achievement), Attachment (file link), Quote (with attribution). Editor view + email preview for each, plus updated slash command menu.",
+      "fidelity": "concept",
+      "chrome": "minimal",
+      "versions": 1,
+      "createdAt": "2026-02-13T18:30:00Z",
+      "tags": ["email", "composer", "blocks", "domain", "FND-1280"]
+    },
+    {
+      "id": "2026-02-13-beta-onboarding-wizard",
+      "name": "Beta Onboarding Wizard",
+      "description": "Interactive 4-step post-accept onboarding wizard with two-column layout, working AI chat, live sidebar preview, pill toggles, pipeline preview, and action cards. Sana AI-inspired.",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 1,
+      "createdAt": "2026-02-13T22:00:00Z",
+      "tags": ["beta", "onboarding", "wizard", "setup", "FND-1331"]
+    },
+    {
+      "id": "2026-02-14-ai-spend-tab",
+      "name": "AI Spend Tab",
+      "description": "5th tab for Beta Management dashboard: stat cards with sparklines, spend by feature bars, model usage table, stacked daily trend chart, top users by spend table",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 1,
+      "createdAt": "2026-02-14T16:30:00Z",
+      "tags": ["beta", "admin", "ai", "analytics", "FND-1336"]
+    },
+    {
+      "id": "2026-02-15-recipient-picker",
+      "name": "Recipient Picker Redesign",
+      "description": "Investor Updates recipient picker with grouped contacts by type, group-level select all toggles, search, selected chips, already-sent indicators",
+      "fidelity": "concept",
+      "chrome": "minimal",
+      "versions": 6,
+      "createdAt": "2026-02-15T13:00:00Z",
+      "tags": ["fundraising", "investor-updates", "recipient-picker", "groups", "FND-1344"]
+    },
+    {
+      "id": "2026-02-15-fundraising-matching-advisor",
+      "name": "Fundraising Matching + Advisor",
+      "description": "Investor Matching card placement (in-grid, inline row, contextual) + AI Advisor button (W mark outline pill, compact pill, icon-only)",
+      "fidelity": "concept",
+      "chrome": "sidebar",
+      "versions": 3,
+      "createdAt": "2026-02-15T20:00:00Z",
+      "tags": ["fundraising", "investors", "matching", "advisor", "FND-1344"]
+    },
+    {
+      "id": "2026-02-17-investor-contacts-inline-edit",
+      "name": "Investor Contacts + Inline Edit",
+      "description": "Expanded firm row with nested team/contacts section and inline editing on all fields. Shows normal, badge-edit, text-editing, and just-saved states.",
+      "fidelity": "concept",
+      "chrome": "sidebar",
+      "versions": 1,
+      "createdAt": "2026-02-17T19:10:00Z",
+      "tags": ["dev-tools", "investor-data", "inline-edit", "contacts", "FND-1382"]
+    },
+    {
+      "id": "2026-02-18-investor-match-enriched",
+      "name": "Investor Match Results — Enriched Cards + Aligned Slideout",
+      "description": "Redesigned match cards with contacts, portfolio highlights, leads-rounds badge. Slideout aligned to AI-assumed chat pattern (no avatars, neutral dots, proper pills).",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 1,
+      "createdAt": "2026-02-18T20:00:00Z",
+      "tags": ["fundraising", "investors", "matching", "ai-chat", "enrichment"]
+    },
+    {
+      "id": "2026-02-18-activity-feed-redesign",
+      "name": "Activity Feed Redesign",
+      "description": "Three approaches to improving the fundraising activity feed: Enhanced Timeline (richer rows with icon containers), Signal Cards (Deel-inspired notification cards), Investor-grouped (ClickUp-inspired entity clustering).",
+      "fidelity": "concept",
+      "chrome": "sidebar",
+      "versions": 5,
+      "createdAt": "2026-02-18T19:30:00Z",
+      "tags": ["fundraising", "activity-feed", "timeline", "signals"]
+    },
+    {
+      "id": "2026-02-18-empty-states-audit",
+      "name": "Empty States Audit",
+      "description": "Comprehensive audit of all 22 empty states across 9 fundraising nav items + sub-pages. Documents current vs spec, annotates violations and drifts, identifies batch fixes.",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 2,
+      "createdAt": "2026-02-18T23:20:00Z",
+      "tags": ["fundraising", "empty-states", "audit", "design-system", "ghost-previews"]
+    },
+    {
+      "id": "2026-02-19-dataroom-upload-rename",
+      "name": "Data Room Upload with AI Rename",
+      "description": "Complete 5-phase data room upload flow with AI-suggested file renaming: source, select, processing, suggestions with inline rename + folder picker, success with rename provenance",
+      "fidelity": "concept",
+      "chrome": "minimal",
+      "versions": 1,
+      "createdAt": "2026-02-19T00:00:00Z",
+      "tags": ["dataroom", "upload", "ai", "rename", "file-naming"]
+    },
+    {
+      "id": "2026-02-19-match-analysis-card",
+      "name": "Match Analysis Card",
+      "description": "Investor profile Overview tab with new Match Analysis sidebar card. Shows match score badge, reason pills, expandable AI conversation with follow-up Q&A, attribution line.",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 2,
+      "createdAt": "2026-02-19T21:15:00Z",
+      "tags": ["fundraising", "investors", "matching", "ai-analysis", "FND-1420"]
+    },
+    {
+      "id": "2026-02-19-investor-columns-groups",
+      "name": "Investor Table — Column Management + Custom Groups",
+      "description": "Two features for the Investors table: Manage Columns modal (matching Contacts pattern) with hidden/visible panels and drag-to-reorder, plus custom investor groups as colored tabs alongside lifecycle segments with inline create/rename/delete.",
+      "fidelity": "concept",
+      "chrome": "sidebar",
+      "versions": 1,
+      "createdAt": "2026-02-19T23:00:00Z",
+      "tags": ["fundraising", "investors", "columns", "groups", "table"]
+    },
+    {
+      "id": "2026-02-20-fundraising-matching-steps",
+      "name": "Fundraising Matching Steps",
+      "description": "5-phase static snapshots for investor matching animation: Start, Click, Processing, Results, Complete",
+      "fidelity": "concept",
+      "chrome": "sidebar",
+      "versions": 1,
+      "createdAt": "2026-02-20T20:00:00Z",
+      "tags": ["fundraising", "investors", "matching", "animation", "steps"]
+    },
+    {
+      "id": "2026-02-20-nda-dataroom-card",
+      "name": "NDA + Data Room Status Card",
+      "description": "Compact NDA status and data room access card for investor profile Relationship tab. 3 states: signed+shares, sent awaiting, not started. Flat metadata grid with contextual quick actions.",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 1,
+      "createdAt": "2026-02-20T14:15:00Z",
+      "tags": ["fundraising", "investors", "nda", "dataroom", "relationship", "FND-1423"]
+    }
+  ]
+}

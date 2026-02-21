@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Domain Blocks — Milestone, Attachment, Quote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 0 0% 96%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-quaternary: 0 0% 75%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Invisible-border input pattern matching MetricCard/AskBlock */
+    .edit-input {
+      background: transparent;
+      outline: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 150ms;
+    }
+    .edit-input:hover { border-bottom-color: hsl(var(--border-subtle)); }
+    .edit-input:focus { border-bottom-color: hsl(var(--border-default)); }
+
+    .edit-area {
+      background: transparent;
+      outline: none;
+      border: 1px solid transparent;
+      border-radius: calc(var(--radius) - 4px);
+      transition: border-color 150ms;
+      resize: none;
+      padding: 4px;
+    }
+    .edit-area:hover { border-color: hsl(var(--border-subtle)); }
+    .edit-area:focus { border-color: hsl(var(--border-default)); }
+
+    .edit-inline {
+      background: transparent;
+      outline: none;
+      border: 1px solid hsl(var(--border-default));
+      border-radius: calc(var(--radius) - 4px);
+      transition: border-color 150ms;
+    }
+    .edit-inline:focus { border-color: hsl(var(--border-strong)); }
+
+    /* Icon selector */
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: calc(var(--radius) - 2px);
+      cursor: pointer;
+      transition: background-color 140ms;
+      border: none;
+      background: transparent;
+      color: hsl(var(--text-tertiary));
+    }
+    .icon-btn:hover { background-color: hsl(var(--surface-secondary)); color: hsl(var(--text-secondary)); }
+    .icon-btn.selected {
+      background-color: hsl(var(--surface-secondary));
+      box-shadow: 0 0 0 1px hsl(var(--border-default));
+      color: hsl(var(--text-primary));
+    }
+
+    /* File type pill */
+    .type-pill {
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 9999px;
+      cursor: pointer;
+      border: 1px solid hsl(var(--border-default));
+      background: transparent;
+      color: hsl(var(--text-secondary));
+      transition: all 140ms;
+    }
+    .type-pill:hover { background-color: hsl(var(--surface-secondary)); }
+    .type-pill.selected {
+      background-color: hsl(var(--surface-inverse));
+      color: hsl(var(--text-inverse));
+      border-color: hsl(var(--surface-inverse));
+    }
+
+    /* Drag handle */
+    .drag-handle {
+      position: absolute;
+      left: -28px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0;
+      transition: opacity 150ms;
+      cursor: grab;
+    }
+    .block-wrapper:hover .drag-handle { opacity: 1; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-quaternary': 'hsl(var(--text-quaternary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+
+  <!-- Page Header -->
+  <div class="max-w-7xl mx-auto mb-8">
+    <h1 class="text-2xl font-semibold text-text-primary tracking-tight">New Domain Blocks — Milestone, Attachment, Quote</h1>
+    <p class="text-sm text-text-secondary mt-1">Three new email composer block types: editor view (left) and email preview (right)</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 1: MILESTONE BLOCK                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary mb-4">1. Milestone Block</h2>
+
+    <div class="grid grid-cols-2 gap-8">
+      <!-- Editor View -->
+      <div class="bg-surface-primary rounded-lg border p-6">
+        <div class="text-xs font-medium text-text-tertiary mb-4">Editor View — Editable milestone with icon, title, description, date</div>
+
+        <div class="relative block-wrapper pl-8">
+          <!-- Drag handle -->
+          <div class="drag-handle">
+            <svg class="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+          </div>
+
+          <!-- Milestone card editor -->
+          <div class="border border-border-default rounded-md bg-surface-secondary/50 overflow-hidden">
+            <!-- Top bar with block label -->
+            <div class="flex items-center gap-2 px-4 py-2 bg-surface-secondary border-b border-border-subtle">
+              <svg class="w-3.5 h-3.5 text-text-tertiary" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Z" opacity="0.15"/><path d="M176.49,95.51a12,12,0,0,1,0,17l-56,56a12,12,0,0,1-17,0l-24-24a12,12,0,1,1,17-17L112,143l47.51-47.52A12,12,0,0,1,176.49,95.51ZM236,128A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Z"/></svg>
+              <span class="text-xs font-medium text-text-tertiary">Milestone</span>
+            </div>
+
+            <!-- Content -->
+            <div class="p-4 space-y-3">
+              <!-- Icon selector row (Phosphor icons, no emoji) -->
+              <div>
+                <div class="text-[11px] text-text-tertiary mb-1.5">Icon</div>
+                <div class="flex gap-1">
+                  <button class="icon-btn" title="Target"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M221.87,83.16A104.1,104.1,0,1,1,172.84,34.13,8,8,0,0,1,167.48,49,88.11,88.11,0,1,0,207,88.52a8,8,0,0,1,14.85-5.36ZM128,88a40,40,0,1,0,40,40A40,40,0,0,0,128,88Z"/></svg></button>
+                  <button class="icon-btn selected" title="Rocket"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M152,224a8,8,0,0,1-8,8H112a8,8,0,0,1,0-16h32A8,8,0,0,1,152,224Zm73.69-142.49-14.4,34.56A159.1,159.1,0,0,1,167.19,172L149.67,215.1a16,16,0,0,1-14.76,9.79l-.44,0a16,16,0,0,1-14.68-10.79L104.55,172H88a16,16,0,0,1-14.78-9.88L56.55,122a16,16,0,0,1,2.39-15.72L96,56V24a8,8,0,0,1,16,0V56l37.06,50.28a16,16,0,0,1,2.39,15.72L134.78,162h16.44l43.87-43.87A159.1,159.1,0,0,1,251.2,73.54Z"/></svg></button>
+                  <button class="icon-btn" title="Trophy"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80v16a56.06,56.06,0,0,0,56,56h1.77A72.11,72.11,0,0,0,120,195.54V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V195.54A72.11,72.11,0,0,0,190.23,152H192a56.06,56.06,0,0,0,56-56V80A16,16,0,0,0,232,64Z"/></svg></button>
+                  <button class="icon-btn" title="ChartLineUp"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V48a8,8,0,0,1,16,0V156.69l50.34-50.35a8,8,0,0,1,11.32,0L128,132.69,180.69,80H160a8,8,0,0,1,0-16h40a8,8,0,0,1,8,8v40a8,8,0,0,1-16,0V91.31l-58.34,58.35a8,8,0,0,1-11.32,0L96,123.31,40,179.31V200H224A8,8,0,0,1,232,208Z"/></svg></button>
+                  <button class="icon-btn" title="CheckCircle"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M176.49,95.51a12,12,0,0,1,0,17l-56,56a12,12,0,0,1-17,0l-24-24a12,12,0,1,1,17-17L112,143l47.51-47.52A12,12,0,0,1,176.49,95.51ZM236,128A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Z"/></svg></button>
+                  <button class="icon-btn" title="Flag"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M34.76,42A8,8,0,0,0,32,48V216a8,8,0,0,0,16,0V171.77c26.79-21.16,49.87-9.75,76.45,3.41,16.4,8.11,34.06,16.85,53,16.85,13.93,0,28.54-4.75,43.82-18a8,8,0,0,0,2.76-6V48A8,8,0,0,0,210.76,42Z"/></svg></button>
+                </div>
+              </div>
+
+              <!-- Title -->
+              <input
+                type="text"
+                value="Series A Closed"
+                class="edit-input w-full text-base font-semibold text-text-primary pb-0.5"
+                placeholder="Milestone title..."
+                style="font-size: 15px;"
+              />
+
+              <!-- Description -->
+              <textarea
+                class="edit-area w-full text-sm text-text-secondary leading-relaxed"
+                rows="2"
+                placeholder="What was achieved..."
+                style="font-size: 13px;"
+              >Successfully closed $12M Series A led by Acme Ventures with participation from Foundation Capital and Y Combinator.</textarea>
+
+              <!-- Date -->
+              <input
+                type="text"
+                value="Jan 15, 2026"
+                class="edit-input text-xs text-text-tertiary pb-0.5 w-28"
+                placeholder="Date (optional)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Second example: different icon selected -->
+        <div class="mt-6">
+          <div class="text-xs text-text-tertiary mb-2">Another milestone (different icon)</div>
+          <div class="border border-border-default rounded-md bg-surface-secondary/50 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 py-2 bg-surface-secondary border-b border-border-subtle">
+              <svg class="w-3.5 h-3.5 text-text-tertiary" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Z" opacity="0.15"/><path d="M176.49,95.51a12,12,0,0,1,0,17l-56,56a12,12,0,0,1-17,0l-24-24a12,12,0,1,1,17-17L112,143l47.51-47.52A12,12,0,0,1,176.49,95.51ZM236,128A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Z"/></svg>
+              <span class="text-xs font-medium text-text-tertiary">Milestone</span>
+            </div>
+            <div class="p-4 space-y-3">
+              <div>
+                <div class="text-[11px] text-text-tertiary mb-1.5">Icon</div>
+                <div class="flex gap-1">
+                  <button class="icon-btn" title="Target"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M221.87,83.16A104.1,104.1,0,1,1,172.84,34.13,8,8,0,0,1,167.48,49,88.11,88.11,0,1,0,207,88.52a8,8,0,0,1,14.85-5.36ZM128,88a40,40,0,1,0,40,40A40,40,0,0,0,128,88Z"/></svg></button>
+                  <button class="icon-btn" title="Rocket"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M152,224a8,8,0,0,1-8,8H112a8,8,0,0,1,0-16h32A8,8,0,0,1,152,224Zm73.69-142.49-14.4,34.56A159.1,159.1,0,0,1,167.19,172L149.67,215.1a16,16,0,0,1-14.76,9.79l-.44,0a16,16,0,0,1-14.68-10.79L104.55,172H88a16,16,0,0,1-14.78-9.88L56.55,122a16,16,0,0,1,2.39-15.72L96,56V24a8,8,0,0,1,16,0V56l37.06,50.28a16,16,0,0,1,2.39,15.72L134.78,162h16.44l43.87-43.87A159.1,159.1,0,0,1,251.2,73.54Z"/></svg></button>
+                  <button class="icon-btn" title="Trophy"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80v16a56.06,56.06,0,0,0,56,56h1.77A72.11,72.11,0,0,0,120,195.54V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V195.54A72.11,72.11,0,0,0,190.23,152H192a56.06,56.06,0,0,0,56-56V80A16,16,0,0,0,232,64Z"/></svg></button>
+                  <button class="icon-btn selected" title="ChartLineUp"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V48a8,8,0,0,1,16,0V156.69l50.34-50.35a8,8,0,0,1,11.32,0L128,132.69,180.69,80H160a8,8,0,0,1,0-16h40a8,8,0,0,1,8,8v40a8,8,0,0,1-16,0V91.31l-58.34,58.35a8,8,0,0,1-11.32,0L96,123.31,40,179.31V200H224A8,8,0,0,1,232,208Z"/></svg></button>
+                  <button class="icon-btn" title="CheckCircle"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M176.49,95.51a12,12,0,0,1,0,17l-56,56a12,12,0,0,1-17,0l-24-24a12,12,0,1,1,17-17L112,143l47.51-47.52A12,12,0,0,1,176.49,95.51ZM236,128A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Z"/></svg></button>
+                  <button class="icon-btn" title="Flag"><svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M34.76,42A8,8,0,0,0,32,48V216a8,8,0,0,0,16,0V171.77c26.79-21.16,49.87-9.75,76.45,3.41,16.4,8.11,34.06,16.85,53,16.85,13.93,0,28.54-4.75,43.82-18a8,8,0,0,0,2.76-6V48A8,8,0,0,0,210.76,42Z"/></svg></button>
+                </div>
+              </div>
+              <input type="text" value="1,000 Customers" class="edit-input w-full text-base font-semibold text-text-primary pb-0.5" style="font-size: 15px;" />
+              <textarea class="edit-area w-full text-sm text-text-secondary leading-relaxed" rows="2" style="font-size: 13px;">Crossed the 1,000 customer mark with a 97% retention rate across all cohorts.</textarea>
+              <input type="text" value="Feb 3, 2026" class="edit-input text-xs text-text-tertiary pb-0.5 w-28" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Preview -->
+      <div class="bg-surface-primary rounded-lg border overflow-hidden">
+        <div class="text-xs font-medium text-text-tertiary px-6 pt-4 mb-4">Email Preview — Bordered card with icon container (no left accent bar)</div>
+
+        <div class="px-6 pb-6 space-y-3">
+          <!-- Milestone preview 1: bordered card -->
+          <table style="width: 100%; border-collapse: collapse; font-family: 'Satoshi', -apple-system, sans-serif; border: 1px solid #e5e5e5; border-radius: 6px;" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding: 16px;">
+                <table cellpadding="0" cellspacing="0" style="width: 100%;">
+                  <tr>
+                    <td style="width: 40px; vertical-align: top; padding-right: 14px;">
+                      <div style="width: 40px; height: 40px; border-radius: 6px; background-color: #f5f5f5; text-align: center; line-height: 40px;">
+                        <svg width="20" height="20" viewBox="0 0 256 256" fill="#525252" style="vertical-align: middle;"><path d="M152,224a8,8,0,0,1-8,8H112a8,8,0,0,1,0-16h32A8,8,0,0,1,152,224Zm73.69-142.49-14.4,34.56A159.1,159.1,0,0,1,167.19,172L149.67,215.1a16,16,0,0,1-14.76,9.79l-.44,0a16,16,0,0,1-14.68-10.79L104.55,172H88a16,16,0,0,1-14.78-9.88L56.55,122a16,16,0,0,1,2.39-15.72L96,56V24a8,8,0,0,1,16,0V56l37.06,50.28a16,16,0,0,1,2.39,15.72L134.78,162h16.44l43.87-43.87A159.1,159.1,0,0,1,251.2,73.54Z"/></svg>
+                      </div>
+                    </td>
+                    <td style="vertical-align: top;">
+                      <div style="font-size: 15px; font-weight: 600; color: #171717; line-height: 1.3; margin-bottom: 4px;">Series A Closed</div>
+                      <div style="font-size: 14px; color: #525252; line-height: 1.5; margin-bottom: 6px;">Successfully closed $12M Series A led by Acme Ventures with participation from Foundation Capital and Y Combinator.</div>
+                      <div style="font-size: 12px; color: #a3a3a3;">Jan 15, 2026</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Milestone preview 2 -->
+          <table style="width: 100%; border-collapse: collapse; font-family: 'Satoshi', -apple-system, sans-serif; border: 1px solid #e5e5e5; border-radius: 6px;" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding: 16px;">
+                <table cellpadding="0" cellspacing="0" style="width: 100%;">
+                  <tr>
+                    <td style="width: 40px; vertical-align: top; padding-right: 14px;">
+                      <div style="width: 40px; height: 40px; border-radius: 6px; background-color: #f5f5f5; text-align: center; line-height: 40px;">
+                        <svg width="20" height="20" viewBox="0 0 256 256" fill="#525252" style="vertical-align: middle;"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V48a8,8,0,0,1,16,0V156.69l50.34-50.35a8,8,0,0,1,11.32,0L128,132.69,180.69,80H160a8,8,0,0,1,0-16h40a8,8,0,0,1,8,8v40a8,8,0,0,1-16,0V91.31l-58.34,58.35a8,8,0,0,1-11.32,0L96,123.31,40,179.31V200H224A8,8,0,0,1,232,208Z"/></svg>
+                      </div>
+                    </td>
+                    <td style="vertical-align: top;">
+                      <div style="font-size: 15px; font-weight: 600; color: #171717; line-height: 1.3; margin-bottom: 4px;">1,000 Customers</div>
+                      <div style="font-size: 14px; color: #525252; line-height: 1.5; margin-bottom: 6px;">Crossed the 1,000 customer mark with a 97% retention rate across all cohorts.</div>
+                      <div style="font-size: 12px; color: #a3a3a3;">Feb 3, 2026</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 2: ATTACHMENT BLOCK                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary mb-4">2. Attachment Block</h2>
+
+    <div class="grid grid-cols-2 gap-8">
+      <!-- Editor View -->
+      <div class="bg-surface-primary rounded-lg border p-6">
+        <div class="text-xs font-medium text-text-tertiary mb-4">Editor View — Compact row with file type, name, size, URL</div>
+
+        <!-- Attachment: PDF -->
+        <div class="relative block-wrapper pl-8 mb-4">
+          <div class="drag-handle">
+            <svg class="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+          </div>
+
+          <div class="border border-border-default rounded-md bg-surface-secondary/50 p-3">
+            <div class="flex items-center gap-3">
+              <!-- File type icon (blue = PDF) -->
+              <div class="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style="background-color: #dbeafe;">
+                <svg class="w-[18px] h-[18px]" style="color: #2563eb;" fill="currentColor" viewBox="0 0 256 256"><path d="M224,152a8,8,0,0,1-8,8H192v16h16a8,8,0,0,1,0,16H192v16a8,8,0,0,1-16,0V152a8,8,0,0,1,8-8h32A8,8,0,0,1,224,152ZM92,172a28,28,0,0,1-28,28H56v8a8,8,0,0,1-16,0V152a8,8,0,0,1,8-8H64A28,28,0,0,1,92,172Zm-16,0a12,12,0,0,0-12-12H56v24h8A12,12,0,0,0,76,172Zm88,0c0,19.88-14.33,36-32,36H120a8,8,0,0,1-8-8V152a8,8,0,0,1,8-8h12C149.67,144,164,160.12,164,180Zm-16,0c0-11-6.27-20-16-20h-4v40h4C141.73,200,148,191,148,180ZM40,112V40A16,16,0,0,1,56,24h96a8,8,0,0,1,5.66,2.34l56,56A8,8,0,0,1,216,88v24a8,8,0,0,1-16,0V96H152a8,8,0,0,1-8-8V40H56v72a8,8,0,0,1-16,0ZM160,80h28.69L160,51.31Z"/></svg>
+              </div>
+
+              <!-- File info -->
+              <div class="flex-1 min-w-0">
+                <input
+                  type="text"
+                  value="Q4-2025-Financial-Summary.pdf"
+                  class="edit-input w-full text-sm font-medium text-text-primary pb-0.5"
+                  style="font-size: 13px;"
+                  placeholder="File name..."
+                />
+                <div class="text-xs text-text-tertiary mt-0.5">2.4 MB</div>
+              </div>
+
+              <!-- URL input -->
+              <input
+                type="text"
+                value="https://docs.example.com/q4-summary"
+                class="edit-inline text-xs text-text-tertiary px-2 py-1 w-[200px] flex-shrink-0"
+                placeholder="https://..."
+              />
+            </div>
+
+            <!-- File type selector -->
+            <div class="flex items-center gap-1.5 mt-3 pt-2 border-t border-border-subtle">
+              <span class="text-[11px] text-text-tertiary mr-1">Type:</span>
+              <button class="type-pill selected">PDF</button>
+              <button class="type-pill">Doc</button>
+              <button class="type-pill">Sheet</button>
+              <button class="type-pill">Slide</button>
+              <button class="type-pill">Other</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attachment: Spreadsheet -->
+        <div class="relative block-wrapper pl-8 mb-4">
+          <div class="drag-handle">
+            <svg class="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+          </div>
+
+          <div class="border border-border-default rounded-md bg-surface-secondary/50 p-3">
+            <div class="flex items-center gap-3">
+              <!-- File type icon (green = Sheet) -->
+              <div class="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style="background-color: #dcfce7;">
+                <svg class="w-[18px] h-[18px]" style="color: #16a34a;" fill="currentColor" viewBox="0 0 256 256"><path d="M200,24H72A16,16,0,0,0,56,40V64H40A16,16,0,0,0,24,80v96a16,16,0,0,0,16,16H56v24a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V40A16,16,0,0,0,200,24ZM68,129.47l-11.73,22.06a8,8,0,1,1-14.14-7.53L53.26,124,42.13,104a8,8,0,0,1,14.14-7.53L68,118.53l11.73-22.06a8,8,0,0,1,14.14,7.53L82.74,124l11.13,20a8,8,0,1,1-14.14,7.53ZM148,176a8,8,0,0,1-8,8H120a8,8,0,0,1-8-8V152a8,8,0,0,1,16,0v16h12A8,8,0,0,1,148,176Zm0-72a8,8,0,0,1-8,8H128v16h12a8,8,0,0,1,0,16H120a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8h20a8,8,0,0,1,0,16Zm52,8a8,8,0,0,1-8,8H180v16h12a8,8,0,0,1,0,16H180v8a8,8,0,0,1-16,0V80a8,8,0,0,1,8-8h20a8,8,0,0,1,0,16Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <input type="text" value="Cap-Table-Model-v3.xlsx" class="edit-input w-full text-sm font-medium text-text-primary pb-0.5" style="font-size: 13px;" />
+                <div class="text-xs text-text-tertiary mt-0.5">856 KB</div>
+              </div>
+              <input type="text" value="https://docs.google.com/spreadsheets/..." class="edit-inline text-xs text-text-tertiary px-2 py-1 w-[200px] flex-shrink-0" />
+            </div>
+            <div class="flex items-center gap-1.5 mt-3 pt-2 border-t border-border-subtle">
+              <span class="text-[11px] text-text-tertiary mr-1">Type:</span>
+              <button class="type-pill">PDF</button>
+              <button class="type-pill">Doc</button>
+              <button class="type-pill selected">Sheet</button>
+              <button class="type-pill">Slide</button>
+              <button class="type-pill">Other</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attachment: Presentation -->
+        <div class="relative block-wrapper pl-8">
+          <div class="drag-handle">
+            <svg class="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+          </div>
+
+          <div class="border border-border-default rounded-md bg-surface-secondary/50 p-3">
+            <div class="flex items-center gap-3">
+              <!-- File type icon (purple = Slide) -->
+              <div class="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0" style="background-color: #f3e8ff;">
+                <svg class="w-[18px] h-[18px]" style="color: #7c3aed;" fill="currentColor" viewBox="0 0 256 256"><path d="M208,40H48A16,16,0,0,0,32,56V200a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,160H48V56H208V200ZM176,88H80a8,8,0,0,0-8,8v64a8,8,0,0,0,8,8h96a8,8,0,0,0,8-8V96A8,8,0,0,0,176,88Zm-8,64H88V104h80Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <input type="text" value="Board-Deck-Q4-2025.pptx" class="edit-input w-full text-sm font-medium text-text-primary pb-0.5" style="font-size: 13px;" />
+                <div class="text-xs text-text-tertiary mt-0.5">5.1 MB</div>
+              </div>
+              <input type="text" value="https://pitch.com/deck/..." class="edit-inline text-xs text-text-tertiary px-2 py-1 w-[200px] flex-shrink-0" />
+            </div>
+            <div class="flex items-center gap-1.5 mt-3 pt-2 border-t border-border-subtle">
+              <span class="text-[11px] text-text-tertiary mr-1">Type:</span>
+              <button class="type-pill">PDF</button>
+              <button class="type-pill">Doc</button>
+              <button class="type-pill">Sheet</button>
+              <button class="type-pill selected">Slide</button>
+              <button class="type-pill">Other</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Preview -->
+      <div class="bg-surface-primary rounded-lg border overflow-hidden">
+        <div class="text-xs font-medium text-text-tertiary px-6 pt-4 mb-4">Email Preview — Clickable file cards with inline styles</div>
+
+        <div class="px-6 pb-6 space-y-3">
+          <!-- PDF attachment preview -->
+          <a href="#" style="display: block; text-decoration: none; border: 1px solid #e5e5e5; border-radius: 6px; padding: 12px 16px; font-family: 'Satoshi', -apple-system, sans-serif; transition: background 140ms;">
+            <table style="width: 100%; border-collapse: collapse;" cellpadding="0" cellspacing="0">
+              <tr>
+                <!-- File icon -->
+                <td style="width: 36px; vertical-align: middle; padding-right: 12px;">
+                  <div style="width: 36px; height: 36px; border-radius: 6px; background-color: #dbeafe; display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 256 256" fill="#2563eb"><path d="M224,152a8,8,0,0,1-8,8H192v16h16a8,8,0,0,1,0,16H192v16a8,8,0,0,1-16,0V152a8,8,0,0,1,8-8h32A8,8,0,0,1,224,152ZM92,172a28,28,0,0,1-28,28H56v8a8,8,0,0,1-16,0V152a8,8,0,0,1,8-8H64A28,28,0,0,1,92,172Zm-16,0a12,12,0,0,0-12-12H56v24h8A12,12,0,0,0,76,172Zm88,0c0,19.88-14.33,36-32,36H120a8,8,0,0,1-8-8V152a8,8,0,0,1,8-8h12C149.67,144,164,160.12,164,180Zm-16,0c0-11-6.27-20-16-20h-4v40h4C141.73,200,148,191,148,180ZM40,112V40A16,16,0,0,1,56,24h96a8,8,0,0,1,5.66,2.34l56,56A8,8,0,0,1,216,88v24a8,8,0,0,1-16,0V96H152a8,8,0,0,1-8-8V40H56v72a8,8,0,0,1-16,0ZM160,80h28.69L160,51.31Z"/></svg>
+                  </div>
+                </td>
+                <!-- File info -->
+                <td style="vertical-align: middle;">
+                  <div style="font-size: 14px; font-weight: 500; color: #171717; text-decoration: underline; text-decoration-color: #d4d4d4; text-underline-offset: 2px;">Q4-2025-Financial-Summary.pdf</div>
+                  <div style="font-size: 12px; color: #a3a3a3; margin-top: 2px;">PDF &middot; 2.4 MB</div>
+                </td>
+                <!-- Download arrow -->
+                <td style="width: 32px; vertical-align: middle; text-align: right;">
+                  <svg width="16" height="16" viewBox="0 0 256 256" fill="#a3a3a3"><path d="M224,152v56a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H208V152a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,132.69V40a8,8,0,0,0-16,0v92.69L93.66,106.34a8,8,0,0,0-11.32,11.32Z"/></svg>
+                </td>
+              </tr>
+            </table>
+          </a>
+
+          <!-- Spreadsheet attachment preview -->
+          <a href="#" style="display: block; text-decoration: none; border: 1px solid #e5e5e5; border-radius: 6px; padding: 12px 16px; font-family: 'Satoshi', -apple-system, sans-serif;">
+            <table style="width: 100%; border-collapse: collapse;" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width: 36px; vertical-align: middle; padding-right: 12px;">
+                  <div style="width: 36px; height: 36px; border-radius: 6px; background-color: #dcfce7; display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 256 256" fill="#16a34a"><path d="M200,24H72A16,16,0,0,0,56,40V64H40A16,16,0,0,0,24,80v96a16,16,0,0,0,16,16H56v24a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V40A16,16,0,0,0,200,24Z"/></svg>
+                  </div>
+                </td>
+                <td style="vertical-align: middle;">
+                  <div style="font-size: 14px; font-weight: 500; color: #171717; text-decoration: underline; text-decoration-color: #d4d4d4; text-underline-offset: 2px;">Cap-Table-Model-v3.xlsx</div>
+                  <div style="font-size: 12px; color: #a3a3a3; margin-top: 2px;">Spreadsheet &middot; 856 KB</div>
+                </td>
+                <td style="width: 32px; vertical-align: middle; text-align: right;">
+                  <svg width="16" height="16" viewBox="0 0 256 256" fill="#a3a3a3"><path d="M224,152v56a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H208V152a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,132.69V40a8,8,0,0,0-16,0v92.69L93.66,106.34a8,8,0,0,0-11.32,11.32Z"/></svg>
+                </td>
+              </tr>
+            </table>
+          </a>
+
+          <!-- Presentation attachment preview -->
+          <a href="#" style="display: block; text-decoration: none; border: 1px solid #e5e5e5; border-radius: 6px; padding: 12px 16px; font-family: 'Satoshi', -apple-system, sans-serif;">
+            <table style="width: 100%; border-collapse: collapse;" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width: 36px; vertical-align: middle; padding-right: 12px;">
+                  <div style="width: 36px; height: 36px; border-radius: 6px; background-color: #f3e8ff; display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 256 256" fill="#7c3aed"><path d="M208,40H48A16,16,0,0,0,32,56V200a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,160H48V56H208V200ZM176,88H80a8,8,0,0,0-8,8v64a8,8,0,0,0,8,8h96a8,8,0,0,0,8-8V96A8,8,0,0,0,176,88Zm-8,64H88V104h80Z"/></svg>
+                  </div>
+                </td>
+                <td style="vertical-align: middle;">
+                  <div style="font-size: 14px; font-weight: 500; color: #171717; text-decoration: underline; text-decoration-color: #d4d4d4; text-underline-offset: 2px;">Board-Deck-Q4-2025.pptx</div>
+                  <div style="font-size: 12px; color: #a3a3a3; margin-top: 2px;">Presentation &middot; 5.1 MB</div>
+                </td>
+                <td style="width: 32px; vertical-align: middle; text-align: right;">
+                  <svg width="16" height="16" viewBox="0 0 256 256" fill="#a3a3a3"><path d="M224,152v56a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H208V152a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,132.69V40a8,8,0,0,0-16,0v92.69L93.66,106.34a8,8,0,0,0-11.32,11.32Z"/></svg>
+                </td>
+              </tr>
+            </table>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 3: QUOTE BLOCK                                             -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary mb-4">3. Quote Block</h2>
+
+    <div class="grid grid-cols-2 gap-8">
+      <!-- Editor View -->
+      <div class="bg-surface-primary rounded-lg border p-6">
+        <div class="text-xs font-medium text-text-tertiary mb-4">Editor View — Blockquote with attribution</div>
+
+        <!-- Quote block 1 -->
+        <div class="relative block-wrapper pl-8 mb-6">
+          <div class="drag-handle">
+            <svg class="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+          </div>
+
+          <div class="border border-border-default rounded-md bg-surface-secondary/50 overflow-hidden">
+            <!-- Top bar -->
+            <div class="flex items-center gap-2 px-4 py-2 bg-surface-secondary border-b border-border-subtle">
+              <svg class="w-3.5 h-3.5 text-text-tertiary" fill="currentColor" viewBox="0 0 256 256"><path d="M108,72v72a40,40,0,0,1-40,40,8,8,0,0,1,0-16,24,24,0,0,0,24-24v-8H56a16,16,0,0,1-16-16V72A16,16,0,0,1,56,56h36A16,16,0,0,1,108,72Zm108-16H180a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h36v8a24,24,0,0,1-24,24,8,8,0,0,0,0,16,40,40,0,0,0,40-40V72A16,16,0,0,0,216,56Z"/></svg>
+              <span class="text-xs font-medium text-text-tertiary">Quote</span>
+            </div>
+
+            <!-- Quote content (no left accent bar — uses bg tint + large quote mark) -->
+            <div class="p-4">
+              <div class="bg-surface-secondary/60 rounded-md p-4 space-y-3">
+                <!-- Large quote icon -->
+                <svg class="w-5 h-5 text-text-tertiary/50" fill="currentColor" viewBox="0 0 256 256"><path d="M108,72v72a40,40,0,0,1-40,40,8,8,0,0,1,0-16,24,24,0,0,0,24-24v-8H56a16,16,0,0,1-16-16V72A16,16,0,0,1,56,56h36A16,16,0,0,1,108,72Zm108-16H180a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h36v8a24,24,0,0,1-24,24,8,8,0,0,0,0,16,40,40,0,0,0,40-40V72A16,16,0,0,0,216,56Z"/></svg>
+                <!-- Quote text -->
+                <textarea
+                  class="edit-area w-full text-sm text-text-primary leading-relaxed italic bg-transparent"
+                  rows="3"
+                  placeholder="Enter the quote text..."
+                  style="font-size: 14px; line-height: 1.65;"
+                >"The team's execution speed is exceptional. They shipped more in 3 months than most startups do in a year. We're confident this is a breakout company."</textarea>
+
+                <!-- Attribution row -->
+                <div class="flex items-center gap-3 pt-1">
+                  <!-- Avatar placeholder -->
+                  <div class="w-7 h-7 rounded-full bg-surface-tertiary flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3.5 h-3.5 text-text-tertiary" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"/></svg>
+                  </div>
+                  <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <input
+                      type="text"
+                      value="Sarah Chen"
+                      class="edit-input text-sm font-medium text-text-primary w-32"
+                      placeholder="Name"
+                      style="font-size: 13px;"
+                    />
+                    <span class="text-text-tertiary text-xs">,</span>
+                    <input
+                      type="text"
+                      value="Partner, Acme Ventures"
+                      class="edit-input text-sm text-text-secondary flex-1"
+                      placeholder="Title / Role"
+                      style="font-size: 13px;"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quote block 2: shorter quote -->
+        <div class="text-xs text-text-tertiary mb-2">Shorter quote variant</div>
+        <div class="border border-border-default rounded-md bg-surface-secondary/50 overflow-hidden">
+          <div class="flex items-center gap-2 px-4 py-2 bg-surface-secondary border-b border-border-subtle">
+            <svg class="w-3.5 h-3.5 text-text-tertiary" fill="currentColor" viewBox="0 0 256 256"><path d="M108,72v72a40,40,0,0,1-40,40,8,8,0,0,1,0-16,24,24,0,0,0,24-24v-8H56a16,16,0,0,1-16-16V72A16,16,0,0,1,56,56h36A16,16,0,0,1,108,72Zm108-16H180a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h36v8a24,24,0,0,1-24,24,8,8,0,0,0,0,16,40,40,0,0,0,40-40V72A16,16,0,0,0,216,56Z"/></svg>
+            <span class="text-xs font-medium text-text-tertiary">Quote</span>
+          </div>
+          <div class="p-4">
+            <div class="bg-surface-secondary/60 rounded-md p-4 space-y-3">
+              <svg class="w-5 h-5 text-text-tertiary/50" fill="currentColor" viewBox="0 0 256 256"><path d="M108,72v72a40,40,0,0,1-40,40,8,8,0,0,1,0-16,24,24,0,0,0,24-24v-8H56a16,16,0,0,1-16-16V72A16,16,0,0,1,56,56h36A16,16,0,0,1,108,72Zm108-16H180a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h36v8a24,24,0,0,1-24,24,8,8,0,0,0,0,16,40,40,0,0,0,40-40V72A16,16,0,0,0,216,56Z"/></svg>
+              <div class="text-sm text-text-primary leading-relaxed italic" style="font-size: 14px; line-height: 1.65;">
+                "Best founder tool I've used. Period."
+              </div>
+              <div class="flex items-center gap-3 pt-1">
+                <div class="w-7 h-7 rounded-full bg-surface-tertiary flex items-center justify-center flex-shrink-0">
+                  <svg class="w-3.5 h-3.5 text-text-tertiary" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"/></svg>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-text-primary" style="font-size: 13px;">James Liu</span>
+                  <span class="text-text-tertiary text-xs">,</span>
+                  <span class="text-sm text-text-secondary" style="font-size: 13px;">CEO, TechForward</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Preview -->
+      <div class="bg-surface-primary rounded-lg border overflow-hidden">
+        <div class="text-xs font-medium text-text-tertiary px-6 pt-4 mb-4">Email Preview — Bordered card with quote mark and attribution (no left accent bar)</div>
+
+        <div class="px-6 pb-6 space-y-3">
+          <!-- Quote preview 1: bordered card with quote mark -->
+          <table style="width: 100%; border-collapse: collapse; font-family: 'Satoshi', -apple-system, sans-serif; border: 1px solid #e5e5e5; border-radius: 6px;" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding: 20px; background-color: #fafafa; border-radius: 6px;">
+                <!-- Large quote mark -->
+                <div style="font-size: 28px; line-height: 1; color: #d4d4d4; margin-bottom: 8px;">&ldquo;</div>
+                <p style="font-size: 15px; font-style: italic; color: #171717; line-height: 1.65; margin: 0 0 16px 0;">
+                  The team's execution speed is exceptional. They shipped more in 3 months than most startups do in a year. We're confident this is a breakout company.
+                </p>
+                <div style="font-size: 13px; color: #525252;">
+                  <span style="color: #a3a3a3;">&mdash;</span> <strong style="font-weight: 600;">Sarah Chen</strong>, Partner, Acme Ventures
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Quote preview 2: shorter -->
+          <table style="width: 100%; border-collapse: collapse; font-family: 'Satoshi', -apple-system, sans-serif; border: 1px solid #e5e5e5; border-radius: 6px;" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding: 20px; background-color: #fafafa; border-radius: 6px;">
+                <div style="font-size: 28px; line-height: 1; color: #d4d4d4; margin-bottom: 8px;">&ldquo;</div>
+                <p style="font-size: 15px; font-style: italic; color: #171717; line-height: 1.65; margin: 0 0 16px 0;">
+                  Best founder tool I've used. Period.
+                </p>
+                <div style="font-size: 13px; color: #525252;">
+                  <span style="color: #a3a3a3;">&mdash;</span> <strong style="font-weight: 600;">James Liu</strong>, CEO, TechForward
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 4: UPDATED SLASH COMMAND MENU                              -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary mb-4">4. Updated Slash Command Menu</h2>
+
+    <div class="flex gap-8 items-start">
+      <!-- The dropdown menu -->
+      <div class="bg-surface-primary border rounded-lg shadow-lg p-2 min-w-[340px] max-w-[340px]">
+        <!-- Search hint -->
+        <div class="flex items-center gap-2 px-2 py-1.5">
+          <svg class="w-3.5 h-3.5 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <span class="text-sm text-text-tertiary">Filter blocks...</span>
+        </div>
+
+        <!-- Basic Blocks -->
+        <div class="px-2 pt-2 pb-1 text-xs font-medium text-text-tertiary">Basic Blocks</div>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M56,96H200a8,8,0,0,0,0-16H56a8,8,0,0,0,0,16Zm0,40H200a8,8,0,0,0,0-16H56a8,8,0,0,0,0,16Zm0,40H152a8,8,0,0,0,0-16H56a8,8,0,0,0,0,16Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Text</div>
+            <div class="text-xs text-text-tertiary truncate">Plain text paragraph</div>
+          </div>
+        </button>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M152,56V176a8,8,0,0,1-16,0V124H76v52a8,8,0,0,1-16,0V56a8,8,0,0,1,16,0v52h60V56a8,8,0,0,1,16,0Zm80,108a8,8,0,0,0-8,8v4H196V56a8,8,0,0,0-16,0V184a8,8,0,0,0,8,8h40a8,8,0,0,0,8-8v-12A8,8,0,0,0,232,164Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Heading</div>
+            <div class="text-xs text-text-tertiary truncate">Section title (H2, H3)</div>
+          </div>
+        </button>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Image</div>
+            <div class="text-xs text-text-tertiary truncate">Upload or embed an image</div>
+          </div>
+        </button>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Divider</div>
+            <div class="text-xs text-text-tertiary truncate">Horizontal separator line</div>
+          </div>
+        </button>
+
+        <!-- Lists -->
+        <div class="px-2 pt-3 pb-1 text-xs font-medium text-text-tertiary">Lists</div>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M80,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H88A8,8,0,0,1,80,64Zm136,56H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Zm0,72H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16ZM44,52A12,12,0,1,0,56,64,12,12,0,0,0,44,52Zm0,72a12,12,0,1,0,12,12A12,12,0,0,0,44,124Zm0,72a12,12,0,1,0,12,12A12,12,0,0,0,44,196Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Bullet List</div>
+            <div class="text-xs text-text-tertiary truncate">Unordered list</div>
+          </div>
+        </button>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M228,128a8,8,0,0,1-8,8H104a8,8,0,0,1,0-16H220A8,8,0,0,1,228,128ZM104,72H220a8,8,0,0,0,0-16H104a8,8,0,0,0,0,16ZM220,184H104a8,8,0,0,0,0,16H220a8,8,0,0,0,0-16ZM43.58,55.16,48,52.94V104a8,8,0,0,0,16,0V40a8,8,0,0,0-11.58-7.16l-16,8a8,8,0,0,0,7.16,14.32Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Ordered List</div>
+            <div class="text-xs text-text-tertiary truncate">Numbered list</div>
+          </div>
+        </button>
+
+        <!-- Rich Blocks -->
+        <div class="px-2 pt-3 pb-1 text-xs font-medium text-text-tertiary">Rich Blocks</div>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm36.77,124.15-48,32A8,8,0,0,1,104,176V112a8,8,0,0,1,12.77-6.41l48,32a8,8,0,0,1,0,12.56Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Button</div>
+            <div class="text-xs text-text-tertiary truncate">Call-to-action button</div>
+          </div>
+        </button>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M108,72v72a40,40,0,0,1-40,40,8,8,0,0,1,0-16,24,24,0,0,0,24-24v-8H56a16,16,0,0,1-16-16V72A16,16,0,0,1,56,56h36A16,16,0,0,1,108,72Zm108-16H180a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h36v8a24,24,0,0,1-24,24,8,8,0,0,0,0,16,40,40,0,0,0,40-40V72A16,16,0,0,0,216,56Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Blockquote</div>
+            <div class="text-xs text-text-tertiary truncate">Highlighted callout box</div>
+          </div>
+        </button>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M43.18,128a29.78,29.78,0,0,1,8,10.26c4.8,9.9,4.8,22,4.8,33.74,0,24.31,1,36,8,36a8,8,0,0,1,0,16c-17.73,0-24-14.93-24-52,0-19.34-8.2-28.84-14.09-33.4A8,8,0,0,1,26,128a8,8,0,0,1-.11-10.6C31.8,112.84,40,103.34,40,84c0-37.07,6.27-52,24-52a8,8,0,0,1,0,16c-7,0-8,11.69-8,36,0,11.72,0,23.84-4.8,33.74A29.78,29.78,0,0,1,43.18,128ZM230,117.4C224.2,112.84,216,103.34,216,84c0-37.07-6.27-52-24-52a8,8,0,0,0,0,16c7,0,8,11.69,8,36,0,11.72,0,23.84,4.8,33.74a29.78,29.78,0,0,0,8,10.26,29.78,29.78,0,0,0-8,10.26c-4.8,9.9-4.8,22-4.8,33.74,0,24.31-1,36-8,36a8,8,0,0,0,0,16c17.73,0,24-14.93,24-52,0-19.34,8.2-28.84,14.09-33.4A8,8,0,0,0,230,117.4Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Code Block</div>
+            <div class="text-xs text-text-tertiary truncate">Code snippet</div>
+          </div>
+        </button>
+
+        <!-- Domain Blocks -->
+        <div class="px-2 pt-3 pb-1 text-xs font-medium text-text-tertiary">Domain Blocks</div>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M232,200a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V56a8,8,0,0,1,16,0V192H224A8,8,0,0,1,232,200ZM77.3,161.7a8,8,0,0,0,11.4,0L128,122.3l21.3,21.4a8,8,0,0,0,11.4,0l56-56a8.1,8.1,0,0,0-11.4-11.4L155,126.6,133.7,105.3a8,8,0,0,0-11.4,0L83,144.6l-17.3-17.3a8.1,8.1,0,0,0-11.4,11.4Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Metric Card</div>
+            <div class="text-xs text-text-tertiary truncate">Key metric with value and trend</div>
+          </div>
+        </button>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M104,40V216a8,8,0,0,1-16,0V40a8,8,0,0,1,16,0Zm64-8a8,8,0,0,0-8,8V216a8,8,0,0,0,16,0V40A8,8,0,0,0,168,32Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Columns</div>
+            <div class="text-xs text-text-tertiary truncate">Side-by-side content layout</div>
+          </div>
+        </button>
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-text-primary">Ask / Request</div>
+            <div class="text-xs text-text-tertiary truncate">Request or ask with context and CTA</div>
+          </div>
+        </button>
+
+        <!-- NEW: Milestone -->
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-primary text-text-primary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Z" opacity="0.15"/><path d="M176.49,95.51a12,12,0,0,1,0,17l-56,56a12,12,0,0,1-17,0l-24-24a12,12,0,1,1,17-17L112,143l47.51-47.52A12,12,0,0,1,176.49,95.51ZM236,128A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Z"/></svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">Milestone</span>
+              <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-inverse text-text-inverse leading-none">New</span>
+            </div>
+            <div class="text-xs text-text-tertiary truncate">Achievement with icon, title, and date</div>
+          </div>
+        </button>
+
+        <!-- NEW: Attachment -->
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M209.66,122.34a8,8,0,0,1,0,11.32l-82.05,82a56,56,0,0,1-79.2-79.21L134.8,50.3a40,40,0,0,1,56.57,56.56L105,193.17A24,24,0,0,1,71,159.17l82.37-82.4a8,8,0,1,1,11.32,11.32L82.34,170.49a8,8,0,1,0,11.32,11.32l86.36-86.31a24,24,0,0,0-33.94-33.94l-86.39,86.31a40,40,0,0,0,56.57,56.56l82.06-82.05A8,8,0,0,1,209.66,122.34Z"/></svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">Attachment</span>
+              <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-inverse text-text-inverse leading-none">New</span>
+            </div>
+            <div class="text-xs text-text-tertiary truncate">File link with type, name, and download</div>
+          </div>
+        </button>
+
+        <!-- NEW: Quote -->
+        <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+            <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M108,72v72a40,40,0,0,1-40,40,8,8,0,0,1,0-16,24,24,0,0,0,24-24v-8H56a16,16,0,0,1-16-16V72A16,16,0,0,1,56,56h36A16,16,0,0,1,108,72Zm108-16H180a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h36v8a24,24,0,0,1-24,24,8,8,0,0,0,0,16,40,40,0,0,0,40-40V72A16,16,0,0,0,216,56Z"/></svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">Quote</span>
+              <span class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-inverse text-text-inverse leading-none">New</span>
+            </div>
+            <div class="text-xs text-text-tertiary truncate">Testimonial with attribution</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Annotations -->
+      <div class="space-y-4 max-w-md pt-2">
+        <div class="text-sm text-text-secondary leading-relaxed">
+          <p class="font-semibold text-text-primary mb-2">Slash command menu updates</p>
+          <ul class="space-y-2 text-text-secondary">
+            <li class="flex gap-2">
+              <span class="text-text-tertiary flex-shrink-0">1.</span>
+              Three new items in "Domain Blocks" category with "New" badges
+            </li>
+            <li class="flex gap-2">
+              <span class="text-text-tertiary flex-shrink-0">2.</span>
+              Milestone uses a checkmark-circle icon (achievement/completion)
+            </li>
+            <li class="flex gap-2">
+              <span class="text-text-tertiary flex-shrink-0">3.</span>
+              Attachment uses a paperclip icon (universal file attachment)
+            </li>
+            <li class="flex gap-2">
+              <span class="text-text-tertiary flex-shrink-0">4.</span>
+              Quote reuses the existing Quotes/blockquote icon — differentiated by category placement and description
+            </li>
+            <li class="flex gap-2">
+              <span class="text-text-tertiary flex-shrink-0">5.</span>
+              "New" badge uses <code class="text-xs bg-surface-secondary px-1 py-0.5 rounded">bg-surface-inverse text-text-inverse</code> for max contrast without color
+            </li>
+          </ul>
+        </div>
+
+        <!-- Category structure reference -->
+        <div class="bg-surface-secondary rounded-md p-4">
+          <div class="text-xs font-medium text-text-tertiary mb-2">Category Structure</div>
+          <div class="space-y-2 text-xs">
+            <div>
+              <span class="font-medium text-text-primary">Basic Blocks</span>
+              <span class="text-text-tertiary"> — Text, Heading, Image, Divider</span>
+            </div>
+            <div>
+              <span class="font-medium text-text-primary">Lists</span>
+              <span class="text-text-tertiary"> — Bullet List, Ordered List</span>
+            </div>
+            <div>
+              <span class="font-medium text-text-primary">Rich Blocks</span>
+              <span class="text-text-tertiary"> — Button, Blockquote, Code Block</span>
+            </div>
+            <div>
+              <span class="font-medium text-text-primary">Domain Blocks</span>
+              <span class="text-text-tertiary"> — Metric Card, Columns, Ask/Request,</span>
+              <span class="font-medium text-text-primary"> Milestone</span><span class="text-text-tertiary">,</span>
+              <span class="font-medium text-text-primary"> Attachment</span><span class="text-text-tertiary">,</span>
+              <span class="font-medium text-text-primary"> Quote</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 5: IMPLEMENTATION NOTES                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary mb-4">5. Implementation Notes</h2>
+
+    <div class="bg-surface-primary rounded-lg border p-6">
+      <div class="grid grid-cols-3 gap-6 text-sm">
+        <!-- Milestone notes -->
+        <div>
+          <h3 class="font-semibold text-text-primary mb-2">MilestoneBlock Extension</h3>
+          <ul class="space-y-1.5 text-text-secondary">
+            <li class="flex gap-2"><span class="text-text-tertiary">Attrs:</span> icon, title, description, date</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Icon:</span> Phosphor icon name from preset list (no emoji)</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Date:</span> optional, string format</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">HTML:</span> div with data-milestone-block</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Email:</span> bordered card with icon container (no left accent bar)</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Pattern:</span> same as MetricCard (atom, draggable, ReactNodeViewRenderer)</li>
+          </ul>
+        </div>
+        <!-- Attachment notes -->
+        <div>
+          <h3 class="font-semibold text-text-primary mb-2">AttachmentBlock Extension</h3>
+          <ul class="space-y-1.5 text-text-secondary">
+            <li class="flex gap-2"><span class="text-text-tertiary">Attrs:</span> fileName, fileSize, fileType, fileUrl</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Types:</span> pdf | doc | sheet | slide | other</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Colors:</span> blue/green/purple/amber/gray by type</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">HTML:</span> div with data-attachment-block</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Email:</span> anchor wrapping table row with border</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Compact:</span> single row, not tall card</li>
+          </ul>
+        </div>
+        <!-- Quote notes -->
+        <div>
+          <h3 class="font-semibold text-text-primary mb-2">QuoteBlock Extension</h3>
+          <ul class="space-y-1.5 text-text-secondary">
+            <li class="flex gap-2"><span class="text-text-tertiary">Attrs:</span> quote, authorName, authorTitle</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Distinct:</span> from Blockquote (callout) — this is testimonial</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">HTML:</span> div with data-quote-block</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Email:</span> bordered card, #fafafa bg, large quote mark (no left accent bar)</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Attribution:</span> em-dash prefix, name bold</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Avatar:</span> optional placeholder (omitted in email)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Common patterns note -->
+      <div class="mt-6 pt-4 border-t border-border-subtle">
+        <h3 class="font-semibold text-text-primary text-sm mb-2">Common Patterns Across All Three</h3>
+        <div class="grid grid-cols-2 gap-6 text-sm text-text-secondary">
+          <ul class="space-y-1.5">
+            <li class="flex gap-2"><span class="text-text-tertiary">Node type:</span> atom (not editable content), draggable: true</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Renderer:</span> ReactNodeViewRenderer (same as MetricCard)</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Input style:</span> invisible borders, visible on hover/focus</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Top bar:</span> block type label + icon (like AskBlock variant bar)</li>
+          </ul>
+          <ul class="space-y-1.5">
+            <li class="flex gap-2"><span class="text-text-tertiary">Card style:</span> border-border-default rounded-md bg-surface-secondary/50</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Email output:</span> all inline styles, table-based fallbacks</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Slash command:</span> added to COMMANDS array in SlashCommands.jsx</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Font size:</span> 13px base for compose content areas</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

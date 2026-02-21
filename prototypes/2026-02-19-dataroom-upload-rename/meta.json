@@ -1,0 +1,22 @@
+{
+  "id": "2026-02-19-dataroom-upload-rename",
+  "name": "Data Room Upload with AI Rename",
+  "description": "Complete 5-phase data room upload flow: source selection, file list, AI processing with 4-step progress, suggestions phase with 'Rename to:' inline edit row and folder picker, success screen with rename provenance. Demonstrates messy-to-clean file naming (Q3_2024_financial_model_FINAL_v2.xlsx -> 2024-Q3-Financial-Model.xlsx) alongside folder categorization.",
+  "prompt": "/prototype \"The complete data room document upload flow with AI-suggested file renaming\"",
+  "fidelity": "concept",
+  "chrome": "minimal",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "All 5 phases in single file with phase navigator. Interactive rename editing, folder picker, summary expand. 3 demo files: 2 with messy names (get rename suggestions), 1 already clean (no rename row)." },
+    { "file": "autoplay-v1.html", "notes": "POC: Self-running animated demo. Crossfade phase transitions (450ms cubic-bezier), staggered element reveals, animated progress bars with step indicators, looping playback with play/pause/restart controls. Phase timing: Source 2.5s, Select 2.2s, Processing 4s, Suggestions 3.8s, Success 3s. For FND-1421." },
+    { "file": "autoplay-v2.html", "notes": "Full /animate skill output. Fixes v1 loop-replay bug (CSS animation-delays only fire once). JS-controlled stagger system with data-stagger-group/data-reveal-group attributes. requestAnimationFrame for smooth progress bars. 4-tier speed hierarchy: FAST 180-220ms (header/footer), MEDIUM 450-600ms (body crossfade), SLOW 700ms (height), SPRING 1100-1350ms (interactions). Icon wiggle pattern (from SuggestionPill): buttons use subtle scale(±3%) + icon rotate(±14deg), drop zones use border/bg pulse + icon rotate(±10deg) with translateY lift. Powers of 10 directional journey: fade→rise→dive→slide-right→scale-up per-phase entry origins with matching stagger directions. Self-drawing checkmarks with staged timing (rows first, then checks draw). Phase enter callbacks trigger stagger sequences. Total loop ~17.5s. Embed mode via ?embed." },
+    { "file": "autoplay-v3.html", "notes": "Enhanced animation version for side-by-side comparison with v2. Three new techniques from industry research: (1) Self-drawing SVG checkmarks — stroke-dashoffset animation draws check marks in Phase 4 success indicators, staged after row stagger. (2) Filename typewriter — character-by-character reveal with blinking cursor for renamed filenames in Phase 3 suggestions. (3) Progress step connectors — thin lines between processing steps that fill left-to-right as each step completes in Phase 2. Adjusted dwell: suggestions 4000→4500ms, success 3000→3200ms. All other v2 features preserved." },
+    { "file": "autoplay-v4.html", "notes": "Cinematic creative departure. Inky palette (#1a1a1a) with card in 3D perspective (1200px). Camera motion via CSS linear() spring easing. Focus-pull entrances, clip-path wipes. Typewriter filenames, self-drawing checkmarks, rAF progress with connecting dots. Refinements: dot-pop on step completion, shimmer sweep on processing cards, CTA glow on Done button, card send-off fly-away before loop restart. Total loop ~21s. Embed mode via ?embed." },
+    { "file": "compare.html", "notes": "Side-by-side comparison page. Embeds v2 and v3 in iframes with synced playback controls. Dark UI. Phase jump buttons (0-4) and restart sync both animations simultaneously. Keyboard shortcuts: R=restart, 0-4=jump to phase, Space=toggle play/pause." }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-tertiary", "--surface-hover", "--text-primary", "--text-secondary", "--text-tertiary", "--border-default", "--border-subtle", "--status-success", "--status-success-bg", "--status-info", "--status-info-bg", "--brand-accent"],
+    "presets": ["primary-action (pill CTA)", "cancel-action (text button)", "secondary-action (outline pill)"],
+    "patterns": ["flat-row-hover", "folder-picker-dropdown", "progress-bar-steps", "inline-edit", "success-banner"]
+  },
+  "createdAt": "2026-02-19T00:00:00Z"
+}

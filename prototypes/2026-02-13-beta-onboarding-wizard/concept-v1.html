@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beta Onboarding Wizard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); box-sizing: border-box; }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+    }
+
+    /* ── Step transitions ── */
+    .step {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 350ms ease, transform 350ms ease;
+      transform: translateX(20px);
+    }
+    .step.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+      z-index: 1;
+    }
+
+    /* Progress */
+    .progress-dot {
+      width: 8px; height: 8px; border-radius: 9999px;
+      background: hsl(var(--border-default));
+      transition: all 250ms ease;
+    }
+    .progress-dot.active { width: 24px; background: hsl(var(--text-primary)); }
+    .progress-dot.completed { background: hsl(var(--text-tertiary)); }
+
+    /* Pills */
+    .pill-toggle { transition: all 150ms ease; user-select: none; }
+    .pill-toggle.selected {
+      background: hsl(var(--surface-inverse));
+      color: hsl(var(--text-inverse));
+      border-color: hsl(var(--surface-inverse));
+    }
+    .pill-toggle:not(.selected):hover { border-color: hsl(var(--border-strong)); }
+
+    /* Combobox */
+    .combobox-dropdown {
+      display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+      background: hsl(var(--surface-primary));
+      border: 1px solid hsl(var(--border-default));
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      margin-top: 4px; max-height: 200px; overflow-y: auto;
+    }
+    .combobox-dropdown.open { display: block; }
+    .combobox-option { padding: 8px 14px; cursor: pointer; transition: background 100ms; font-size: 13px; }
+    .combobox-option:hover { background: hsl(var(--surface-secondary)); }
+
+    /* Chat */
+    .chat-message { animation: fadeUp 250ms ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Action cards */
+    .action-card { transition: all 150ms ease; cursor: pointer; }
+    .action-card:hover { border-color: hsl(var(--border-strong)); box-shadow: 0 2px 8px rgba(0,0,0,0.04); transform: translateY(-1px); }
+
+    /* Inputs */
+    input:focus, textarea:focus { outline: none; border-color: hsl(var(--border-strong)); box-shadow: 0 0 0 3px hsla(var(--text-primary), 0.06); }
+
+    /* Avatar upload */
+    .avatar-upload:hover .avatar-overlay { opacity: 1; }
+    .avatar-overlay { opacity: 0; transition: opacity 150ms; }
+
+    /* Strength bars */
+    .strength-bar { height: 3px; border-radius: 9999px; transition: all 200ms ease; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="h-screen overflow-hidden">
+  <main id="wizard" class="h-full relative">
+
+    <!-- ========== STEP 1: CREATE YOUR ACCOUNT ========== -->
+    <div class="step active flex h-full" data-step="1">
+      <div class="flex w-full h-full">
+        <!-- Left -->
+        <div class="w-1/2 flex items-center justify-center">
+          <div class="w-full max-w-sm px-8">
+            <div class="mb-8">
+              <svg class="h-7" viewBox="0 0 100 28" fill="none">
+                <text x="0" y="22" font-family="Satoshi, system-ui" font-weight="700" font-size="22" fill="hsl(var(--text-primary))">Weftly</text>
+              </svg>
+            </div>
+
+            <h1 class="text-lg font-semibold mb-1">Create your account</h1>
+            <p class="text-sm text-text-secondary mb-6">Set up your credentials to get started</p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1.5">Email</label>
+                <input type="email" value="sarah@meridianlabs.com" disabled readonly
+                  class="w-full px-3.5 py-2 rounded-lg border text-sm bg-surface-secondary text-text-secondary cursor-not-allowed" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1.5">Password</label>
+                <div class="relative">
+                  <input id="password-input" type="password" placeholder="Create a password"
+                    class="w-full px-3.5 py-2 pr-9 rounded-lg border text-sm bg-surface-primary"
+                    oninput="updatePasswordStrength(this.value)" />
+                  <button type="button" onclick="togglePasswordVisibility()"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary transition-colors">
+                    <svg id="eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <svg id="eye-slash-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
+                  </button>
+                </div>
+                <div class="mt-2">
+                  <div class="flex gap-1">
+                    <div id="str-1" class="strength-bar flex-1 bg-surface-tertiary"></div>
+                    <div id="str-2" class="strength-bar flex-1 bg-surface-tertiary"></div>
+                    <div id="str-3" class="strength-bar flex-1 bg-surface-tertiary"></div>
+                    <div id="str-4" class="strength-bar flex-1 bg-surface-tertiary"></div>
+                  </div>
+                  <p id="strength-label" class="mt-1.5 text-xs text-text-tertiary">At least 8 characters</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <button id="create-account-btn" onclick="goToStep(2)"
+                class="w-full py-2.5 rounded-full bg-surface-inverse text-text-inverse font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                Create your account
+              </button>
+            </div>
+            <p class="text-xs text-center mt-6 text-text-tertiary">
+              Questions? Email <a href="#" class="underline hover:no-underline text-text-secondary">support@weftlyai.com</a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Welcome -->
+        <div class="w-1/2 p-5">
+          <div class="w-full h-full rounded-3xl flex flex-col justify-center px-12" style="background-color: #f7f5f2;">
+            <div class="max-w-xs">
+              <h2 class="text-lg font-semibold mb-2">Hi Sarah,</h2>
+              <p class="text-sm leading-relaxed text-text-secondary mb-8">
+                You've been invited to join the <span class="font-medium text-text-primary">Weftly Beta</span>.
+              </p>
+              <p class="text-xs font-medium text-text-tertiary mb-3">What you'll get</p>
+              <div class="space-y-2.5">
+                <div class="flex items-start gap-2.5">
+                  <svg class="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  <span class="text-sm text-text-primary">Your own fundraising workspace</span>
+                </div>
+                <div class="flex items-start gap-2.5">
+                  <svg class="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  <span class="text-sm text-text-primary">Investor pipeline and contact management</span>
+                </div>
+                <div class="flex items-start gap-2.5">
+                  <svg class="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  <span class="text-sm text-text-primary">Personal fundraising advisor</span>
+                </div>
+                <div class="flex items-start gap-2.5">
+                  <svg class="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  <span class="text-sm text-text-primary">Direct access to the Weftly team</span>
+                </div>
+              </div>
+              <p class="text-xs mt-8 text-text-tertiary">Beta access through June 30, 2026</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== STEP 2: ABOUT YOU ========== -->
+    <div class="step flex h-full" data-step="2">
+      <div class="flex w-full h-full">
+        <div class="w-[42%] h-full flex items-center justify-center px-10">
+          <div class="max-w-sm w-full">
+            <div class="flex items-center gap-1.5 bg-surface-secondary rounded-full px-2.5 py-1.5 w-fit mb-10">
+              <div class="progress-dot completed"></div>
+              <div class="progress-dot active"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+            </div>
+
+            <h1 class="text-xl font-bold mb-1 tracking-tight">Let's get started</h1>
+            <p class="text-text-secondary text-sm mb-7">Tell us about yourself</p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1.5">What's your name?</label>
+                <div class="relative">
+                  <input id="name-input" type="text" value="Sarah Chen"
+                    class="w-full px-3.5 py-2 rounded-lg border text-sm bg-surface-primary pr-11" />
+                  <div class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-tertiary flex items-center justify-center text-[11px] font-medium text-text-secondary" id="name-initial">S</div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1.5">What's your role?</label>
+                <div class="relative" id="role-combobox">
+                  <input id="role-input" type="text" placeholder="Write or select a role"
+                    class="w-full px-3.5 py-2 rounded-lg border text-sm bg-surface-primary pr-9 cursor-pointer" readonly onclick="toggleCombobox('role')" />
+                  <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7"/></svg>
+                  <div id="role-dropdown" class="combobox-dropdown">
+                    <div class="combobox-option" onclick="selectOption('role', 'Founder & CEO')">Founder & CEO</div>
+                    <div class="combobox-option" onclick="selectOption('role', 'CTO')">CTO</div>
+                    <div class="combobox-option" onclick="selectOption('role', 'COO')">COO</div>
+                    <div class="combobox-option" onclick="selectOption('role', 'CFO')">CFO</div>
+                    <div class="combobox-option" onclick="selectOption('role', 'Head of Product')">Head of Product</div>
+                    <div class="combobox-option" onclick="selectOption('role', 'Head of Engineering')">Head of Engineering</div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1.5">Profile photo</label>
+                <div class="flex items-center gap-3">
+                  <div class="avatar-upload relative w-12 h-12 rounded-full bg-surface-tertiary flex items-center justify-center cursor-pointer border-2 border-dashed border-border-default hover:border-border-strong" onclick="document.getElementById('avatar-file').click()">
+                    <span id="avatar-preview-text" class="text-base font-medium text-text-secondary">S</span>
+                    <img id="avatar-preview-img" class="hidden absolute inset-0 w-full h-full rounded-full object-cover" />
+                    <div class="avatar-overlay absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
+                    </div>
+                    <input id="avatar-file" type="file" accept="image/*" class="hidden" onchange="handleAvatarUpload(event)" />
+                  </div>
+                  <span class="text-sm text-text-tertiary">Upload a photo</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-2">How do you want things to look?</label>
+                <div class="flex flex-wrap gap-1.5" id="appearance-pills">
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium selected" onclick="selectPill('appearance', this, 'system')">Follow system preferences</button>
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium" onclick="selectPill('appearance', this, 'dark')">Dark</button>
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium" onclick="selectPill('appearance', this, 'light')">Light</button>
+                </div>
+              </div>
+            </div>
+
+            <button onclick="goToStep(3)" class="w-full mt-8 py-2.5 rounded-full bg-surface-inverse text-text-inverse font-medium text-sm hover:opacity-90 transition-opacity">Continue</button>
+          </div>
+        </div>
+
+        <!-- Right: AI Chat -->
+        <div class="w-[58%] p-5">
+          <div class="w-full h-full rounded-3xl flex items-center justify-center" style="background-color: #f7f5f2;">
+            <div class="w-full max-w-md mx-8 bg-white rounded-xl shadow-sm border border-border-subtle overflow-hidden flex flex-col" style="height: 440px;">
+              <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+              </div>
+              <div class="border-t p-3">
+                <div class="relative">
+                  <input id="chat-input" type="text" placeholder="Ask a follow-up..."
+                    class="w-full px-3.5 py-2 pr-10 rounded-lg border text-sm bg-surface-secondary"
+                    onkeydown="if(event.key==='Enter') sendChatMessage()" />
+                  <button onclick="sendChatMessage()" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-inverse flex items-center justify-center hover:opacity-80 transition-opacity">
+                    <svg class="w-3 h-3 text-text-inverse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== STEP 3: YOUR COMPANY ========== -->
+    <div class="step flex h-full" data-step="3">
+      <div class="flex w-full h-full">
+        <div class="w-[42%] h-full flex items-center justify-center px-10">
+          <div class="max-w-sm w-full">
+            <div class="flex items-center gap-1.5 bg-surface-secondary rounded-full px-2.5 py-1.5 w-fit mb-10">
+              <div class="progress-dot completed"></div>
+              <div class="progress-dot completed"></div>
+              <div class="progress-dot active"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+            </div>
+
+            <h1 class="text-xl font-bold mb-1 tracking-tight">Your company</h1>
+            <p class="text-text-secondary text-sm mb-7">Set up your workspace</p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1.5">Company name</label>
+                <div class="relative">
+                  <input id="company-input" type="text" value="Meridian Labs"
+                    class="w-full px-3.5 py-2 rounded-lg border text-sm bg-surface-primary pr-11" oninput="updateSidebarPreview()" />
+                  <div class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center text-[11px] font-medium text-emerald-700" id="company-initial">M</div>
+                </div>
+                <p class="text-xs text-text-tertiary mt-1">This will be the name of your workspace</p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-2">Branding</label>
+                <div class="space-y-3">
+                  <!-- Logo -->
+                  <div class="flex items-center gap-3">
+                    <div class="avatar-upload relative w-11 h-11 rounded-lg bg-surface-tertiary flex items-center justify-center cursor-pointer border-2 border-dashed border-border-default hover:border-border-strong" onclick="document.getElementById('company-logo-file').click()">
+                      <span id="company-logo-text" class="text-sm font-medium text-text-tertiary">M</span>
+                      <img id="company-logo-img" class="hidden absolute inset-0 w-full h-full rounded-lg object-cover" />
+                      <div class="avatar-overlay absolute inset-0 rounded-lg bg-black/40 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
+                      </div>
+                      <input id="company-logo-file" type="file" accept="image/*" class="hidden" onchange="handleCompanyLogoUpload(event)" />
+                    </div>
+                    <div>
+                      <span class="text-sm text-text-primary block font-medium">Logo</span>
+                      <span class="text-xs text-text-tertiary">Emails, investor portal, shared docs</span>
+                    </div>
+                  </div>
+                  <!-- Avatar -->
+                  <div class="flex items-center gap-3">
+                    <div class="avatar-upload relative w-11 h-11 rounded-md bg-emerald-100 flex items-center justify-center cursor-pointer border-2 border-dashed border-border-default hover:border-border-strong" onclick="document.getElementById('company-avatar-file').click()">
+                      <span id="company-avatar-text" class="text-sm font-medium text-emerald-700">M</span>
+                      <img id="company-avatar-img" class="hidden absolute inset-0 w-full h-full rounded-md object-cover" />
+                      <div class="avatar-overlay absolute inset-0 rounded-md bg-black/40 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
+                      </div>
+                      <input id="company-avatar-file" type="file" accept="image/*" class="hidden" onchange="handleCompanyAvatarUpload(event)" />
+                    </div>
+                    <div>
+                      <span class="text-sm text-text-primary block font-medium">Avatar</span>
+                      <span class="text-xs text-text-tertiary">Sidebar nav, team lists, compact views</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1.5">Stage</label>
+                <div class="relative" id="stage-combobox">
+                  <input id="stage-input" type="text" placeholder="Select your stage"
+                    class="w-full px-3.5 py-2 rounded-lg border text-sm bg-surface-primary pr-9 cursor-pointer" readonly onclick="toggleCombobox('stage')" />
+                  <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7"/></svg>
+                  <div id="stage-dropdown" class="combobox-dropdown">
+                    <div class="combobox-option" onclick="selectOption('stage', 'Idea')">Idea</div>
+                    <div class="combobox-option" onclick="selectOption('stage', 'Pre-seed')">Pre-seed</div>
+                    <div class="combobox-option" onclick="selectOption('stage', 'Seed')">Seed</div>
+                    <div class="combobox-option" onclick="selectOption('stage', 'Series A')">Series A</div>
+                    <div class="combobox-option" onclick="selectOption('stage', 'Series B')">Series B</div>
+                    <div class="combobox-option" onclick="selectOption('stage', 'Growth')">Growth</div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1.5">Industry</label>
+                <div class="relative" id="industry-combobox">
+                  <input id="industry-input" type="text" placeholder="Write or select"
+                    class="w-full px-3.5 py-2 rounded-lg border text-sm bg-surface-primary pr-9 cursor-pointer" readonly onclick="toggleCombobox('industry')" />
+                  <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7"/></svg>
+                  <div id="industry-dropdown" class="combobox-dropdown">
+                    <div class="combobox-option" onclick="selectOption('industry', 'SaaS')">SaaS</div>
+                    <div class="combobox-option" onclick="selectOption('industry', 'Fintech')">Fintech</div>
+                    <div class="combobox-option" onclick="selectOption('industry', 'Healthcare')">Healthcare</div>
+                    <div class="combobox-option" onclick="selectOption('industry', 'Consumer')">Consumer</div>
+                    <div class="combobox-option" onclick="selectOption('industry', 'Climate')">Climate</div>
+                    <div class="combobox-option" onclick="selectOption('industry', 'DeepTech')">DeepTech</div>
+                    <div class="combobox-option" onclick="selectOption('industry', 'Marketplace')">Marketplace</div>
+                    <div class="combobox-option" onclick="selectOption('industry', 'Hardware')">Hardware</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 mt-8">
+              <button onclick="goToStep(2)" class="px-5 py-2.5 rounded-full border border-border-default text-sm font-medium hover:bg-surface-secondary transition-colors">Back</button>
+              <button onclick="goToStep(4)" class="flex-1 py-2.5 rounded-full bg-surface-inverse text-text-inverse font-medium text-sm hover:opacity-90 transition-opacity">Continue</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Sidebar Preview -->
+        <div class="w-[58%] p-5">
+          <div class="w-full h-full rounded-3xl flex flex-col items-center justify-center" style="background-color: #f7f5f2;">
+            <div class="w-56 bg-white rounded-xl shadow-sm border border-border-subtle overflow-hidden" style="height: 380px;">
+              <div class="p-3.5 border-b flex items-center gap-2">
+                <div class="w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center text-[10px] font-medium text-emerald-700 overflow-hidden">
+                  <span id="sidebar-logo-text">M</span>
+                  <img id="sidebar-logo-img" class="hidden w-full h-full rounded-md object-cover" />
+                </div>
+                <span class="font-medium text-sm truncate" id="sidebar-name">Meridian Labs</span>
+              </div>
+              <div class="p-2 space-y-0.5">
+                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-surface-secondary">
+                  <svg class="w-3.5 h-3.5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                  <span class="text-xs font-medium">Home</span>
+                </div>
+                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md">
+                  <svg class="w-3.5 h-3.5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span class="text-xs text-text-secondary">Fundraising</span>
+                </div>
+                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md">
+                  <svg class="w-3.5 h-3.5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <span class="text-xs text-text-secondary">Contacts</span>
+                </div>
+                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md">
+                  <svg class="w-3.5 h-3.5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span class="text-xs text-text-secondary">Documents</span>
+                </div>
+                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md">
+                  <svg class="w-3.5 h-3.5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                  <span class="text-xs text-text-secondary">AI Advisor</span>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-text-tertiary mt-3">Your workspace</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== STEP 4: YOUR FUNDRAISE ========== -->
+    <div class="step flex h-full" data-step="4">
+      <div class="flex w-full h-full">
+        <div class="w-[42%] h-full flex items-center justify-center px-10">
+          <div class="max-w-sm w-full">
+            <div class="flex items-center gap-1.5 bg-surface-secondary rounded-full px-2.5 py-1.5 w-fit mb-10">
+              <div class="progress-dot completed"></div>
+              <div class="progress-dot completed"></div>
+              <div class="progress-dot completed"></div>
+              <div class="progress-dot active"></div>
+              <div class="progress-dot"></div>
+            </div>
+
+            <h1 class="text-xl font-bold mb-1 tracking-tight">Your fundraise</h1>
+            <p class="text-text-secondary text-sm mb-7">Help your advisor understand your goals</p>
+
+            <div class="space-y-5">
+              <div>
+                <label class="block text-sm font-medium mb-2">What are you raising?</label>
+                <div class="flex flex-wrap gap-1.5" id="round-pills">
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium" onclick="selectPill('round', this, 'Pre-seed')">Pre-seed</button>
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium selected" onclick="selectPill('round', this, 'Seed')">Seed</button>
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium" onclick="selectPill('round', this, 'Series A')">Series A</button>
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium" onclick="selectPill('round', this, 'Series B')">Series B</button>
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium" onclick="selectPill('round', this, 'Bridge')">Bridge</button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1.5">How much?</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">$</span>
+                  <input id="amount-input" type="text" placeholder="2,000,000" value="2,000,000"
+                    class="w-full pl-7 pr-3.5 py-2 rounded-lg border text-sm bg-surface-primary" oninput="updatePipelinePreview()" />
+                </div>
+                <p class="text-xs text-text-tertiary mt-1">Optional — you can always change this later</p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-2">When?</label>
+                <div class="flex flex-wrap gap-1.5" id="timeline-pills">
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium selected" onclick="selectPill('timeline', this, 'Raising now')">Raising now</button>
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium" onclick="selectPill('timeline', this, 'Next 3 months')">Next 3 months</button>
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium" onclick="selectPill('timeline', this, 'Next 6 months')">Next 6 months</button>
+                  <button class="pill-toggle px-3.5 py-1.5 rounded-full border text-sm font-medium" onclick="selectPill('timeline', this, 'Just exploring')">Just exploring</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 mt-8">
+              <button onclick="goToStep(3)" class="px-5 py-2.5 rounded-full border border-border-default text-sm font-medium hover:bg-surface-secondary transition-colors">Back</button>
+              <button onclick="goToStep(5)" class="flex-1 py-2.5 rounded-full bg-surface-inverse text-text-inverse font-medium text-sm hover:opacity-90 transition-opacity">Continue</button>
+            </div>
+            <button onclick="goToStep(5)" class="w-full mt-2 text-xs text-text-tertiary hover:text-text-secondary transition-colors text-center py-1.5">I'll set this up later</button>
+          </div>
+        </div>
+
+        <!-- Right: Pipeline Preview -->
+        <div class="w-[58%] p-5">
+          <div class="w-full h-full rounded-3xl flex items-center justify-center" style="background-color: #f7f5f2;">
+            <div class="w-full max-w-lg mx-8 bg-white rounded-xl shadow-sm border border-border-subtle overflow-hidden" style="height: 360px;">
+              <div class="p-4 border-b">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="font-semibold text-sm" id="pipeline-round-name">Seed Round</h3>
+                    <p class="text-xs text-text-secondary mt-0.5">
+                      <span id="pipeline-target-text">$2,000,000 target</span>
+                      <span id="pipeline-status" class="inline-block ml-1.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] rounded-full font-medium">Active</span>
+                    </p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[11px] text-text-tertiary">Pipeline value</p>
+                    <p class="text-sm font-semibold tabular-nums">$0</p>
+                  </div>
+                </div>
+              </div>
+              <div class="flex h-[calc(100%-60px)]">
+                <div class="flex-1 border-r p-2">
+                  <div class="flex items-center justify-between mb-2"><span class="text-[10px] font-medium text-text-secondary">Research</span><span class="text-[10px] text-text-tertiary bg-surface-secondary px-1 py-0.5 rounded">0</span></div>
+                  <div class="border border-dashed border-border-default rounded p-2.5 text-center"><p class="text-[10px] text-text-tertiary">Drop investors here</p></div>
+                </div>
+                <div class="flex-1 border-r p-2"><div class="flex items-center justify-between mb-2"><span class="text-[10px] font-medium text-text-secondary">Outreach</span><span class="text-[10px] text-text-tertiary bg-surface-secondary px-1 py-0.5 rounded">0</span></div></div>
+                <div class="flex-1 border-r p-2"><div class="flex items-center justify-between mb-2"><span class="text-[10px] font-medium text-text-secondary">Meeting</span><span class="text-[10px] text-text-tertiary bg-surface-secondary px-1 py-0.5 rounded">0</span></div></div>
+                <div class="flex-1 border-r p-2"><div class="flex items-center justify-between mb-2"><span class="text-[10px] font-medium text-text-secondary">Diligence</span><span class="text-[10px] text-text-tertiary bg-surface-secondary px-1 py-0.5 rounded">0</span></div></div>
+                <div class="flex-1 p-2"><div class="flex items-center justify-between mb-2"><span class="text-[10px] font-medium text-text-secondary">Closing</span><span class="text-[10px] text-text-tertiary bg-surface-secondary px-1 py-0.5 rounded">0</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== STEP 5: GET STARTED ========== -->
+    <div class="step flex h-full items-center justify-center" data-step="5">
+      <div class="max-w-2xl w-full px-10">
+        <div class="flex items-center gap-1.5 bg-surface-secondary rounded-full px-2.5 py-1.5 w-fit mb-10">
+          <div class="progress-dot completed"></div>
+          <div class="progress-dot completed"></div>
+          <div class="progress-dot completed"></div>
+          <div class="progress-dot completed"></div>
+          <div class="progress-dot active"></div>
+        </div>
+
+        <h1 class="text-xl font-bold mb-1 tracking-tight">You're all set</h1>
+        <p class="text-text-secondary text-sm mb-7">Here are some things to try first</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="action-card p-4 rounded-lg border bg-surface-primary">
+            <div class="w-8 h-8 rounded-md bg-surface-secondary flex items-center justify-center mb-3">
+              <svg class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+            <h3 class="font-semibold text-sm mb-0.5">Add your investors</h3>
+            <p class="text-xs text-text-secondary leading-relaxed">Import or add the investors you're talking to</p>
+          </div>
+          <div class="action-card p-4 rounded-lg border bg-surface-primary">
+            <div class="w-8 h-8 rounded-md bg-surface-secondary flex items-center justify-center mb-3">
+              <svg class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </div>
+            <h3 class="font-semibold text-sm mb-0.5">Upload your pitch deck</h3>
+            <p class="text-xs text-text-secondary leading-relaxed">Add your pitch deck and other fundraising docs</p>
+          </div>
+          <div class="action-card p-4 rounded-lg border bg-surface-primary">
+            <div class="w-8 h-8 rounded-md bg-surface-secondary flex items-center justify-center mb-3">
+              <svg class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+            </div>
+            <h3 class="font-semibold text-sm mb-0.5">Ask your advisor</h3>
+            <p class="text-xs text-text-secondary leading-relaxed">Get fundraising advice tailored to your stage</p>
+          </div>
+          <div class="action-card p-4 rounded-lg border bg-surface-primary">
+            <div class="w-8 h-8 rounded-md bg-surface-secondary flex items-center justify-center mb-3">
+              <svg class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+            </div>
+            <h3 class="font-semibold text-sm mb-0.5">Set up your pipeline</h3>
+            <p class="text-xs text-text-secondary leading-relaxed">Track your investor conversations and progress</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 mt-8">
+          <button onclick="goToStep(4)" class="px-5 py-2.5 rounded-full border border-border-default text-sm font-medium hover:bg-surface-secondary transition-colors">Back</button>
+          <button onclick="completeWizard()" class="flex-1 py-2.5 rounded-full bg-surface-inverse text-text-inverse font-medium text-sm hover:opacity-90 transition-opacity">Go to your workspace</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== COMPLETION ========== -->
+    <div class="step flex h-full items-center justify-center" data-step="6">
+      <div class="text-center">
+        <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h1 class="text-lg font-bold mb-1">Welcome to Weftly</h1>
+        <p class="text-sm text-text-secondary">Setting up your workspace...</p>
+        <p class="text-xs text-text-tertiary mt-3">(This would redirect to /dashboard)</p>
+        <button onclick="resetWizard()" class="mt-5 px-5 py-2 rounded-full border text-sm font-medium hover:bg-surface-secondary transition-colors">Restart prototype</button>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // ── State ──
+    var currentStep = 1;
+    var state = {
+      name: 'Sarah Chen', role: '', companyName: 'Meridian Labs',
+      stage: '', industry: '', roundType: 'Seed',
+      amount: '2,000,000', timeline: 'Raising now', appearance: 'system',
+      passwordValid: false
+    };
+
+    // ── Navigation with smooth transitions ──
+    function goToStep(step) {
+      if (step === currentStep) return;
+      var goingForward = step > currentStep;
+      var oldStep = document.querySelector('[data-step="' + currentStep + '"]');
+      var newStep = document.querySelector('[data-step="' + step + '"]');
+
+      // Exit old step
+      oldStep.classList.remove('active');
+      oldStep.style.opacity = '0';
+      oldStep.style.transform = goingForward ? 'translateX(-20px)' : 'translateX(20px)';
+      oldStep.style.pointerEvents = 'none';
+      oldStep.style.zIndex = '0';
+
+      // Prep new step entry direction
+      newStep.style.opacity = '0';
+      newStep.style.transform = goingForward ? 'translateX(20px)' : 'translateX(-20px)';
+      newStep.style.zIndex = '1';
+
+      // Force reflow then animate in
+      void newStep.offsetHeight;
+      requestAnimationFrame(function() {
+        newStep.classList.add('active');
+        newStep.style.opacity = '1';
+        newStep.style.transform = 'translateX(0)';
+        newStep.style.pointerEvents = 'auto';
+      });
+
+      currentStep = step;
+      document.querySelectorAll('.combobox-dropdown').forEach(function(d) { d.classList.remove('open'); });
+    }
+
+    function completeWizard() { goToStep(6); }
+
+    function resetWizard() {
+      var pw = document.getElementById('password-input');
+      if (pw) { pw.value = ''; pw.type = 'password'; }
+      updatePasswordStrength('');
+      document.getElementById('create-account-btn').disabled = true;
+      document.querySelectorAll('.step').forEach(function(s) {
+        s.classList.remove('active');
+        s.style.opacity = '0';
+        s.style.pointerEvents = 'none';
+        s.style.zIndex = '0';
+        s.style.transform = 'translateX(20px)';
+      });
+      var first = document.querySelector('[data-step="1"]');
+      first.classList.add('active');
+      first.style.opacity = '1';
+      first.style.transform = 'translateX(0)';
+      first.style.pointerEvents = 'auto';
+      first.style.zIndex = '1';
+      currentStep = 1;
+    }
+
+    // ── Password strength ──
+    function updatePasswordStrength(pw) {
+      var bars = [document.getElementById('str-1'), document.getElementById('str-2'), document.getElementById('str-3'), document.getElementById('str-4')];
+      var label = document.getElementById('strength-label');
+      var btn = document.getElementById('create-account-btn');
+
+      if (!pw) {
+        bars.forEach(function(b) { b.style.background = ''; b.className = 'strength-bar flex-1 bg-surface-tertiary'; });
+        label.textContent = 'At least 8 characters';
+        btn.disabled = true;
+        return;
+      }
+
+      var hasLength = pw.length >= 8;
+      var hasUpper = /[A-Z]/.test(pw);
+      var hasNumber = /\d/.test(pw);
+      var hasSpecial = /[^A-Za-z0-9]/.test(pw);
+      var score = 0;
+      if (hasLength) score++;
+      if (hasUpper) score++;
+      if (hasNumber) score++;
+      if (hasSpecial) score++;
+      if (!hasLength) score = 0;
+
+      var filled = score === 0 ? 1 : score;
+      var colors = ['', '#f87171', '#f87171', '#fbbf24', '#22c55e', '#16a34a'];
+      var labels = ['', pw.length + '/8 characters', 'Weak', 'Fair', 'Good', 'Strong'];
+
+      bars.forEach(function(b, i) {
+        if (i < filled) { b.style.background = colors[Math.max(score, 1)]; }
+        else { b.style.background = ''; b.className = 'strength-bar flex-1 bg-surface-tertiary'; }
+      });
+      label.textContent = labels[Math.max(score, 1)];
+      btn.disabled = !hasLength;
+    }
+
+    function togglePasswordVisibility() {
+      var input = document.getElementById('password-input');
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      document.getElementById('eye-icon').classList.toggle('hidden', show);
+      document.getElementById('eye-slash-icon').classList.toggle('hidden', !show);
+    }
+
+    // ── Combobox ──
+    function toggleCombobox(id) {
+      var dd = document.getElementById(id + '-dropdown');
+      var isOpen = dd.classList.contains('open');
+      document.querySelectorAll('.combobox-dropdown').forEach(function(d) { d.classList.remove('open'); });
+      if (!isOpen) dd.classList.add('open');
+    }
+    function selectOption(id, value) {
+      document.getElementById(id + '-input').value = value;
+      document.getElementById(id + '-dropdown').classList.remove('open');
+      state[id] = value;
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('[id$="-combobox"]')) {
+        document.querySelectorAll('.combobox-dropdown').forEach(function(d) { d.classList.remove('open'); });
+      }
+    });
+
+    // ── Step 2: Name sync ──
+    document.getElementById('name-input').addEventListener('input', function(e) {
+      var name = e.target.value;
+      state.name = name;
+      var initial = name.charAt(0).toUpperCase() || '?';
+      document.getElementById('name-initial').textContent = initial;
+      document.getElementById('avatar-preview-text').textContent = initial;
+      var g = document.getElementById('chat-greeting-name');
+      if (g) g.textContent = name.split(' ')[0] || 'there';
+    });
+
+    // ── Chat ──
+    var aiResponses = [
+      "That's a great question! For early-stage fundraising, I'd recommend starting by building a list of 30-50 target investors who've invested in similar companies at your stage.",
+      "The most important things are: a clear narrative, strong metrics (even early ones), and warm introductions. Want me to help you think through any of these?",
+      "I can research investors, help you practice your pitch, draft outreach emails, or analyze your pipeline. What would be most useful right now?",
+      "Many founders find it helpful to start with their existing network. Do you have any investors or advisors you're already in touch with?",
+    ];
+    var responseIndex = 0;
+
+    (function initChat() {
+      var messages = document.getElementById('chat-messages');
+      var wrapper = document.createElement('div');
+      wrapper.className = 'chat-message';
+      var row = document.createElement('div');
+      row.className = 'flex items-start gap-2.5';
+
+      var av = document.createElement('div');
+      av.className = 'w-6 h-6 rounded-full bg-[#404040] flex items-center justify-center flex-shrink-0 mt-0.5';
+      av.style.cssText = 'color:#FAFAF9;font-size:10px;font-weight:700';
+      av.textContent = 'W';
+
+      var textDiv = document.createElement('div');
+      var p1 = document.createElement('p');
+      p1.className = 'text-[13px] leading-relaxed text-text-primary';
+      p1.textContent = 'Hi ';
+      var nameSpan = document.createElement('span');
+      nameSpan.id = 'chat-greeting-name';
+      nameSpan.textContent = 'Sarah';
+      p1.appendChild(nameSpan);
+      p1.appendChild(document.createTextNode("! I'm your fundraising advisor. I can help you think through your raise, prepare for investor meetings, and keep your fundraise on track."));
+
+      var p2 = document.createElement('p');
+      p2.className = 'text-[13px] leading-relaxed text-text-primary mt-2';
+      p2.textContent = "What's on your mind?";
+
+      textDiv.appendChild(p1);
+      textDiv.appendChild(p2);
+      row.appendChild(av);
+      row.appendChild(textDiv);
+      wrapper.appendChild(row);
+      messages.appendChild(wrapper);
+    })();
+
+    function sendChatMessage() {
+      var input = document.getElementById('chat-input');
+      var text = input.value.trim();
+      if (!text) return;
+      var messages = document.getElementById('chat-messages');
+
+      var userMsg = document.createElement('div');
+      userMsg.className = 'chat-message flex justify-end';
+      var bubble = document.createElement('div');
+      bubble.className = 'bg-surface-secondary rounded-2xl rounded-br-md px-3 py-1.5 max-w-[80%]';
+      var p = document.createElement('p');
+      p.className = 'text-[13px]';
+      p.textContent = text;
+      bubble.appendChild(p);
+      userMsg.appendChild(bubble);
+      messages.appendChild(userMsg);
+      input.value = '';
+      messages.scrollTop = messages.scrollHeight;
+
+      setTimeout(function() {
+        var aiMsg = document.createElement('div');
+        aiMsg.className = 'chat-message';
+        var aiRow = document.createElement('div');
+        aiRow.className = 'flex items-start gap-2.5';
+        var aiAv = document.createElement('div');
+        aiAv.className = 'w-6 h-6 rounded-full bg-[#404040] flex items-center justify-center flex-shrink-0 mt-0.5';
+        aiAv.style.cssText = 'color:#FAFAF9;font-size:10px;font-weight:700';
+        aiAv.textContent = 'W';
+        var aiText = document.createElement('p');
+        aiText.className = 'text-[13px] leading-relaxed text-text-primary';
+        aiText.textContent = aiResponses[responseIndex % aiResponses.length];
+        responseIndex++;
+        aiRow.appendChild(aiAv);
+        aiRow.appendChild(aiText);
+        aiMsg.appendChild(aiRow);
+        messages.appendChild(aiMsg);
+        messages.scrollTop = messages.scrollHeight;
+      }, 800);
+    }
+
+    // ── Avatar uploads ──
+    function handleAvatarUpload(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('avatar-preview-text').classList.add('hidden');
+        var img = document.getElementById('avatar-preview-img');
+        img.src = e.target.result;
+        img.classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleCompanyLogoUpload(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('company-logo-text').classList.add('hidden');
+        var img = document.getElementById('company-logo-img');
+        img.src = e.target.result;
+        img.classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleCompanyAvatarUpload(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('company-avatar-text').classList.add('hidden');
+        var img = document.getElementById('company-avatar-img');
+        img.src = e.target.result;
+        img.classList.remove('hidden');
+
+        document.getElementById('sidebar-logo-text').classList.add('hidden');
+        var sidebarImg = document.getElementById('sidebar-logo-img');
+        sidebarImg.src = e.target.result;
+        sidebarImg.classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ── Sidebar preview ──
+    function updateSidebarPreview() {
+      var name = document.getElementById('company-input').value || 'Your Company';
+      var initial = name.charAt(0).toUpperCase();
+      document.getElementById('sidebar-name').textContent = name;
+      document.getElementById('sidebar-logo-text').textContent = initial;
+      document.getElementById('company-initial').textContent = initial;
+      document.getElementById('company-logo-text').textContent = initial;
+      document.getElementById('company-avatar-text').textContent = initial;
+      state.companyName = name;
+    }
+
+    // ── Pill toggles ──
+    function selectPill(group, el, value) {
+      el.parentElement.querySelectorAll('.pill-toggle').forEach(function(p) { p.classList.remove('selected'); });
+      el.classList.add('selected');
+      if (group === 'round') state.roundType = value;
+      if (group === 'timeline') state.timeline = value;
+      if (group === 'appearance') state.appearance = value;
+      if (group === 'round' || group === 'timeline') updatePipelinePreview();
+    }
+
+    // ── Pipeline preview ──
+    function updatePipelinePreview() {
+      document.getElementById('pipeline-round-name').textContent = state.roundType + ' Round';
+      var amount = document.getElementById('amount-input').value;
+      document.getElementById('pipeline-target-text').textContent = amount ? '$' + amount + ' target' : 'Target TBD';
+      var s = document.getElementById('pipeline-status');
+      if (state.timeline === 'Raising now') {
+        s.textContent = 'Active';
+        s.className = 'inline-block ml-1.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] rounded-full font-medium';
+      } else {
+        s.textContent = 'Planning';
+        s.className = 'inline-block ml-1.5 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] rounded-full font-medium';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investor Matching — Cinematic Dark</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================
+       DESIGN TOKENS — ITO Inky Palette + Pastels
+       ================================================================ */
+    :root {
+      --bg-body: #1a1a1a;
+      --surface-card: #262626;
+      --surface-glass: rgba(64,64,64,0.5);
+      --surface-glass-hover: #4d4d4d;
+
+      --text-primary: #ffffff;
+      --text-secondary: #e7e5e4;
+      --text-tertiary: #c7c4c0;
+      --text-quaternary: #a8a29e;
+
+      --border-subtle: #404040;
+      --border-medium: #666666;
+
+      --success: #d1fae5;
+      --success-dim: rgba(209,250,229,0.12);
+      --accent: #dbeafe;
+      --accent-dim: rgba(219,234,254,0.10);
+      --processing: #fef3c7;
+      --processing-glow: rgba(254,243,199,0.08);
+
+      /* Easing */
+      --spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50%, 1.015 55%, 1.017 63.9%, 1.001 85.6%, 1);
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+      --ease-spring-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+      /* Timing (Speed Hierarchy) */
+      --fast: 180ms;
+      --medium: 500ms;
+      --slow: 700ms;
+      --spring-dur: 1100ms;
+    }
+
+    /* ================================================================
+       RESET & BASE
+       ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ================================================================
+       3D PERSPECTIVE SCENE
+       ================================================================ */
+    .scene {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+      width: 100%;
+      max-width: 640px;
+      padding: 24px;
+    }
+
+    .card-wrapper {
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    /* ================================================================
+       THE CARD — solid inky surface in 3D space
+       ================================================================ */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.15);
+      overflow: hidden;
+      transition: transform 800ms var(--spring);
+      will-change: transform;
+    }
+
+    /* Camera angles per phase */
+    .card.camera-0 { transform: rotateX(2deg) rotateY(0deg); }
+    .card.camera-1 { transform: rotateX(1deg) rotateY(-1deg); }
+    .card.camera-2 { transform: rotateX(0deg) rotateY(0deg); }
+    .card.camera-3 { transform: rotateX(0.5deg) rotateY(1deg); }
+
+    /* ================================================================
+       HEADER
+       ================================================================ */
+    .card-header {
+      padding: 28px 28px 0;
+    }
+
+    .phase-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .phase-subtitle {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    /* Title focus-pull entrance */
+    .title-focus {
+      opacity: 0;
+      filter: blur(8px);
+      transform: scale(0.97);
+      transition: opacity var(--medium) var(--ease-out-expo),
+                  filter 600ms var(--ease-out-expo),
+                  transform var(--medium) var(--ease-out-expo);
+    }
+    .title-focus.visible {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1);
+    }
+
+    /* ================================================================
+       PHASE CONTAINER & CLIP-PATH WIPES
+       ================================================================ */
+    .phase-container {
+      position: relative;
+      overflow: hidden;
+      transition: height var(--slow) var(--ease-smooth);
+    }
+
+    .phase-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 20px 28px 28px;
+      clip-path: inset(0 100% 0 0);
+      transition: clip-path var(--slow) var(--ease-out-expo);
+      pointer-events: none;
+      will-change: clip-path;
+    }
+    .phase-layer.active {
+      clip-path: inset(0 0 0 0);
+      pointer-events: auto;
+    }
+    .phase-layer.exiting {
+      clip-path: inset(0 0 0 100%);
+      transition: clip-path var(--medium) var(--ease-in);
+    }
+    .phase-layer.measuring {
+      clip-path: none;
+      position: static;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ================================================================
+       FOCUS-PULL ENTRANCE
+       ================================================================ */
+    .focus-enter {
+      opacity: 0;
+      filter: blur(8px);
+      transform: scale(0.97);
+      transition: opacity var(--medium) var(--ease-out-expo),
+                  filter 600ms var(--ease-out-expo),
+                  transform var(--medium) var(--ease-out-expo);
+    }
+    .focus-enter.visible {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1);
+    }
+
+    /* ================================================================
+       FOOTER
+       ================================================================ */
+    .card-footer {
+      border-top: 1px solid var(--border-subtle);
+      position: relative;
+      min-height: 64px;
+    }
+
+    .footer-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      padding: 16px 28px;
+      opacity: 0;
+      transition: opacity 220ms ease;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+    }
+    .footer-layer.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ================================================================
+       BUTTONS
+       ================================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 150ms ease;
+      border: none;
+      transform-origin: center;
+    }
+
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-body);
+      padding: 10px 20px;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 10px 16px;
+      border: 1px solid var(--border-medium);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-quaternary);
+      padding: 10px 16px;
+    }
+
+    /* ================================================================
+       SPRING INTERACTIONS
+       ================================================================ */
+    @keyframes btn-press {
+      0%   { transform: scale(1);    filter: brightness(1); }
+      15%  { transform: scale(1.02); filter: brightness(1.08); }
+      40%  { transform: scale(0.97); filter: brightness(1.04); }
+      65%  { transform: scale(1.01); filter: brightness(1); }
+      100% { transform: scale(1);    filter: brightness(1); }
+    }
+    .btn.pressing {
+      animation: btn-press var(--spring-dur) var(--ease-spring-quint) forwards;
+    }
+    .btn.pressing svg {
+      animation: icon-wiggle var(--spring-dur) var(--ease-spring-quint) forwards;
+    }
+
+    @keyframes icon-wiggle {
+      0%   { transform: rotate(0deg); }
+      15%  { transform: rotate(0deg); }
+      30%  { transform: rotate(-14deg); }
+      45%  { transform: rotate(14deg); }
+      60%  { transform: rotate(-6deg); }
+      75%  { transform: rotate(4deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Send button CTA glow */
+    @keyframes cta-glow {
+      0%   { filter: brightness(1);   box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+      50%  { filter: brightness(1.15); box-shadow: 0 0 16px 2px rgba(255,255,255,0.15); }
+      100% { filter: brightness(1);   box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    }
+    .btn.cta-glow {
+      animation: cta-glow 1.8s var(--ease-smooth) infinite;
+    }
+
+    /* Card send-off — lifts up and flies away */
+    @keyframes card-send-off {
+      0%   { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+      25%  { transform: translateY(-8px) scale(1.01); opacity: 1; filter: blur(0); }
+      100% { transform: translateY(-100px) scale(0.96); opacity: 0; filter: blur(6px); }
+    }
+    .card-wrapper.sending {
+      animation: card-send-off 900ms var(--ease-in) forwards;
+      pointer-events: none;
+    }
+
+    /* ================================================================
+       PHASE 0: MATCHING PROMPT
+       ================================================================ */
+    .matching-icon-container {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 16px;
+      border-radius: 14px;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .matching-prompt-title {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .matching-prompt-sub {
+      font-size: 0.8125rem;
+      color: var(--text-tertiary);
+      max-width: 360px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .criteria-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 18px;
+    }
+
+    .criteria-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: var(--surface-glass);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* ================================================================
+       PHASE 1: STEP DOTS (vertical sequence)
+       ================================================================ */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .step-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-dot-v {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--text-quaternary);
+      flex-shrink: 0;
+      transition: background 400ms var(--ease-spring-quint),
+                  box-shadow 400ms var(--ease-spring-quint),
+                  transform 300ms var(--ease-spring-quint);
+    }
+    .step-dot-v.done {
+      background: var(--success);
+      box-shadow: none;
+      animation: dot-pop 400ms var(--ease-spring-quint);
+    }
+    .step-dot-v.active {
+      background: var(--processing);
+      box-shadow: 0 0 8px rgba(254,243,199,0.3);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes dot-pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.4); }
+      70%  { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { box-shadow: 0 0 6px rgba(254,243,199,0.25); }
+      50%      { box-shadow: 0 0 12px rgba(254,243,199,0.1); }
+    }
+
+    .step-text-v {
+      font-size: 0.8125rem;
+      color: var(--text-quaternary);
+      transition: color 400ms;
+    }
+    .step-text-v.done {
+      color: var(--text-tertiary);
+    }
+    .step-text-v.active {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* Processing spinner + shimmer bar */
+    .processing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--processing-glow);
+      border: 1px solid rgba(254,243,199,0.12);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .processing-indicator::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; right: 0; bottom: 0;
+      width: 200%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(254,243,199,0.06) 40%,
+        rgba(254,243,199,0.12) 50%,
+        rgba(254,243,199,0.06) 60%,
+        transparent 100%
+      );
+      animation: shimmer-sweep 2.5s linear infinite;
+    }
+
+    @keyframes shimmer-sweep {
+      0%   { transform: translateX(-50%); }
+      100% { transform: translateX(50%); }
+    }
+
+    .processing-spinner {
+      width: 18px;
+      height: 18px;
+      color: var(--processing);
+      animation: spin 1s linear infinite;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .processing-text {
+      font-size: 0.75rem;
+      color: var(--processing);
+      font-weight: 500;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ================================================================
+       PHASE 2: INVESTOR CARDS
+       ================================================================ */
+    .investor-row {
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 8px;
+    }
+    .investor-row:last-of-type { margin-bottom: 0; }
+
+    .investor-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .investor-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .investor-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .investor-name {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .investor-type {
+      display: inline-flex;
+      margin-left: 6px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 0.625rem;
+      font-weight: 500;
+      background: var(--surface-glass);
+      color: var(--text-quaternary);
+      vertical-align: middle;
+    }
+
+    .investor-meta {
+      font-size: 0.75rem;
+      color: var(--text-quaternary);
+      margin-top: 2px;
+    }
+
+    .match-score {
+      flex-shrink: 0;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .match-score-high {
+      background: rgba(209,250,229,0.15);
+      color: var(--success);
+    }
+
+    .match-reasons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .reason-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.6875rem;
+      background: var(--surface-glass);
+      color: var(--text-tertiary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .reason-check {
+      color: var(--success);
+      flex-shrink: 0;
+    }
+
+    .investor-portfolio {
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: var(--text-quaternary);
+    }
+    .investor-portfolio strong {
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    /* ================================================================
+       PHASE 3: INVESTOR PROFILE + MESSAGE COMPOSE
+       ================================================================ */
+    .added-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: var(--success-dim);
+      color: var(--success);
+      margin-bottom: 20px;
+    }
+
+    .profile-firm {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .profile-firm-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .profile-firm-info {
+      flex: 1;
+    }
+
+    .profile-firm-name {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .profile-firm-meta {
+      font-size: 0.75rem;
+      color: var(--text-quaternary);
+      margin-top: 3px;
+    }
+
+    .profile-score {
+      flex-shrink: 0;
+    }
+
+    /* Contact card */
+    .contact-card {
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .contact-card-label {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      color: var(--text-quaternary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .contact-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .contact-info { flex: 1; }
+
+    .contact-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .contact-title {
+      font-size: 0.75rem;
+      color: var(--text-quaternary);
+      margin-top: 1px;
+    }
+
+    /* Message compose preview */
+    .compose-preview {
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .compose-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      opacity: 0;
+      transition: opacity 400ms var(--ease-out-expo);
+    }
+    .compose-field.visible {
+      opacity: 1;
+    }
+
+    .compose-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-quaternary);
+      flex-shrink: 0;
+    }
+
+    .compose-value {
+      font-size: 0.8125rem;
+      color: var(--text-primary);
+    }
+
+    .compose-body {
+      font-size: 0.8125rem;
+      color: var(--text-tertiary);
+      line-height: 1.6;
+      min-height: 1.6em;
+    }
+
+    .compose-cursor {
+      display: inline-block;
+      width: 1px;
+      height: 14px;
+      background: var(--text-primary);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: cursor-blink 1s step-end infinite;
+    }
+
+    @keyframes cursor-blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* ================================================================
+       PLAYBACK CONTROLS
+       ================================================================ */
+    .playback-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 10px 20px;
+      border-radius: 9999px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 50;
+      font-size: 12px;
+    }
+
+    .playback-bar button {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      opacity: 0.7;
+      transition: opacity 150ms;
+    }
+    .playback-bar button:hover { opacity: 1; }
+
+    .phase-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-quaternary);
+      transition: all 300ms ease;
+      cursor: pointer;
+    }
+    .phase-dot.active {
+      background: var(--text-primary);
+      width: 20px;
+      border-radius: 3px;
+    }
+    .phase-dot.completed {
+      background: var(--text-tertiary);
+    }
+
+    .phase-label-text {
+      font-size: 0.75rem;
+      opacity: 0.5;
+      font-variant-numeric: tabular-nums;
+      margin-left: 4px;
+    }
+
+    /* ================================================================
+       EMBED MODE
+       ================================================================ */
+    body.embed {
+      background: transparent;
+      min-height: auto;
+      padding: 0;
+    }
+    body.embed .scene {
+      max-width: 100%;
+      padding: 56px;
+      background: transparent;
+    }
+    body.embed .playback-bar { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Perspective Scene -->
+  <div class="scene" id="scene">
+    <div class="card-wrapper">
+
+      <!-- Card -->
+      <div class="card camera-0" id="card">
+
+        <!-- Header -->
+        <div class="card-header" id="card-header">
+          <div class="title-focus visible" id="title-block">
+            <div class="phase-title" id="phase-title">Find Investors</div>
+            <div class="phase-subtitle" id="phase-subtitle">AI-powered matching against 2,400+ active investors</div>
+          </div>
+        </div>
+
+        <!-- Phase Container -->
+        <div class="phase-container" id="phase-container">
+
+          <!-- ═══════ PHASE 0: MATCHING PROMPT ═══════ -->
+          <div class="phase-layer active" id="phase-0">
+            <div style="text-align: center; padding: 12px 0 8px;">
+              <div class="matching-icon-container">
+                <svg width="24" height="24" fill="none" stroke="var(--text-primary)" stroke-width="1.5" viewBox="0 0 256 256">
+                  <circle cx="128" cy="128" r="72" fill="none"/>
+                  <line x1="128" y1="28" x2="128" y2="64"/>
+                  <line x1="128" y1="192" x2="128" y2="228"/>
+                  <line x1="28" y1="128" x2="64" y2="128"/>
+                  <line x1="192" y1="128" x2="228" y2="128"/>
+                </svg>
+              </div>
+              <div class="matching-prompt-title">Match your round criteria</div>
+              <div class="matching-prompt-sub">
+                AI compares sector focus, check size, stage preference, and portfolio overlap
+              </div>
+              <div class="criteria-pills">
+                <span class="criteria-pill">Series A</span>
+                <span class="criteria-pill">B2B SaaS</span>
+                <span class="criteria-pill">$2M – $8M</span>
+                <span class="criteria-pill">AI / ML</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══════ PHASE 1: PROCESSING STEPS ═══════ -->
+          <div class="phase-layer" id="phase-1">
+            <!-- Processing indicator bar with shimmer -->
+            <div class="processing-indicator">
+              <svg class="processing-spinner" fill="none" viewBox="0 0 24 24">
+                <circle style="opacity: 0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.5"></circle>
+                <path style="opacity: 0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span class="processing-text">Analyzing against 2,400+ investors...</span>
+            </div>
+
+            <!-- Step-by-step progress -->
+            <div class="step-list">
+              <div class="step-row focus-enter" data-focus-group="steps" data-focus-index="0">
+                <div class="step-dot-v" data-dot="0"></div>
+                <span class="step-text-v" data-text="0">Sector focus: B2B SaaS, AI/ML, Enterprise</span>
+              </div>
+              <div class="step-row focus-enter" data-focus-group="steps" data-focus-index="1">
+                <div class="step-dot-v" data-dot="1"></div>
+                <span class="step-text-v" data-text="1">Check size preference: $2M – $8M range</span>
+              </div>
+              <div class="step-row focus-enter" data-focus-group="steps" data-focus-index="2">
+                <div class="step-dot-v" data-dot="2"></div>
+                <span class="step-text-v" data-text="2">Stage alignment: Series A</span>
+              </div>
+              <div class="step-row focus-enter" data-focus-group="steps" data-focus-index="3">
+                <div class="step-dot-v" data-dot="3"></div>
+                <span class="step-text-v" data-text="3">Portfolio overlap analysis</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══════ PHASE 2: INVESTOR RESULTS ═══════ -->
+          <div class="phase-layer" id="phase-2">
+            <!-- Card 1: Lightspeed — 92% -->
+            <div class="investor-row focus-enter" data-focus-group="results" data-focus-index="0">
+              <div class="investor-header">
+                <div class="investor-logo">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--text-secondary)"><path d="M9.5 1L3.5 8.5H7L5.5 15L12.5 7H9L9.5 1z"/></svg>
+                </div>
+                <div class="investor-info">
+                  <div class="investor-name">Lightspeed Venture Partners <span class="investor-type">VC</span></div>
+                  <div class="investor-meta">San Francisco &middot; $3M–$8M &middot; 142 portfolio cos.</div>
+                </div>
+                <div class="match-score match-score-high" data-target="92">0%</div>
+              </div>
+              <div class="match-reasons">
+                <span class="reason-badge">
+                  <svg class="reason-check" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Stage match
+                </span>
+                <span class="reason-badge">
+                  <svg class="reason-check" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Sector aligned
+                </span>
+                <span class="reason-badge">
+                  <svg class="reason-check" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Check size fit
+                </span>
+              </div>
+              <div class="investor-portfolio"><strong>Portfolio:</strong> Snap, AppDynamics, MuleSoft, Nutanix, Affirm</div>
+            </div>
+
+            <!-- Card 2: Accel — 87% -->
+            <div class="investor-row focus-enter" data-focus-group="results" data-focus-index="1">
+              <div class="investor-header">
+                <div class="investor-logo">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 3l5 5-5 5" stroke="var(--text-secondary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 3l5 5-5 5" stroke="var(--text-secondary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="investor-info">
+                  <div class="investor-name">Accel <span class="investor-type">VC</span></div>
+                  <div class="investor-meta">Palo Alto &middot; $5M–$15M &middot; 203 portfolio cos.</div>
+                </div>
+                <div class="match-score match-score-high" data-target="87">0%</div>
+              </div>
+              <div class="match-reasons">
+                <span class="reason-badge">
+                  <svg class="reason-check" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Stage match
+                </span>
+                <span class="reason-badge">
+                  <svg class="reason-check" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Thesis aligned
+                </span>
+              </div>
+              <div class="investor-portfolio"><strong>Portfolio:</strong> Slack, Dropbox, Atlassian, CrowdStrike, Qualtrics</div>
+            </div>
+
+            <!-- Card 3: Index — 81% -->
+            <div class="investor-row focus-enter" data-focus-group="results" data-focus-index="2">
+              <div class="investor-header">
+                <div class="investor-logo">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--text-secondary)"><path d="M8 1L14.5 8L8 15L1.5 8Z"/></svg>
+                </div>
+                <div class="investor-info">
+                  <div class="investor-name">Index Ventures <span class="investor-type">VC</span></div>
+                  <div class="investor-meta">San Francisco &middot; $2M–$10M &middot; 89 portfolio cos.</div>
+                </div>
+                <div class="match-score match-score-high" data-target="81">0%</div>
+              </div>
+              <div class="match-reasons">
+                <span class="reason-badge">
+                  <svg class="reason-check" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Sector aligned
+                </span>
+                <span class="reason-badge">
+                  <svg class="reason-check" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Geographic fit
+                </span>
+              </div>
+              <div class="investor-portfolio"><strong>Portfolio:</strong> Figma, Discord, Notion, Plaid, Datadog</div>
+            </div>
+          </div>
+
+          <!-- ═══════ PHASE 3: INVESTOR PROFILE + MESSAGE ═══════ -->
+          <div class="phase-layer" id="phase-3">
+            <!-- Added confirmation -->
+            <div class="added-badge focus-enter" data-focus-group="profile" data-focus-index="0">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              3 investors added to pipeline
+            </div>
+
+            <!-- Firm header -->
+            <div class="profile-firm focus-enter" data-focus-group="profile" data-focus-index="1">
+              <div class="profile-firm-logo">
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="var(--text-secondary)"><path d="M9.5 1L3.5 8.5H7L5.5 15L12.5 7H9L9.5 1z"/></svg>
+              </div>
+              <div class="profile-firm-info">
+                <div class="profile-firm-name">Lightspeed Venture Partners</div>
+                <div class="profile-firm-meta">VC &middot; San Francisco &middot; 92% match</div>
+              </div>
+              <div class="match-score match-score-high profile-score">92%</div>
+            </div>
+
+            <!-- Key contact -->
+            <div class="contact-card focus-enter" data-focus-group="profile" data-focus-index="2">
+              <div class="contact-card-label">Key Contact</div>
+              <div class="contact-row">
+                <div class="contact-avatar">MB</div>
+                <div class="contact-info">
+                  <div class="contact-name">Mercedes Bent</div>
+                  <div class="contact-title">Partner, Early Stage</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Message compose preview -->
+            <div class="compose-preview focus-enter" data-focus-group="profile" data-focus-index="3">
+              <div class="compose-field" id="compose-to">
+                <span class="compose-label">To:</span>
+                <span class="compose-value">Mercedes Bent &lt;m.bent@lsvp.com&gt;</span>
+              </div>
+              <div class="compose-field" id="compose-subject">
+                <span class="compose-label">Subject:</span>
+                <span class="compose-value" id="subject-text"></span>
+              </div>
+              <div class="compose-body">
+                <span id="typewriter-text"></span><span class="compose-cursor"></span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /phase-container -->
+
+        <!-- Footer -->
+        <div class="card-footer" id="card-footer">
+          <!-- Footer 0: Find Matches button -->
+          <div class="footer-layer active" id="footer-0">
+            <div style="flex:1"></div>
+            <button class="btn btn-primary" id="btn-find">
+              Find Matches
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+          </div>
+
+          <!-- Footer 1: Processing state -->
+          <div class="footer-layer" id="footer-1">
+            <button class="btn btn-ghost">Cancel</button>
+          </div>
+
+          <!-- Footer 2: Results actions (secondary left, primary right) -->
+          <div class="footer-layer" id="footer-2">
+            <button class="btn btn-secondary">Refine Search</button>
+            <div style="flex:1"></div>
+            <button class="btn btn-primary" id="btn-add">
+              Add 3 Investors
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            </button>
+          </div>
+
+          <!-- Footer 3: Profile actions -->
+          <div class="footer-layer" id="footer-3">
+            <button class="btn btn-ghost">View Profile</button>
+            <div style="flex:1"></div>
+            <button class="btn btn-primary" id="btn-send">
+              Send Introduction
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /card -->
+    </div><!-- /card-wrapper -->
+  </div><!-- /scene -->
+
+  <!-- Playback Controls -->
+  <div class="playback-bar" id="playback">
+    <button onclick="togglePlay()" title="Play/Pause">
+      <svg id="icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      <svg id="icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><polygon points="6,4 20,12 6,20"/></svg>
+    </button>
+    <button onclick="restart()" title="Restart">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+    </button>
+    <div id="phase-dots" style="display:flex;gap:4px;">
+      <div class="phase-dot active" data-phase="0" onclick="jumpTo(0)"></div>
+      <div class="phase-dot" data-phase="1" onclick="jumpTo(1)"></div>
+      <div class="phase-dot" data-phase="2" onclick="jumpTo(2)"></div>
+      <div class="phase-dot" data-phase="3" onclick="jumpTo(3)"></div>
+    </div>
+    <span class="phase-label-text" id="phase-label">Start</span>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       ANIMATION ENGINE
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    /* ================================================================
+       CONFIGURATION
+       ================================================================ */
+    const PHASES = [
+      { id: 0, label: 'Start',      dwell: 2500 },
+      { id: 1, label: 'Processing', dwell: 5000 },
+      { id: 2, label: 'Results',    dwell: 5000 },
+      { id: 3, label: 'Engage',     dwell: 8000 },
+    ];
+
+    const TITLES = [
+      'Find Investors',
+      'Analyzing Profile',
+      '12 Investors Found',
+      'Lightspeed Venture Partners',
+    ];
+
+    const SUBTITLES = [
+      'AI-powered matching against 2,400+ active investors',
+      'Matching your round criteria against investor data',
+      'Sorted by best match to your criteria',
+      'Draft an introduction to your top match',
+    ];
+
+    const SUBJECT_TEXT = 'Introduction — Series A, AI/ML B2B SaaS';
+    const TYPEWRITER_TEXT = "Hi Mercedes, I'm reaching out because Lightspeed's focus on enterprise AI aligns closely with what we're building...";
+
+    /* ================================================================
+       STATE
+       ================================================================ */
+    let currentPhase = 0;
+    let playing = true;
+    let phaseTimer = null;
+    const phaseHeights = {};
+    const timers = [];
+
+    /* ================================================================
+       HELPERS
+       ================================================================ */
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function pushTimer(fn, ms) {
+      const id = setTimeout(fn, ms);
+      timers.push(id);
+      return id;
+    }
+
+    function clearAllTimers() {
+      timers.forEach(t => clearTimeout(t));
+      timers.length = 0;
+    }
+
+    /* ================================================================
+       MEASURE PHASE HEIGHTS
+       ================================================================ */
+    function measurePhases() {
+      const container = document.getElementById('phase-container');
+      container.style.transition = 'none';
+
+      PHASES.forEach(p => {
+        const el = document.getElementById('phase-' + p.id);
+        el.classList.remove('active');
+        el.classList.add('measuring');
+
+        // Show focus-enter items at full size for measurement
+        el.querySelectorAll('.focus-enter').forEach(f => {
+          f.style.opacity = '1';
+          f.style.filter = 'none';
+          f.style.transform = 'none';
+        });
+
+        // Show compose fields for measurement
+        el.querySelectorAll('.compose-field').forEach(f => f.style.opacity = '1');
+
+        // Fill text content for height measurement
+        const tw = el.querySelector('#typewriter-text');
+        if (tw) tw.textContent = TYPEWRITER_TEXT;
+        const subj = el.querySelector('#subject-text');
+        if (subj) subj.textContent = SUBJECT_TEXT;
+
+        // Show match scores at target value for measurement
+        el.querySelectorAll('.match-score[data-target]').forEach(s => {
+          s.textContent = s.dataset.target + '%';
+        });
+
+        el.offsetHeight; // force layout
+        phaseHeights[p.id] = el.scrollHeight + 8;
+
+        // Reset
+        if (tw) tw.textContent = '';
+        if (subj) subj.textContent = '';
+        el.querySelectorAll('.compose-field').forEach(f => f.style.opacity = '');
+        el.querySelectorAll('.match-score[data-target]').forEach(s => {
+          s.textContent = '0%';
+        });
+        el.querySelectorAll('.focus-enter').forEach(f => {
+          f.style.opacity = '';
+          f.style.filter = '';
+          f.style.transform = '';
+        });
+
+        el.classList.remove('measuring');
+      });
+
+      // Restore phase 0
+      document.getElementById('phase-0').classList.add('active');
+      container.style.height = phaseHeights[0] + 'px';
+
+      requestAnimationFrame(() => { container.style.transition = ''; });
+    }
+
+    /* ================================================================
+       FOCUS-PULL STAGGER
+       ================================================================ */
+    function runFocusStagger(groupName, interval) {
+      interval = interval || 180;
+      const items = document.querySelectorAll('[data-focus-group="' + groupName + '"]');
+      items.forEach(el => el.classList.remove('visible'));
+      items.forEach((el, i) => {
+        pushTimer(() => el.classList.add('visible'), i * interval);
+      });
+    }
+
+    /* ================================================================
+       MATCH SCORE COUNT-UP
+       ================================================================ */
+    function runScoreCountUp(cardIndex, delayMs) {
+      const scores = document.querySelectorAll('#phase-2 .match-score[data-target]');
+      const el = scores[cardIndex];
+      if (!el) return;
+
+      const target = parseInt(el.dataset.target);
+      const duration = 600; // ms
+      const startTime = performance.now() + delayMs;
+
+      function tick(now) {
+        const elapsed = now - startTime;
+        if (elapsed < 0) {
+          requestAnimationFrame(tick);
+          return;
+        }
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease out quad
+        const eased = 1 - (1 - progress) * (1 - progress);
+        const current = Math.round(eased * target);
+        el.textContent = current + '%';
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    /* ================================================================
+       SEQUENTIAL COMPOSE REVEAL (Phase 3)
+       Stagger: To field → Subject types → Body types
+       ================================================================ */
+    function runComposeSequence(startDelay) {
+      const toField = document.getElementById('compose-to');
+      const subjField = document.getElementById('compose-subject');
+      const subjText = document.getElementById('subject-text');
+      const bodyText = document.getElementById('typewriter-text');
+      const sendBtn = document.getElementById('btn-send');
+
+      if (!toField || !subjField) return;
+
+      // 1. Show To field
+      pushTimer(() => {
+        toField.classList.add('visible');
+      }, startDelay);
+
+      // 2. Show Subject field, then type subject
+      pushTimer(() => {
+        subjField.classList.add('visible');
+        // Type subject line
+        let i = 0;
+        function typeSubject() {
+          if (i < SUBJECT_TEXT.length) {
+            subjText.textContent = SUBJECT_TEXT.slice(0, i + 1);
+            i++;
+            const char = SUBJECT_TEXT[i - 1];
+            const speed = char === ' ' ? 15 : char === ',' || char === '—' ? 60 : 25;
+            pushTimer(typeSubject, speed);
+          } else {
+            // 3. After subject done, start body typewriter
+            pushTimer(() => runBodyTypewriter(sendBtn), 300);
+          }
+        }
+        pushTimer(typeSubject, 200);
+      }, startDelay + 400);
+    }
+
+    function runBodyTypewriter(sendBtn) {
+      const el = document.getElementById('typewriter-text');
+      if (!el) return;
+      el.textContent = '';
+      let i = 0;
+
+      function typeNext() {
+        if (i < TYPEWRITER_TEXT.length) {
+          el.textContent = TYPEWRITER_TEXT.slice(0, i + 1);
+          i++;
+          const char = TYPEWRITER_TEXT[i - 1];
+          const speed = char === ' ' ? 20 : char === ',' || char === '.' || char === "'" ? 70 : 28;
+          pushTimer(typeNext, speed);
+        } else {
+          // Typing done — pulse the Send button
+          if (sendBtn) {
+            pushTimer(() => sendBtn.classList.add('cta-glow'), 400);
+          }
+        }
+      }
+      typeNext();
+    }
+
+    /* ================================================================
+       RESET ALL ANIMATIONS
+       ================================================================ */
+    function resetAllAnimations() {
+      clearAllTimers();
+
+      // Focus-enter items
+      document.querySelectorAll('.focus-enter').forEach(el => el.classList.remove('visible'));
+
+      // Button states
+      document.querySelectorAll('.btn').forEach(el => {
+        el.classList.remove('pressing', 'cta-glow');
+      });
+
+      // Step dots
+      document.querySelectorAll('.step-dot-v').forEach(el => {
+        el.classList.remove('done', 'active');
+        el.style.animation = '';
+      });
+      document.querySelectorAll('.step-text-v').forEach(el => {
+        el.classList.remove('done', 'active');
+      });
+
+      // Match scores back to 0
+      document.querySelectorAll('.match-score[data-target]').forEach(el => {
+        el.textContent = '0%';
+      });
+
+      // Compose fields
+      document.querySelectorAll('.compose-field').forEach(el => el.classList.remove('visible'));
+      const subjText = document.getElementById('subject-text');
+      if (subjText) subjText.textContent = '';
+
+      // Typewriter
+      const tw = document.getElementById('typewriter-text');
+      if (tw) tw.textContent = '';
+
+      // Card send-off
+      const cw = document.querySelector('.card-wrapper');
+      if (cw) {
+        cw.classList.remove('sending');
+        cw.style.animation = '';
+      }
+
+      // Title
+      const tb = document.getElementById('title-block');
+      if (tb) tb.classList.add('visible');
+    }
+
+    /* ================================================================
+       STEP DOTS SEQUENCE (Phase 1)
+       ================================================================ */
+    function runStepDots() {
+      const dots = document.querySelectorAll('.step-dot-v');
+      const texts = document.querySelectorAll('.step-text-v');
+
+      // First stagger-in the rows via focus-pull
+      runFocusStagger('steps', 500);
+
+      // Step 0: appears at ~200ms via stagger, immediately done
+      pushTimer(() => {
+        dots[0].classList.add('done');
+        texts[0].classList.add('done');
+      }, 350);
+
+      // Step 1: appears at ~700ms, immediately done
+      pushTimer(() => {
+        dots[1].classList.add('done');
+        texts[1].classList.add('done');
+      }, 850);
+
+      // Step 2: appears at ~1200ms, active (amber pulse)
+      pushTimer(() => {
+        dots[2].classList.add('active');
+        texts[2].classList.add('active');
+      }, 1350);
+
+      // Step 2 completes, Step 3 activates
+      pushTimer(() => {
+        dots[2].classList.remove('active');
+        dots[2].classList.add('done');
+        texts[2].classList.remove('active');
+        texts[2].classList.add('done');
+        dots[3].classList.add('active');
+        texts[3].classList.add('active');
+      }, 2700);
+
+      // Step 3 completes — all done
+      pushTimer(() => {
+        dots[3].classList.remove('active');
+        dots[3].classList.add('done');
+        texts[3].classList.remove('active');
+        texts[3].classList.add('done');
+      }, 3700);
+    }
+
+    /* ================================================================
+       PHASE TRANSITION ORCHESTRATOR
+       ================================================================ */
+    function transitionTo(targetPhase) {
+      if (targetPhase === currentPhase) return;
+
+      const container = document.getElementById('phase-container');
+      const card = document.getElementById('card');
+      const titleBlock = document.getElementById('title-block');
+      const oldPhaseEl = document.getElementById('phase-' + currentPhase);
+      const newPhaseEl = document.getElementById('phase-' + targetPhase);
+      const oldFooter = document.getElementById('footer-' + currentPhase);
+      const newFooter = document.getElementById('footer-' + targetPhase);
+
+      // 1. SLOW: Container height
+      container.style.height = phaseHeights[targetPhase] + 'px';
+
+      // 2. SLOW: Camera motion
+      card.className = 'card camera-' + targetPhase;
+
+      // 3. FAST: Title focus-pull out then in
+      titleBlock.classList.remove('visible');
+      pushTimer(() => {
+        document.getElementById('phase-title').textContent = TITLES[targetPhase];
+        document.getElementById('phase-subtitle').textContent = SUBTITLES[targetPhase];
+        titleBlock.classList.add('visible');
+      }, 300);
+
+      // 4. MEDIUM: Clip-path wipe body content
+      oldPhaseEl.classList.remove('active');
+      oldPhaseEl.classList.add('exiting');
+      pushTimer(() => {
+        newPhaseEl.classList.add('active');
+        oldPhaseEl.classList.remove('exiting');
+      }, 100);
+
+      // 5. FAST: Footer crossfade
+      if (oldFooter) oldFooter.classList.remove('active');
+      if (newFooter) newFooter.classList.add('active');
+
+      // 6. Update playback dots
+      document.querySelectorAll('.phase-dot').forEach(dot => {
+        const p = parseInt(dot.dataset.phase);
+        dot.classList.remove('active', 'completed');
+        if (p === targetPhase) dot.classList.add('active');
+        else if (p < targetPhase) dot.classList.add('completed');
+      });
+      document.getElementById('phase-label').textContent = PHASES[targetPhase].label;
+
+      currentPhase = targetPhase;
+
+      // 7. Phase enter callbacks
+      onPhaseEnter(targetPhase);
+    }
+
+    /* ================================================================
+       PHASE ENTER CALLBACKS
+       ================================================================ */
+    function onPhaseEnter(phase) {
+      switch (phase) {
+        case 1:
+          runStepDots();
+          break;
+        case 2:
+          runFocusStagger('results', 200);
+          // Count up scores as each card appears (200ms stagger interval)
+          runScoreCountUp(0, 300);   // Lightspeed 92% — after card 0 focuses in
+          runScoreCountUp(1, 500);   // Accel 87%
+          runScoreCountUp(2, 700);   // Index 81%
+          break;
+        case 3:
+          // Focus stagger: badge, firm, contact, compose box
+          runFocusStagger('profile', 250);
+          // Sequential compose: To → Subject types → Body types → Send glows
+          // Starts after compose box focus-pulls in (~1000ms for 4 items at 250ms)
+          runComposeSequence(1100);
+          break;
+      }
+    }
+
+    /* ================================================================
+       INTERACTIONS
+       ================================================================ */
+    const INTERACTIONS = {
+      0: async () => {
+        const btn = document.getElementById('btn-find');
+        if (!btn) return;
+        btn.classList.add('pressing');
+        await delay(1150);
+        btn.classList.remove('pressing');
+      },
+      2: async () => {
+        const btn = document.getElementById('btn-add');
+        if (!btn) return;
+        btn.classList.add('pressing');
+        await delay(1150);
+        btn.classList.remove('pressing');
+      },
+      3: async () => {
+        const btn = document.getElementById('btn-send');
+        if (!btn) return;
+        // Stop the glow, press the button
+        btn.classList.remove('cta-glow');
+        btn.classList.add('pressing');
+        await delay(1000);
+        btn.classList.remove('pressing');
+        // Card flies away
+        document.querySelector('.card-wrapper').classList.add('sending');
+        await delay(950);
+      },
+    };
+
+    /* ================================================================
+       PLAYBACK ENGINE
+       ================================================================ */
+    function scheduleNext() {
+      if (!playing) return;
+      clearTimeout(phaseTimer);
+
+      const dwell = PHASES[currentPhase].dwell;
+      const interaction = INTERACTIONS[currentPhase];
+      const leadTime = interaction ? 1550 : 0;
+
+      phaseTimer = setTimeout(async () => {
+        const next = currentPhase + 1;
+        if (next < PHASES.length) {
+          if (interaction) await interaction();
+          transitionTo(next);
+          scheduleNext();
+        } else {
+          // Loop pause, then restart
+          setTimeout(() => {
+            if (playing) restart();
+          }, 1500);
+        }
+      }, dwell - leadTime);
+    }
+
+    function togglePlay() {
+      playing = !playing;
+      document.getElementById('icon-pause').style.display = playing ? '' : 'none';
+      document.getElementById('icon-play').style.display = playing ? 'none' : '';
+      if (playing) scheduleNext();
+      else clearTimeout(phaseTimer);
+    }
+
+    function jumpTo(phase) {
+      clearTimeout(phaseTimer);
+      resetAllAnimations();
+      transitionTo(phase);
+      if (playing) scheduleNext();
+    }
+
+    function restart() {
+      clearTimeout(phaseTimer);
+      resetAllAnimations();
+      if (currentPhase !== 0) transitionTo(0);
+      if (playing) scheduleNext();
+    }
+
+    /* ================================================================
+       EMBED MODE
+       ================================================================ */
+    const isEmbed = new URLSearchParams(window.location.search).has('embed');
+
+    function applyEmbedMode() {
+      if (!isEmbed) return;
+      document.body.classList.add('embed');
+    }
+
+    /* ================================================================
+       BOOT
+       ================================================================ */
+    window.addEventListener('DOMContentLoaded', () => {
+      applyEmbedMode();
+      // Small delay for fonts to load
+      setTimeout(() => {
+        measurePhases();
+        setTimeout(() => scheduleNext(), 400);
+      }, 150);
+    });
+  </script>
+
+</body>
+</html>

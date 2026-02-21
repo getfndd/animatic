@@ -1,0 +1,27 @@
+{
+  "id": "2026-02-19-match-analysis-card",
+  "name": "Match Analysis Card",
+  "description": "Investor profile Overview tab with a new Match Analysis sidebar card that surfaces the saved AI match conversation. Shows match score, reason pills, expandable analysis preview, and user follow-up Q&A.",
+  "prompt": "/prototype Match Analysis sidebar card on investor Overview tab — shows match score, reasons, expandable AI conversation, attribution",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "V1: Separate cards. Match Analysis between Quick Actions and AI Research. Investment Fit remains as standalone card below."
+    },
+    {
+      "file": "concept-v2.html",
+      "notes": "V2: Consolidated. Investment Fit checklist folded into Match Analysis card (replaces reason pills). When no match analysis exists, Investment Fit stays standalone. Side-by-side comparison of both states."
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--surface-primary", "--surface-secondary", "--text-primary", "--text-secondary",
+      "--text-tertiary", "--border-default", "--border-subtle", "--status-success"
+    ],
+    "presets": [],
+    "patterns": ["SectionCard", "match-score-badge", "reason-pills", "expand-collapse"]
+  },
+  "createdAt": "2026-02-19T21:15:00Z"
+}

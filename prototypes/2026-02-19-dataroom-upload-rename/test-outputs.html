@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Capture Output Test</title>
+  <style>
+    body { font-family: system-ui; margin: 2rem; background: #f0f0f0; }
+    h2 { margin-top: 2rem; }
+    .test-bg {
+      background: repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50% / 20px 20px;
+      display: inline-block;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    video, img { display: block; max-width: 600px; }
+    .label { font-size: 13px; color: #666; margin-top: 0.5rem; }
+    .grid { display: flex; gap: 2rem; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 300px; }
+    iframe { border: none; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <h1>Capture Output Comparison</h1>
+  <p>Checkerboard = transparent background working</p>
+
+  <div class="grid">
+    <div class="col">
+      <h2>WebM (VP9 + Alpha)</h2>
+      <div class="test-bg">
+        <video src="autoplay-v1.webm" autoplay muted loop playsinline width="500"></video>
+      </div>
+      <div class="label">Should show checkerboard through transparent areas</div>
+    </div>
+
+    <div class="col">
+      <h2>MP4 (H.264, no alpha)</h2>
+      <div class="test-bg">
+        <video src="autoplay-v1.mp4" autoplay muted loop playsinline width="500"></video>
+      </div>
+      <div class="label">No transparency — transparent areas render as white/black</div>
+    </div>
+  </div>
+
+  <h2>Embeddable HTML (iframe)</h2>
+  <div class="test-bg" style="padding: 0;">
+    <iframe src="autoplay-v1.html?embed" width="600" height="700" style="background: transparent;"></iframe>
+  </div>
+  <div class="label">Self-running HTML embed — highest quality, vector-sharp, interactive</div>
+
+</body>
+</html>

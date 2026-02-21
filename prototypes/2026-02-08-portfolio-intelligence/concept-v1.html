@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 0 0% 96%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --radius: 0.5rem;
+    }
+
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Subtle entrance animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up {
+      animation: fadeUp 0.2s ease-out forwards;
+      opacity: 0;
+    }
+    .delay-1 { animation-delay: 50ms; }
+    .delay-2 { animation-delay: 100ms; }
+    .delay-3 { animation-delay: 150ms; }
+    .delay-4 { animation-delay: 200ms; }
+    .delay-5 { animation-delay: 250ms; }
+
+    /* Grid dot pattern for health grid background */
+    .grid-dots {
+      background-image: radial-gradient(circle, hsl(var(--border-default)) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* Segment bar */
+    .segment { width: 100%; height: 3px; border-radius: 1.5px; }
+    .segment-filled { background: hsl(var(--text-tertiary)); }
+    .segment-empty { background: hsl(var(--border-subtle)); }
+    .segment-current { background: hsl(var(--text-primary)); }
+
+    /* Keyboard hint */
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      font-size: 11px;
+      font-family: 'Satoshi', system-ui;
+      font-weight: 500;
+      border-radius: 4px;
+      background: hsl(var(--surface-tertiary));
+      color: hsl(var(--text-tertiary));
+      border: 1px solid hsl(var(--border-default));
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-60 h-screen border-r flex flex-col bg-surface-primary shrink-0">
+      <div class="h-14 flex items-center px-6 border-b">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded bg-surface-inverse"></div>
+          <span class="font-semibold">Weftly</span>
+        </div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-4 px-3">
+        <div class="text-[11px] font-medium text-text-tertiary px-3 mb-2 uppercase tracking-wider">Portfolio</div>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Home
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+          Chat
+        </a>
+        <a href="#" class="flex items-center justify-between gap-3 px-3 py-2 rounded text-sm bg-surface-tertiary font-medium transition-colors duration-[140ms]">
+          <span class="flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Intelligence
+          </span>
+          <span class="flex items-center justify-center w-5 h-5 rounded-full bg-status-error text-white text-[10px] font-bold">2</span>
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          Cap Table
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Documents
+        </a>
+
+        <div class="text-[11px] font-medium text-text-tertiary px-3 mb-2 mt-6 uppercase tracking-wider">Meeting Prep</div>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          LP Meetings
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors duration-[140ms]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          IC Memos
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <!-- Top Bar -->
+      <header class="h-14 border-b flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-4">
+          <h1 class="text-lg font-semibold">Portfolio Intelligence</h1>
+          <span class="text-xs text-text-tertiary">Lakefront Angels Fund I</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-text-tertiary">Keyboard shortcuts</span>
+          <kbd>?</kbd>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <main class="flex-1 overflow-auto">
+        <!-- AI Summary Bar -->
+        <div class="px-6 py-4 border-b bg-surface-secondary">
+          <div class="flex items-start gap-3 max-w-3xl">
+            <div class="w-6 h-6 rounded-full bg-surface-inverse flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="text-[10px] font-bold text-text-inverse">W</span>
+            </div>
+            <div>
+              <p class="text-sm text-text-primary leading-relaxed">
+                <span class="font-medium">2 companies need attention.</span>
+                QuantumSens Medical has gone quiet — no updates in 10 weeks after maintaining monthly cadence. NanoSuture's data room is stale with 3 of 8 categories outdated, and they have 2 unanswered questions.
+                Your strongest performers (MeshGuard, Archipelago) are tracking well on both thesis alignment and engagement.
+              </p>
+              <p class="text-xs text-text-tertiary mt-1.5">Last analyzed 2 hours ago</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- View Tabs -->
+        <div class="px-6 pt-4 pb-0 flex items-center gap-1 border-b">
+          <button onclick="switchView('queue')" id="tab-queue" class="view-tab px-3 py-2 text-sm font-medium rounded-t border-b-2 border-text-primary text-text-primary -mb-px">
+            Attention Queue
+          </button>
+          <button onclick="switchView('grid')" id="tab-grid" class="view-tab px-3 py-2 text-sm text-text-tertiary hover:text-text-secondary rounded-t border-b-2 border-transparent -mb-px transition-colors duration-[140ms]">
+            Health Grid
+          </button>
+          <button onclick="switchView('feed')" id="tab-feed" class="view-tab px-3 py-2 text-sm text-text-tertiary hover:text-text-secondary rounded-t border-b-2 border-transparent -mb-px transition-colors duration-[140ms]">
+            Signal Feed
+          </button>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VIEW: Attention Queue                                         -->
+        <!-- ============================================================ -->
+        <div id="view-queue" class="view-content p-6">
+          <div class="max-w-3xl">
+
+            <!-- Needs Attention Section -->
+            <div class="mb-8">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs font-medium text-text-tertiary">Needs attention</span>
+                <span class="flex items-center justify-center w-5 h-5 rounded-full bg-status-error/10 text-status-error text-[10px] font-bold">2</span>
+              </div>
+
+              <!-- QuantumSens — Critical -->
+              <div class="animate-fade-up delay-1 border rounded-md mb-2 hover:border-border-strong transition-colors duration-[140ms] group" data-item="quantumsens">
+                <div class="p-4">
+                  <div class="flex items-start gap-3">
+                    <!-- Company indicator -->
+                    <div class="flex flex-col items-center gap-1.5 pt-0.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-status-error flex-shrink-0" title="Critical attention"></div>
+                      <div class="w-8 h-8 rounded-md bg-violet-200 flex items-center justify-center text-xs font-bold text-violet-700 flex-shrink-0">QS</div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between gap-4 mb-1">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm font-medium text-text-primary">QuantumSens Medical</span>
+                          <span class="text-xs text-text-tertiary">Medtech</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button class="px-2.5 py-1 rounded text-xs font-medium text-text-secondary hover:bg-surface-hover transition-colors duration-[140ms]" title="Snooze (H)">Snooze</button>
+                          <button class="px-2.5 py-1 rounded text-xs font-medium text-text-secondary hover:bg-surface-hover transition-colors duration-[140ms]" title="Add note (N)">Note</button>
+                          <button class="px-2.5 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms]" title="View (Enter)">View</button>
+                        </div>
+                      </div>
+
+                      <!-- Signal evidence -->
+                      <div class="space-y-1.5">
+                        <div class="flex items-center gap-2 text-xs">
+                          <span class="text-status-error font-medium">Declining cadence</span>
+                          <span class="text-text-tertiary">No update in 10 weeks (was monthly)</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs">
+                          <span class="text-status-warning font-medium">Data room stale</span>
+                          <span class="text-text-tertiary">3 of 8 categories current</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs">
+                          <span class="text-text-secondary font-medium">Excluded from thesis</span>
+                          <span class="text-text-tertiary">Pure hardware exclusion (hard)</span>
+                        </div>
+                      </div>
+
+                      <!-- Cadence segment bar -->
+                      <div class="flex items-center gap-1 mt-2.5">
+                        <span class="text-[10px] text-text-tertiary mr-1 tabular-nums">Updates</span>
+                        <div class="flex gap-[2px] flex-1 max-w-[144px]">
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-empty"></div>
+                        </div>
+                        <span class="text-[10px] text-text-tertiary tabular-nums">7/12</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- NanoSuture — Needs Attention -->
+              <div class="animate-fade-up delay-2 border rounded-md mb-2 hover:border-border-strong transition-colors duration-[140ms] group" data-item="nanosuture">
+                <div class="p-4">
+                  <div class="flex items-start gap-3">
+                    <div class="flex flex-col items-center gap-1.5 pt-0.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-status-warning flex-shrink-0" title="Needs attention"></div>
+                      <div class="w-8 h-8 rounded-md bg-teal-200 flex items-center justify-center text-xs font-bold text-teal-700 flex-shrink-0">NS</div>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between gap-4 mb-1">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm font-medium text-text-primary">NanoSuture Therapeutics</span>
+                          <span class="text-xs text-text-tertiary">Medtech</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button class="px-2.5 py-1 rounded text-xs font-medium text-text-secondary hover:bg-surface-hover transition-colors duration-[140ms]">Snooze</button>
+                          <button class="px-2.5 py-1 rounded text-xs font-medium text-text-secondary hover:bg-surface-hover transition-colors duration-[140ms]">Note</button>
+                          <button class="px-2.5 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms]">View</button>
+                        </div>
+                      </div>
+
+                      <div class="space-y-1.5">
+                        <div class="flex items-center gap-2 text-xs">
+                          <span class="text-status-warning font-medium">Data room stale</span>
+                          <span class="text-text-tertiary">3 of 8 categories current, last updated 3 weeks ago</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs">
+                          <span class="text-status-warning font-medium">Unresponsive</span>
+                          <span class="text-text-tertiary">2 pending questions (avg response usually 2 days)</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs">
+                          <span class="text-text-secondary font-medium">Partial thesis fit</span>
+                          <span class="text-text-tertiary">Outside B2B focus, soft hardware exclusion</span>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center gap-1 mt-2.5">
+                        <span class="text-[10px] text-text-tertiary mr-1 tabular-nums">Updates</span>
+                        <div class="flex gap-[2px] flex-1 max-w-[144px]">
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-filled"></div>
+                          <div class="segment segment-empty"></div>
+                          <div class="segment segment-current"></div>
+                        </div>
+                        <span class="text-[10px] text-text-tertiary tabular-nums">5/12</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tracking Well Section -->
+            <div class="mb-8">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs font-medium text-text-tertiary">Tracking well</span>
+                <span class="flex items-center justify-center w-5 h-5 rounded-full bg-status-success/10 text-status-success text-[10px] font-bold">2</span>
+              </div>
+
+              <!-- MeshGuard — Star -->
+              <div class="animate-fade-up delay-3 border rounded-md mb-2 hover:border-border-strong transition-colors duration-[140ms] group" data-item="meshguard">
+                <div class="px-4 py-3">
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-2.5 h-2.5 rounded-full bg-status-success flex-shrink-0"></div>
+                      <div class="w-8 h-8 rounded-md bg-blue-200 flex items-center justify-center text-xs font-bold text-blue-700 flex-shrink-0">MG</div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-text-primary">MeshGuard Security</span>
+                        <span class="text-xs text-text-tertiary">Cybersecurity</span>
+                        <span class="text-xs text-status-success font-medium">Strong fit</span>
+                      </div>
+                      <p class="text-xs text-text-tertiary mt-0.5">135% NRR, daily responsiveness, all signals healthy, 8/8 data room categories current</p>
+                    </div>
+                    <div class="flex items-center gap-1 tabular-nums">
+                      <div class="flex gap-[2px]" style="width: 96px;">
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-current"></div>
+                      </div>
+                      <span class="text-[10px] text-text-tertiary">12/12</span>
+                    </div>
+                    <button class="px-2.5 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms] opacity-0 group-hover:opacity-100">View</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Archipelago — Star -->
+              <div class="animate-fade-up delay-4 border rounded-md mb-2 hover:border-border-strong transition-colors duration-[140ms] group" data-item="archipelago">
+                <div class="px-4 py-3">
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-2.5 h-2.5 rounded-full bg-status-success flex-shrink-0"></div>
+                      <div class="w-8 h-8 rounded-md bg-amber-200 flex items-center justify-center text-xs font-bold text-amber-700 flex-shrink-0">AA</div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-text-primary">Archipelago AI</span>
+                        <span class="text-xs text-text-tertiary">Enterprise AI</span>
+                        <span class="text-xs text-status-success font-medium">Strong fit</span>
+                      </div>
+                      <p class="text-xs text-text-tertiary mt-0.5">118% NRR, steady cadence (every 4-5 weeks), Series A extension discussions, 45 enterprise customers</p>
+                    </div>
+                    <div class="flex items-center gap-1 tabular-nums">
+                      <div class="flex gap-[2px]" style="width: 96px;">
+                        <div class="segment segment-empty"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-empty"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-empty"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-empty"></div>
+                        <div class="segment segment-current"></div>
+                      </div>
+                      <span class="text-[10px] text-text-tertiary">8/12</span>
+                    </div>
+                    <button class="px-2.5 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms] opacity-0 group-hover:opacity-100">View</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- New Signals Section -->
+            <div class="mb-8">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs font-medium text-text-tertiary">New signals</span>
+                <span class="flex items-center justify-center w-5 h-5 rounded-full bg-surface-tertiary text-text-tertiary text-[10px] font-bold">1</span>
+              </div>
+
+              <!-- LedgerLogic — New Signal -->
+              <div class="animate-fade-up delay-5 border rounded-md mb-2 hover:border-border-strong transition-colors duration-[140ms] group" data-item="ledgerlogic">
+                <div class="px-4 py-3">
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-2.5 h-2.5 rounded-full bg-blue-400 flex-shrink-0" title="New signal"></div>
+                      <div class="w-8 h-8 rounded-md bg-emerald-200 flex items-center justify-center text-xs font-bold text-emerald-700 flex-shrink-0">LL</div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-text-primary">LedgerLogic</span>
+                        <span class="text-xs text-text-tertiary">Insurtech / Fintech</span>
+                        <span class="text-xs text-text-secondary font-medium">Good fit</span>
+                      </div>
+                      <p class="text-xs text-text-tertiary mt-0.5">
+                        <span class="text-text-secondary font-medium">New:</span> Projection tracking now available (reached 3+ update threshold). Revenue within 8% of plan based on 6 updates.
+                      </p>
+                    </div>
+                    <div class="flex items-center gap-1 tabular-nums">
+                      <div class="flex gap-[2px]" style="width: 96px;">
+                        <div class="segment segment-empty"></div>
+                        <div class="segment segment-empty"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-empty"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-empty"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-empty"></div>
+                        <div class="segment segment-filled"></div>
+                        <div class="segment segment-current"></div>
+                      </div>
+                      <span class="text-[10px] text-text-tertiary">6/12</span>
+                    </div>
+                    <button class="px-2.5 py-1 rounded text-xs font-medium bg-surface-tertiary hover:bg-surface-hover transition-colors duration-[140ms] opacity-0 group-hover:opacity-100">View</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Keyboard hint footer -->
+            <div class="flex items-center gap-4 pt-4 border-t text-xs text-text-tertiary">
+              <span class="flex items-center gap-1"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+              <span class="flex items-center gap-1"><kbd>Enter</kbd> View</span>
+              <span class="flex items-center gap-1"><kbd>H</kbd> Snooze</span>
+              <span class="flex items-center gap-1"><kbd>N</kbd> Note</span>
+              <span class="flex items-center gap-1"><kbd>1</kbd> Acknowledge</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VIEW: Health Grid                                             -->
+        <!-- ============================================================ -->
+        <div id="view-grid" class="view-content p-6 hidden">
+          <div class="max-w-3xl">
+            <!-- Grid container -->
+            <div class="relative border rounded-lg overflow-hidden" style="height: 420px;">
+              <!-- Axis labels -->
+              <div class="absolute left-0 top-0 bottom-0 w-10 flex flex-col items-center justify-center z-10">
+                <span class="text-[10px] font-medium text-text-tertiary -rotate-90 whitespace-nowrap">Reporting Health</span>
+              </div>
+              <div class="absolute bottom-0 left-0 right-0 h-8 flex items-center justify-center z-10">
+                <span class="text-[10px] font-medium text-text-tertiary">Thesis Alignment</span>
+              </div>
+
+              <!-- Quadrant labels -->
+              <div class="absolute top-3 left-14 text-[10px] font-medium text-text-tertiary z-10">Stars</div>
+              <div class="absolute top-3 right-4 text-[10px] font-medium text-text-tertiary z-10">Strategic Mismatch</div>
+              <div class="absolute bottom-10 left-14 text-[10px] font-medium text-text-tertiary z-10">Engagement Risk</div>
+              <div class="absolute bottom-10 right-4 text-[10px] font-medium text-text-tertiary z-10">Critical Attention</div>
+
+              <!-- Grid background -->
+              <div class="absolute inset-0 ml-10 mb-8 grid-dots"></div>
+
+              <!-- Quadrant dividers -->
+              <div class="absolute left-10 right-0 top-1/2 -translate-y-4 h-px bg-border-default" style="opacity: 0.6;"></div>
+              <div class="absolute top-0 bottom-8 left-1/2 translate-x-5 w-px bg-border-default" style="opacity: 0.6;"></div>
+
+              <!-- Axis arrows -->
+              <div class="absolute left-14 top-1/2 -translate-y-4 text-[9px] text-text-tertiary">Good &uarr;</div>
+              <div class="absolute left-14 bottom-10 text-[9px] text-text-tertiary">Poor &darr;</div>
+              <div class="absolute bottom-10 left-1/2 translate-x-8 text-[9px] text-text-tertiary">&larr; Strong</div>
+              <div class="absolute bottom-10 right-4 text-[9px] text-text-tertiary">Weak &rarr;</div>
+
+              <!-- Company dots -->
+              <!-- MeshGuard: Strong fit, Good health — top-left quadrant -->
+              <div class="absolute cursor-pointer group" style="left: 22%; top: 12%;">
+                <div class="w-10 h-10 rounded-md bg-blue-200 flex items-center justify-center text-xs font-bold text-blue-700 border-2 border-transparent group-hover:border-blue-400 transition-all">MG</div>
+                <div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-surface-inverse text-text-inverse text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                  MeshGuard Security — Strong fit, all signals green
+                </div>
+              </div>
+
+              <!-- Archipelago: Strong fit, Good health — top-left quadrant -->
+              <div class="absolute cursor-pointer group" style="left: 30%; top: 22%;">
+                <div class="w-10 h-10 rounded-md bg-amber-200 flex items-center justify-center text-xs font-bold text-amber-700 border-2 border-transparent group-hover:border-amber-400 transition-all">AA</div>
+                <div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-surface-inverse text-text-inverse text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                  Archipelago AI — Strong fit, steady cadence
+                </div>
+              </div>
+
+              <!-- LedgerLogic: Good fit, Moderate health — center-left -->
+              <div class="absolute cursor-pointer group" style="left: 42%; top: 32%;">
+                <div class="w-10 h-10 rounded-md bg-emerald-200 flex items-center justify-center text-xs font-bold text-emerald-700 border-2 border-transparent group-hover:border-emerald-400 transition-all">LL</div>
+                <div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-surface-inverse text-text-inverse text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                  LedgerLogic — Good fit, projection tracking activated
+                </div>
+              </div>
+
+              <!-- NanoSuture: Partial fit, Poor health — bottom-right quadrant -->
+              <div class="absolute cursor-pointer group" style="left: 68%; top: 62%;">
+                <div class="w-10 h-10 rounded-md bg-teal-200 flex items-center justify-center text-xs font-bold text-teal-700 border-2 border-transparent group-hover:border-teal-400 transition-all ring-2 ring-status-warning/30">NS</div>
+                <div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-surface-inverse text-text-inverse text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                  NanoSuture — Partial fit, data room stale, 2 questions pending
+                </div>
+              </div>
+
+              <!-- QuantumSens: Excluded, Poor health — bottom-right quadrant -->
+              <div class="absolute cursor-pointer group" style="left: 82%; top: 72%;">
+                <div class="w-10 h-10 rounded-md bg-violet-200 flex items-center justify-center text-xs font-bold text-violet-700 border-2 border-transparent group-hover:border-violet-400 transition-all ring-2 ring-status-error/30">QS</div>
+                <div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 bg-surface-inverse text-text-inverse text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                  QuantumSens — Excluded, declining cadence, data room stale
+                </div>
+              </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex items-center gap-6 mt-4 text-xs text-text-tertiary">
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-status-success"></span> Tracking well</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-status-warning"></span> Needs attention</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-status-error"></span> Critical</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-400"></span> New signal</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VIEW: Signal Feed                                             -->
+        <!-- ============================================================ -->
+        <div id="view-feed" class="view-content p-6 hidden">
+          <div class="max-w-3xl">
+
+            <!-- Today -->
+            <div class="mb-6">
+              <div class="text-xs font-medium text-text-tertiary mb-3">Today</div>
+              <div class="space-y-0.5">
+                <div class="flex items-start gap-3 rounded p-3 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-error mt-1.5 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-primary"><span class="font-medium">QuantumSens Medical</span> — Update cadence declined</p>
+                    <p class="text-xs text-text-tertiary mt-0.5">Was monthly, now 10+ weeks since last update. Trend changed from steady to declining.</p>
+                  </div>
+                  <span class="text-[10px] text-text-tertiary tabular-nums flex-shrink-0">2h ago</span>
+                </div>
+
+                <div class="flex items-start gap-3 rounded p-3 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-primary"><span class="font-medium">LedgerLogic</span> — Projection tracking activated</p>
+                    <p class="text-xs text-text-tertiary mt-0.5">Reached 3+ update threshold. Revenue within 8% of plan based on 6 updates.</p>
+                  </div>
+                  <span class="text-[10px] text-text-tertiary tabular-nums flex-shrink-0">2h ago</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- This Week -->
+            <div class="mb-6">
+              <div class="text-xs font-medium text-text-tertiary mb-3">This week</div>
+              <div class="space-y-0.5">
+                <div class="flex items-start gap-3 rounded p-3 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-warning mt-1.5 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-primary"><span class="font-medium">NanoSuture Therapeutics</span> — 2 questions pending</p>
+                    <p class="text-xs text-text-tertiary mt-0.5">Average response time is usually 2 days. Questions sent 5 days ago.</p>
+                  </div>
+                  <span class="text-[10px] text-text-tertiary tabular-nums flex-shrink-0">3d ago</span>
+                </div>
+
+                <div class="flex items-start gap-3 rounded p-3 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-success mt-1.5 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-primary"><span class="font-medium">Archipelago AI</span> — Monthly update received</p>
+                    <p class="text-xs text-text-tertiary mt-0.5">8 of last 12 months. Revenue up 12% MoM, 45 enterprise customers, Series A extension under discussion.</p>
+                  </div>
+                  <span class="text-[10px] text-text-tertiary tabular-nums flex-shrink-0">4d ago</span>
+                </div>
+
+                <div class="flex items-start gap-3 rounded p-3 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-warning mt-1.5 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-primary"><span class="font-medium">NanoSuture Therapeutics</span> — Data room freshness dropped</p>
+                    <p class="text-xs text-text-tertiary mt-0.5">3 of 8 categories now stale (was 5 of 8 current). Financial model and clinical trial updates overdue.</p>
+                  </div>
+                  <span class="text-[10px] text-text-tertiary tabular-nums flex-shrink-0">5d ago</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Last Week -->
+            <div class="mb-6">
+              <div class="text-xs font-medium text-text-tertiary mb-3">Last week</div>
+              <div class="space-y-0.5">
+                <div class="flex items-start gap-3 rounded p-3 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-success mt-1.5 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-primary"><span class="font-medium">MeshGuard Security</span> — Data room fully refreshed</p>
+                    <p class="text-xs text-text-tertiary mt-0.5">8 of 8 categories current. All documents updated within the last 2 weeks.</p>
+                  </div>
+                  <span class="text-[10px] text-text-tertiary tabular-nums flex-shrink-0">8d ago</span>
+                </div>
+
+                <div class="flex items-start gap-3 rounded p-3 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-success mt-1.5 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-primary"><span class="font-medium">MeshGuard Security</span> — Monthly update received</p>
+                    <p class="text-xs text-text-tertiary mt-0.5">12 of last 12 months. 135% NRR, Gartner recognition, 4 new enterprise contracts.</p>
+                  </div>
+                  <span class="text-[10px] text-text-tertiary tabular-nums flex-shrink-0">9d ago</span>
+                </div>
+
+                <div class="flex items-start gap-3 rounded p-3 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-primary"><span class="font-medium">LedgerLogic</span> — Thesis alignment score increased</p>
+                    <p class="text-xs text-text-tertiary mt-0.5">Score moved from 65 to 71 after strong Q4 metrics report. Now classified as "Good fit" (was "Partial fit").</p>
+                  </div>
+                  <span class="text-[10px] text-text-tertiary tabular-nums flex-shrink-0">10d ago</span>
+                </div>
+
+                <div class="flex items-start gap-3 rounded p-3 hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer">
+                  <div class="w-1.5 h-1.5 rounded-full bg-status-warning mt-1.5 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-primary"><span class="font-medium">QuantumSens Medical</span> — Budget revision detected</p>
+                    <p class="text-xs text-text-tertiary mt-0.5">3rd revision in 12 months. Burn rate increased 22% from prior budget.</p>
+                  </div>
+                  <span class="text-[10px] text-text-tertiary tabular-nums flex-shrink-0">12d ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    function switchView(view) {
+      // Hide all views
+      document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
+      // Reset all tabs
+      document.querySelectorAll('.view-tab').forEach(el => {
+        el.classList.remove('border-text-primary', 'text-text-primary', 'font-medium');
+        el.classList.add('border-transparent', 'text-text-tertiary');
+      });
+
+      // Show selected view
+      document.getElementById('view-' + view).classList.remove('hidden');
+      // Activate tab
+      const tab = document.getElementById('tab-' + view);
+      tab.classList.remove('border-transparent', 'text-text-tertiary');
+      tab.classList.add('border-text-primary', 'text-text-primary', 'font-medium');
+    }
+
+    // Keyboard navigation (demo)
+    let selectedIndex = -1;
+    const items = document.querySelectorAll('[data-item]');
+
+    document.addEventListener('keydown', (e) => {
+      // Only when queue view is active
+      if (document.getElementById('view-queue').classList.contains('hidden')) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        highlightItem();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        highlightItem();
+      } else if (e.key === '?') {
+        // Toggle keyboard help (visual only in prototype)
+      }
+    });
+
+    function highlightItem() {
+      items.forEach((item, i) => {
+        if (i === selectedIndex) {
+          item.classList.add('ring-1', 'ring-text-primary/30', 'ring-offset-1');
+          item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          item.classList.remove('ring-1', 'ring-text-primary/30', 'ring-offset-1');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

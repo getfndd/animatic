@@ -1,0 +1,17 @@
+{
+  "id": "2026-02-13-save-template-ai-subject",
+  "name": "Save as Template + AI Subject Line",
+  "description": "Two compose-level features: Save current email as reusable template (overflow menu trigger → dialog → success) and AI subject line generation (subtle Suggest button → 3-option popover → selection). AI-assumed design throughout.",
+  "prompt": "/prototype 'Save as Template flow + AI Subject Line generation' --fidelity concept --chrome minimal",
+  "fidelity": "concept",
+  "chrome": "minimal",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "3-state flow for each feature, side by side" }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-hover", "--text-primary", "--text-secondary", "--text-tertiary", "--border-default", "--border-subtle", "--status-success", "--status-success-bg"],
+    "presets": [],
+    "patterns": ["overflow-menu", "modal-dialog", "popover-dropdown", "pill-button", "inline-success"]
+  },
+  "createdAt": "2026-02-13T18:30:00Z"
+}

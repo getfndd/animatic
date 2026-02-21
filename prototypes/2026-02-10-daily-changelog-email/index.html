@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Changelog — Muted Dot vs Arrow</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      background: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+    .option-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 10px;
+      padding-left: 4px;
+    }
+    .option-label span {
+      color: #9ca3af;
+      font-weight: 400;
+    }
+    .email-frame {
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+
+  <!-- OPTION A: Muted dot, tight gap -->
+  <div>
+    <div class="option-label">A. Muted Dot <span>— tight gap</span></div>
+    <div class="email-frame">
+      <div style="padding: 32px 40px; font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+        <p style="margin: 0 0 4px 0; font-size: 24px; font-weight: 600; color: #111827; line-height: 1.2;">Daily Changelog</p>
+        <p style="margin: 0 0 20px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">Tuesday, February 10, 2026</p>
+        <hr style="margin: 0 0 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
+
+        <!-- Investor Portal -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Investor Portal</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Built Portfolio Intelligence view with V9 queue cards and signal feed</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Replaced spinner loading states with layout-matching skeletons</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Standardized motion language, radius compression, typography, and completed focus ring audit</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Connected demo chat to production RAG via investor-qa endpoint</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 0 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Fixed company tab row spacing and tab transitions</td>
+          </tr>
+        </table>
+
+        <!-- Founder Tools -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Founder Tools</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Added template-based document editor with AI generation</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 0 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Fixed conversation history persistence and chat message UI</td>
+          </tr>
+        </table>
+
+        <!-- Design System -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Design System</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 0 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Completed motion token system — aligned sources, replaced arbitrary durations, normalized across all apps</td>
+          </tr>
+        </table>
+
+        <!-- Platform -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Platform</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Implemented live Granola connection with API key auth and sync</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Added configurable model selection per task type with Voyage provider support</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Built cross-source intelligence with dynamic follow-ups</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Lowered RAG similarity threshold to 0.35 for better recall</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 0 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Fixed auth session tracking race condition with upsert pattern</td>
+          </tr>
+        </table>
+
+        <!-- Internal Tooling -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Internal Tooling</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 0;">
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Built Email Composer V2 Phase 2 with preview themes and audience segments</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 6px 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Fixed content insertion, audience fallback, and mobile preview scaling</td>
+          </tr>
+          <tr>
+            <td style="width: 10px; vertical-align: top; padding: 0 3px 0 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">&bull;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Added multi-instance worktree workflow and git hardening</td>
+          </tr>
+        </table>
+
+        <!-- Reference -->
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
+        <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Reference</p>
+        <p style="margin: 0 0 3px 0; font-size: 11px; color: #9ca3af; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;"><span style="color: #d1d5db;">89c91ce</span> fix(devops): Categorize daily changelog</p>
+        <p style="margin: 0 0 3px 0; font-size: 11px; color: #9ca3af; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;"><span style="color: #d1d5db;">6eef30d</span> feat(motion): Complete motion token system</p>
+        <p style="margin: 0 0 3px 0; font-size: 11px; color: #9ca3af; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;"><span style="color: #d1d5db;">82ddb29</span> feat(portal): Portfolio Intelligence view</p>
+        <p style="margin: 0 0 0 0; font-size: 11px; color: #d1d5db; line-height: 1.5;">+ 33 more commits</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B: Arrow, tight gap -->
+  <div>
+    <div class="option-label">B. Arrow <span>— directional, action-oriented</span></div>
+    <div class="email-frame">
+      <div style="padding: 32px 40px; font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+        <p style="margin: 0 0 4px 0; font-size: 24px; font-weight: 600; color: #111827; line-height: 1.2;">Daily Changelog</p>
+        <p style="margin: 0 0 20px 0; font-size: 14px; color: #6b7280; line-height: 1.5;">Tuesday, February 10, 2026</p>
+        <hr style="margin: 0 0 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
+
+        <!-- Investor Portal -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Investor Portal</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Built Portfolio Intelligence view with V9 queue cards and signal feed</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Replaced spinner loading states with layout-matching skeletons</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Standardized motion language, radius compression, typography, and completed focus ring audit</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Connected demo chat to production RAG via investor-qa endpoint</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 0 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Fixed company tab row spacing and tab transitions</td>
+          </tr>
+        </table>
+
+        <!-- Founder Tools -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Founder Tools</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Added template-based document editor with AI generation</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 0 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Fixed conversation history persistence and chat message UI</td>
+          </tr>
+        </table>
+
+        <!-- Design System -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Design System</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 0 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Completed motion token system — aligned sources, replaced arbitrary durations, normalized across all apps</td>
+          </tr>
+        </table>
+
+        <!-- Platform -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Platform</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 24px;">
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Implemented live Granola connection with API key auth and sync</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Added configurable model selection per task type with Voyage provider support</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Built cross-source intelligence with dynamic follow-ups</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Lowered RAG similarity threshold to 0.35 for better recall</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 0 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Fixed auth session tracking race condition with upsert pattern</td>
+          </tr>
+        </table>
+
+        <!-- Internal Tooling -->
+        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Internal Tooling</p>
+        <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 0;">
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Built Email Composer V2 Phase 2 with preview themes and audience segments</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 6px 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0 0 6px 0; font-size: 13px; color: #374151; line-height: 1.5;">Fixed content insertion, audience fallback, and mobile preview scaling</td>
+          </tr>
+          <tr>
+            <td style="width: 16px; vertical-align: top; padding: 0 2px 0 0; font-size: 11px; color: #d1d5db; line-height: 1.75;">&rarr;</td>
+            <td style="vertical-align: top; padding: 0; font-size: 13px; color: #374151; line-height: 1.5;">Added multi-instance worktree workflow and git hardening</td>
+          </tr>
+        </table>
+
+        <!-- Reference -->
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
+        <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 600; color: #6b7280; line-height: 1;">Reference</p>
+        <p style="margin: 0 0 3px 0; font-size: 11px; color: #9ca3af; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;"><span style="color: #d1d5db;">89c91ce</span> fix(devops): Categorize daily changelog</p>
+        <p style="margin: 0 0 3px 0; font-size: 11px; color: #9ca3af; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;"><span style="color: #d1d5db;">6eef30d</span> feat(motion): Complete motion token system</p>
+        <p style="margin: 0 0 3px 0; font-size: 11px; color: #9ca3af; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;"><span style="color: #d1d5db;">82ddb29</span> feat(portal): Portfolio Intelligence view</p>
+        <p style="margin: 0 0 0 0; font-size: 11px; color: #d1d5db; line-height: 1.5;">+ 33 more commits</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

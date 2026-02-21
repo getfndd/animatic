@@ -1,0 +1,19 @@
+{
+  "id": "2026-02-20-nda-dataroom-card",
+  "name": "NDA + Data Room Status Card",
+  "description": "Compact NDA status and data room access card for the investor profile Relationship tab. Shows 3 states: NDA signed with active shares, NDA sent awaiting signature, no NDA sent. Flat content-forward design matching existing tab patterns.",
+  "prompt": "/prototype NDA + Data Room status card for investor profile Relationship tab --fidelity concept --chrome none",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "NDA card only — 3 states in isolation" },
+    { "file": "concept-v2.html", "notes": "Full Relationship tab with sidebar chrome — empty + populated states, 5 design polishes annotated" }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--text-primary", "--text-secondary", "--text-tertiary", "--border-default", "--border-subtle", "--status-success", "--status-success-bg", "--status-info", "--status-info-bg"],
+    "presets": [],
+    "patterns": ["metadata-grid", "status-dot-badge", "pill-button-actions", "flat-section-layout"]
+  },
+  "linearIssue": "FND-1423",
+  "createdAt": "2026-02-20T14:15:00Z"
+}

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V8 — Accessible Signal Bar + Action</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-quaternary: 0 0% 78%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --status-info: 217 91% 60%;
+      --status-info-bg: 214 95% 93%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Tooltip */
+    .has-tip { position: relative; }
+    .has-tip .tip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .has-tip:hover .tip { display: block; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-quaternary': 'hsl(var(--text-quaternary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+            'status-info': 'hsl(var(--status-info))',
+            'status-info-bg': 'hsl(var(--status-info-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+  <div class="mx-auto max-w-[460px]">
+    <div class="mb-8">
+      <h1 class="text-lg font-medium text-text-primary">V8 — Accessible Signal Bar + Action</h1>
+      <p class="mt-1 text-xs leading-relaxed text-text-tertiary">
+        Synthesis of all feedback. No expand needed — the card shows everything at the right density.
+        Signal health uses <strong>shape + color + value</strong> for accessibility.
+        Primary signal as headline. Contextual action always visible.
+        Click-through goes to company detail.
+      </p>
+      <div class="mt-3 rounded border border-border-subtle bg-surface-primary p-3">
+        <p class="text-xs font-medium text-text-primary">Accessibility encoding</p>
+        <div class="mt-2 flex items-center gap-4 text-[11px]">
+          <span class="flex items-center gap-1.5">
+            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-status-error text-[8px] font-bold text-white">!</span>
+            <span class="text-text-secondary">Critical</span>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-status-warning">
+              <span class="h-0 w-0 border-x-[3.5px] border-b-[6px] border-x-transparent border-b-white"></span>
+            </span>
+            <span class="text-text-secondary">Warning</span>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-status-success text-[9px] font-bold text-white">&#10003;</span>
+            <span class="text-text-secondary">Healthy</span>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-border-default text-[8px] text-text-tertiary">?</span>
+            <span class="text-text-secondary">Insufficient</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="mb-2 text-xs font-medium text-text-tertiary">Needs Attention</h2>
+    <div class="space-y-1.5">
+
+      <!-- ═══════════════════════════════════════════════════════
+           Card 1 — Critical: multiple bad signals
+           ═══════════════════════════════════════════════════════ -->
+      <div class="group cursor-pointer rounded-md border border-transparent bg-surface-primary transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="px-3 pt-3">
+          <!-- Row 1: Identity -->
+          <div class="flex items-center gap-3">
+            <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-violet-200 text-xs font-medium text-violet-700">QM</div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-text-primary">QuantumSens Medical</span>
+                <span class="text-xs text-text-tertiary">Medtech</span>
+              </div>
+            </div>
+            <!-- Triage actions — hover reveal -->
+            <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+              <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary" title="Acknowledge">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              </button>
+              <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary" title="Snooze">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 2: Driving signal -->
+          <p class="mt-1 text-xs text-text-secondary">Update cadence declining — was monthly, now every 8–10 weeks</p>
+        </div>
+
+        <!-- Row 3: Signal bar — accessible encoding: shape + color + value -->
+        <div class="mt-2 flex items-center gap-[3px] px-3">
+          <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Updates</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-error text-[7px] font-bold leading-none text-white">!</span>
+            <span class="text-[9px] font-medium tabular-nums text-status-error">↘</span>
+            <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">Declining — was monthly earlier</div>
+          </div>
+          <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Meetings</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-error text-[7px] font-bold leading-none text-white">!</span>
+            <span class="text-[9px] font-medium tabular-nums text-status-error">14w</span>
+            <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">Last meeting 14 weeks ago</div>
+          </div>
+          <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Data</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-warning">
+              <span class="h-0 w-0 border-x-[3px] border-b-[5px] border-x-transparent border-b-white"></span>
+            </span>
+            <span class="text-[9px] font-medium tabular-nums text-status-warning">4/8</span>
+            <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">4 of 8 categories current</div>
+          </div>
+          <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Proj.</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-border-default text-[7px] leading-none text-text-tertiary">?</span>
+            <span class="text-[9px] tabular-nums text-text-tertiary">—</span>
+            <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">Need 3+ updates to assess</div>
+          </div>
+          <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Budget</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] tabular-nums text-status-success">OK</span>
+            <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">No revisions in 6 months</div>
+          </div>
+          <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Resp.</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] tabular-nums text-status-success">4d</span>
+            <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">Avg 4-day response time</div>
+          </div>
+        </div>
+
+        <!-- Row 4: Suggested action -->
+        <div class="flex items-center gap-2 px-3 pb-2.5 pt-1.5">
+          <button class="rounded bg-surface-tertiary px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors hover:bg-border-default hover:text-text-primary">
+            Schedule check-in
+          </button>
+          <button class="rounded px-2 py-1 text-[11px] text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-secondary">
+            Request update
+          </button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+           Card 2 — Warning: data room + budget
+           ═══════════════════════════════════════════════════════ -->
+      <div class="group cursor-pointer rounded-md border border-transparent bg-surface-primary transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="px-3 pt-3">
+          <div class="flex items-center gap-3">
+            <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-emerald-200 text-xs font-medium text-emerald-700">NT</div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-text-primary">NanoSuture Therapeutics</span>
+                <span class="text-xs text-text-tertiary">Biotech</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+              <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+              <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg></button>
+            </div>
+          </div>
+          <p class="mt-1 text-xs text-text-secondary">Data room flagged — 3 of 8 categories current, last refresh 6 weeks ago</p>
+        </div>
+
+        <div class="mt-2 flex items-center gap-[3px] px-3">
+          <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Updates</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] text-status-success">→</span>
+          </div>
+          <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Meetings</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] text-status-success">→</span>
+          </div>
+          <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Data</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-warning">
+              <span class="h-0 w-0 border-x-[3px] border-b-[5px] border-x-transparent border-b-white"></span>
+            </span>
+            <span class="text-[9px] font-medium tabular-nums text-status-warning">3/8</span>
+            <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">3 of 8 categories current</div>
+          </div>
+          <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Proj.</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-border-default text-[7px] leading-none text-text-tertiary">?</span>
+            <span class="text-[9px] text-text-tertiary">—</span>
+          </div>
+          <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Budget</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-warning">
+              <span class="h-0 w-0 border-x-[3px] border-b-[5px] border-x-transparent border-b-white"></span>
+            </span>
+            <span class="text-[9px] font-medium tabular-nums text-status-warning">2 rev</span>
+            <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">2 revisions in 6 months</div>
+          </div>
+          <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Resp.</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] tabular-nums text-status-success">2d</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 px-3 pb-2.5 pt-1.5">
+          <button class="rounded bg-surface-tertiary px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors hover:bg-border-default hover:text-text-primary">
+            Request data room refresh
+          </button>
+          <button class="rounded px-2 py-1 text-[11px] text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-secondary">
+            Review budget
+          </button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════
+           Card 3 — Mostly healthy, one signal
+           ═══════════════════════════════════════════════════════ -->
+      <div class="group cursor-pointer rounded-md border border-transparent bg-surface-primary transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="px-3 pt-3">
+          <div class="flex items-center gap-3">
+            <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-blue-200 text-xs font-medium text-blue-700">LL</div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-text-primary">LedgerLogic</span>
+                <span class="text-xs text-text-tertiary">Fintech</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+              <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+              <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg></button>
+            </div>
+          </div>
+          <p class="mt-1 text-xs text-text-secondary">Projection tracking insufficient — only 1 update, need 3+ to assess</p>
+        </div>
+
+        <div class="mt-2 flex items-center gap-[3px] px-3">
+          <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Updates</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] text-status-success">↗</span>
+          </div>
+          <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Meetings</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] text-status-success">→</span>
+          </div>
+          <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Data</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] tabular-nums text-status-success">8/8</span>
+          </div>
+          <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Proj.</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-info text-[7px] font-bold leading-none text-white">i</span>
+            <span class="text-[9px] tabular-nums text-status-info">1</span>
+            <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">1 update — need 3+ to assess</div>
+          </div>
+          <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Budget</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] text-status-success">OK</span>
+          </div>
+          <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+            <span class="text-[9px] text-text-tertiary">Resp.</span>
+            <span class="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-status-success text-[8px] leading-none text-white">✓</span>
+            <span class="text-[9px] tabular-nums text-status-success">1d</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 px-3 pb-2.5 pt-1.5">
+          <button class="rounded bg-surface-tertiary px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors hover:bg-border-default hover:text-text-primary">
+            Request projection update
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         ALTERNATE: Simpler dot encoding — same layout, less visual weight
+         ═══════════════════════════════════════════════════════ -->
+    <div class="mt-12">
+      <div class="mb-6">
+        <h2 class="text-base font-medium text-text-primary">V8b — Lighter signal bar (no icons inside dots)</h2>
+        <p class="mt-1 text-xs leading-relaxed text-text-tertiary">
+          Same layout but the signal dots stay simple — accessibility comes from the <strong>value text below each dot</strong>
+          (↘, 14w, 4/8, —, OK, 4d) which carries meaning independent of color.
+          Problem signals get a subtle tinted background column to draw the eye.
+        </p>
+      </div>
+
+      <h2 class="mb-2 text-xs font-medium text-text-tertiary">Needs Attention</h2>
+      <div class="space-y-1.5">
+
+        <!-- Card 1 — V8b: tinted columns instead of icons -->
+        <div class="group cursor-pointer rounded-md border border-transparent bg-surface-primary transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+          <div class="px-3 pt-3">
+            <div class="flex items-center gap-3">
+              <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-violet-200 text-xs font-medium text-violet-700">QM</div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-text-primary">QuantumSens Medical</span>
+                  <span class="text-xs text-text-tertiary">Medtech</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+                <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg></button>
+              </div>
+            </div>
+            <p class="mt-1 text-xs text-text-secondary">Update cadence declining — was monthly, now every 8–10 weeks</p>
+          </div>
+
+          <!-- Signal bar: simple dots + value, problem columns tinted -->
+          <div class="mt-2 flex items-center gap-[3px] px-3">
+            <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded bg-status-error-bg/40 py-1.5">
+              <span class="text-[9px] text-text-tertiary">Updates</span>
+              <span class="h-2 w-2 rounded-full bg-status-error"></span>
+              <span class="text-[9px] font-medium tabular-nums text-status-error">↘</span>
+              <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">Declining — was monthly earlier</div>
+            </div>
+            <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded bg-status-error-bg/40 py-1.5">
+              <span class="text-[9px] text-text-tertiary">Meetings</span>
+              <span class="h-2 w-2 rounded-full bg-status-error"></span>
+              <span class="text-[9px] font-medium tabular-nums text-status-error">14w</span>
+              <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">Last meeting 14 weeks ago</div>
+            </div>
+            <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded bg-status-warning-bg/40 py-1.5">
+              <span class="text-[9px] text-text-tertiary">Data</span>
+              <span class="h-2 w-2 rounded-full bg-status-warning"></span>
+              <span class="text-[9px] font-medium tabular-nums text-status-warning">4/8</span>
+              <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">4 of 8 categories current</div>
+            </div>
+            <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+              <span class="text-[9px] text-text-tertiary">Proj.</span>
+              <span class="h-2 w-2 rounded-full bg-border-default"></span>
+              <span class="text-[9px] tabular-nums text-text-tertiary">—</span>
+            </div>
+            <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+              <span class="text-[9px] text-text-tertiary">Budget</span>
+              <span class="h-2 w-2 rounded-full bg-status-success"></span>
+              <span class="text-[9px] tabular-nums text-text-tertiary">OK</span>
+            </div>
+            <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+              <span class="text-[9px] text-text-tertiary">Resp.</span>
+              <span class="h-2 w-2 rounded-full bg-status-success"></span>
+              <span class="text-[9px] tabular-nums text-text-tertiary">4d</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 px-3 pb-2.5 pt-1.5">
+            <button class="rounded bg-surface-tertiary px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors hover:bg-border-default hover:text-text-primary">
+              Schedule check-in
+            </button>
+            <button class="rounded px-2 py-1 text-[11px] text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-secondary">
+              Request update
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2 — V8b: mostly healthy -->
+        <div class="group cursor-pointer rounded-md border border-transparent bg-surface-primary transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+          <div class="px-3 pt-3">
+            <div class="flex items-center gap-3">
+              <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-blue-200 text-xs font-medium text-blue-700">LL</div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-text-primary">LedgerLogic</span>
+                  <span class="text-xs text-text-tertiary">Fintech</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+                <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg></button>
+              </div>
+            </div>
+            <p class="mt-1 text-xs text-text-secondary">Projection tracking insufficient — only 1 update, need 3+ to assess</p>
+          </div>
+
+          <div class="mt-2 flex items-center gap-[3px] px-3">
+            <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+              <span class="text-[9px] text-text-tertiary">Updates</span>
+              <span class="h-2 w-2 rounded-full bg-status-success"></span>
+              <span class="text-[9px] tabular-nums text-text-tertiary">↗</span>
+            </div>
+            <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+              <span class="text-[9px] text-text-tertiary">Meetings</span>
+              <span class="h-2 w-2 rounded-full bg-status-success"></span>
+              <span class="text-[9px] tabular-nums text-text-tertiary">→</span>
+            </div>
+            <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+              <span class="text-[9px] text-text-tertiary">Data</span>
+              <span class="h-2 w-2 rounded-full bg-status-success"></span>
+              <span class="text-[9px] tabular-nums text-text-tertiary">8/8</span>
+            </div>
+            <div class="has-tip flex flex-1 flex-col items-center gap-1 rounded bg-status-info-bg/40 py-1.5">
+              <span class="text-[9px] text-text-tertiary">Proj.</span>
+              <span class="h-2 w-2 rounded-full bg-status-info"></span>
+              <span class="text-[9px] font-medium tabular-nums text-status-info">1</span>
+              <div class="tip rounded bg-surface-inverse px-2 py-1 text-[10px] text-text-inverse shadow-md">1 update — need 3+ to assess</div>
+            </div>
+            <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+              <span class="text-[9px] text-text-tertiary">Budget</span>
+              <span class="h-2 w-2 rounded-full bg-status-success"></span>
+              <span class="text-[9px] tabular-nums text-text-tertiary">OK</span>
+            </div>
+            <div class="flex flex-1 flex-col items-center gap-1 rounded py-1.5">
+              <span class="text-[9px] text-text-tertiary">Resp.</span>
+              <span class="h-2 w-2 rounded-full bg-status-success"></span>
+              <span class="text-[9px] tabular-nums text-text-tertiary">1d</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 px-3 pb-2.5 pt-1.5">
+            <button class="rounded bg-surface-tertiary px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors hover:bg-border-default hover:text-text-primary">
+              Request projection update
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

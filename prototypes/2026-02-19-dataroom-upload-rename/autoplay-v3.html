@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Room Upload — Auto-Play Demo v3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Semantic tokens */
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 0 0% 95%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 150 48% 35%;
+      --status-success-bg: 135 47% 87%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --status-info: 20 6% 33%;
+      --status-info-bg: 40 10% 96%;
+      --brand-accent: 20 6% 33%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-tertiary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ================================================================
+       PHASE CROSSFADE — "Powers of 10" directional journey
+       Each phase enters/exits from a different direction, creating a
+       narrative arc: establishing → arriving → diving in → revealing → settling
+       Body content is the star — transitions deliberately (MEDIUM speed)
+       ================================================================ */
+    .phase-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 0.25rem 1.5rem 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      will-change: opacity, transform;
+    }
+
+    /* Per-phase entry origins — where each phase comes FROM */
+    #phase-0 { /* Establishing shot: fade only, no movement */
+      transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #phase-1 { /* Content arriving: rises from below */
+      transform: translateY(12px);
+      transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #phase-2 { /* Diving deeper: from below with slight zoom */
+      transform: translateY(6px) scale(0.985);
+      transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #phase-3 { /* New information: slides from right */
+      transform: translateX(24px);
+      transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #phase-4 { /* Resolution: scales up into place */
+      transform: scale(0.96);
+      transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Active — all phases settle to neutral */
+    .phase-layer.active {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+
+    /* Per-phase exit directions — narrative "leaving" */
+    .phase-layer.exiting {
+      opacity: 0;
+      transition: opacity 400ms cubic-bezier(0.7, 0, 0.84, 0),
+                  transform 400ms cubic-bezier(0.7, 0, 0.84, 0);
+    }
+    #phase-0.exiting { transform: translateY(-6px); }           /* Drifts up */
+    #phase-1.exiting { transform: translateY(-8px); }           /* Files "uploaded" upward */
+    #phase-2.exiting { transform: translateX(-14px); }          /* Sweeps left (processing done) */
+    #phase-3.exiting { transform: translateX(-18px); }          /* Filed away to the left */
+    #phase-4.exiting { transform: scale(0.98); }
+
+    /* Container — height is scenery, moves slowly (SLOW speed) */
+    .phase-container {
+      position: relative;
+      overflow: hidden;
+      transition: height 700ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    .phase-layer.measuring {
+      opacity: 0;
+      position: static;
+      pointer-events: none;
+    }
+
+    /* ================================================================
+       FOOTER CROSSFADE — supporting cast, swaps quickly (FAST speed)
+       ================================================================ */
+    .footer-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      padding: 1.25rem 1.5rem;
+      opacity: 0;
+      transition: opacity 220ms ease;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+    }
+    .footer-layer.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ================================================================
+       HEADER TEXT — fast, snappy swap (FAST speed)
+       ================================================================ */
+    #modal-title, #modal-desc {
+      transition: opacity 180ms ease;
+    }
+    .header-fading #modal-title,
+    .header-fading #modal-desc {
+      opacity: 0;
+    }
+
+    /* ================================================================
+       STAGGER ANIMATION — JS-controlled, replay-safe
+       Per-direction variants match Powers of 10 journey:
+       - select (Phase 1): Rise from below — content arriving
+       - suggest (Phase 3): Slide from right — new info flowing in
+       - success (Phase 4): Scale up — resolution, settling into place
+       ================================================================ */
+    .stagger-item {
+      opacity: 0;
+      transform: translateY(8px);  /* Default: rise from below */
+      transition: opacity 450ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    /* Phase 3: Suggestions flow from right */
+    [data-stagger-group="suggest"].stagger-item {
+      transform: translateX(16px);
+    }
+    /* Phase 4: Success items expand into place */
+    [data-stagger-group="success"].stagger-item {
+      transform: scale(0.96);
+    }
+    /* All directions settle to neutral */
+    .stagger-item.stagger-visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Sub-element reveals (rename rows, folder assignments) */
+    .reveal-item {
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: opacity 400ms cubic-bezier(0.16, 1, 0.3, 1),
+                  max-height 400ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    .reveal-item.reveal-visible {
+      opacity: 1;
+      max-height: 80px;
+    }
+
+    /* ================================================================
+       SPRING INTERACTION KEYFRAMES
+       Disney's 12 principles applied:
+       #1 Squash & Stretch — independent scaleX/scaleY, volume conserved
+       #2 Anticipation — small reverse movement before main action
+       #5 Follow Through — overshoot then settle
+       #6 Slow In/Out — easing curves throughout
+       #8 Secondary Action — brightness/color signals accompany scale
+       #10 Exaggeration — theatrical values for animation readability
+       ================================================================ */
+
+    /* Button press (~1100ms)
+       Matches investor portal SuggestionPill pattern:
+       hover scale(1.02) + icon wiggle + active scale(0.98)
+       Adapted for autoplay: Signal → Hover → Press → Release → Settle */
+    @keyframes btn-press {
+      0%   { transform: scale(1);    filter: brightness(1); }
+      15%  { transform: scale(1.02); filter: brightness(1.08); }   /* Hover signal */
+      40%  { transform: scale(0.97); filter: brightness(1.04); }   /* Press down */
+      65%  { transform: scale(1.01); filter: brightness(1); }      /* Release overshoot */
+      100% { transform: scale(1);    filter: brightness(1); }      /* Settle */
+    }
+    .demo-btn.pressing {
+      animation: btn-press 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Icon wiggle — synced to button press, icon rotates during the action */
+    @keyframes icon-wiggle {
+      0%   { transform: rotate(0deg); }
+      15%  { transform: rotate(0deg); }
+      30%  { transform: rotate(-14deg); }
+      45%  { transform: rotate(14deg); }
+      60%  { transform: rotate(-6deg); }
+      75%  { transform: rotate(4deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .demo-btn.pressing svg {
+      animation: icon-wiggle 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Drop zone receive (~1350ms) — border/bg color pulse, very subtle scale */
+    @keyframes zone-receive {
+      0%   { border-color: hsl(var(--border-default)); background-color: transparent; transform: scale(1); }
+      20%  { border-color: hsl(var(--text-tertiary));  background-color: hsl(var(--surface-secondary)); transform: scale(1); }
+      45%  { border-color: hsl(var(--text-secondary)); background-color: hsl(var(--surface-tertiary)); transform: scale(1.005); }
+      70%  { border-color: hsl(var(--text-tertiary));  background-color: hsl(var(--surface-secondary)); transform: scale(0.998); }
+      100% { border-color: hsl(var(--border-default)); background-color: transparent; transform: scale(1); }
+    }
+    .drop-zone.receiving {
+      animation: zone-receive 1350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Drop zone icon wiggle — upload arrow rotates during receive
+       Gentler than button icon wiggle (±10deg vs ±14deg), with a
+       subtle lift to show "receiving" action */
+    @keyframes zone-icon-wiggle {
+      0%   { transform: rotate(0deg) translateY(0); }
+      15%  { transform: rotate(0deg) translateY(0); }
+      25%  { transform: rotate(-10deg) translateY(-2px); }
+      40%  { transform: rotate(10deg) translateY(-2px); }
+      55%  { transform: rotate(-4deg) translateY(-1px); }
+      70%  { transform: rotate(3deg) translateY(0); }
+      100% { transform: rotate(0deg) translateY(0); }
+    }
+    .drop-zone.receiving .upload-arrow {
+      animation: zone-icon-wiggle 1350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* ================================================================
+       SELF-DRAWING CHECK — SVG stroke-dashoffset animation (v3)
+       ================================================================ */
+    @keyframes draw-check {
+      to { stroke-dashoffset: 0; }
+    }
+    .draw-check {
+      stroke-dasharray: 230;
+      stroke-dashoffset: 230;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 20;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .draw-check.check-active {
+      animation: draw-check 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* ================================================================
+       TYPEWRITER CURSOR — blinking pipe for filename typing (v3)
+       ================================================================ */
+    .typewriter-text::after {
+      content: '|';
+      color: hsl(var(--text-tertiary));
+      animation: blink-cursor 530ms steps(1) infinite;
+      margin-left: 1px;
+    }
+    .typewriter-text.done::after {
+      display: none;
+    }
+    @keyframes blink-cursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ================================================================
+       STEP CONNECTORS — draw between steps as they complete (v3)
+       ================================================================ */
+    .step-connector {
+      flex: 1;
+      height: 1px;
+      background: hsl(var(--border-default));
+      margin: 0 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    .step-connector-fill {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 0%;
+      background: hsl(var(--status-info));
+      transition: width 350ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .step-connector.connected .step-connector-fill {
+      width: 100%;
+    }
+
+    /* ================================================================
+       UTILITY ANIMATIONS
+       ================================================================ */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+
+    @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    .animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
+
+    /* Progress bars */
+    .progress-track {
+      overflow: hidden;
+      border-radius: 9999px;
+      background: hsl(var(--surface-tertiary));
+    }
+    .progress-bar {
+      height: 0.5rem;
+      border-radius: 9999px;
+      background: hsl(var(--status-info));
+      width: 0%;
+      transition: width 80ms linear;
+    }
+    .step-label { transition: color 250ms ease; }
+
+    /* ================================================================
+       PLAYBACK CONTROLS
+       ================================================================ */
+    .playback-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: hsl(var(--surface-inverse));
+      color: hsl(var(--text-inverse));
+      padding: 10px 20px;
+      border-radius: 9999px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      z-index: 50;
+      font-size: 12px;
+    }
+    .playback-bar button {
+      background: none; border: none; color: inherit;
+      cursor: pointer; padding: 2px;
+      display: flex; align-items: center;
+      opacity: 0.7; transition: opacity 150ms;
+    }
+    .playback-bar button:hover { opacity: 1; }
+    .phase-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: hsl(0 0% 100% / 0.25);
+      transition: all 300ms ease;
+      cursor: pointer;
+    }
+    .phase-dot.active {
+      background: hsl(0 0% 100% / 0.9);
+      width: 20px; border-radius: 3px;
+    }
+    .phase-dot.completed {
+      background: hsl(0 0% 100% / 0.5);
+    }
+
+    .drop-zone { transform-origin: center; }
+    .demo-btn { transform-origin: center; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+            'status-info': 'hsl(var(--status-info))',
+            'status-info-bg': 'hsl(var(--status-info-bg))',
+            'brand-accent': 'hsl(var(--brand-accent))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen flex items-start justify-center pt-12 px-4">
+
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-black/30"></div>
+
+  <!-- Modal -->
+  <div class="relative w-full max-w-2xl bg-surface-primary rounded-lg shadow-2xl border overflow-hidden" id="modal">
+
+    <!-- Header -->
+    <div class="px-6 pt-6 pb-4" id="modal-header">
+      <h2 class="text-lg font-semibold text-text-primary" id="modal-title">Add Documents to Your Data Room</h2>
+      <p class="text-sm text-text-secondary mt-1" id="modal-desc">AI will automatically analyze, summarize, and organize your documents.</p>
+    </div>
+
+    <!-- Body — phase layers stack here -->
+    <div class="phase-container" id="phase-container">
+
+      <!-- ========== PHASE 0: SOURCE ========== -->
+      <div class="phase-layer active" id="phase-0">
+        <!-- Upload Mode Toggle -->
+        <div class="flex bg-surface-secondary rounded-lg p-1 mb-5">
+          <button class="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md bg-surface-primary shadow-sm text-text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+            Upload Files
+          </button>
+          <button class="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md text-text-tertiary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+            Upload Folder
+          </button>
+        </div>
+
+        <!-- Drop Zone -->
+        <div class="drop-zone border-2 border-dashed rounded-lg p-8 text-center" id="drop-zone">
+          <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-surface-tertiary flex items-center justify-center text-text-tertiary">
+            <svg class="upload-arrow" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M232,152v56a16,16,0,0,1-16,16H40a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H216V152a8,8,0,0,1,16,0ZM88,88l32-32V152a8,8,0,0,0,16,0V56l32,32a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48,48A8,8,0,0,0,88,88Z"/></svg>
+          </div>
+          <p class="text-sm font-medium text-text-primary mb-1">Click to upload or drag and drop</p>
+          <p class="text-xs text-text-tertiary">PDF, DOC, XLS, PPT, images, and more</p>
+          <div class="mt-3 flex items-center justify-center gap-1.5 text-xs text-text-tertiary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V128a8,8,0,0,1,16,0v8a8,8,0,0,1-16,0Zm0-48a12,12,0,1,1,12,12A12,12,0,0,1,120,88Z"/></svg>
+            <span>Automatic summarization &amp; categorization</span>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="flex items-center gap-4 my-5">
+          <div class="flex-1 h-px bg-border-default"></div>
+          <span class="text-xs text-text-tertiary">or import from</span>
+          <div class="flex-1 h-px bg-border-default"></div>
+        </div>
+
+        <!-- Google Drive -->
+        <div class="flex flex-col items-center gap-2">
+          <button class="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-secondary border rounded-full">
+            <svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-20.4 35.3c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.5l5.85 13.8z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-10.1-17.5c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 23.5h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+            Import from Google Drive
+          </button>
+        </div>
+
+        <!-- Skip -->
+        <div class="mt-5 text-center">
+          <button class="text-xs text-text-tertiary underline">Skip AI organization</button>
+        </div>
+      </div>
+
+      <!-- ========== PHASE 1: SELECT ========== -->
+      <div class="phase-layer" id="phase-1">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-medium text-text-primary">Ready to Upload (3)</p>
+          <button class="text-xs text-text-tertiary">Clear all</button>
+        </div>
+        <div class="space-y-2" id="phase-1-files">
+          <!-- File 1 -->
+          <div class="rounded-lg border bg-surface-primary p-3 stagger-item" data-stagger-group="select" data-stagger-index="0">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-surface-secondary p-2 text-text-tertiary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Q3_2024_financial_model_FINAL_v2.xlsx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">2.4 MB</p>
+              </div>
+              <button class="flex-shrink-0 text-text-tertiary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- File 2 -->
+          <div class="rounded-lg border bg-surface-primary p-3 stagger-item" data-stagger-group="select" data-stagger-index="1">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-surface-secondary p-2 text-text-tertiary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Series A  pitch deck DRAFT (Johns Copy).pptx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">8.1 MB</p>
+              </div>
+              <button class="flex-shrink-0 text-text-tertiary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- File 3 -->
+          <div class="rounded-lg border bg-surface-primary p-3 stagger-item" data-stagger-group="select" data-stagger-index="2">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-surface-secondary p-2 text-text-tertiary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">NDA-Signed-2024.pdf</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">156 KB</p>
+              </div>
+              <button class="flex-shrink-0 text-text-tertiary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PHASE 2: PROCESSING ========== -->
+      <div class="phase-layer" id="phase-2">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-medium text-text-primary">Processing (3)</p>
+        </div>
+        <div class="space-y-2">
+          <!-- File 1 -->
+          <div class="rounded-lg border bg-surface-primary p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-status-info-bg p-2">
+                <svg class="text-status-info animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Q3_2024_financial_model_FINAL_v2.xlsx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">2.4 MB</p>
+                <div class="mt-3">
+                  <div class="progress-track"><div class="progress-bar" data-file="0"></div></div>
+                  <div class="mt-3 flex items-center text-xs font-medium">
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="0" data-step="0"><span>Uploading</span></div>
+                    <div class="step-connector" data-file="0" data-after="0"><div class="step-connector-fill"></div></div>
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="0" data-step="1"><span>Summarizing</span></div>
+                    <div class="step-connector" data-file="0" data-after="1"><div class="step-connector-fill"></div></div>
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="0" data-step="2"><span>Categorizing</span></div>
+                    <div class="step-connector" data-file="0" data-after="2"><div class="step-connector-fill"></div></div>
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="0" data-step="3"><span>Organizing</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- File 2 -->
+          <div class="rounded-lg border bg-surface-primary p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-status-info-bg p-2">
+                <svg class="text-status-info animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Series A  pitch deck DRAFT (Johns Copy).pptx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">8.1 MB</p>
+                <div class="mt-3">
+                  <div class="progress-track"><div class="progress-bar" data-file="1"></div></div>
+                  <div class="mt-3 flex items-center text-xs font-medium">
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="1" data-step="0"><span>Uploading</span></div>
+                    <div class="step-connector" data-file="1" data-after="0"><div class="step-connector-fill"></div></div>
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="1" data-step="1"><span>Summarizing</span></div>
+                    <div class="step-connector" data-file="1" data-after="1"><div class="step-connector-fill"></div></div>
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="1" data-step="2"><span>Categorizing</span></div>
+                    <div class="step-connector" data-file="1" data-after="2"><div class="step-connector-fill"></div></div>
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="1" data-step="3"><span>Organizing</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- File 3 -->
+          <div class="rounded-lg border bg-surface-primary p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-status-info-bg p-2">
+                <svg class="text-status-info animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">NDA-Signed-2024.pdf</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">156 KB</p>
+                <div class="mt-3">
+                  <div class="progress-track"><div class="progress-bar" data-file="2"></div></div>
+                  <div class="mt-3 flex items-center text-xs font-medium">
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="2" data-step="0"><span>Uploading</span></div>
+                    <div class="step-connector" data-file="2" data-after="0"><div class="step-connector-fill"></div></div>
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="2" data-step="1"><span>Summarizing</span></div>
+                    <div class="step-connector" data-file="2" data-after="1"><div class="step-connector-fill"></div></div>
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="2" data-step="2"><span>Categorizing</span></div>
+                    <div class="step-connector" data-file="2" data-after="2"><div class="step-connector-fill"></div></div>
+                    <div class="flex items-center gap-1 step-label text-text-tertiary whitespace-nowrap" data-file="2" data-step="3"><span>Organizing</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PHASE 3: SUGGESTIONS ========== -->
+      <div class="phase-layer" id="phase-3">
+        <div class="divide-y divide-border-default">
+          <!-- File 1 -->
+          <div class="py-4 first:pt-0 stagger-item" data-stagger-group="suggest" data-stagger-index="0">
+            <div class="flex items-start gap-3">
+              <span class="text-text-tertiary mt-0.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Q3_2024_financial_model_FINAL_v2.xlsx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">2.4 MB</p>
+                <!-- Rename suggestion (revealed via JS) -->
+                <div class="reveal-item mt-2 flex items-center gap-2" data-reveal-group="suggest-details" data-reveal-index="0">
+                  <span class="text-xs text-text-tertiary flex-shrink-0">Rename to:</span>
+                  <span class="inline-flex items-center gap-1 text-sm text-text-primary">
+                    <span class="typewriter-text truncate" data-text="2024-Q3-Financial-Model.xlsx"></span>
+                    <svg class="text-text-tertiary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M227.31,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120Z"/></svg>
+                  </span>
+                </div>
+                <!-- Folder assignment (revealed via JS) -->
+                <div class="reveal-item mt-2 flex items-center gap-2" data-reveal-group="suggest-folders" data-reveal-index="0">
+                  <span class="text-xs text-text-tertiary">File to:</span>
+                  <span class="inline-flex items-center gap-1.5 text-sm text-text-primary">
+                    <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                    Financials
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- File 2 -->
+          <div class="py-4 stagger-item" data-stagger-group="suggest" data-stagger-index="1">
+            <div class="flex items-start gap-3">
+              <span class="text-text-tertiary mt-0.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Series A  pitch deck DRAFT (Johns Copy).pptx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">8.1 MB</p>
+                <div class="reveal-item mt-2 flex items-center gap-2" data-reveal-group="suggest-details" data-reveal-index="1">
+                  <span class="text-xs text-text-tertiary flex-shrink-0">Rename to:</span>
+                  <span class="inline-flex items-center gap-1 text-sm text-text-primary">
+                    <span class="typewriter-text truncate" data-text="Series-A-Pitch-Deck.pptx"></span>
+                    <svg class="text-text-tertiary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M227.31,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120Z"/></svg>
+                  </span>
+                </div>
+                <div class="reveal-item mt-2 flex items-center gap-2" data-reveal-group="suggest-folders" data-reveal-index="1">
+                  <span class="text-xs text-text-tertiary">File to:</span>
+                  <span class="inline-flex items-center gap-1.5 text-sm text-text-primary">
+                    <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                    Fundraising
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- File 3 (no rename, already clean) -->
+          <div class="py-4 last:pb-0 stagger-item" data-stagger-group="suggest" data-stagger-index="2">
+            <div class="flex items-start gap-3">
+              <span class="text-text-tertiary mt-0.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">NDA-Signed-2024.pdf</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">156 KB</p>
+                <div class="reveal-item mt-2 flex items-center gap-2" data-reveal-group="suggest-folders" data-reveal-index="2">
+                  <span class="text-xs text-text-tertiary">File to:</span>
+                  <span class="inline-flex items-center gap-1.5 text-sm text-text-primary">
+                    <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                    Legal
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PHASE 4: SUCCESS ========== -->
+      <div class="phase-layer" id="phase-4">
+        <div class="divide-y divide-border-default">
+          <!-- File 1 -->
+          <div class="py-4 first:pt-0 stagger-item" data-stagger-group="success" data-stagger-index="0">
+            <div class="flex items-center gap-3">
+              <svg class="text-status-success flex-shrink-0" width="16" height="16" viewBox="0 0 256 256">
+                <polyline class="draw-check" points="48,138 96,186 208,74" />
+              </svg>
+              <div class="flex-1 min-w-0">
+                <span class="text-sm font-medium text-text-primary truncate block">2024-Q3-Financial-Model.xlsx</span>
+                <span class="text-xs text-text-tertiary">was Q3_2024_financial_model_FINAL_v2.xlsx</span>
+              </div>
+              <span class="text-xs text-text-tertiary flex items-center gap-1.5 flex-shrink-0">
+                <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+                Financials
+              </span>
+            </div>
+          </div>
+          <!-- File 2 -->
+          <div class="py-4 stagger-item" data-stagger-group="success" data-stagger-index="1">
+            <div class="flex items-center gap-3">
+              <svg class="text-status-success flex-shrink-0" width="16" height="16" viewBox="0 0 256 256">
+                <polyline class="draw-check" points="48,138 96,186 208,74" />
+              </svg>
+              <div class="flex-1 min-w-0">
+                <span class="text-sm font-medium text-text-primary truncate block">Series-A-Pitch-Deck.pptx</span>
+                <span class="text-xs text-text-tertiary">was Series A  pitch deck DRAFT (Johns Copy).pptx</span>
+              </div>
+              <span class="text-xs text-text-tertiary flex items-center gap-1.5 flex-shrink-0">
+                <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+                Fundraising
+              </span>
+            </div>
+          </div>
+          <!-- File 3 -->
+          <div class="py-4 last:pb-0 stagger-item" data-stagger-group="success" data-stagger-index="2">
+            <div class="flex items-center gap-3">
+              <svg class="text-status-success flex-shrink-0" width="16" height="16" viewBox="0 0 256 256">
+                <polyline class="draw-check" points="48,138 96,186 208,74" />
+              </svg>
+              <div class="flex-1 min-w-0">
+                <span class="text-sm font-medium text-text-primary truncate block">NDA-Signed-2024.pdf</span>
+              </div>
+              <span class="text-xs text-text-tertiary flex items-center gap-1.5 flex-shrink-0">
+                <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+                Legal
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="border-t relative" style="min-height: 64px;" id="modal-footer">
+      <div class="footer-layer active" id="footer-0">
+        <button class="px-4 py-2 text-sm text-text-secondary rounded-full">Cancel</button>
+      </div>
+      <div class="footer-layer" id="footer-1">
+        <div class="flex items-center justify-between w-full">
+          <button class="px-4 py-2 text-sm text-text-secondary rounded-full">Cancel</button>
+          <button class="demo-btn inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-surface-inverse text-text-inverse rounded-full" id="btn-upload">
+            Upload &amp; Analyze
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,117.66a8,8,0,0,1-11.32,0L136,59.31V216a8,8,0,0,1-16,0V59.31L61.66,117.66a8,8,0,0,1-11.32-11.32l72-72a8,8,0,0,1,11.32,0l72,72A8,8,0,0,1,205.66,117.66Z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="footer-layer" id="footer-2">
+        <div class="flex items-center justify-end w-full">
+          <button disabled class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-surface-inverse text-text-inverse rounded-full opacity-50 cursor-not-allowed animate-pulse-subtle">
+            Processing...
+          </button>
+        </div>
+      </div>
+      <div class="footer-layer" id="footer-3">
+        <div class="flex items-center justify-between w-full">
+          <button class="px-4 py-2 text-sm text-text-secondary rounded-full">Cancel</button>
+          <button class="demo-btn inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-surface-inverse text-text-inverse rounded-full" id="btn-file">
+            File All 3 Documents
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="footer-layer" id="footer-4">
+        <div class="flex items-center justify-between w-full">
+          <button class="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-secondary border rounded-full">
+            Upload More
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg>
+          </button>
+          <button class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-surface-inverse text-text-inverse rounded-full">
+            Done
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Playback Controls -->
+  <div class="playback-bar" id="playback">
+    <button onclick="togglePlay()" id="play-btn" title="Play/Pause">
+      <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48V208a16,16,0,0,1-16,16H160a16,16,0,0,1-16-16V48a16,16,0,0,1,16-16h40A16,16,0,0,1,216,48ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z"/></svg>
+      <svg id="icon-play" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" style="display:none"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,40.74V215.26a15.94,15.94,0,0,0,8.12,13.9,16,16,0,0,0,16.2-.3L232.4,141.51a16,16,0,0,0,0-27Z"/></svg>
+    </button>
+    <button onclick="restart()" title="Restart">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a96,96,0,0,1-94.71,96H128A95.38,95.38,0,0,1,62.1,197.8a8,8,0,0,1,11.8-10.81A80,80,0,1,0,71.43,71.39L87.17,87.17H48a8,8,0,0,1-8-8V40.83L55.29,56.12A96,96,0,0,1,224,128Z"/></svg>
+    </button>
+    <div class="flex items-center gap-1.5" id="phase-dots">
+      <div class="phase-dot active" data-phase="0" onclick="jumpTo(0)"></div>
+      <div class="phase-dot" data-phase="1" onclick="jumpTo(1)"></div>
+      <div class="phase-dot" data-phase="2" onclick="jumpTo(2)"></div>
+      <div class="phase-dot" data-phase="3" onclick="jumpTo(3)"></div>
+      <div class="phase-dot" data-phase="4" onclick="jumpTo(4)"></div>
+    </div>
+    <span class="text-xs opacity-50 tabular-nums ml-1" id="phase-label">Source</span>
+  </div>
+
+  <script>
+    /* ================================================================
+       CONFIGURATION
+       Phase timing guide (v3 — adjusted for new animations):
+       - Simple display: 2.0-2.5s
+       - File list w/ stagger: 2.5-3.0s
+       - Processing w/ progress + connectors: 3.5-4.5s
+       - Results w/ sub-animations + typewriter: 4.0-4.5s
+       - Success w/ self-drawing checks: 2.8-3.2s
+       Total loop: ~18.2s (within 16-19s target)
+       ================================================================ */
+    const PHASES = [
+      { id: 0, label: 'Source',      dwell: 2500 },
+      { id: 1, label: 'Select',      dwell: 2800 },
+      { id: 2, label: 'Processing',  dwell: 4200 },
+      { id: 3, label: 'Suggestions', dwell: 4500 },
+      { id: 4, label: 'Success',     dwell: 3200 },
+    ];
+
+    const TITLES = [
+      'Add Documents to Your Data Room',
+      'Add Documents to Your Data Room',
+      'Analyzing Your Documents',
+      'File Your Documents',
+      'Documents Organized',
+    ];
+    const DESCS = [
+      'AI will automatically analyze, summarize, and organize your documents.',
+      '3 files ready to upload.',
+      'AI is reading, summarizing, and categorizing each file.',
+      'Confirm or adjust where each document will be filed.',
+      'All files have been analyzed and moved to their folders.',
+    ];
+
+    /* ================================================================
+       STATE
+       ================================================================ */
+    let currentPhase = 0;
+    let playing = true;
+    let phaseTimer = null;
+    let progressRAF = null;
+    let progressStartTime = 0;
+    const phaseHeights = {};
+    const staggerTimers = [];
+
+    /* ================================================================
+       MEASURE PHASE HEIGHTS
+       ================================================================ */
+    function measurePhases() {
+      const container = document.getElementById('phase-container');
+      container.style.transition = 'none';
+
+      PHASES.forEach(p => {
+        const el = document.getElementById('phase-' + p.id);
+        el.classList.remove('active');
+        el.classList.add('measuring');
+
+        // Show all reveal items at natural height for accurate measurement
+        el.querySelectorAll('.reveal-item').forEach(r => {
+          r.style.maxHeight = 'none';
+          r.style.opacity = '1';
+          r.style.overflow = 'visible';
+        });
+
+        // Show stagger items at full opacity for accurate measurement
+        el.querySelectorAll('.stagger-item').forEach(s => {
+          s.style.opacity = '1';
+          s.style.transform = 'none';
+        });
+
+        // Force layout recalc before measuring
+        el.offsetHeight;
+        phaseHeights[p.id] = el.scrollHeight + 16; // Buffer for margins/borders
+
+        // Reset reveals
+        el.querySelectorAll('.reveal-item').forEach(r => {
+          r.style.maxHeight = '';
+          r.style.opacity = '';
+          r.style.overflow = '';
+        });
+
+        // Reset stagger items
+        el.querySelectorAll('.stagger-item').forEach(s => {
+          s.style.opacity = '';
+          s.style.transform = '';
+        });
+
+        el.classList.remove('measuring');
+      });
+
+      document.getElementById('phase-0').classList.add('active');
+      container.style.height = phaseHeights[0] + 'px';
+
+      requestAnimationFrame(() => { container.style.transition = ''; });
+    }
+
+    /* ================================================================
+       STAGGER ANIMATION ENGINE (replay-safe)
+       Principle #3 Staging: one element at a time
+       Principle #5 Overlapping Action: stagger creates rhythm
+       ================================================================ */
+    function runStagger(groupName, interval) {
+      interval = interval || 180;
+      const items = document.querySelectorAll(`[data-stagger-group="${groupName}"]`);
+      // Reset all first
+      items.forEach(el => el.classList.remove('stagger-visible'));
+      // Stagger reveal
+      items.forEach((el, i) => {
+        const timer = setTimeout(() => {
+          el.classList.add('stagger-visible');
+        }, i * interval);
+        staggerTimers.push(timer);
+      });
+    }
+
+    function runReveal(groupName, interval, startDelay) {
+      interval = interval || 350;
+      startDelay = startDelay || 0;
+      const items = document.querySelectorAll(`[data-reveal-group="${groupName}"]`);
+      items.forEach(el => el.classList.remove('reveal-visible'));
+      items.forEach((el, i) => {
+        const timer = setTimeout(() => {
+          el.classList.add('reveal-visible');
+        }, startDelay + i * interval);
+        staggerTimers.push(timer);
+      });
+    }
+
+    function clearStaggers() {
+      staggerTimers.forEach(t => clearTimeout(t));
+      staggerTimers.length = 0;
+    }
+
+    function resetAllStaggers() {
+      clearStaggers();
+      document.querySelectorAll('.stagger-item').forEach(el => el.classList.remove('stagger-visible'));
+      document.querySelectorAll('.reveal-item').forEach(el => el.classList.remove('reveal-visible'));
+      // Reset typewriter text (v3)
+      document.querySelectorAll('.typewriter-text').forEach(el => {
+        el.textContent = '';
+        el.classList.remove('done');
+      });
+      // Reset self-drawing checkmarks (v3)
+      document.querySelectorAll('.draw-check').forEach(el => {
+        el.classList.remove('check-active');
+        el.style.strokeDashoffset = '230';
+      });
+    }
+
+    /* ================================================================
+       TYPEWRITER ENGINE (v3)
+       Character-by-character filename reveal with blinking cursor
+       ================================================================ */
+    function runTypewriter(startDelay) {
+      const els = document.querySelectorAll('.typewriter-text');
+      els.forEach((el, elIdx) => {
+        const text = el.dataset.text;
+        if (!text) return;
+        el.textContent = '';
+        el.classList.remove('done');
+        const charDelay = startDelay + elIdx * 400; // Stagger between files
+        let i = 0;
+        function typeChar() {
+          if (i < text.length) {
+            el.textContent += text[i];
+            i++;
+            const timer = setTimeout(typeChar, 28 + Math.random() * 22);
+            staggerTimers.push(timer);
+          } else {
+            // Remove cursor after a brief pause
+            const timer = setTimeout(() => el.classList.add('done'), 400);
+            staggerTimers.push(timer);
+          }
+        }
+        const timer = setTimeout(typeChar, charDelay);
+        staggerTimers.push(timer);
+      });
+    }
+
+    /* ================================================================
+       PHASE TRANSITION
+       Speed hierarchy:
+       - FAST (150-220ms): Header text, footer buttons
+       - MEDIUM (450-600ms): Body crossfade
+       - SLOW (650-800ms): Container height
+       - SPRING (900-1400ms): Interaction animations
+       ================================================================ */
+    function transitionTo(targetPhase) {
+      if (targetPhase === currentPhase) return;
+
+      const container = document.getElementById('phase-container');
+      const header = document.getElementById('modal-header');
+      const oldPhaseEl = document.getElementById('phase-' + currentPhase);
+      const newPhaseEl = document.getElementById('phase-' + targetPhase);
+      const oldFooter = document.getElementById('footer-' + currentPhase);
+      const newFooter = document.getElementById('footer-' + targetPhase);
+
+      // 1. SLOW: Animate container height
+      container.style.height = phaseHeights[targetPhase] + 'px';
+
+      // 2. FAST: Fade out header text
+      header.classList.add('header-fading');
+
+      // 3. MEDIUM: Crossfade phase body
+      oldPhaseEl.classList.remove('active');
+      oldPhaseEl.classList.add('exiting');
+      setTimeout(() => {
+        newPhaseEl.classList.add('active');
+        oldPhaseEl.classList.remove('exiting');
+      }, 80);
+
+      // 4. FAST: Crossfade footer
+      oldFooter.classList.remove('active');
+      newFooter.classList.add('active');
+
+      // 5. FAST: Update header text mid-fade
+      setTimeout(() => {
+        document.getElementById('modal-title').textContent = TITLES[targetPhase];
+        document.getElementById('modal-desc').textContent = DESCS[targetPhase];
+        header.classList.remove('header-fading');
+      }, 220);
+
+      // 6. Update playback dots
+      document.querySelectorAll('.phase-dot').forEach(dot => {
+        const p = parseInt(dot.dataset.phase);
+        dot.classList.remove('active', 'completed');
+        if (p === targetPhase) dot.classList.add('active');
+        else if (p < targetPhase) dot.classList.add('completed');
+      });
+      document.getElementById('phase-label').textContent = PHASES[targetPhase].label;
+
+      // 7. Cleanup old phase animations
+      stopProgressAnimation();
+
+      const prevPhase = currentPhase;
+      currentPhase = targetPhase;
+
+      // 8. Phase enter callbacks — start phase-specific animations
+      onPhaseEnter(targetPhase);
+    }
+
+    /* ================================================================
+       PHASE ENTER CALLBACKS
+       Each phase triggers its own animation sequence on entry
+       ================================================================ */
+    function onPhaseEnter(phase) {
+      switch (phase) {
+        case 1:
+          // File list stagger — 200ms intervals for 3 items (total stagger: 400ms)
+          runStagger('select', 200);
+          break;
+        case 2:
+          // Start progress animation
+          startProgressAnimation();
+          break;
+        case 3:
+          // File rows stagger in (200ms intervals)
+          runStagger('suggest', 200);
+          // Rename suggestions reveal after files land (600ms delay, 400ms intervals)
+          runReveal('suggest-details', 400, 600);
+          // Folder assignments reveal last (1000ms delay, 350ms intervals)
+          runReveal('suggest-folders', 350, 1000);
+          // Typewriter filenames start after reveal expands (v3)
+          runTypewriter(800);
+          break;
+        case 4:
+          // Stage 1: File rows stagger in (180ms intervals)
+          runStagger('success', 180);
+          // Stage 2: After rows land (~700ms), draw checkmarks with their own stagger
+          const checkDelay = 700; // Wait for all 3 rows to be visible
+          document.querySelectorAll('#phase-4 .draw-check').forEach((check, i) => {
+            const timer = setTimeout(() => {
+              check.classList.add('check-active');
+            }, checkDelay + i * 200);
+            staggerTimers.push(timer);
+          });
+          break;
+      }
+    }
+
+    /* ================================================================
+       PROCESSING ANIMATION (requestAnimationFrame for smoothness)
+       Principle #6: Slow In/Out — ease-out cubic on progress
+       Principle #9: Timing — staggered file completion
+       ================================================================ */
+    const CHECK_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>';
+
+    function startProgressAnimation() {
+      const dwell = PHASES[2].dwell;
+      progressStartTime = performance.now();
+      const offsets = [0, 0.15, 0.30]; // Stagger: file 0 leads
+      const stepThresholds = [0.15, 0.40, 0.65, 0.85];
+
+      function tick(now) {
+        const elapsed = now - progressStartTime;
+        const t = Math.min(elapsed / dwell, 1);
+
+        for (let f = 0; f < 3; f++) {
+          const fileT = Math.max(0, Math.min((t - offsets[f]) / (1 - offsets[f]), 1));
+          const eased = 1 - Math.pow(1 - fileT, 3); // Ease out cubic
+          const pct = eased * 100;
+
+          const bar = document.querySelector(`.progress-bar[data-file="${f}"]`);
+          if (bar) bar.style.width = pct + '%';
+
+          for (let s = 0; s < 4; s++) {
+            const label = document.querySelector(`.step-label[data-file="${f}"][data-step="${s}"]`);
+            if (!label) continue;
+            if (fileT >= stepThresholds[s]) {
+              label.style.color = 'hsl(var(--status-info))';
+              if (!label.dataset.checked) {
+                label.insertAdjacentHTML('afterbegin', CHECK_ICON);
+                label.dataset.checked = '1';
+              }
+              // Connect the connector line after marking step (v3)
+              if (s < 3) {
+                const connector = document.querySelector(`.step-connector[data-file="${f}"][data-after="${s}"]`);
+                if (connector && !connector.classList.contains('connected')) {
+                  connector.classList.add('connected');
+                }
+              }
+            }
+          }
+        }
+
+        if (t < 1) {
+          progressRAF = requestAnimationFrame(tick);
+        }
+      }
+
+      progressRAF = requestAnimationFrame(tick);
+    }
+
+    function stopProgressAnimation() {
+      if (progressRAF) {
+        cancelAnimationFrame(progressRAF);
+        progressRAF = null;
+      }
+      // Reset progress state for next loop
+      document.querySelectorAll('.progress-bar').forEach(bar => bar.style.width = '0%');
+      document.querySelectorAll('.step-label').forEach(label => {
+        label.style.color = '';
+        delete label.dataset.checked;
+        const svg = label.querySelector('svg');
+        if (svg) svg.remove();
+      });
+      // Reset step connectors (v3)
+      document.querySelectorAll('.step-connector').forEach(c => c.classList.remove('connected'));
+    }
+
+    /* ================================================================
+       INTERACTION ANIMATIONS
+       Principle #2: Anticipation — reverse movement before action
+       Principle #1: Squash & Stretch — scaleX/Y inverse pairs
+       Principle #8: Secondary Action — brightness accompanies scale
+       ================================================================ */
+    const INTERACTIONS = {
+      // Phase 0: Drop zone receives files — gentle spring
+      0: async () => {
+        const zone = document.getElementById('drop-zone');
+        if (!zone) return;
+        zone.classList.add('receiving');
+        await delay(1400);
+        zone.classList.remove('receiving');
+      },
+      // Phase 1: "Upload & Analyze" button — spring press
+      1: async () => {
+        const btn = document.getElementById('btn-upload');
+        if (!btn) return;
+        btn.classList.add('pressing');
+        await delay(1150);
+        btn.classList.remove('pressing');
+      },
+      // Phase 2: No interaction (auto-transitions on progress complete)
+      // Phase 3: "File All 3 Documents" — spring press
+      3: async () => {
+        const btn = document.getElementById('btn-file');
+        if (!btn) return;
+        btn.classList.add('pressing');
+        await delay(1150);
+        btn.classList.remove('pressing');
+      },
+    };
+
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    /* ================================================================
+       PLAYBACK ENGINE
+       ================================================================ */
+    function scheduleNext() {
+      if (!playing) return;
+      clearTimeout(phaseTimer);
+
+      const dwell = PHASES[currentPhase].dwell;
+      const interaction = INTERACTIONS[currentPhase];
+      // Spring interactions need lead time to play before transition fires
+      const leadTime = interaction ? 1550 : 0;
+
+      phaseTimer = setTimeout(async () => {
+        const next = currentPhase + 1;
+        if (next < PHASES.length) {
+          if (interaction) await interaction();
+          transitionTo(next);
+          scheduleNext();
+        } else {
+          // Loop pause then restart
+          setTimeout(() => {
+            if (playing) restart();
+          }, 1500);
+        }
+      }, dwell - leadTime);
+    }
+
+    function togglePlay() {
+      playing = !playing;
+      document.getElementById('icon-pause').style.display = playing ? '' : 'none';
+      document.getElementById('icon-play').style.display = playing ? 'none' : '';
+      if (playing) scheduleNext();
+      else clearTimeout(phaseTimer);
+    }
+
+    function jumpTo(phase) {
+      clearTimeout(phaseTimer);
+      resetAllStaggers();
+      transitionTo(phase);
+      if (playing) scheduleNext();
+    }
+
+    function restart() {
+      clearTimeout(phaseTimer);
+      stopProgressAnimation();
+      resetAllStaggers();
+      if (currentPhase !== 0) transitionTo(0);
+      if (playing) scheduleNext();
+    }
+
+    /* ================================================================
+       EMBED MODE
+       ?embed strips backdrop, controls, and body styling for iframe use
+       ================================================================ */
+    const isEmbed = new URLSearchParams(window.location.search).has('embed');
+
+    function applyEmbedMode() {
+      if (!isEmbed) return;
+      const backdrop = document.querySelector('.fixed.inset-0');
+      if (backdrop) backdrop.style.display = 'none';
+      const playback = document.getElementById('playback');
+      if (playback) playback.style.display = 'none';
+      document.body.className = '';
+      document.body.style.cssText = 'margin:0; padding:16px; background:transparent; min-height:auto;';
+      const modal = document.getElementById('modal');
+      if (modal) modal.style.maxWidth = '100%';
+    }
+
+    /* ================================================================
+       BOOT
+       ================================================================ */
+    window.addEventListener('DOMContentLoaded', () => {
+      // Wait for Tailwind CDN to fully process styles before measuring
+      setTimeout(() => {
+        applyEmbedMode();
+        measurePhases();
+        setTimeout(() => scheduleNext(), 600);
+      }, 400);
+    });
+  </script>
+
+</body>
+</html>

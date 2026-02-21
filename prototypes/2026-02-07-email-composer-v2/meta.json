@@ -1,0 +1,9 @@
+{
+  "name": "Email Composer V2",
+  "date": "2026-02-07",
+  "issue": "FND-1275",
+  "phase": "prototype",
+  "status": "active",
+  "decisions": [],
+  "notes": "Validates full-screen editor layout, block composition UX, slash commands, preview pane, and action bar"
+}

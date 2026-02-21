@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Room Upload — Cinematic v4</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================
+       CSS CUSTOM PROPERTIES
+       ================================================================ */
+    :root {
+      /* ITO Dark Mode — Inky Palette */
+      --bg-body: #1a1a1a;              /* inky-900 */
+      --surface-card: #262626;          /* inky-800 */
+      --surface-glass: rgba(64,64,64,0.5); /* inky-700 at 50% */
+      --surface-glass-hover: #4d4d4d;   /* inky-600 */
+
+      /* ITO Dark Mode — Text */
+      --text-primary: #ffffff;
+      --text-secondary: #e7e5e4;        /* stone-200 */
+      --text-tertiary: #c7c4c0;         /* stone-300 */
+      --text-quaternary: #a8a29e;        /* stone-400 */
+
+      /* ITO Dark Mode — Borders (Inky) */
+      --border-subtle: #404040;          /* inky-700 */
+      --border-medium: #666666;          /* inky-500 */
+      --border-dashed: #404040;          /* inky-700 */
+      --border-active: #bfdbfe;          /* blue-200 */
+
+      /* Tailwind 100 Pastels for accents */
+      --success: #d1fae5;               /* emerald-100 */
+      --success-dim: rgba(209,250,229,0.12);
+      --accent: #dbeafe;                /* blue-100 */
+      --accent-dim: rgba(219,234,254,0.10);
+      --processing-amber: #fef3c7;      /* amber-100 */
+      --processing-glow: rgba(254,243,199,0.08);
+      --intelligence-blue: #dbeafe;      /* blue-100 */
+
+      /* Folder category pastels (100-shade) */
+      --folder-financials: #fef3c7;      /* amber-100 */
+      --folder-fundraising: #ede9fe;     /* violet-100 */
+      --folder-legal: #dbeafe;           /* blue-100 */
+
+      /* Spring easing via linear() */
+      --spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50%, 1.015 55%, 1.017 63.9%, 1.001 85.6%, 1);
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+    }
+
+    /* ================================================================
+       RESET & BASE
+       ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ================================================================
+       3D PERSPECTIVE SCENE
+       ================================================================ */
+    .scene {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+      width: 100%;
+      max-width: 640px;
+      padding: 24px;
+    }
+
+    /* ================================================================
+       AMBIENT GLOW — behind the card
+       ================================================================ */
+    .card-wrapper {
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    /* Ambient glow removed — inky palette provides all the contrast we need */
+
+    /* ================================================================
+       THE CARD — solid inky surface in 3D space
+       ================================================================ */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      box-shadow:
+        0 4px 16px rgba(0,0,0,0.2),
+        0 16px 48px rgba(0,0,0,0.15);
+      overflow: hidden;
+      transition: transform 800ms var(--spring);
+      will-change: transform;
+    }
+
+    /* Camera angles per phase */
+    .card.camera-0 { transform: rotateX(2deg) rotateY(0deg); }
+    .card.camera-1 { transform: rotateX(1deg) rotateY(-1deg); }
+    .card.camera-2 { transform: rotateX(0deg) rotateY(0deg); }
+    .card.camera-3 { transform: rotateX(-1deg) rotateY(1deg); }
+    .card.camera-4 { transform: rotateX(2deg) rotateY(0deg) scale(0.97); }
+
+    /* ================================================================
+       HEADER
+       ================================================================ */
+    .card-header {
+      padding: 28px 28px 0;
+    }
+
+    .phase-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .phase-subtitle {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    /* Title focus-pull entrance */
+    .title-focus {
+      opacity: 0;
+      filter: blur(8px);
+      transform: scale(0.97);
+      transition: opacity 500ms var(--ease-out-expo),
+                  filter 600ms var(--ease-out-expo),
+                  transform 500ms var(--ease-out-expo);
+    }
+    .title-focus.visible {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1);
+    }
+
+    /* ================================================================
+       PHASE CONTENT AREA
+       ================================================================ */
+    .phase-container {
+      position: relative;
+      overflow: hidden;
+      transition: height 700ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    /* ================================================================
+       CLIP-PATH WIPE TRANSITIONS
+       ================================================================ */
+    .phase-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 20px 28px 28px;
+      clip-path: inset(0 100% 0 0);
+      transition: clip-path 700ms var(--ease-out-expo);
+      pointer-events: none;
+      will-change: clip-path;
+    }
+    .phase-layer.active {
+      clip-path: inset(0 0 0 0);
+      pointer-events: auto;
+    }
+    .phase-layer.exiting {
+      clip-path: inset(0 0 0 100%);
+      transition: clip-path 500ms var(--ease-in);
+    }
+    .phase-layer.measuring {
+      clip-path: none;
+      position: static;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ================================================================
+       FOCUS-PULL ENTRANCE (blur-to-sharp)
+       ================================================================ */
+    .focus-enter {
+      opacity: 0;
+      filter: blur(8px);
+      transform: scale(0.97);
+      transition: opacity 500ms var(--ease-out-expo),
+                  filter 600ms var(--ease-out-expo),
+                  transform 500ms var(--ease-out-expo);
+    }
+    .focus-enter.visible {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1);
+    }
+
+    /* ================================================================
+       FOOTER
+       ================================================================ */
+    .card-footer {
+      border-top: 1px solid var(--border-subtle);
+      position: relative;
+      min-height: 64px;
+    }
+
+    .footer-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      padding: 16px 28px;
+      opacity: 0;
+      transition: opacity 220ms ease;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+    }
+    .footer-layer.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ================================================================
+       BUTTONS
+       ================================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 150ms ease;
+      border: none;
+      transform-origin: center;
+    }
+
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-body);
+      padding: 10px 20px;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 10px 16px;
+      border: 1px solid var(--border-medium);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 10px 16px;
+    }
+
+    .btn-disabled {
+      background: var(--text-primary);
+      color: var(--bg-body);
+      padding: 10px 20px;
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ================================================================
+       SPRING INTERACTION ANIMATIONS
+       ================================================================ */
+    @keyframes btn-press {
+      0%   { transform: scale(1);    filter: brightness(1); }
+      15%  { transform: scale(1.02); filter: brightness(1.08); }
+      40%  { transform: scale(0.97); filter: brightness(1.04); }
+      65%  { transform: scale(1.01); filter: brightness(1); }
+      100% { transform: scale(1);    filter: brightness(1); }
+    }
+    .btn.pressing {
+      animation: btn-press 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .btn.pressing svg {
+      animation: icon-wiggle 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes icon-wiggle {
+      0%   { transform: rotate(0deg); }
+      15%  { transform: rotate(0deg); }
+      30%  { transform: rotate(-14deg); }
+      45%  { transform: rotate(14deg); }
+      60%  { transform: rotate(-6deg); }
+      75%  { transform: rotate(4deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    /* Drop zone interaction */
+    @keyframes zone-receive {
+      0%   { border-color: var(--border-dashed); background-color: transparent; }
+      20%  { border-color: var(--border-active); background-color: rgba(219,234,254,0.06); }
+      45%  { border-color: var(--accent); background-color: rgba(219,234,254,0.08); }
+      70%  { border-color: var(--border-active); background-color: rgba(219,234,254,0.04); }
+      100% { border-color: var(--border-dashed); background-color: transparent; }
+    }
+    .drop-zone.receiving {
+      animation: zone-receive 1350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes zone-icon-wiggle {
+      0%   { transform: rotate(0deg) translateY(0); }
+      15%  { transform: rotate(0deg) translateY(0); }
+      25%  { transform: rotate(-10deg) translateY(-2px); }
+      40%  { transform: rotate(10deg) translateY(-2px); }
+      55%  { transform: rotate(-4deg) translateY(-1px); }
+      70%  { transform: rotate(3deg) translateY(0); }
+      100% { transform: rotate(0deg) translateY(0); }
+    }
+    .drop-zone.receiving .upload-icon {
+      animation: zone-icon-wiggle 1350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* ================================================================
+       PHASE 0: SOURCE — Drop Zone
+       ================================================================ */
+    .drop-zone {
+      border: 2px dashed var(--border-dashed);
+      border-radius: 12px;
+      padding: 36px 24px;
+      text-align: center;
+      transform-origin: center;
+      position: relative;
+    }
+
+    .upload-icon-container {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      border-radius: 12px;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Upload icon — blue-100 pastel container */
+
+    .drop-zone-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .drop-zone-sub {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+    }
+
+    .drop-zone-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 14px;
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+    }
+
+    .divider-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    .divider-text {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+    }
+
+    .gdrive-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      font-size: 0.8125rem;
+      font-family: inherit;
+      color: var(--text-secondary);
+      background: transparent;
+      border: 1px solid var(--border-medium);
+      border-radius: 9999px;
+      cursor: pointer;
+    }
+
+    .skip-link {
+      display: block;
+      text-align: center;
+      margin-top: 18px;
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* ================================================================
+       PHASE 1: FILE SELECT — file rows
+       ================================================================ */
+    .file-list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .file-list-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .file-list-action {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .file-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 8px;
+    }
+    .file-row:last-child { margin-bottom: 0; }
+
+    .file-icon {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--surface-glass);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+    }
+
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .file-remove {
+      flex-shrink: 0;
+      color: var(--text-quaternary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px;
+      margin-top: 2px;
+    }
+
+    /* ================================================================
+       PHASE 2: PROCESSING — file cards with step dots
+       ================================================================ */
+    .process-card {
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+    .process-card:last-child { margin-bottom: 0; }
+
+    /* Processing shimmer sweep across cards */
+    .process-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; right: 0; bottom: 0;
+      width: 200%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(254,243,199,0.04) 40%,
+        rgba(254,243,199,0.08) 50%,
+        rgba(254,243,199,0.04) 60%,
+        transparent 100%
+      );
+      animation: shimmer-sweep 2.5s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes shimmer-sweep {
+      0%   { transform: translateX(-50%); }
+      100% { transform: translateX(50%); }
+    }
+
+    .process-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .process-spinner {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      color: var(--processing-amber);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .process-file-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .process-file-size {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* Step progress: horizontal dots with labels and connectors */
+    .steps-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+    }
+
+    .step-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-quaternary);
+      transition: background 350ms ease, box-shadow 350ms ease;
+    }
+
+    .step-dot.active {
+      background: var(--processing-amber);
+      box-shadow: 0 0 6px rgba(254,243,199,0.3);
+    }
+
+    .step-dot.done {
+      background: var(--success);
+      box-shadow: none;
+      animation: dot-pop 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes dot-pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.4); }
+      70%  { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+
+    .step-label {
+      font-size: 0.625rem;
+      font-weight: 500;
+      color: var(--text-quaternary);
+      white-space: nowrap;
+      transition: color 300ms ease;
+      letter-spacing: 0.02em;
+    }
+
+    .step-label.active {
+      color: var(--processing-amber);
+    }
+
+    .step-label.done {
+      color: var(--text-tertiary);
+    }
+
+    .step-connector {
+      flex: 1;
+      height: 1px;
+      background: var(--text-quaternary);
+      margin: 0 6px;
+      position: relative;
+      overflow: hidden;
+      align-self: flex-start;
+      margin-top: 3.5px; /* center with dot */
+    }
+
+    .step-connector-fill {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 0%;
+      background: var(--success);
+      transition: width 350ms var(--ease-out-expo);
+    }
+
+    .step-connector.connected .step-connector-fill {
+      width: 100%;
+    }
+
+    /* Progress bar (thin, below steps) */
+    .progress-track {
+      height: 3px;
+      border-radius: 4px;
+      background: var(--border-subtle);
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--processing-amber);
+      width: 0%;
+      transition: width 80ms linear;
+    }
+
+    /* ================================================================
+       PHASE 3: SUGGESTIONS — rename rows
+       ================================================================ */
+    .suggest-row {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .suggest-row:last-child { border-bottom: none; }
+
+    .suggest-original {
+      font-size: 0.8125rem;
+      color: var(--text-tertiary);
+      text-decoration: line-through;
+      text-decoration-color: var(--border-subtle);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .suggest-original .file-type-icon {
+      color: var(--text-quaternary);
+      flex-shrink: 0;
+    }
+
+    .suggest-arrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .suggest-arrow-icon {
+      color: var(--text-quaternary);
+      flex-shrink: 0;
+    }
+
+    .suggest-new-name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .suggest-folder {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 6px;
+      padding: 4px 10px;
+      opacity: 0;
+      transition: opacity 400ms ease;
+    }
+    .suggest-folder[data-category="financials"] { background: var(--folder-financials); color: #92400e; }
+    .suggest-folder[data-category="fundraising"] { background: var(--folder-fundraising); color: #5b21b6; }
+    .suggest-folder[data-category="legal"] { background: var(--folder-legal); color: #1e40af; }
+
+    .suggest-folder.visible {
+      opacity: 1;
+    }
+
+    .suggest-folder-icon {
+      color: inherit;
+    }
+
+    /* ================================================================
+       TYPEWRITER
+       ================================================================ */
+    .typewriter-text::after {
+      content: '|';
+      color: var(--text-tertiary);
+      animation: blink-cursor 530ms steps(1) infinite;
+      margin-left: 1px;
+    }
+    .typewriter-text.done::after {
+      display: none;
+    }
+    @keyframes blink-cursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ================================================================
+       PHASE 4: SUCCESS — green checks, file rows
+       ================================================================ */
+    .success-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .success-row:last-child { border-bottom: none; }
+
+    .success-check {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      color: var(--success);
+    }
+
+    .success-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .success-new-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .success-old-name {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .success-folder {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 6px;
+      padding: 4px 10px;
+      flex-shrink: 0;
+    }
+    .success-folder[data-category="financials"] { background: var(--folder-financials); color: #92400e; }
+    .success-folder[data-category="fundraising"] { background: var(--folder-fundraising); color: #5b21b6; }
+    .success-folder[data-category="legal"] { background: var(--folder-legal); color: #1e40af; }
+
+    /* Self-drawing checkmarks */
+    @keyframes draw-check {
+      to { stroke-dashoffset: 0; }
+    }
+    .draw-check {
+      stroke-dasharray: 230;
+      stroke-dashoffset: 230;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 20;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .draw-check.check-active {
+      animation: draw-check 600ms var(--ease-out-expo) forwards;
+    }
+
+    /* ================================================================
+       PULSE SUBTLE
+       ================================================================ */
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s ease-in-out infinite;
+    }
+
+    /* CTA glow — pulsing brightness on Done button */
+    @keyframes cta-glow {
+      0%   { filter: brightness(1);   box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+      50%  { filter: brightness(1.15); box-shadow: 0 0 16px 2px rgba(255,255,255,0.15); }
+      100% { filter: brightness(1);   box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    }
+    .btn.cta-glow {
+      animation: cta-glow 1.8s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+    }
+
+    /* Card send-off — lifts up and flies away */
+    @keyframes card-send-off {
+      0%   { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+      25%  { transform: translateY(-8px) scale(1.01); opacity: 1; filter: blur(0); }
+      100% { transform: translateY(-100px) scale(0.96); opacity: 0; filter: blur(6px); }
+    }
+    .card-wrapper.sending {
+      animation: card-send-off 900ms var(--ease-in) forwards;
+      pointer-events: none;
+    }
+
+    /* ================================================================
+       PLAYBACK CONTROLS
+       ================================================================ */
+    .playback-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 10px 20px;
+      border-radius: 9999px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 50;
+      font-size: 12px;
+    }
+
+    .playback-bar button {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      opacity: 0.7;
+      transition: opacity 150ms;
+    }
+    .playback-bar button:hover { opacity: 1; }
+
+    .phase-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-quaternary);
+      transition: all 300ms ease;
+      cursor: pointer;
+    }
+    .phase-dot.active {
+      background: var(--text-primary);
+      width: 20px;
+      border-radius: 3px;
+    }
+    .phase-dot.completed {
+      background: var(--text-tertiary);
+    }
+
+    .phase-label-text {
+      font-size: 0.75rem;
+      opacity: 0.5;
+      font-variant-numeric: tabular-nums;
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Perspective Scene -->
+  <div class="scene" id="scene">
+    <div class="card-wrapper">
+
+      <!-- Card -->
+      <div class="card camera-0" id="card">
+
+        <!-- Header -->
+        <div class="card-header" id="card-header">
+          <div class="title-focus visible" id="title-block">
+            <div class="phase-title" id="phase-title">Add Documents</div>
+            <div class="phase-subtitle" id="phase-subtitle">AI will analyze, summarize, and organize your documents automatically.</div>
+          </div>
+        </div>
+
+        <!-- Phase Container -->
+        <div class="phase-container" id="phase-container">
+
+          <!-- ========== PHASE 0: SOURCE ========== -->
+          <div class="phase-layer active" id="phase-0">
+            <div class="drop-zone" id="drop-zone">
+              <div class="upload-icon-container">
+                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 256 256" style="color: var(--text-primary);">
+                  <path d="M232,152v56a16,16,0,0,1-16,16H40a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H216V152a8,8,0,0,1,16,0ZM88,88l32-32V152a8,8,0,0,0,16,0V56l32,32a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48,48A8,8,0,0,0,88,88Z"/>
+                </svg>
+              </div>
+              <div class="drop-zone-title">Click to upload or drag and drop</div>
+              <div class="drop-zone-sub">PDF, DOC, XLS, PPT, images, and more</div>
+              <div class="drop-zone-hint">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V128a8,8,0,0,1,16,0v8a8,8,0,0,1-16,0Zm0-48a12,12,0,1,1,12,12A12,12,0,0,1,120,88Z"/></svg>
+                <span>Automatic summarization &amp; categorization</span>
+              </div>
+            </div>
+
+            <div class="divider-row">
+              <div class="divider-line"></div>
+              <span class="divider-text">or import from</span>
+              <div class="divider-line"></div>
+            </div>
+
+            <div style="text-align: center;">
+              <button class="gdrive-btn">
+                <svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-20.4 35.3c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.5l5.85 13.8z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-10.1-17.5c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 23.5h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+                Import from Google Drive
+              </button>
+            </div>
+
+            <button class="skip-link">Skip AI organization</button>
+          </div>
+
+          <!-- ========== PHASE 1: FILE SELECT ========== -->
+          <div class="phase-layer" id="phase-1">
+            <div class="file-list-header">
+              <span class="file-list-label">Ready to Upload (3)</span>
+              <button class="file-list-action">Clear all</button>
+            </div>
+
+            <!-- File 1 -->
+            <div class="file-row focus-enter" data-focus-group="select" data-focus-index="0">
+              <div class="file-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="file-info">
+                <div class="file-name">Q3_2024_financial_model_FINAL_v2.xlsx</div>
+                <div class="file-size">2.4 MB</div>
+              </div>
+              <button class="file-remove">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+              </button>
+            </div>
+
+            <!-- File 2 -->
+            <div class="file-row focus-enter" data-focus-group="select" data-focus-index="1">
+              <div class="file-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="file-info">
+                <div class="file-name">Series A pitch deck DRAFT (Johns Copy).pptx</div>
+                <div class="file-size">8.1 MB</div>
+              </div>
+              <button class="file-remove">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+              </button>
+            </div>
+
+            <!-- File 3 -->
+            <div class="file-row focus-enter" data-focus-group="select" data-focus-index="2">
+              <div class="file-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="file-info">
+                <div class="file-name">NDA-Signed-2024.pdf</div>
+                <div class="file-size">1.2 MB</div>
+              </div>
+              <button class="file-remove">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- ========== PHASE 2: PROCESSING ========== -->
+          <div class="phase-layer" id="phase-2">
+            <!-- File 1 -->
+            <div class="process-card">
+              <div class="process-header">
+                <svg class="process-spinner" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+                <span class="process-file-name">Q3_2024_financial_model_FINAL_v2.xlsx</span>
+                <span class="process-file-size">2.4 MB</span>
+              </div>
+              <div class="steps-row">
+                <div class="step-node">
+                  <div class="step-dot" data-file="0" data-step="0"></div>
+                  <span class="step-label" data-file="0" data-step="0">Reading</span>
+                </div>
+                <div class="step-connector" data-file="0" data-after="0"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="0" data-step="1"></div>
+                  <span class="step-label" data-file="0" data-step="1">Summarizing</span>
+                </div>
+                <div class="step-connector" data-file="0" data-after="1"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="0" data-step="2"></div>
+                  <span class="step-label" data-file="0" data-step="2">Categorizing</span>
+                </div>
+                <div class="step-connector" data-file="0" data-after="2"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="0" data-step="3"></div>
+                  <span class="step-label" data-file="0" data-step="3">Organizing</span>
+                </div>
+              </div>
+              <div class="progress-track"><div class="progress-bar" data-file="0"></div></div>
+            </div>
+
+            <!-- File 2 -->
+            <div class="process-card">
+              <div class="process-header">
+                <svg class="process-spinner" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+                <span class="process-file-name">Series A pitch deck DRAFT (Johns Copy).pptx</span>
+                <span class="process-file-size">8.1 MB</span>
+              </div>
+              <div class="steps-row">
+                <div class="step-node">
+                  <div class="step-dot" data-file="1" data-step="0"></div>
+                  <span class="step-label" data-file="1" data-step="0">Reading</span>
+                </div>
+                <div class="step-connector" data-file="1" data-after="0"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="1" data-step="1"></div>
+                  <span class="step-label" data-file="1" data-step="1">Summarizing</span>
+                </div>
+                <div class="step-connector" data-file="1" data-after="1"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="1" data-step="2"></div>
+                  <span class="step-label" data-file="1" data-step="2">Categorizing</span>
+                </div>
+                <div class="step-connector" data-file="1" data-after="2"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="1" data-step="3"></div>
+                  <span class="step-label" data-file="1" data-step="3">Organizing</span>
+                </div>
+              </div>
+              <div class="progress-track"><div class="progress-bar" data-file="1"></div></div>
+            </div>
+
+            <!-- File 3 -->
+            <div class="process-card">
+              <div class="process-header">
+                <svg class="process-spinner" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+                <span class="process-file-name">NDA-Signed-2024.pdf</span>
+                <span class="process-file-size">1.2 MB</span>
+              </div>
+              <div class="steps-row">
+                <div class="step-node">
+                  <div class="step-dot" data-file="2" data-step="0"></div>
+                  <span class="step-label" data-file="2" data-step="0">Reading</span>
+                </div>
+                <div class="step-connector" data-file="2" data-after="0"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="2" data-step="1"></div>
+                  <span class="step-label" data-file="2" data-step="1">Summarizing</span>
+                </div>
+                <div class="step-connector" data-file="2" data-after="1"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="2" data-step="2"></div>
+                  <span class="step-label" data-file="2" data-step="2">Categorizing</span>
+                </div>
+                <div class="step-connector" data-file="2" data-after="2"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="2" data-step="3"></div>
+                  <span class="step-label" data-file="2" data-step="3">Organizing</span>
+                </div>
+              </div>
+              <div class="progress-track"><div class="progress-bar" data-file="2"></div></div>
+            </div>
+          </div>
+
+          <!-- ========== PHASE 3: SUGGESTIONS ========== -->
+          <div class="phase-layer" id="phase-3">
+            <!-- File 1 -->
+            <div class="suggest-row focus-enter" data-focus-group="suggest" data-focus-index="0">
+              <div class="suggest-original">
+                <svg class="file-type-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+                <span>Q3_2024_financial_model_FINAL_v2.xlsx</span>
+              </div>
+              <div class="suggest-arrow">
+                <svg class="suggest-arrow-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>
+                <span class="suggest-new-name typewriter-text" data-text="2024-Q3-Financial-Model.xlsx"></span>
+              </div>
+              <div class="suggest-folder" data-folder-group="suggest" data-folder-index="0" data-category="financials">
+                <svg class="suggest-folder-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                <span>Financials</span>
+              </div>
+            </div>
+
+            <!-- File 2 -->
+            <div class="suggest-row focus-enter" data-focus-group="suggest" data-focus-index="1">
+              <div class="suggest-original">
+                <svg class="file-type-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+                <span>Series A pitch deck DRAFT (Johns Copy).pptx</span>
+              </div>
+              <div class="suggest-arrow">
+                <svg class="suggest-arrow-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>
+                <span class="suggest-new-name typewriter-text" data-text="Series-A-Pitch-Deck.pptx"></span>
+              </div>
+              <div class="suggest-folder" data-folder-group="suggest" data-folder-index="1" data-category="fundraising">
+                <svg class="suggest-folder-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                <span>Fundraising</span>
+              </div>
+            </div>
+
+            <!-- File 3 (no rename, already clean) -->
+            <div class="suggest-row focus-enter" data-focus-group="suggest" data-focus-index="2">
+              <div class="suggest-original">
+                <svg class="file-type-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+                <span>NDA-Signed-2024.pdf</span>
+              </div>
+              <div class="suggest-arrow" style="opacity: 0.4;">
+                <svg class="suggest-arrow-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>
+                <span class="suggest-new-name" style="color: var(--text-tertiary); font-style: italic; font-size: 0.8125rem;">Name looks good</span>
+              </div>
+              <div class="suggest-folder" data-folder-group="suggest" data-folder-index="2" data-category="legal">
+                <svg class="suggest-folder-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                <span>Legal</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========== PHASE 4: SUCCESS ========== -->
+          <div class="phase-layer" id="phase-4">
+            <!-- File 1 -->
+            <div class="success-row focus-enter" data-focus-group="success" data-focus-index="0">
+              <svg class="success-check" width="20" height="20" viewBox="0 0 256 256">
+                <polyline class="draw-check" points="48,138 96,186 208,74" />
+              </svg>
+              <div class="success-info">
+                <div class="success-new-name">2024-Q3-Financial-Model.xlsx</div>
+                <div class="success-old-name">was Q3_2024_financial_model_FINAL_v2.xlsx</div>
+              </div>
+              <div class="success-folder" data-category="financials">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+                <span>Financials</span>
+              </div>
+            </div>
+
+            <!-- File 2 -->
+            <div class="success-row focus-enter" data-focus-group="success" data-focus-index="1">
+              <svg class="success-check" width="20" height="20" viewBox="0 0 256 256">
+                <polyline class="draw-check" points="48,138 96,186 208,74" />
+              </svg>
+              <div class="success-info">
+                <div class="success-new-name">Series-A-Pitch-Deck.pptx</div>
+                <div class="success-old-name">was Series A pitch deck DRAFT (Johns Copy).pptx</div>
+              </div>
+              <div class="success-folder" data-category="fundraising">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+                <span>Fundraising</span>
+              </div>
+            </div>
+
+            <!-- File 3 -->
+            <div class="success-row focus-enter" data-focus-group="success" data-focus-index="2">
+              <svg class="success-check" width="20" height="20" viewBox="0 0 256 256">
+                <polyline class="draw-check" points="48,138 96,186 208,74" />
+              </svg>
+              <div class="success-info">
+                <div class="success-new-name">NDA-Signed-2024.pdf</div>
+              </div>
+              <div class="success-folder" data-category="legal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+                <span>Legal</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="card-footer" id="card-footer">
+          <!-- Footer 0: Source -->
+          <div class="footer-layer active" id="footer-0">
+            <button class="btn btn-ghost">Cancel</button>
+          </div>
+          <!-- Footer 1: Select -->
+          <div class="footer-layer" id="footer-1">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <button class="btn btn-ghost">Cancel</button>
+              <button class="btn btn-primary" id="btn-upload">
+                Upload &amp; Analyze
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,117.66a8,8,0,0,1-11.32,0L136,59.31V216a8,8,0,0,1-16,0V59.31L61.66,117.66a8,8,0,0,1-11.32-11.32l72-72a8,8,0,0,1,11.32,0l72,72A8,8,0,0,1,205.66,117.66Z"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Footer 2: Processing -->
+          <div class="footer-layer" id="footer-2">
+            <div style="display: flex; align-items: center; justify-content: flex-end; width: 100%;">
+              <button class="btn btn-disabled animate-pulse-subtle" disabled>
+                Analyzing...
+              </button>
+            </div>
+          </div>
+          <!-- Footer 3: Suggestions -->
+          <div class="footer-layer" id="footer-3">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <button class="btn btn-ghost">Cancel</button>
+              <button class="btn btn-primary" id="btn-file">
+                File All 3 Documents
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Footer 4: Success -->
+          <div class="footer-layer" id="footer-4">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <button class="btn btn-secondary">
+                Upload More
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg>
+              </button>
+              <button class="btn btn-primary" id="btn-done">
+                Done
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Playback Controls -->
+  <div class="playback-bar" id="playback">
+    <button onclick="togglePlay()" id="play-btn" title="Play/Pause">
+      <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48V208a16,16,0,0,1-16,16H160a16,16,0,0,1-16-16V48a16,16,0,0,1,16-16h40A16,16,0,0,1,216,48ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z"/></svg>
+      <svg id="icon-play" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" style="display:none"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,40.74V215.26a15.94,15.94,0,0,0,8.12,13.9,16,16,0,0,0,16.2-.3L232.4,141.51a16,16,0,0,0,0-27Z"/></svg>
+    </button>
+    <button onclick="restart()" title="Restart">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a96,96,0,0,1-94.71,96H128A95.38,95.38,0,0,1,62.1,197.8a8,8,0,0,1,11.8-10.81A80,80,0,1,0,71.43,71.39L87.17,87.17H48a8,8,0,0,1-8-8V40.83L55.29,56.12A96,96,0,0,1,224,128Z"/></svg>
+    </button>
+    <div style="display: flex; align-items: center; gap: 6px;" id="phase-dots">
+      <div class="phase-dot active" data-phase="0" onclick="jumpTo(0)"></div>
+      <div class="phase-dot" data-phase="1" onclick="jumpTo(1)"></div>
+      <div class="phase-dot" data-phase="2" onclick="jumpTo(2)"></div>
+      <div class="phase-dot" data-phase="3" onclick="jumpTo(3)"></div>
+      <div class="phase-dot" data-phase="4" onclick="jumpTo(4)"></div>
+    </div>
+    <span class="phase-label-text" id="phase-label">Source</span>
+  </div>
+
+  <script>
+    /* ================================================================
+       CONFIGURATION
+       ================================================================ */
+    const PHASES = [
+      { id: 0, label: 'Source',      dwell: 2500 },
+      { id: 1, label: 'Select',      dwell: 2500 },
+      { id: 2, label: 'Processing',  dwell: 4500 },
+      { id: 3, label: 'Suggestions', dwell: 4500 },
+      { id: 4, label: 'Success',     dwell: 4500 },
+    ];
+
+    const TITLES = [
+      'Add Documents',
+      'Add Documents',
+      'Analyzing Documents',
+      'Review Suggestions',
+      'Documents Organized',
+    ];
+
+    const SUBTITLES = [
+      'AI will analyze, summarize, and organize your documents automatically.',
+      '3 files ready to upload.',
+      'Reading, summarizing, and categorizing each file.',
+      'Confirm or adjust where each document will be filed.',
+      'All files analyzed and moved to their folders.',
+    ];
+
+    /* ================================================================
+       STATE
+       ================================================================ */
+    let currentPhase = 0;
+    let playing = true;
+    let phaseTimer = null;
+    let progressRAF = null;
+    let progressStartTime = 0;
+    const phaseHeights = {};
+    const timers = [];
+
+    /* ================================================================
+       HELPERS
+       ================================================================ */
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function pushTimer(fn, ms) {
+      const id = setTimeout(fn, ms);
+      timers.push(id);
+      return id;
+    }
+
+    function clearAllTimers() {
+      timers.forEach(t => clearTimeout(t));
+      timers.length = 0;
+    }
+
+    /* ================================================================
+       MEASURE PHASE HEIGHTS
+       ================================================================ */
+    function measurePhases() {
+      const container = document.getElementById('phase-container');
+      container.style.transition = 'none';
+
+      PHASES.forEach(p => {
+        const el = document.getElementById('phase-' + p.id);
+        el.classList.remove('active');
+        el.classList.add('measuring');
+
+        // Temporarily show focus-enter items at full size for measurement
+        el.querySelectorAll('.focus-enter').forEach(f => {
+          f.style.opacity = '1';
+          f.style.filter = 'none';
+          f.style.transform = 'none';
+        });
+
+        // Show folder badges
+        el.querySelectorAll('.suggest-folder').forEach(f => {
+          f.style.opacity = '1';
+        });
+
+        el.offsetHeight; // force layout
+        phaseHeights[p.id] = el.scrollHeight + 8;
+
+        // Reset
+        el.querySelectorAll('.focus-enter').forEach(f => {
+          f.style.opacity = '';
+          f.style.filter = '';
+          f.style.transform = '';
+        });
+        el.querySelectorAll('.suggest-folder').forEach(f => {
+          f.style.opacity = '';
+        });
+
+        el.classList.remove('measuring');
+      });
+
+      // Restore phase 0 as active
+      document.getElementById('phase-0').classList.add('active');
+      container.style.height = phaseHeights[0] + 'px';
+
+      requestAnimationFrame(() => { container.style.transition = ''; });
+    }
+
+    /* ================================================================
+       FOCUS-PULL STAGGER (blur-to-sharp entrance)
+       ================================================================ */
+    function runFocusStagger(groupName, interval) {
+      interval = interval || 180;
+      const items = document.querySelectorAll('[data-focus-group="' + groupName + '"]');
+      items.forEach(el => el.classList.remove('visible'));
+      items.forEach((el, i) => {
+        pushTimer(() => {
+          el.classList.add('visible');
+        }, i * interval);
+      });
+    }
+
+    /* ================================================================
+       TYPEWRITER ENGINE
+       ================================================================ */
+    function runTypewriter(startDelay) {
+      const els = document.querySelectorAll('.typewriter-text');
+      els.forEach((el, elIdx) => {
+        const text = el.dataset.text;
+        if (!text) return;
+        el.textContent = '';
+        el.classList.remove('done');
+        const charDelay = startDelay + elIdx * 500;
+        let i = 0;
+        function typeChar() {
+          if (i < text.length) {
+            el.textContent += text[i];
+            i++;
+            pushTimer(typeChar, 28 + Math.random() * 22);
+          } else {
+            pushTimer(() => el.classList.add('done'), 400);
+          }
+        }
+        pushTimer(typeChar, charDelay);
+      });
+    }
+
+    /* ================================================================
+       FOLDER BADGE REVEAL
+       ================================================================ */
+    function runFolderReveal(groupName, interval, startDelay) {
+      const items = document.querySelectorAll('[data-folder-group="' + groupName + '"]');
+      items.forEach(el => el.classList.remove('visible'));
+      items.forEach((el, i) => {
+        pushTimer(() => {
+          el.classList.add('visible');
+        }, startDelay + i * interval);
+      });
+    }
+
+    /* ================================================================
+       RESET ALL ANIMATIONS
+       ================================================================ */
+    function resetAllAnimations() {
+      clearAllTimers();
+
+      // Focus-enter items
+      document.querySelectorAll('.focus-enter').forEach(el => el.classList.remove('visible'));
+
+      // Typewriters
+      document.querySelectorAll('.typewriter-text').forEach(el => {
+        el.textContent = '';
+        el.classList.remove('done');
+      });
+
+      // Self-drawing checks
+      document.querySelectorAll('.draw-check').forEach(el => {
+        el.classList.remove('check-active');
+        el.style.strokeDashoffset = '230';
+      });
+
+      // Folder badges
+      document.querySelectorAll('.suggest-folder').forEach(el => el.classList.remove('visible'));
+
+      // Button pressing + CTA glow
+      document.querySelectorAll('.btn').forEach(el => {
+        el.classList.remove('pressing', 'cta-glow');
+      });
+
+      // Drop zone
+      const dz = document.getElementById('drop-zone');
+      if (dz) dz.classList.remove('receiving');
+
+      // Card send-off
+      const cw = document.querySelector('.card-wrapper');
+      if (cw) {
+        cw.classList.remove('sending');
+        cw.style.animation = '';
+      }
+
+      // Title
+      const tb = document.getElementById('title-block');
+      tb.classList.add('visible');
+    }
+
+    /* ================================================================
+       PROCESSING ANIMATION (rAF-driven)
+       ================================================================ */
+    function startProgressAnimation() {
+      const dwell = PHASES[2].dwell;
+      progressStartTime = performance.now();
+      const offsets = [0, 0.25, 0.50]; // file stagger
+      const stepThresholds = [0.12, 0.37, 0.62, 0.87];
+
+      function tick(now) {
+        const elapsed = now - progressStartTime;
+        const t = Math.min(elapsed / dwell, 1);
+
+        for (let f = 0; f < 3; f++) {
+          const fileT = Math.max(0, Math.min((t - offsets[f]) / (1 - offsets[f]), 1));
+          const eased = 1 - Math.pow(1 - fileT, 3); // ease-out cubic
+          const pct = eased * 100;
+
+          // Progress bar
+          const bar = document.querySelector('.progress-bar[data-file="' + f + '"]');
+          if (bar) bar.style.width = pct + '%';
+
+          // Step dots and labels
+          for (let s = 0; s < 4; s++) {
+            const dot = document.querySelector('.step-dot[data-file="' + f + '"][data-step="' + s + '"]');
+            const label = document.querySelector('.step-label[data-file="' + f + '"][data-step="' + s + '"]');
+            if (!dot || !label) continue;
+
+            if (fileT >= stepThresholds[s]) {
+              // This step is done
+              dot.classList.remove('active');
+              dot.classList.add('done');
+              label.classList.remove('active');
+              label.classList.add('done');
+
+              // Connect the line after this step
+              if (s < 3) {
+                const connector = document.querySelector('.step-connector[data-file="' + f + '"][data-after="' + s + '"]');
+                if (connector && !connector.classList.contains('connected')) {
+                  connector.classList.add('connected');
+                }
+              }
+            } else if (s === 0 || fileT >= stepThresholds[s - 1]) {
+              // This step is active (current)
+              dot.classList.add('active');
+              dot.classList.remove('done');
+              label.classList.add('active');
+              label.classList.remove('done');
+            }
+          }
+        }
+
+        if (t < 1) {
+          progressRAF = requestAnimationFrame(tick);
+        }
+      }
+
+      progressRAF = requestAnimationFrame(tick);
+    }
+
+    function stopProgressAnimation() {
+      if (progressRAF) {
+        cancelAnimationFrame(progressRAF);
+        progressRAF = null;
+      }
+      // Reset progress state
+      document.querySelectorAll('.progress-bar').forEach(bar => bar.style.width = '0%');
+      document.querySelectorAll('.step-dot').forEach(dot => {
+        dot.classList.remove('active', 'done');
+      });
+      document.querySelectorAll('.step-label').forEach(label => {
+        label.classList.remove('active', 'done');
+      });
+      document.querySelectorAll('.step-connector').forEach(c => c.classList.remove('connected'));
+    }
+
+    /* ================================================================
+       PHASE TRANSITION ORCHESTRATOR
+       ================================================================ */
+    function transitionTo(targetPhase) {
+      if (targetPhase === currentPhase) return;
+
+      const container = document.getElementById('phase-container');
+      const card = document.getElementById('card');
+      const titleBlock = document.getElementById('title-block');
+      const oldPhaseEl = document.getElementById('phase-' + currentPhase);
+      const newPhaseEl = document.getElementById('phase-' + targetPhase);
+      const oldFooter = document.getElementById('footer-' + currentPhase);
+      const newFooter = document.getElementById('footer-' + targetPhase);
+
+      // 1. SLOW: Container height
+      container.style.height = phaseHeights[targetPhase] + 'px';
+
+      // 2. SLOW: Camera motion
+      card.className = 'card camera-' + targetPhase;
+
+      // 3. FAST: Title focus-pull out then in
+      titleBlock.classList.remove('visible');
+      pushTimer(() => {
+        document.getElementById('phase-title').textContent = TITLES[targetPhase];
+        document.getElementById('phase-subtitle').textContent = SUBTITLES[targetPhase];
+        titleBlock.classList.add('visible');
+      }, 300);
+
+      // 4. MEDIUM: Clip-path wipe body content
+      oldPhaseEl.classList.remove('active');
+      oldPhaseEl.classList.add('exiting');
+      pushTimer(() => {
+        newPhaseEl.classList.add('active');
+        oldPhaseEl.classList.remove('exiting');
+      }, 100);
+
+      // 5. FAST: Footer crossfade
+      oldFooter.classList.remove('active');
+      newFooter.classList.add('active');
+
+      // 6. Update playback dots
+      document.querySelectorAll('.phase-dot').forEach(dot => {
+        const p = parseInt(dot.dataset.phase);
+        dot.classList.remove('active', 'completed');
+        if (p === targetPhase) dot.classList.add('active');
+        else if (p < targetPhase) dot.classList.add('completed');
+      });
+      document.getElementById('phase-label').textContent = PHASES[targetPhase].label;
+
+      // 7. Cleanup old phase
+      stopProgressAnimation();
+
+      currentPhase = targetPhase;
+
+      // 8. Phase enter callbacks
+      onPhaseEnter(targetPhase);
+    }
+
+    /* ================================================================
+       PHASE ENTER CALLBACKS
+       ================================================================ */
+    function onPhaseEnter(phase) {
+      switch (phase) {
+        case 1:
+          // File list stagger — focus-pull entrance
+          runFocusStagger('select', 200);
+          break;
+
+        case 2:
+          // Start processing progress animation
+          startProgressAnimation();
+          break;
+
+        case 3:
+          // Suggestion rows focus-pull in
+          runFocusStagger('suggest', 250);
+          // Typewriter starts after rows land
+          runTypewriter(600);
+          // Folder badges appear last
+          runFolderReveal('suggest', 300, 1800);
+          break;
+
+        case 4:
+          // Stage 1: file rows focus-pull in
+          runFocusStagger('success', 200);
+
+          // Stage 2: after 700ms delay, self-drawing checks stagger
+          pushTimer(() => {
+            document.querySelectorAll('#phase-4 .draw-check').forEach((check, i) => {
+              pushTimer(() => {
+                check.classList.add('check-active');
+              }, i * 200);
+            });
+          }, 700);
+
+          // Stage 3: after checks complete, pulse the Done button
+          pushTimer(() => {
+            const btnDone = document.getElementById('btn-done');
+            if (btnDone) btnDone.classList.add('cta-glow');
+          }, 1600);
+          break;
+      }
+    }
+
+    /* ================================================================
+       INTERACTION ANIMATIONS (spring press, zone receive)
+       ================================================================ */
+    const INTERACTIONS = {
+      0: async () => {
+        const zone = document.getElementById('drop-zone');
+        if (!zone) return;
+        zone.classList.add('receiving');
+        await delay(1400);
+        zone.classList.remove('receiving');
+      },
+      1: async () => {
+        const btn = document.getElementById('btn-upload');
+        if (!btn) return;
+        btn.classList.add('pressing');
+        await delay(1150);
+        btn.classList.remove('pressing');
+      },
+      3: async () => {
+        const btn = document.getElementById('btn-file');
+        if (!btn) return;
+        btn.classList.add('pressing');
+        await delay(1150);
+        btn.classList.remove('pressing');
+      },
+      4: async () => {
+        const btn = document.getElementById('btn-done');
+        if (!btn) return;
+        // Stop the glow, press the button
+        btn.classList.remove('cta-glow');
+        btn.classList.add('pressing');
+        await delay(1000);
+        btn.classList.remove('pressing');
+        // Card flies away
+        document.querySelector('.card-wrapper').classList.add('sending');
+        await delay(950);
+      },
+    };
+
+    /* ================================================================
+       PLAYBACK ENGINE
+       ================================================================ */
+    function scheduleNext() {
+      if (!playing) return;
+      clearTimeout(phaseTimer);
+
+      const dwell = PHASES[currentPhase].dwell;
+      const interaction = INTERACTIONS[currentPhase];
+      const leadTime = interaction ? 1550 : 0;
+
+      phaseTimer = setTimeout(async () => {
+        const next = currentPhase + 1;
+        if (next < PHASES.length) {
+          if (interaction) await interaction();
+          transitionTo(next);
+          scheduleNext();
+        } else {
+          // Loop pause, then restart
+          setTimeout(() => {
+            if (playing) restart();
+          }, 1500);
+        }
+      }, dwell - leadTime);
+    }
+
+    function togglePlay() {
+      playing = !playing;
+      document.getElementById('icon-pause').style.display = playing ? '' : 'none';
+      document.getElementById('icon-play').style.display = playing ? 'none' : '';
+      if (playing) scheduleNext();
+      else clearTimeout(phaseTimer);
+    }
+
+    function jumpTo(phase) {
+      clearTimeout(phaseTimer);
+      resetAllAnimations();
+      stopProgressAnimation();
+      transitionTo(phase);
+      if (playing) scheduleNext();
+    }
+
+    function restart() {
+      clearTimeout(phaseTimer);
+      stopProgressAnimation();
+      resetAllAnimations();
+      if (currentPhase !== 0) transitionTo(0);
+      if (playing) scheduleNext();
+    }
+
+    /* ================================================================
+       EMBED MODE
+       ================================================================ */
+    const isEmbed = new URLSearchParams(window.location.search).has('embed');
+
+    function applyEmbedMode() {
+      if (!isEmbed) return;
+      const playback = document.getElementById('playback');
+      if (playback) playback.style.display = 'none';
+      document.body.style.background = 'transparent';
+      document.body.style.padding = '0';
+      document.body.style.minHeight = 'auto';
+      const scene = document.getElementById('scene');
+      if (scene) {
+        scene.style.maxWidth = '100%';
+        scene.style.padding = '16px';
+      }
+    }
+
+    /* ================================================================
+       BOOT — no Tailwind CDN, so we can measure immediately
+       ================================================================ */
+    window.addEventListener('DOMContentLoaded', () => {
+      applyEmbedMode();
+      // Small delay for fonts to load
+      setTimeout(() => {
+        measurePhases();
+        setTimeout(() => scheduleNext(), 400);
+      }, 150);
+    });
+  </script>
+
+</body>
+</html>

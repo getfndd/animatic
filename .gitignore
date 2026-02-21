@@ -1,0 +1,18 @@
+# Binary capture assets (too large for git)
+prototypes/**/captures/
+prototypes/**/*.mov
+prototypes/**/*.mp4
+prototypes/**/*.webm
+prototypes/**/*.gif
+prototypes/**/*.png
+
+# Keep HTML and JSON only in prototypes
+!prototypes/**/*.html
+!prototypes/**/*.json
+!prototypes/**/meta.json
+
+# macOS
+.DS_Store
+
+# Node (if installed in consuming project)
+node_modules/

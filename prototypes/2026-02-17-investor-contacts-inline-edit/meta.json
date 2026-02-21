@@ -1,0 +1,18 @@
+{
+  "id": "2026-02-17-investor-contacts-inline-edit",
+  "name": "Investor Contacts + Inline Edit",
+  "description": "Expanded firm row with nested team/contacts section and inline editing on all fields. Shows 4 interaction states: normal (hover pencil), badge edit mode, text editing, just-saved flash.",
+  "prompt": "/prototype Investor Database expanded firm row with contacts and inline editing",
+  "fidelity": "concept",
+  "chrome": "sidebar",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Single expanded row showing all interaction states simultaneously — contacts in 2-col card grid below firm details" }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-tertiary", "--text-primary", "--text-secondary", "--text-tertiary", "--text-link", "--border-default", "--border-subtle", "--border-strong", "--status-success", "--status-success-bg", "--status-error", "--status-error-bg"],
+    "presets": [],
+    "patterns": ["flat-row-hover", "card-row-hover", "editable-field-hover", "badge-edit-container"]
+  },
+  "linearIssue": "FND-1382",
+  "createdAt": "2026-02-17T19:10:00Z"
+}

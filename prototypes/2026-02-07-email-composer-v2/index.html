@@ -1,0 +1,3394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Composer V2 — Prototype</title>
+  <style>
+    /* ============================================
+       RESET & BASE
+       ============================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --surface-primary: #FAFAF9;
+      --surface-secondary: #F5F5F4;
+      --surface-tertiary: #E7E5E4;
+      --surface-elevated: #FFFFFF;
+      --text-primary: #1C1917;
+      --text-secondary: #57534E;
+      --text-tertiary: #A8A29E;
+      --text-link: #2563EB;
+      --border-default: #E7E5E4;
+      --border-subtle: #F5F5F4;
+      --accent-primary: #18181B;
+      --accent-primary-hover: #27272A;
+      --accent-danger: #DC2626;
+      --accent-danger-hover: #B91C1C;
+      --ring-focus: rgba(24, 24, 27, 0.5);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', monospace;
+      --transition-fast: 120ms ease;
+      --transition-normal: 200ms ease;
+      --transition-slow: 300ms ease;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--surface-elevated);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    input { font-family: inherit; border: none; outline: none; background: none; }
+
+    /* ============================================
+       TEMPLATE PICKER (Screen 1)
+       ============================================ */
+    .template-picker {
+      position: fixed;
+      inset: 0;
+      background: var(--surface-primary);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity var(--transition-slow), transform var(--transition-slow);
+    }
+
+    .template-picker.hidden {
+      opacity: 0;
+      transform: scale(0.98);
+      pointer-events: none;
+    }
+
+    .template-picker-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .template-picker-header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .template-picker-header p {
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 180px);
+      gap: 16px;
+      max-width: 980px;
+    }
+
+    @media (max-width: 1024px) {
+      .template-grid {
+        grid-template-columns: repeat(3, 180px);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .template-grid {
+        grid-template-columns: repeat(2, 160px);
+      }
+    }
+
+    .template-card {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 0;
+      cursor: pointer;
+      transition: all var(--transition-normal);
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .template-card:hover {
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .template-card:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 1px var(--ring-focus), 0 0 0 3px rgba(24, 24, 27, 0.15);
+    }
+
+    .template-card-thumb {
+      width: 100%;
+      height: 120px;
+      background: var(--surface-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .template-card-thumb svg {
+      width: 40px;
+      height: 40px;
+      color: var(--text-tertiary);
+    }
+
+    .template-card-body {
+      padding: 12px 14px 14px;
+    }
+
+    .template-card-body h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .template-card-body p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* ============================================
+       EDITOR LAYOUT (Screen 2)
+       ============================================ */
+    .editor-root {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--surface-elevated);
+    }
+
+    .editor-root.active {
+      display: flex;
+    }
+
+    /* — Top Bar — */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border-default);
+      background: var(--surface-elevated);
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      padding: 6px 10px;
+      border-radius: var(--radius-full);
+      transition: all var(--transition-fast);
+    }
+
+    .back-btn:hover {
+      color: var(--text-primary);
+      background: var(--surface-secondary);
+    }
+
+    .back-btn svg { width: 16px; height: 16px; }
+
+    .draft-status {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .draft-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22C55E;
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .overflow-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-full);
+      color: var(--text-secondary);
+      transition: all var(--transition-fast);
+    }
+
+    .overflow-btn:hover {
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+    }
+
+    .overflow-btn svg { width: 18px; height: 18px; }
+
+    /* — Main Content Area — */
+    .editor-main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* — Editor Pane — */
+    .editor-pane {
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+      padding: 40px 48px 120px;
+    }
+
+    .editor-pane-inner {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* Subject line */
+    .subject-input {
+      width: 100%;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      padding: 0;
+      margin-bottom: 4px;
+    }
+
+    .subject-input::placeholder { color: var(--text-tertiary); }
+
+    .preview-text-input {
+      width: 100%;
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 0;
+      margin-bottom: 32px;
+    }
+
+    .preview-text-input::placeholder { color: var(--text-tertiary); }
+
+    /* — Block Stack — */
+    .block-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .block-wrapper {
+      position: relative;
+      padding: 4px 0 4px 32px;
+      border-radius: var(--radius-md);
+      transition: background var(--transition-fast);
+    }
+
+    .block-wrapper:hover {
+      background: rgba(0,0,0,0.015);
+    }
+
+    .block-wrapper:hover .block-drag-handle,
+    .block-wrapper:hover .block-actions {
+      opacity: 1;
+    }
+
+    /* Drag handle */
+    .block-drag-handle {
+      position: absolute;
+      left: 2px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      color: var(--text-tertiary);
+      cursor: grab;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+    }
+
+    .block-drag-handle:hover {
+      background: var(--surface-secondary);
+      color: var(--text-secondary);
+    }
+
+    .block-drag-handle svg { width: 14px; height: 14px; }
+
+    /* Block actions toolbar */
+    .block-actions {
+      position: absolute;
+      right: -4px;
+      top: 4px;
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+      z-index: 5;
+    }
+
+    .block-action-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      color: var(--text-tertiary);
+      transition: all var(--transition-fast);
+    }
+
+    .block-action-btn:hover {
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+    }
+
+    .block-action-btn.danger:hover {
+      background: #FEF2F2;
+      color: var(--accent-danger);
+    }
+
+    .block-action-btn svg { width: 14px; height: 14px; }
+
+    /* Block type: Text */
+    .block-text {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text-primary);
+      min-height: 24px;
+    }
+
+    .block-text[contenteditable]:focus { outline: none; }
+
+    /* Block type: Heading */
+    .block-heading {
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+    }
+
+    .block-heading.h1 { font-size: 22px; margin: 16px 0 4px; }
+    .block-heading.h2 { font-size: 18px; margin: 12px 0 2px; }
+    .block-heading.h3 { font-size: 15px; margin: 8px 0 2px; }
+
+    /* Block type: Image */
+    .block-image {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .block-image-placeholder {
+      width: 100%;
+      height: 200px;
+      background: var(--surface-secondary);
+      border: 2px dashed var(--border-default);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all var(--transition-normal);
+    }
+
+    .block-image-placeholder:hover {
+      border-color: var(--text-tertiary);
+      background: var(--surface-tertiary);
+    }
+
+    .block-image-placeholder svg { width: 32px; height: 32px; color: var(--text-tertiary); }
+
+    .block-image-placeholder span {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    .block-image-filled {
+      width: 100%;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 50%, #E0E7FF 100%);
+      height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      font-size: 13px;
+    }
+
+    .block-image-caption {
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 8px 0 0;
+    }
+
+    .block-image-caption::placeholder { color: var(--text-tertiary); }
+
+    /* Block type: Button */
+    .block-button-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 0;
+    }
+
+    .block-button-preview {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 28px;
+      background: var(--accent-primary);
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-full);
+      align-self: flex-start;
+      cursor: default;
+    }
+
+    .block-button-url {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      padding: 4px 8px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      width: 280px;
+    }
+
+    .block-button-url::placeholder { color: var(--text-tertiary); }
+
+    /* Block type: Divider */
+    .block-divider {
+      padding: 16px 0;
+    }
+
+    .block-divider hr {
+      border: none;
+      border-top: 1px solid var(--border-default);
+    }
+
+    /* Block type: Feature List */
+    .block-feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 4px 0;
+    }
+
+    .feature-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .feature-content h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .feature-content p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Block type: Callout */
+    .block-callout {
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: var(--radius-md);
+    }
+
+    .block-callout-text {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #374151;
+    }
+
+    /* Block type: Metric cards */
+    .block-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 4px 0;
+    }
+
+    .metric-card {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .metric-card .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .metric-card .metric-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .metric-card .metric-change {
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+
+    .metric-card .metric-change.positive { color: #16A34A; }
+    .metric-card .metric-change.negative { color: var(--accent-danger); }
+
+    /* Block type: Bullet list */
+    .block-bullets {
+      padding: 4px 0 4px 20px;
+    }
+
+    .block-bullets li {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    /* — Empty Block / Slash Trigger — */
+    .block-empty {
+      padding: 8px 0;
+      font-size: 14px;
+      color: var(--text-tertiary);
+      cursor: text;
+      position: relative;
+    }
+
+    .block-empty:hover {
+      color: var(--text-secondary);
+    }
+
+    .block-empty-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .block-empty-text kbd {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      padding: 1px 5px;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      color: var(--text-tertiary);
+    }
+
+    /* ============================================
+       SLASH COMMAND MENU (Screen 3)
+       ============================================ */
+    .slash-menu {
+      position: absolute;
+      top: 100%;
+      left: 32px;
+      width: 280px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      padding: 6px;
+      z-index: 50;
+      display: none;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+
+    .slash-menu.visible {
+      display: block;
+      animation: slashMenuIn 150ms ease;
+    }
+
+    @keyframes slashMenuIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slash-menu-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      margin-bottom: 4px;
+    }
+
+    .slash-menu-search input {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .slash-menu-search input::placeholder { color: var(--text-tertiary); }
+
+    .slash-menu-search svg { width: 14px; height: 14px; color: var(--text-tertiary); flex-shrink: 0; }
+
+    .slash-menu-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      letter-spacing: 0.01em;
+      padding: 8px 10px 4px;
+    }
+
+    .slash-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+      width: 100%;
+      text-align: left;
+    }
+
+    .slash-menu-item:hover,
+    .slash-menu-item.focused {
+      background: var(--surface-secondary);
+    }
+
+    .slash-menu-item-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--surface-secondary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .slash-menu-item:hover .slash-menu-item-icon,
+    .slash-menu-item.focused .slash-menu-item-icon {
+      background: var(--surface-tertiary);
+    }
+
+    .slash-menu-item-icon svg { width: 16px; height: 16px; color: var(--text-secondary); }
+
+    .slash-menu-item-text h4 {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .slash-menu-item-text p {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 1px;
+    }
+
+    .slash-menu-empty {
+      padding: 20px 10px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    /* ============================================
+       INLINE FORMATTING TOOLBAR (Screen 4)
+       ============================================ */
+    .inline-toolbar {
+      position: fixed;
+      display: none;
+      background: var(--accent-primary);
+      border-radius: var(--radius-full);
+      padding: 4px 6px;
+      gap: 2px;
+      z-index: 60;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .inline-toolbar.visible {
+      display: flex;
+      animation: toolbarIn 120ms ease;
+    }
+
+    @keyframes toolbarIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .inline-toolbar button {
+      width: 30px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      color: rgba(255,255,255,0.7);
+      transition: all var(--transition-fast);
+    }
+
+    .inline-toolbar button:hover {
+      color: white;
+      background: rgba(255,255,255,0.15);
+    }
+
+    .inline-toolbar button svg { width: 15px; height: 15px; }
+
+    .inline-toolbar .separator {
+      width: 1px;
+      background: rgba(255,255,255,0.2);
+      margin: 4px 2px;
+    }
+
+    /* ============================================
+       PREVIEW PANE
+       ============================================ */
+    .preview-pane {
+      width: 420px;
+      border-left: 1px solid var(--border-default);
+      background: var(--surface-elevated);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width var(--transition-slow), opacity var(--transition-normal);
+      overflow: hidden;
+    }
+
+    .preview-pane.collapsed {
+      width: 0;
+      border-left: none;
+      opacity: 0;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-default);
+      background: var(--surface-elevated);
+      flex-shrink: 0;
+    }
+
+    .preview-header-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.01em;
+    }
+
+    .preview-device-toggle {
+      display: flex;
+      background: var(--surface-secondary);
+      border-radius: var(--radius-full);
+      padding: 2px;
+    }
+
+    .preview-device-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      border-radius: var(--radius-full);
+      transition: all var(--transition-fast);
+    }
+
+    .preview-device-btn:hover { color: var(--text-secondary); }
+
+    .preview-device-btn.active {
+      background: var(--surface-elevated);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .preview-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .preview-frame {
+      width: 100%;
+      max-width: 100%;
+      transition: max-width var(--transition-slow);
+    }
+
+    .preview-frame.mobile {
+      max-width: 320px;
+    }
+
+    .preview-envelope {
+      padding: 0 0 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .preview-envelope-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .preview-envelope-label {
+      color: var(--text-tertiary);
+      min-width: 28px;
+    }
+
+    .preview-envelope-value {
+      color: var(--text-primary);
+    }
+
+    .preview-envelope-value .email-addr {
+      color: var(--text-tertiary);
+      font-weight: 400;
+    }
+
+    .preview-email {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .preview-email-logo {
+      padding: 32px 24px 24px;
+    }
+
+    .preview-email-logo img {
+      height: 32px;
+      width: auto;
+      display: block;
+    }
+
+    .preview-email-logo .pe-logo-placeholder {
+      font-size: 18px;
+      font-weight: 600;
+      color: #111827;
+      letter-spacing: -0.02em;
+    }
+
+    .preview-email-subject {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      padding: 0 24px 8px;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+    }
+
+    .preview-email-body {
+      padding: 0 24px 24px;
+    }
+
+    .preview-email-body .pe-hero {
+      width: 100%;
+      height: 160px;
+      background: linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 50%, #E0E7FF 100%);
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+    }
+
+    .preview-email-body .pe-text {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .preview-email-body .pe-heading {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 20px 0 8px;
+    }
+
+    .preview-email-body .pe-feature {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .preview-email-body .pe-feature-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-secondary);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .preview-email-body .pe-feature-text h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .preview-email-body .pe-feature-text p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .preview-email-body .pe-cta {
+      display: inline-block;
+      padding: 10px 24px;
+      background: var(--accent-primary);
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-full);
+      margin-top: 12px;
+      text-decoration: none;
+    }
+
+    .preview-email-body .pe-divider {
+      border: none;
+      border-top: 1px solid var(--border-default);
+      margin: 20px 0;
+    }
+
+    .preview-email-body .pe-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .preview-email-body .pe-metric {
+      background: var(--surface-secondary);
+      border-radius: var(--radius-md);
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .preview-email-body .pe-metric .val {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .preview-email-body .pe-metric .label {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .preview-email-body .pe-list {
+      padding-left: 18px;
+      margin-bottom: 12px;
+    }
+
+    .preview-email-body .pe-list li {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+
+    .preview-email-body .pe-callout {
+      padding: 16px 20px;
+      background: #f9fafb;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.5;
+      margin: 16px 0;
+    }
+
+    .preview-email-footer {
+      padding: 24px 24px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .preview-email-footer .pe-footer-logo {
+      font-size: 14px;
+      font-weight: 600;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .preview-email-footer p {
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.6;
+    }
+
+    .preview-email-footer a {
+      color: #6b7280;
+      text-decoration: underline;
+    }
+
+    /* ============================================
+       RIGHT PANEL TABS
+       ============================================ */
+    .panel-tabs {
+      display: flex;
+      background: var(--surface-secondary);
+      border-radius: var(--radius-full);
+      padding: 2px;
+      margin: 12px 16px 0;
+      flex-shrink: 0;
+    }
+
+    .panel-tab {
+      flex: 1;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-align: center;
+      border-radius: var(--radius-full);
+      transition: all var(--transition-fast);
+    }
+
+    .panel-tab:hover {
+      color: var(--text-primary);
+    }
+
+    .panel-tab.active {
+      background: var(--surface-elevated);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .panel-content { display: none; flex-direction: column; flex: 1; min-height: 0; }
+    .panel-content.active { display: flex; }
+
+    /* ============================================
+       CONTENT PANEL
+       ============================================ */
+    .content-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .content-section {
+      margin-bottom: 20px;
+    }
+
+    .content-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .content-section-title {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+
+    .content-section-count {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .content-card {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      margin-bottom: 6px;
+      transition: all var(--transition-fast);
+      cursor: default;
+    }
+
+    .content-card:hover {
+      border-color: var(--text-tertiary);
+    }
+
+    .content-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .content-card-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .content-card-meta {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    .content-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .content-card-insert {
+      align-self: flex-start;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      padding: 3px 10px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-full);
+      margin-top: 4px;
+      transition: all var(--transition-fast);
+    }
+
+    .content-card-insert:hover {
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+      border-color: var(--text-tertiary);
+    }
+
+    .content-metric-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .content-metric-card {
+      padding: 10px 12px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      cursor: default;
+      transition: all var(--transition-fast);
+    }
+
+    .content-metric-card:hover {
+      border-color: var(--text-tertiary);
+    }
+
+    .content-metric-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
+
+    .content-metric-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 1px;
+    }
+
+    .content-metric-change {
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .content-metric-change.positive { color: #16A34A; }
+
+    /* Autosave indicator */
+    .draft-status.saving .draft-status-dot {
+      background: #D97706;
+      animation: savePulse 1s ease infinite;
+    }
+
+    @keyframes savePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ============================================
+       SEND HISTORY (Email Hub)
+       ============================================ */
+    .email-hub {
+      position: fixed;
+      inset: 0;
+      background: var(--surface-elevated);
+      z-index: 90;
+      display: none;
+      flex-direction: column;
+    }
+
+    .email-hub.visible { display: flex; }
+
+    .hub-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    .hub-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .hub-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .hub-tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      border-bottom: 1.5px solid transparent;
+      margin-bottom: -1px;
+      transition: color var(--transition-normal), border-color var(--transition-normal);
+    }
+
+    .hub-tab:hover { color: var(--text-primary); }
+    .hub-tab.active { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--text-primary); }
+
+    .hub-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .sent-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .sent-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    .sent-table td {
+      padding: 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    .sent-table tr:hover td { background: var(--surface-primary); }
+
+    .sent-subject {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .sent-template {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 500;
+      background: var(--surface-secondary);
+      color: var(--text-secondary);
+    }
+
+    .sent-stat { font-variant-numeric: tabular-nums; }
+    .sent-stat-good { color: #16A34A; }
+    .sent-stat-ok { color: #D97706; }
+
+    .sent-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-tertiary);
+    }
+
+    .sent-empty-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      color: var(--text-tertiary);
+      opacity: 0.5;
+    }
+
+    .hub-new-btn {
+      padding: 8px 20px;
+      background: var(--accent-primary);
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-full);
+      transition: background var(--transition-fast);
+    }
+
+    .hub-new-btn:hover { background: var(--accent-primary-hover); }
+
+    .hub-tab-content { display: none; }
+    .hub-tab-content.active { display: block; }
+
+    .drafts-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .draft-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: border-color var(--transition-fast);
+    }
+
+    .draft-card:hover { border-color: var(--text-tertiary); }
+
+    .draft-card-left { display: flex; flex-direction: column; gap: 2px; }
+
+    .draft-card-subject {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .draft-card-meta {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .draft-card-status {
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 500;
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    /* ============================================
+       ACTION BAR (Bottom)
+       ============================================ */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      border-top: 1px solid var(--border-default);
+      background: var(--surface-elevated);
+      flex-shrink: 0;
+      z-index: 20;
+      position: relative;
+    }
+
+    .action-bar-left,
+    .action-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Button styles */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+
+    .btn svg { width: 15px; height: 15px; }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    .btn-primary:hover { background: var(--accent-primary-hover); }
+
+    .btn-secondary {
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-tertiary);
+    }
+
+    .btn-ghost {
+      color: var(--text-secondary);
+      padding: 8px 12px;
+    }
+
+    .btn-ghost:hover {
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+    }
+
+    .btn-send {
+      background: var(--accent-primary);
+      color: white;
+      padding-right: 8px;
+    }
+
+    .btn-send:hover { background: var(--accent-primary-hover); }
+
+    .btn-send-arrow {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-left: 1px solid rgba(255,255,255,0.2);
+      margin-left: 4px;
+    }
+
+    /* Preview toggle state */
+    .btn-preview-active {
+      background: var(--accent-primary);
+      color: white;
+      border-color: var(--accent-primary);
+    }
+
+    .btn-preview-active:hover {
+      background: var(--accent-primary-hover);
+    }
+
+    /* ============================================
+       SEND CONFIRMATION (Screen 5)
+       ============================================ */
+    .send-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 80;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .send-overlay.visible {
+      display: flex;
+      animation: overlayIn 200ms ease;
+    }
+
+    @keyframes overlayIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .send-panel {
+      background: var(--surface-elevated);
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      width: 100%;
+      max-width: 520px;
+      padding: 28px 32px 32px;
+      animation: panelSlideUp 300ms ease;
+    }
+
+    @keyframes panelSlideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .send-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .send-panel-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .send-panel-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-full);
+      color: var(--text-secondary);
+    }
+
+    .send-panel-close:hover {
+      background: var(--surface-secondary);
+    }
+
+    .send-panel-close svg { width: 18px; height: 18px; }
+
+    .send-detail {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .send-detail:last-of-type { border-bottom: none; }
+
+    .send-detail-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .send-detail-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .send-schedule {
+      display: flex;
+      gap: 8px;
+      margin: 20px 0 24px;
+    }
+
+    .send-schedule-option {
+      flex: 1;
+      padding: 10px 16px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      color: var(--text-secondary);
+      transition: all var(--transition-fast);
+    }
+
+    .send-schedule-option.active {
+      border-color: var(--accent-primary);
+      background: rgba(24, 24, 27, 0.03);
+      color: var(--text-primary);
+    }
+
+    .send-schedule-option:hover:not(.active) {
+      border-color: var(--text-tertiary);
+    }
+
+    .send-panel-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .send-panel-actions .btn-primary {
+      min-width: 160px;
+    }
+
+    .send-panel-actions .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Pre-flight checklist */
+    .preflight {
+      margin-bottom: 20px;
+    }
+
+    .preflight-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+
+    .preflight-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .preflight-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+    }
+
+    .preflight-item-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .preflight-item.pass .preflight-item-icon {
+      color: #16A34A;
+    }
+
+    .preflight-item.fail .preflight-item-icon {
+      color: var(--accent-danger);
+    }
+
+    .preflight-item.warn .preflight-item-icon {
+      color: #D97706;
+    }
+
+    .preflight-item-label {
+      flex: 1;
+      color: var(--text-primary);
+    }
+
+    .preflight-item.pass .preflight-item-label {
+      color: var(--text-secondary);
+    }
+
+    .preflight-item-status {
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .preflight-item.pass .preflight-item-status { color: #16A34A; }
+    .preflight-item.fail .preflight-item-status { color: var(--accent-danger); }
+    .preflight-item.warn .preflight-item-status { color: #D97706; }
+
+    /* ============================================
+       RECIPIENT BAR
+       ============================================ */
+    .recipient-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border-default);
+      background: var(--surface-elevated);
+      flex-shrink: 0;
+      font-size: 13px;
+    }
+
+    .recipient-bar-label {
+      color: var(--text-tertiary);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .recipient-bar-value {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .recipient-bar-count {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .recipient-bar-edit {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-default);
+      transition: all var(--transition-fast);
+    }
+
+    .recipient-bar-edit:hover {
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+    }
+
+    /* Recipient Popover */
+    .recipient-popover {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 20px;
+      width: 340px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      padding: 8px;
+      z-index: 50;
+      display: none;
+    }
+
+    .recipient-popover.visible {
+      display: block;
+      animation: slashMenuIn 150ms ease;
+    }
+
+    .recipient-popover-header {
+      padding: 8px 10px 4px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+
+    .recipient-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+      width: 100%;
+      text-align: left;
+    }
+
+    .recipient-option:hover {
+      background: var(--surface-secondary);
+    }
+
+    .recipient-option.selected {
+      background: var(--surface-secondary);
+    }
+
+    .recipient-option-left {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .recipient-option-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .recipient-option-desc {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .recipient-option-count {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .recipient-option-check {
+      width: 16px;
+      height: 16px;
+      color: var(--accent-primary);
+      display: none;
+    }
+
+    .recipient-option.selected .recipient-option-check {
+      display: block;
+    }
+
+    .recipient-popover-divider {
+      height: 1px;
+      background: var(--border-default);
+      margin: 4px 0;
+    }
+
+    .recipient-popover-footer {
+      padding: 4px;
+    }
+
+    .recipient-custom-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+      width: 100%;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .recipient-custom-btn:hover {
+      background: var(--surface-secondary);
+      color: var(--text-primary);
+    }
+
+    .recipient-custom-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 900px) {
+      .preview-pane {
+        position: fixed;
+        right: 0;
+        top: 52px;
+        bottom: 56px;
+        width: 100%;
+        max-width: 420px;
+        z-index: 30;
+        box-shadow: var(--shadow-xl);
+        border-left: 1px solid var(--border-default);
+      }
+
+      .preview-pane.collapsed {
+        transform: translateX(100%);
+        width: 100%;
+        opacity: 1;
+      }
+
+      .editor-pane {
+        padding: 24px 20px 120px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .subject-input { font-size: 22px; }
+      .editor-pane { padding: 20px 16px 120px; }
+      .template-grid { gap: 12px; }
+      .preview-pane { max-width: 100%; }
+      .action-bar { padding: 10px 16px; }
+      .btn { font-size: 12px; padding: 7px 14px; }
+
+      .block-metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ============================================
+       UTILITY
+       ============================================ */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================
+       SCREEN 1: TEMPLATE PICKER
+       ========================================= -->
+  <div id="templatePicker" class="template-picker">
+    <div class="template-picker-header">
+      <h1>Start with a template</h1>
+      <p>Choose a starting point, or start from a blank canvas</p>
+    </div>
+    <div class="template-grid">
+      <!-- Product Update -->
+      <button class="template-card" data-template="product-update">
+        <div class="template-card-thumb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"/></svg>
+        </div>
+        <div class="template-card-body">
+          <h3>Product Update</h3>
+          <p>Hero image, features, and CTA</p>
+        </div>
+      </button>
+
+      <!-- Changelog -->
+      <button class="template-card" data-template="changelog">
+        <div class="template-card-thumb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+        </div>
+        <div class="template-card-body">
+          <h3>Changelog</h3>
+          <p>Version notes and release details</p>
+        </div>
+      </button>
+
+      <!-- Investor Update -->
+      <button class="template-card" data-template="investor-update">
+        <div class="template-card-thumb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        </div>
+        <div class="template-card-body">
+          <h3>Investor Update</h3>
+          <p>Metrics, highlights, and asks</p>
+        </div>
+      </button>
+
+      <!-- Quick Announcement -->
+      <button class="template-card" data-template="announcement">
+        <div class="template-card-thumb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46"/></svg>
+        </div>
+        <div class="template-card-body">
+          <h3>Announcement</h3>
+          <p>Short update with a single CTA</p>
+        </div>
+      </button>
+
+      <!-- Blank -->
+      <button class="template-card" data-template="blank">
+        <div class="template-card-thumb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        </div>
+        <div class="template-card-body">
+          <h3>Blank</h3>
+          <p>Start from scratch</p>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================
+       EMAIL HUB: Drafts / Sent / Scheduled
+       ========================================= -->
+  <div id="emailHub" class="email-hub">
+    <div class="hub-header">
+      <span class="hub-title">Emails</span>
+      <button class="hub-new-btn" id="hubNewBtn">New email</button>
+    </div>
+    <div class="hub-tabs">
+      <button class="hub-tab active" data-hub-tab="drafts">Drafts</button>
+      <button class="hub-tab" data-hub-tab="sent">Sent</button>
+      <button class="hub-tab" data-hub-tab="scheduled">Scheduled</button>
+    </div>
+    <div class="hub-content" id="hubContent">
+      <!-- Drafts tab (default) -->
+      <div class="hub-tab-content active" id="hubDrafts">
+        <div class="drafts-list">
+          <div class="draft-card" data-template="product-update">
+            <div class="draft-card-left">
+              <span class="draft-card-subject">Weftly v2.5 — AI-Powered Cap Table Insights</span>
+              <span class="draft-card-meta">Product Update &middot; Edited 2 minutes ago</span>
+            </div>
+            <span class="draft-card-status">Draft</span>
+          </div>
+          <div class="draft-card" data-template="investor-update">
+            <div class="draft-card-left">
+              <span class="draft-card-subject">Q4 2025 Investor Update — Acme Corp</span>
+              <span class="draft-card-meta">Investor Update &middot; Edited yesterday</span>
+            </div>
+            <span class="draft-card-status">Draft</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sent tab -->
+      <div class="hub-tab-content" id="hubSent">
+        <table class="sent-table">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Template</th>
+              <th>Audience</th>
+              <th>Sent</th>
+              <th>Opened</th>
+              <th>Clicked</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="sent-subject">Weftly v2.4 — Scenario Modeling is here</span></td>
+              <td><span class="sent-template">Product Update</span></td>
+              <td>All subscribers (47)</td>
+              <td class="sent-stat">Jan 15, 2026</td>
+              <td class="sent-stat sent-stat-good">72%</td>
+              <td class="sent-stat sent-stat-good">34%</td>
+            </tr>
+            <tr>
+              <td><span class="sent-subject">Q3 2025 Investor Update</span></td>
+              <td><span class="sent-template">Investor Update</span></td>
+              <td>Investors (12)</td>
+              <td class="sent-stat">Oct 3, 2025</td>
+              <td class="sent-stat sent-stat-good">92%</td>
+              <td class="sent-stat sent-stat-ok">25%</td>
+            </tr>
+            <tr>
+              <td><span class="sent-subject">Preset Design System — Dec 2025 Release</span></td>
+              <td><span class="sent-template">Changelog</span></td>
+              <td>Beta users (23)</td>
+              <td class="sent-stat">Dec 19, 2025</td>
+              <td class="sent-stat sent-stat-good">68%</td>
+              <td class="sent-stat sent-stat-good">41%</td>
+            </tr>
+            <tr>
+              <td><span class="sent-subject">Data rooms are live</span></td>
+              <td><span class="sent-template">Announcement</span></td>
+              <td>All subscribers (39)</td>
+              <td class="sent-stat">Nov 8, 2025</td>
+              <td class="sent-stat sent-stat-ok">55%</td>
+              <td class="sent-stat sent-stat-ok">18%</td>
+            </tr>
+            <tr>
+              <td><span class="sent-subject">Welcome to Weftly</span></td>
+              <td><span class="sent-template">Announcement</span></td>
+              <td>All subscribers (31)</td>
+              <td class="sent-stat">Sep 22, 2025</td>
+              <td class="sent-stat sent-stat-good">81%</td>
+              <td class="sent-stat sent-stat-good">52%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Scheduled tab -->
+      <div class="hub-tab-content" id="hubScheduled">
+        <div class="sent-empty">
+          <div class="sent-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <p>No scheduled emails</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================
+       SCREEN 2-4: FULL-SCREEN EDITOR
+       ========================================= -->
+  <div id="editorRoot" class="editor-root">
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <button class="back-btn" id="backBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+          Weftly
+        </button>
+        <div class="draft-status" id="draftStatus">
+          <div class="draft-status-dot"></div>
+          <span id="draftStatusText">Draft saved just now</span>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <button class="overflow-btn" title="More options">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Recipient Bar -->
+    <div class="recipient-bar" id="recipientBar" style="position:relative">
+      <button class="recipient-bar-edit" id="recipientEditBtn">Edit</button>
+      <span class="recipient-bar-label">To</span>
+      <span class="recipient-bar-value" id="recipientValue">
+        All subscribers
+        <span class="recipient-bar-count" id="recipientCount">(47)</span>
+      </span>
+
+      <!-- Recipient Popover -->
+      <div class="recipient-popover" id="recipientPopover">
+        <div class="recipient-popover-header">Audience</div>
+        <button class="recipient-option selected" data-audience="all" data-label="All subscribers" data-count="47">
+          <div class="recipient-option-left">
+            <span class="recipient-option-name">All subscribers</span>
+            <span class="recipient-option-desc">Everyone on your mailing list</span>
+          </div>
+          <span class="recipient-option-count">47</span>
+          <svg class="recipient-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 12.75l6 6 9-13.5"/></svg>
+        </button>
+        <button class="recipient-option" data-audience="investors" data-label="Investors" data-count="12">
+          <div class="recipient-option-left">
+            <span class="recipient-option-name">Investors</span>
+            <span class="recipient-option-desc">Current and prospective investors</span>
+          </div>
+          <span class="recipient-option-count">12</span>
+          <svg class="recipient-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 12.75l6 6 9-13.5"/></svg>
+        </button>
+        <button class="recipient-option" data-audience="team" data-label="Team" data-count="8">
+          <div class="recipient-option-left">
+            <span class="recipient-option-name">Team</span>
+            <span class="recipient-option-desc">Internal team members</span>
+          </div>
+          <span class="recipient-option-count">8</span>
+          <svg class="recipient-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 12.75l6 6 9-13.5"/></svg>
+        </button>
+        <button class="recipient-option" data-audience="beta" data-label="Beta users" data-count="23">
+          <div class="recipient-option-left">
+            <span class="recipient-option-name">Beta users</span>
+            <span class="recipient-option-desc">Active beta program participants</span>
+          </div>
+          <span class="recipient-option-count">23</span>
+          <svg class="recipient-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 12.75l6 6 9-13.5"/></svg>
+        </button>
+        <div class="recipient-popover-divider"></div>
+        <div class="recipient-popover-footer">
+          <button class="recipient-custom-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/></svg>
+            Custom filter...
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Area -->
+    <div class="editor-main">
+
+      <!-- Editor Pane -->
+      <div class="editor-pane">
+        <div class="editor-pane-inner">
+          <input id="subjectInput" class="subject-input" type="text" placeholder="Subject line..." spellcheck="false">
+          <input id="previewTextInput" class="preview-text-input" type="text" placeholder="Preview text shown in inbox...">
+
+          <div id="blockStack" class="block-stack">
+            <!-- Blocks injected by JS per template -->
+          </div>
+
+          <!-- Empty block / slash trigger -->
+          <div id="emptyBlock" class="block-empty" tabindex="0">
+            <span class="block-empty-text">
+              <kbd>/</kbd> Type to add a block...
+            </span>
+            <!-- Slash menu lives here -->
+            <div id="slashMenu" class="slash-menu">
+              <div class="slash-menu-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                <input id="slashSearchInput" type="text" placeholder="Filter blocks...">
+              </div>
+              <div class="slash-menu-label">Basic Blocks</div>
+              <div id="slashMenuItems">
+                <!-- Items injected by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel (Preview + Content) -->
+      <div id="previewPane" class="preview-pane">
+        <!-- Tabs -->
+        <div class="panel-tabs">
+          <button class="panel-tab active" data-panel="preview" id="tabPreview">Preview</button>
+          <button class="panel-tab" data-panel="content" id="tabContent">Content</button>
+        </div>
+
+        <!-- Preview Tab -->
+        <div class="panel-content active" id="panelPreview">
+          <div style="display:flex;align-items:center;justify-content:flex-start;padding:8px 16px 0">
+            <div class="preview-device-toggle">
+              <button class="preview-device-btn active" data-device="desktop" id="desktopBtn" title="Desktop preview">
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M208,40H48A24,24,0,0,0,24,64V176a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V64A24,24,0,0,0,208,40Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H208a8,8,0,0,1,8,8Zm-48,48a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,224Z"/></svg>
+              </button>
+              <button class="preview-device-btn" data-device="mobile" id="mobileBtn" title="Mobile preview">
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M176,16H80A24,24,0,0,0,56,40V216a24,24,0,0,0,24,24h96a24,24,0,0,0,24-24V40A24,24,0,0,0,176,16Zm8,200a8,8,0,0,1-8,8H80a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h96a8,8,0,0,1,8,8ZM140,60a12,12,0,1,1-12-12A12,12,0,0,1,140,60Z"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="preview-body">
+            <div id="previewFrame" class="preview-frame">
+              <div class="preview-envelope" id="previewEnvelope">
+                <div class="preview-envelope-row">
+                  <span class="preview-envelope-label">From</span>
+                  <span class="preview-envelope-value" id="previewFrom">Weftly <span class="email-addr">&lt;updates@weftly.com&gt;</span></span>
+                </div>
+                <div class="preview-envelope-row">
+                  <span class="preview-envelope-label">Re</span>
+                  <span class="preview-envelope-value" id="previewSubject">Untitled email</span>
+                </div>
+              </div>
+              <div id="previewEmail" class="preview-email">
+                <!-- Preview content injected by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content Tab -->
+        <div class="panel-content" id="panelContent">
+          <div class="content-panel">
+            <!-- Activity -->
+            <div class="content-section">
+              <div class="content-section-header">
+                <span class="content-section-title">Activity this sprint</span>
+                <span class="content-section-count">5 items</span>
+              </div>
+              <div class="content-card">
+                <div class="content-card-top">
+                  <span class="content-card-title">Scenario Modeling</span>
+                  <span class="content-card-meta">2 days ago</span>
+                </div>
+                <div class="content-card-desc">Model future rounds, exits, and dilution with real-time ownership projections</div>
+                <button class="content-card-insert">Insert as feature</button>
+              </div>
+              <div class="content-card">
+                <div class="content-card-top">
+                  <span class="content-card-title">Investor Context Cards</span>
+                  <span class="content-card-meta">5 days ago</span>
+                </div>
+                <div class="content-card-desc">Rich investor profiles with portfolio history, check sizes, and recent activity</div>
+                <button class="content-card-insert">Insert as feature</button>
+              </div>
+              <div class="content-card">
+                <div class="content-card-top">
+                  <span class="content-card-title">Smart Notifications</span>
+                  <span class="content-card-meta">1 week ago</span>
+                </div>
+                <div class="content-card-desc">Alerts for vesting milestones, conversion triggers, and cap table events</div>
+                <button class="content-card-insert">Insert as feature</button>
+              </div>
+              <div class="content-card">
+                <div class="content-card-top">
+                  <span class="content-card-title">Filter pill persistence</span>
+                  <span class="content-card-meta">1 week ago</span>
+                </div>
+                <div class="content-card-desc">Filter selections now remember your last choice per page</div>
+                <button class="content-card-insert">Insert as feature</button>
+              </div>
+              <div class="content-card">
+                <div class="content-card-top">
+                  <span class="content-card-title">3x faster investor profiles</span>
+                  <span class="content-card-meta">1 week ago</span>
+                </div>
+                <div class="content-card-desc">New caching layer reduces profile load time from 1.2s to 400ms</div>
+                <button class="content-card-insert">Insert as feature</button>
+              </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="content-section">
+              <div class="content-section-header">
+                <span class="content-section-title">Metrics</span>
+              </div>
+              <div class="content-metric-row">
+                <div class="content-metric-card">
+                  <div class="content-metric-value">$2.1M</div>
+                  <div class="content-metric-label">ARR</div>
+                  <div class="content-metric-change positive">+34% QoQ</div>
+                </div>
+                <div class="content-metric-card">
+                  <div class="content-metric-value">$185K</div>
+                  <div class="content-metric-label">Monthly Burn</div>
+                  <div class="content-metric-change positive">-8% QoQ</div>
+                </div>
+              </div>
+              <div class="content-metric-row">
+                <div class="content-metric-card">
+                  <div class="content-metric-value">14 mo</div>
+                  <div class="content-metric-label">Runway</div>
+                  <div class="content-metric-change positive">+2 months</div>
+                </div>
+                <div class="content-metric-card">
+                  <div class="content-metric-value">847</div>
+                  <div class="content-metric-label">Active Users</div>
+                  <div class="content-metric-change positive">+12% MoM</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Past Content -->
+            <div class="content-section">
+              <div class="content-section-header">
+                <span class="content-section-title">Past content</span>
+              </div>
+              <div class="content-card">
+                <div class="content-card-top">
+                  <span class="content-card-title">Q3 investor update intro</span>
+                  <span class="content-card-meta">Oct 2025</span>
+                </div>
+                <div class="content-card-desc">"Hi investors, here's your Q3 update for Acme Corp. We crossed $1.5M ARR and..."</div>
+                <button class="content-card-insert">Reuse</button>
+              </div>
+              <div class="content-card">
+                <div class="content-card-top">
+                  <span class="content-card-title">Product launch CTA section</span>
+                  <span class="content-card-meta">Nov 2025</span>
+                </div>
+                <div class="content-card-desc">"We built these features based on direct conversations with founders like you..."</div>
+                <button class="content-card-insert">Reuse</button>
+              </div>
+            </div>
+
+            <!-- Knowledge Base -->
+            <div class="content-section">
+              <div class="content-section-header">
+                <span class="content-section-title">Knowledge base</span>
+              </div>
+              <div class="content-card">
+                <div class="content-card-top">
+                  <span class="content-card-title">Cap Table Management Guide</span>
+                </div>
+                <div class="content-card-desc">How to model scenarios, track vesting, and manage equity</div>
+                <button class="content-card-insert">Insert link</button>
+              </div>
+              <div class="content-card">
+                <div class="content-card-top">
+                  <span class="content-card-title">Getting Started with Data Rooms</span>
+                </div>
+                <div class="content-card-desc">Set up secure document sharing for investors</div>
+                <button class="content-card-insert">Insert link</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <div class="action-bar-left">
+        <button class="btn btn-secondary" id="saveDraftBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M9 3.75H6.912a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H15M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859"/></svg>
+          Save Draft
+        </button>
+        <button id="previewToggleBtn" class="btn btn-ghost">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Preview
+        </button>
+      </div>
+      <div class="action-bar-right">
+        <button class="btn btn-ghost" id="sendTestBtn">
+          Send Test
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+        </button>
+        <button class="btn btn-send" id="sendBtn">
+          Send
+          <span class="btn-send-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inline Formatting Toolbar (floating, positioned via JS) -->
+  <div id="inlineToolbar" class="inline-toolbar">
+    <button title="Bold"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 4v16h6.5a4.5 4.5 0 001.21-8.838A4 4 0 0012 4H6.5zm4 6.5h-1v-3h1a1.5 1.5 0 010 3zm1.5 6.5h-2.5v-3.5H12a1.75 1.75 0 110 3.5z"/></svg></button>
+    <button title="Italic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4v2h2.21l-3.42 12H6v2h8v-2h-2.21l3.42-12H18V4h-8z"/></svg></button>
+    <div class="separator"></div>
+    <button title="Link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.54a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L5.25 9.879" transform="translate(1.5, 1.5) scale(0.88)"/></svg></button>
+    <button title="Highlight"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.24 2l4.16 4.16-10 10H5.24v-4.16l10-10zm1.41 0L19.5 4.85 17.73 6.6 14.9 3.76l1.75-1.76zM3 18h18v2H3v-2z"/></svg></button>
+    <div class="separator"></div>
+    <button title="Improve" id="improveBtn" style="width:auto;padding:0 10px;font-size:12px;font-weight:500;letter-spacing:0.01em">Improve</button>
+  </div>
+
+  <!-- =========================================
+       SCREEN 5: SEND CONFIRMATION
+       ========================================= -->
+  <div id="sendOverlay" class="send-overlay">
+    <div class="send-panel" id="sendPanel">
+      <div class="send-panel-header">
+        <h2>Send email</h2>
+        <button class="send-panel-close" id="sendCloseBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <!-- Pre-flight checklist -->
+      <div class="preflight" id="preflightChecklist">
+        <div class="preflight-list" id="preflightList">
+          <!-- Items injected by JS -->
+        </div>
+      </div>
+
+      <div class="send-detail">
+        <span class="send-detail-label">Audience</span>
+        <span class="send-detail-value">All subscribers</span>
+      </div>
+      <div class="send-detail">
+        <span class="send-detail-label">Recipients</span>
+        <span class="send-detail-value">47 contacts</span>
+      </div>
+      <div class="send-schedule" id="sendSchedule">
+        <button class="send-schedule-option active">Send now</button>
+        <button class="send-schedule-option">Schedule</button>
+      </div>
+      <div class="send-panel-actions">
+        <button class="btn btn-secondary" id="sendCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="sendConfirmBtn">Send to 47 recipients</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================
+       JAVASCRIPT
+       ========================================= -->
+  <script>
+    // =========================================
+    // DATA: Block types for slash menu
+    // =========================================
+    var BLOCK_TYPES = [
+      { id: 'text', name: 'Text', desc: 'Plain text paragraph', icon: '<path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/>' },
+      { id: 'heading', name: 'Heading', desc: 'Section title (H1, H2, H3)', icon: '<path d="M2.243 4.493v7.5m0 0v7.5m0-7.5h10.5m0-7.5v7.5m0 0v7.5"/>' },
+      { id: 'image', name: 'Image', desc: 'Upload or embed an image', icon: '<path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V5.25a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 003.75 21zm6-13.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>' },
+      { id: 'button', name: 'Button', desc: 'Call-to-action button', icon: '<path d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59"/>' },
+      { id: 'divider', name: 'Divider', desc: 'Horizontal separator line', icon: '<path d="M3.75 12h16.5"/>' },
+      { id: 'list', name: 'Feature List', desc: 'Items with icons and descriptions', icon: '<path d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>' },
+      { id: 'callout', name: 'Callout', desc: 'Highlighted information box', icon: '<path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>' },
+    ];
+
+    // =========================================
+    // DATA: Template content scenarios
+    // =========================================
+    var TEMPLATES = {
+      'product-update': {
+        subject: 'Weftly v2.5 \u2014 AI-Powered Cap Table Insights',
+        previewText: 'New features to help you manage your cap table smarter',
+        blocks: [
+          { type: 'image', filled: true, caption: 'Weftly v2.5 hero banner' },
+          { type: 'text', content: 'Hi there,<br><br>We\'ve been working hard on the next evolution of Weftly, and today we\'re excited to share what\'s new in v2.5. This release focuses on giving founders deeper insight into their cap table without the spreadsheet gymnastics.' },
+          { type: 'heading', level: 'h2', content: 'What\'s new' },
+          { type: 'feature-list', items: [
+            { title: 'Scenario Modeling', desc: 'Model future rounds, exits, and dilution in real-time. See exactly how each decision affects your ownership.' },
+            { title: 'Investor Context Cards', desc: 'Every investor now has a rich profile with portfolio history, check sizes, and recent activity.' },
+            { title: 'Smart Notifications', desc: 'Get notified when cap table events need your attention \u2014 vesting milestones, conversion triggers, and more.' },
+          ]},
+          { type: 'divider' },
+          { type: 'text', content: 'We built these features based on direct conversations with founders like you. Every detail is designed to save you time and give you confidence in your equity decisions.' },
+          { type: 'button', label: 'Try it now', url: 'https://app.weftly.com' },
+        ],
+        preview: 'product-update'
+      },
+      'changelog': {
+        subject: 'January 2026 Release Notes \u2014 Weftly',
+        previewText: '4 new features, 12 improvements, and 8 bug fixes',
+        blocks: [
+          { type: 'heading', level: 'h1', content: 'January 2026 Release Notes' },
+          { type: 'text', content: 'Here\'s everything that shipped this month. As always, your feedback drives our roadmap \u2014 keep it coming.' },
+          { type: 'divider' },
+          { type: 'heading', level: 'h2', content: 'New: Preset Design System' },
+          { type: 'text', content: 'We\'ve shipped a comprehensive preset system for all UI components. 55 semantic presets across buttons, inputs, badges, dropdowns, and cards. Every preset is tested, documented, and ready to use.' },
+          { type: 'image', filled: true, caption: 'Preset system overview' },
+          { type: 'heading', level: 'h2', content: 'New: Email Composer V2' },
+          { type: 'text', content: 'A completely rebuilt email experience. Full-screen editor with block-based composition, live preview, and slash commands. Think Notion meets email.' },
+          { type: 'heading', level: 'h2', content: 'Improvements' },
+          { type: 'bullets', items: [
+            'Cap table exports now include scenario comparisons',
+            'Investor profiles load 3x faster with new caching',
+            'Filter pills now remember your last selection per page',
+            'Dark mode improvements across all form components',
+          ]},
+          { type: 'button', label: 'View full changelog', url: '#' },
+        ],
+        preview: 'changelog'
+      },
+      'investor-update': {
+        subject: 'Q4 2025 Investor Update \u2014 Acme Corp',
+        previewText: 'Key metrics, highlights, and what\'s ahead for Q1',
+        blocks: [
+          { type: 'text', content: 'Hi investors,<br><br>Here\'s your Q4 2025 update for Acme Corp. It was our strongest quarter yet \u2014 we crossed $2M ARR and secured two enterprise design partners.' },
+          { type: 'heading', level: 'h2', content: 'Key Metrics' },
+          { type: 'metrics', items: [
+            { value: '$2.1M', label: 'ARR', change: '+34% QoQ', positive: true },
+            { value: '$185K', label: 'Monthly Burn', change: '-8% QoQ', positive: true },
+            { value: '14 mo', label: 'Runway', change: '+2 months', positive: true },
+          ]},
+          { type: 'heading', level: 'h2', content: 'Highlights' },
+          { type: 'bullets', items: [
+            'Closed 2 enterprise design partners (Fortune 500)',
+            'Launched self-serve onboarding \u2014 40% of new signups now activate same-day',
+            'Engineering team grew to 8 (hired 2 senior engineers)',
+          ]},
+          { type: 'heading', level: 'h2', content: 'Challenges' },
+          { type: 'bullets', items: [
+            'Sales cycle for enterprise is longer than expected (90+ days)',
+            'Churn increased slightly in SMB segment \u2014 investigating root cause',
+          ]},
+          { type: 'callout', content: 'The Ask: We\'re looking for introductions to VP Engineering or CTO-level contacts at financial services companies. If anyone in your network fits, we\'d love a warm intro.' },
+          { type: 'button', label: 'View Full Report', url: '#' },
+        ],
+        preview: 'investor-update'
+      },
+      'announcement': {
+        subject: 'We just launched something new',
+        previewText: '',
+        blocks: [
+          { type: 'text', content: 'Hi there,<br><br>Quick note \u2014 we just shipped something we think you\'ll love.' },
+          { type: 'text', content: 'More details coming soon. In the meantime, go check it out.' },
+          { type: 'button', label: 'See what\'s new', url: '#' },
+        ],
+        preview: 'announcement'
+      },
+      'blank': {
+        subject: '',
+        previewText: '',
+        blocks: [],
+        preview: 'blank'
+      }
+    };
+
+    // =========================================
+    // PREVIEW HTML (static per template)
+    // =========================================
+    var PREVIEW_HTML = {
+      'product-update': '<div class="pe-hero"></div>' +
+        '<p class="pe-text">Hi there,</p>' +
+        '<p class="pe-text">We\u2019ve been working hard on the next evolution of Weftly, and today we\u2019re excited to share what\u2019s new in v2.5.</p>' +
+        '<h3 class="pe-heading">What\u2019s new</h3>' +
+        '<div class="pe-feature"><div class="pe-feature-dot"></div><div class="pe-feature-text"><h4>Scenario Modeling</h4><p>Model future rounds, exits, and dilution in real-time.</p></div></div>' +
+        '<div class="pe-feature"><div class="pe-feature-dot"></div><div class="pe-feature-text"><h4>Investor Context Cards</h4><p>Rich profiles with portfolio history and check sizes.</p></div></div>' +
+        '<div class="pe-feature"><div class="pe-feature-dot"></div><div class="pe-feature-text"><h4>Smart Notifications</h4><p>Cap table events that need your attention.</p></div></div>' +
+        '<hr class="pe-divider">' +
+        '<p class="pe-text">We built these features based on direct conversations with founders like you.</p>' +
+        '<a class="pe-cta" href="#">Try it now</a>',
+
+      'changelog': '<h3 class="pe-heading" style="margin-top:0">January 2026 Release Notes</h3>' +
+        '<p class="pe-text">Here\u2019s everything that shipped this month.</p>' +
+        '<hr class="pe-divider">' +
+        '<h3 class="pe-heading">Preset Design System</h3>' +
+        '<p class="pe-text">55 semantic presets across buttons, inputs, badges, dropdowns, and cards.</p>' +
+        '<div class="pe-hero" style="height:120px;margin-bottom:16px"></div>' +
+        '<h3 class="pe-heading">Email Composer V2</h3>' +
+        '<p class="pe-text">Full-screen editor with block-based composition and slash commands.</p>' +
+        '<h3 class="pe-heading">Improvements</h3>' +
+        '<ul class="pe-list"><li>Cap table exports with scenario comparisons</li><li>3x faster investor profile loading</li><li>Persistent filter pill selections</li><li>Dark mode form improvements</li></ul>' +
+        '<a class="pe-cta" href="#">View full changelog</a>',
+
+      'investor-update': '<p class="pe-text">Hi investors,</p>' +
+        '<p class="pe-text">Here\u2019s your Q4 2025 update for Acme Corp. Our strongest quarter yet.</p>' +
+        '<h3 class="pe-heading">Key Metrics</h3>' +
+        '<div class="pe-metrics"><div class="pe-metric"><div class="val">$2.1M</div><div class="label">ARR</div></div><div class="pe-metric"><div class="val">$185K</div><div class="label">Burn</div></div><div class="pe-metric"><div class="val">14 mo</div><div class="label">Runway</div></div></div>' +
+        '<h3 class="pe-heading">Highlights</h3>' +
+        '<ul class="pe-list"><li>2 enterprise design partners (Fortune 500)</li><li>Self-serve onboarding: 40% same-day activation</li><li>Engineering team at 8 (+2 senior hires)</li></ul>' +
+        '<h3 class="pe-heading">Challenges</h3>' +
+        '<ul class="pe-list"><li>Enterprise sales cycle 90+ days</li><li>Slight SMB churn increase \u2014 investigating</li></ul>' +
+        '<div class="pe-callout">We\u2019re looking for introductions to VP Engineering / CTO contacts at financial services companies.</div>' +
+        '<a class="pe-cta" href="#">View Full Report</a>',
+
+      'announcement': '<p class="pe-text">Hi there,</p>' +
+        '<p class="pe-text">Quick note \u2014 we just shipped something we think you\u2019ll love.</p>' +
+        '<p class="pe-text">More details coming soon. In the meantime, go check it out.</p>' +
+        '<a class="pe-cta" href="#">See what\u2019s new</a>',
+
+      'blank': '<p class="pe-text" style="color:var(--text-tertiary);text-align:center;padding:40px 0">Preview will appear as you compose</p>'
+    };
+
+    // =========================================
+    // STATE
+    // =========================================
+    var currentTemplate = null;
+    var previewVisible = true;
+    var previewDevice = 'desktop';
+    var slashMenuOpen = false;
+    var slashFocusIndex = 0;
+    var filteredBlockTypes = BLOCK_TYPES.slice();
+
+    // =========================================
+    // DOM REFS
+    // =========================================
+    var templatePicker = document.getElementById('templatePicker');
+    var emailHub = document.getElementById('emailHub');
+    var editorRoot = document.getElementById('editorRoot');
+    var subjectInput = document.getElementById('subjectInput');
+    var previewTextInput = document.getElementById('previewTextInput');
+    var blockStack = document.getElementById('blockStack');
+    var emptyBlock = document.getElementById('emptyBlock');
+    var slashMenu = document.getElementById('slashMenu');
+    var slashSearchInput = document.getElementById('slashSearchInput');
+    var slashMenuItems = document.getElementById('slashMenuItems');
+    var previewPane = document.getElementById('previewPane');
+    var previewFrame = document.getElementById('previewFrame');
+    var previewEmail = document.getElementById('previewEmail');
+    var previewToggleBtn = document.getElementById('previewToggleBtn');
+    var sendOverlay = document.getElementById('sendOverlay');
+    var sendSubject = document.getElementById('sendSubject');
+    var inlineToolbar = document.getElementById('inlineToolbar');
+
+    // =========================================
+    // TEMPLATE PICKER
+    // =========================================
+    document.querySelectorAll('.template-card').forEach(function(card) {
+      card.addEventListener('click', function() {
+        selectTemplate(this.dataset.template);
+      });
+    });
+
+    function selectTemplate(templateId) {
+      currentTemplate = templateId;
+      var template = TEMPLATES[templateId];
+
+      subjectInput.value = template.subject;
+      previewTextInput.value = template.previewText;
+
+      renderBlocks(template.blocks);
+      renderPreview(templateId, template);
+
+      templatePicker.classList.add('hidden');
+      editorRoot.classList.add('active');
+
+      if (!template.subject) {
+        setTimeout(function() { subjectInput.focus(); }, 400);
+      }
+    }
+
+    function showTemplatePicker() {
+      emailHub.classList.remove('visible');
+      templatePicker.classList.remove('hidden');
+      editorRoot.classList.remove('active');
+    }
+
+    function showEmailHub() {
+      editorRoot.classList.remove('active');
+      templatePicker.classList.add('hidden');
+      emailHub.classList.add('visible');
+    }
+
+    document.getElementById('backBtn').addEventListener('click', showEmailHub);
+    document.getElementById('saveDraftBtn').addEventListener('click', showEmailHub);
+
+    // =========================================
+    // BLOCK RENDERING
+    // =========================================
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.textContent;
+    }
+
+    function createBlockWrapper(index, contentHtml) {
+      var wrapper = document.createElement('div');
+      wrapper.className = 'block-wrapper';
+      wrapper.dataset.index = index;
+
+      // Drag handle
+      var handle = document.createElement('div');
+      handle.className = 'block-drag-handle';
+      handle.title = 'Drag to reorder';
+      handle.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>';
+
+      // Actions
+      var actions = document.createElement('div');
+      actions.className = 'block-actions';
+
+      var btnUp = createActionBtn('Move up', '<path d="M4.5 15.75l7.5-7.5 7.5 7.5"/>', false, function() { moveBlock(index, -1); });
+      var btnDown = createActionBtn('Move down', '<path d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>', false, function() { moveBlock(index, 1); });
+      var btnCopy = createActionBtn('Duplicate', '<path d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/>', false, function() { duplicateBlock(index); });
+      var btnDel = createActionBtn('Delete', '<path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>', true, function() { deleteBlock(index); });
+
+      actions.appendChild(btnUp);
+      actions.appendChild(btnDown);
+      actions.appendChild(btnCopy);
+      actions.appendChild(btnDel);
+
+      // Content
+      var content = document.createElement('div');
+      content.innerHTML = contentHtml;
+
+      wrapper.appendChild(handle);
+      wrapper.appendChild(actions);
+      while (content.firstChild) wrapper.appendChild(content.firstChild);
+
+      return wrapper;
+    }
+
+    function createActionBtn(title, svgPath, isDanger, onClick) {
+      var btn = document.createElement('button');
+      btn.className = 'block-action-btn' + (isDanger ? ' danger' : '');
+      btn.title = title;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + svgPath + '</svg>';
+      btn.addEventListener('click', onClick);
+      return btn;
+    }
+
+    function renderBlocks(blocks) {
+      blockStack.textContent = '';
+
+      blocks.forEach(function(block, index) {
+        var contentHtml = '';
+        switch (block.type) {
+          case 'text':
+            contentHtml = '<div class="block-text" contenteditable="true" spellcheck="false">' + block.content + '</div>';
+            break;
+          case 'heading':
+            contentHtml = '<div class="block-heading ' + block.level + '" contenteditable="true" spellcheck="false">' + escapeHtml(block.content) + '</div>';
+            break;
+          case 'image':
+            if (block.filled) {
+              contentHtml = '<div class="block-image"><div class="block-image-filled">' + escapeHtml(block.caption || 'Image placeholder') + '</div>' +
+                (block.caption ? '<input class="block-image-caption" value="' + escapeHtml(block.caption) + '" placeholder="Add a caption...">' : '') +
+                '</div>';
+            } else {
+              contentHtml = '<div class="block-image"><div class="block-image-placeholder">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V5.25a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 003.75 21z"/></svg>' +
+                '<span>Click to upload or drag an image</span></div></div>';
+            }
+            break;
+          case 'button':
+            contentHtml = '<div class="block-button-wrapper">' +
+              '<div class="block-button-preview">' + escapeHtml(block.label) + '</div>' +
+              '<input class="block-button-url" value="' + escapeHtml(block.url || '') + '" placeholder="https://..."></div>';
+            break;
+          case 'divider':
+            contentHtml = '<div class="block-divider"><hr></div>';
+            break;
+          case 'feature-list':
+            contentHtml = '<div class="block-feature-list">' + block.items.map(function(item) {
+              return '<div class="feature-item">' +
+                '<div class="feature-content"><h4>' + escapeHtml(item.title) + '</h4><p>' + escapeHtml(item.desc) + '</p></div></div>';
+            }).join('') + '</div>';
+            break;
+          case 'callout':
+            contentHtml = '<div class="block-callout"><div class="block-callout-text" contenteditable="true" spellcheck="false">' + escapeHtml(block.content) + '</div></div>';
+            break;
+          case 'metrics':
+            contentHtml = '<div class="block-metrics">' + block.items.map(function(m) {
+              return '<div class="metric-card"><div class="metric-value">' + escapeHtml(m.value) + '</div>' +
+                '<div class="metric-label">' + escapeHtml(m.label) + '</div>' +
+                '<div class="metric-change ' + (m.positive ? 'positive' : 'negative') + '">' + escapeHtml(m.change) + '</div></div>';
+            }).join('') + '</div>';
+            break;
+          case 'bullets':
+            contentHtml = '<ul class="block-bullets">' + block.items.map(function(i) {
+              return '<li>' + escapeHtml(i) + '</li>';
+            }).join('') + '</ul>';
+            break;
+        }
+
+        var wrapper = createBlockWrapper(index, contentHtml);
+        blockStack.appendChild(wrapper);
+      });
+    }
+
+    // =========================================
+    // BLOCK ACTIONS
+    // =========================================
+    function moveBlock(index, direction) {
+      var template = TEMPLATES[currentTemplate];
+      var newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= template.blocks.length) return;
+
+      var blocks = template.blocks;
+      var temp = blocks[index];
+      blocks[index] = blocks[newIndex];
+      blocks[newIndex] = temp;
+      renderBlocks(blocks);
+    }
+
+    function duplicateBlock(index) {
+      var template = TEMPLATES[currentTemplate];
+      var block = JSON.parse(JSON.stringify(template.blocks[index]));
+      template.blocks.splice(index + 1, 0, block);
+      renderBlocks(template.blocks);
+    }
+
+    function deleteBlock(index) {
+      var template = TEMPLATES[currentTemplate];
+      template.blocks.splice(index, 1);
+      renderBlocks(template.blocks);
+    }
+
+    // =========================================
+    // SLASH COMMAND MENU
+    // =========================================
+    emptyBlock.addEventListener('click', function(e) {
+      if (!e.target.closest('.slash-menu')) {
+        openSlashMenu();
+      }
+    });
+
+    function openSlashMenu() {
+      filteredBlockTypes = BLOCK_TYPES.slice();
+      slashFocusIndex = 0;
+      renderSlashMenuItems();
+      slashMenu.classList.add('visible');
+      slashMenuOpen = true;
+      slashSearchInput.value = '';
+      setTimeout(function() { slashSearchInput.focus(); }, 50);
+    }
+
+    function closeSlashMenu() {
+      slashMenu.classList.remove('visible');
+      slashMenuOpen = false;
+    }
+
+    slashSearchInput.addEventListener('input', function() {
+      filterSlashMenu(this.value);
+    });
+
+    function filterSlashMenu(query) {
+      var q = query.toLowerCase().replace(/^\//, '');
+      filteredBlockTypes = BLOCK_TYPES.filter(function(b) {
+        return b.name.toLowerCase().indexOf(q) !== -1 ||
+               b.id.indexOf(q) !== -1 ||
+               b.desc.toLowerCase().indexOf(q) !== -1;
+      });
+      slashFocusIndex = 0;
+      renderSlashMenuItems();
+    }
+
+    function renderSlashMenuItems() {
+      if (filteredBlockTypes.length === 0) {
+        slashMenuItems.textContent = '';
+        var empty = document.createElement('div');
+        empty.className = 'slash-menu-empty';
+        empty.textContent = 'No matching blocks';
+        slashMenuItems.appendChild(empty);
+        return;
+      }
+
+      slashMenuItems.textContent = '';
+      filteredBlockTypes.forEach(function(block, i) {
+        var btn = document.createElement('button');
+        btn.className = 'slash-menu-item' + (i === slashFocusIndex ? ' focused' : '');
+        btn.dataset.id = block.id;
+
+        var iconDiv = document.createElement('div');
+        iconDiv.className = 'slash-menu-item-icon';
+        iconDiv.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' + block.icon + '</svg>';
+
+        var textDiv = document.createElement('div');
+        textDiv.className = 'slash-menu-item-text';
+        var h4 = document.createElement('h4');
+        h4.textContent = block.name;
+        var p = document.createElement('p');
+        p.textContent = block.desc;
+        textDiv.appendChild(h4);
+        textDiv.appendChild(p);
+
+        btn.appendChild(iconDiv);
+        btn.appendChild(textDiv);
+
+        btn.addEventListener('click', function() { insertBlock(block.id); });
+        btn.addEventListener('mouseenter', function() {
+          slashFocusIndex = i;
+          updateSlashFocus();
+        });
+
+        slashMenuItems.appendChild(btn);
+      });
+    }
+
+    function updateSlashFocus() {
+      var items = slashMenuItems.querySelectorAll('.slash-menu-item');
+      items.forEach(function(item, i) {
+        item.classList.toggle('focused', i === slashFocusIndex);
+      });
+    }
+
+    function insertBlock(blockId) {
+      if (!currentTemplate) return;
+      var template = TEMPLATES[currentTemplate];
+      var newBlock;
+
+      switch (blockId) {
+        case 'text':
+          newBlock = { type: 'text', content: 'Start typing...' };
+          break;
+        case 'heading':
+          newBlock = { type: 'heading', level: 'h2', content: 'Section heading' };
+          break;
+        case 'image':
+          newBlock = { type: 'image', filled: false };
+          break;
+        case 'button':
+          newBlock = { type: 'button', label: 'Click me', url: '' };
+          break;
+        case 'divider':
+          newBlock = { type: 'divider' };
+          break;
+        case 'list':
+          newBlock = { type: 'feature-list', items: [
+            { title: 'Feature name', desc: 'Describe this feature' }
+          ]};
+          break;
+        case 'callout':
+          newBlock = { type: 'callout', content: 'Important information goes here' };
+          break;
+      }
+
+      template.blocks.push(newBlock);
+      renderBlocks(template.blocks);
+      closeSlashMenu();
+    }
+
+    // Keyboard nav for slash menu
+    document.addEventListener('keydown', function(e) {
+      if (!slashMenuOpen) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        slashFocusIndex = Math.min(slashFocusIndex + 1, filteredBlockTypes.length - 1);
+        updateSlashFocus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        slashFocusIndex = Math.max(slashFocusIndex - 1, 0);
+        updateSlashFocus();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (filteredBlockTypes[slashFocusIndex]) {
+          insertBlock(filteredBlockTypes[slashFocusIndex].id);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeSlashMenu();
+      }
+    });
+
+    // Close slash menu on click outside
+    document.addEventListener('click', function(e) {
+      if (slashMenuOpen && !e.target.closest('#emptyBlock')) {
+        closeSlashMenu();
+      }
+    });
+
+    // =========================================
+    // INLINE FORMATTING TOOLBAR
+    // =========================================
+    document.addEventListener('mouseup', function() {
+      var sel = window.getSelection();
+
+      if (sel && sel.toString().trim() && sel.rangeCount) {
+        var range = sel.getRangeAt(0);
+        var parent = range.commonAncestorContainer.parentElement;
+        if (parent && (parent.classList.contains('block-text') || parent.closest('.block-text') || parent.classList.contains('block-callout-text') || parent.closest('.block-callout-text'))) {
+          var rect = range.getBoundingClientRect();
+          inlineToolbar.style.top = (rect.top - 44) + 'px';
+          inlineToolbar.style.left = (rect.left + rect.width / 2 - 80) + 'px';
+          inlineToolbar.classList.add('visible');
+          return;
+        }
+      }
+      inlineToolbar.classList.remove('visible');
+    });
+
+    document.addEventListener('mousedown', function(e) {
+      if (!e.target.closest('#inlineToolbar')) {
+        inlineToolbar.classList.remove('visible');
+      }
+    });
+
+    // =========================================
+    // PREVIEW PANE
+    // =========================================
+    previewToggleBtn.addEventListener('click', togglePreview);
+
+    function togglePreview() {
+      previewVisible = !previewVisible;
+
+      if (previewVisible) {
+        previewPane.classList.remove('collapsed');
+        previewToggleBtn.classList.add('btn-preview-active');
+        previewToggleBtn.classList.remove('btn-ghost');
+      } else {
+        previewPane.classList.add('collapsed');
+        previewToggleBtn.classList.remove('btn-preview-active');
+        previewToggleBtn.classList.add('btn-ghost');
+      }
+    }
+
+    document.getElementById('desktopBtn').addEventListener('click', function() { setPreviewDevice('desktop'); });
+    document.getElementById('mobileBtn').addEventListener('click', function() { setPreviewDevice('mobile'); });
+
+    function setPreviewDevice(device) {
+      previewDevice = device;
+      document.querySelectorAll('.preview-device-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.device === device);
+      });
+      previewFrame.classList.toggle('mobile', device === 'mobile');
+    }
+
+    function renderPreview(templateId, template) {
+      var bodyHtml = PREVIEW_HTML[templateId] || '';
+
+      // Logo header (matches real EmailLayout)
+      var logoHeader = document.createElement('div');
+      logoHeader.className = 'preview-email-logo';
+      var logoText = document.createElement('span');
+      logoText.className = 'pe-logo-placeholder';
+      logoText.textContent = 'Weftly';
+      logoHeader.appendChild(logoText);
+
+      // Subject line
+      var subject = document.createElement('h1');
+      subject.className = 'preview-email-subject';
+      subject.textContent = template.subject || 'Untitled email';
+
+      var body = document.createElement('div');
+      body.className = 'preview-email-body';
+      body.innerHTML = bodyHtml;
+
+      // Footer (matches real EmailLayout: wordmark + powered by + links)
+      var footer = document.createElement('div');
+      footer.className = 'preview-email-footer';
+      var footerLogo = document.createElement('div');
+      footerLogo.className = 'pe-footer-logo';
+      footerLogo.textContent = 'Weftly';
+      var p1 = document.createElement('p');
+      p1.textContent = 'Weftly, Inc. \u00B7 San Francisco, CA';
+      var p2 = document.createElement('p');
+      p2.innerHTML = '<a href="#">Unsubscribe</a> \u00B7 <a href="#">Manage preferences</a>';
+      footer.appendChild(footerLogo);
+      footer.appendChild(p1);
+      footer.appendChild(p2);
+
+      previewEmail.textContent = '';
+      previewEmail.appendChild(logoHeader);
+      previewEmail.appendChild(subject);
+      previewEmail.appendChild(body);
+      previewEmail.appendChild(footer);
+
+      // Sync envelope subject
+      document.getElementById('previewSubject').textContent = template.subject || 'Untitled email';
+    }
+
+    // =========================================
+    // SEND CONFIRMATION
+    // =========================================
+    document.getElementById('sendBtn').addEventListener('click', openSendConfirmation);
+    document.getElementById('sendCloseBtn').addEventListener('click', function() { closeSendConfirmation(); });
+    document.getElementById('sendCancelBtn').addEventListener('click', function() { closeSendConfirmation(); });
+    sendOverlay.addEventListener('click', function(e) {
+      if (e.target === sendOverlay) closeSendConfirmation();
+    });
+
+    function openSendConfirmation() {
+      runPreflightChecks();
+      sendOverlay.classList.add('visible');
+    }
+
+    function runPreflightChecks() {
+      var subject = subjectInput.value.trim();
+      var previewText = previewTextInput.value.trim();
+      var blocks = currentTemplate ? TEMPLATES[currentTemplate].blocks : [];
+      var hasContent = blocks.length > 0;
+      var hasEmptyUrls = blocks.some(function(b) {
+        return b.type === 'button' && !b.url;
+      });
+
+      var checks = [
+        {
+          label: 'Subject line',
+          status: subject ? 'pass' : 'fail',
+          detail: subject ? subject : 'Missing'
+        },
+        {
+          label: 'Recipients',
+          status: 'pass',
+          detail: document.getElementById('recipientValue').textContent.trim()
+        },
+        {
+          label: 'Preview text',
+          status: previewText ? 'pass' : 'warn',
+          detail: previewText ? 'Set' : 'Empty — recipients may see raw HTML'
+        },
+        {
+          label: 'Email content',
+          status: hasContent ? 'pass' : 'fail',
+          detail: hasContent ? (blocks.length + ' blocks') : 'No content'
+        },
+        {
+          label: 'Links',
+          status: hasEmptyUrls ? 'warn' : 'pass',
+          detail: hasEmptyUrls ? 'Some buttons have no URL' : 'All set'
+        }
+      ];
+
+      var hasBlockingFail = checks.some(function(c) { return c.status === 'fail'; });
+
+      var list = document.getElementById('preflightList');
+      list.textContent = '';
+
+      var svgCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 12.75l6 6 9-13.5"/></svg>';
+      var svgX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>';
+      var svgWarn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>';
+
+      checks.forEach(function(check) {
+        var item = document.createElement('div');
+        item.className = 'preflight-item ' + check.status;
+
+        var icon = document.createElement('div');
+        icon.className = 'preflight-item-icon';
+        if (check.status === 'pass') icon.innerHTML = svgCheck;
+        else if (check.status === 'fail') icon.innerHTML = svgX;
+        else icon.innerHTML = svgWarn;
+
+        var label = document.createElement('span');
+        label.className = 'preflight-item-label';
+        label.textContent = check.label;
+
+        var status = document.createElement('span');
+        status.className = 'preflight-item-status';
+        status.textContent = check.detail;
+
+        item.appendChild(icon);
+        item.appendChild(label);
+        item.appendChild(status);
+        list.appendChild(item);
+      });
+
+      // Disable send button if blocking failures
+      var sendBtn = document.getElementById('sendConfirmBtn');
+      if (sendBtn) {
+        sendBtn.disabled = hasBlockingFail;
+      }
+    }
+
+    function closeSendConfirmation() {
+      sendOverlay.classList.remove('visible');
+    }
+
+    // Schedule toggle
+    document.getElementById('sendSchedule').addEventListener('click', function(e) {
+      var option = e.target.closest('.send-schedule-option');
+      if (!option) return;
+      this.querySelectorAll('.send-schedule-option').forEach(function(b) { b.classList.remove('active'); });
+      option.classList.add('active');
+    });
+
+    // =========================================
+    // SUBJECT LINE -> PREVIEW SYNC
+    // =========================================
+    subjectInput.addEventListener('input', function() {
+      var val = this.value || 'Untitled email';
+      var subjectEl = previewEmail.querySelector('.preview-email-subject');
+      if (subjectEl) {
+        subjectEl.textContent = val;
+      }
+      document.getElementById('previewSubject').textContent = val;
+    });
+
+    // =========================================
+    // RECIPIENT SELECTOR
+    // =========================================
+    var recipientEditBtn = document.getElementById('recipientEditBtn');
+    var recipientPopover = document.getElementById('recipientPopover');
+    var recipientValue = document.getElementById('recipientValue');
+    var recipientCount = document.getElementById('recipientCount');
+    var recipientPopoverOpen = false;
+
+    recipientEditBtn.addEventListener('click', function() {
+      recipientPopoverOpen = !recipientPopoverOpen;
+      recipientPopover.classList.toggle('visible', recipientPopoverOpen);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (recipientPopoverOpen && !e.target.closest('#recipientBar')) {
+        recipientPopoverOpen = false;
+        recipientPopover.classList.remove('visible');
+      }
+    });
+
+    document.querySelectorAll('.recipient-option').forEach(function(option) {
+      option.addEventListener('click', function() {
+        // Deselect all
+        document.querySelectorAll('.recipient-option').forEach(function(o) {
+          o.classList.remove('selected');
+        });
+        // Select this one
+        this.classList.add('selected');
+
+        // Update the bar display
+        var label = this.dataset.label;
+        var count = this.dataset.count;
+        recipientValue.textContent = '';
+        recipientValue.appendChild(document.createTextNode(label + ' '));
+        var countSpan = document.createElement('span');
+        countSpan.className = 'recipient-bar-count';
+        countSpan.id = 'recipientCount';
+        countSpan.textContent = '(' + count + ')';
+        recipientValue.appendChild(countSpan);
+        recipientCount = countSpan;
+
+        // Update the send panel count
+        var sendCountEls = document.querySelectorAll('.send-detail-value');
+        if (sendCountEls[2]) {
+          sendCountEls[2].textContent = count + ' contacts';
+        }
+        var sendBtnLabel = document.querySelector('.send-panel-actions .btn-primary');
+        if (sendBtnLabel) {
+          sendBtnLabel.textContent = 'Send to ' + count + ' recipients';
+        }
+        var sendAudienceEl = sendCountEls[1];
+        if (sendAudienceEl) {
+          sendAudienceEl.textContent = label;
+        }
+
+        // Close popover
+        recipientPopoverOpen = false;
+        recipientPopover.classList.remove('visible');
+      });
+    });
+
+    // =========================================
+    // EMAIL HUB
+    // =========================================
+    document.getElementById('hubNewBtn').addEventListener('click', showTemplatePicker);
+
+    // Hub tab switching
+    document.querySelectorAll('.hub-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.hub-tab').forEach(function(t) { t.classList.remove('active'); });
+        this.classList.add('active');
+        var target = this.dataset.hubTab;
+        document.querySelectorAll('.hub-tab-content').forEach(function(c) { c.classList.remove('active'); });
+        document.getElementById('hub' + target.charAt(0).toUpperCase() + target.slice(1)).classList.add('active');
+      });
+    });
+
+    // Draft cards → open editor
+    document.querySelectorAll('.draft-card').forEach(function(card) {
+      card.addEventListener('click', function() {
+        var templateId = this.dataset.template;
+        if (templateId && TEMPLATES[templateId]) {
+          emailHub.classList.remove('visible');
+          selectTemplate(templateId);
+        }
+      });
+    });
+
+    // =========================================
+    // PANEL TABS (Preview / Content)
+    // =========================================
+    var tabPreview = document.getElementById('tabPreview');
+    var tabContent = document.getElementById('tabContent');
+    var panelPreview = document.getElementById('panelPreview');
+    var panelContent = document.getElementById('panelContent');
+
+    tabPreview.addEventListener('click', function() { switchTab('preview'); });
+    tabContent.addEventListener('click', function() { switchTab('content'); });
+
+    function switchTab(tab) {
+      if (tab === 'preview') {
+        tabPreview.classList.add('active');
+        tabContent.classList.remove('active');
+        panelPreview.classList.add('active');
+        panelContent.classList.remove('active');
+      } else {
+        tabContent.classList.add('active');
+        tabPreview.classList.remove('active');
+        panelContent.classList.add('active');
+        panelPreview.classList.remove('active');
+      }
+    }
+
+    // Content panel insert buttons (simulated)
+    document.querySelectorAll('.content-card-insert').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var card = this.closest('.content-card');
+        var title = card.querySelector('.content-card-title').textContent;
+        var desc = card.querySelector('.content-card-desc').textContent;
+
+        // Add as a block to the current template
+        if (currentTemplate && TEMPLATES[currentTemplate]) {
+          var blocks = TEMPLATES[currentTemplate].blocks;
+          var insertType = this.textContent.trim();
+
+          if (insertType === 'Insert as feature') {
+            blocks.push({ type: 'text', content: '<strong>' + title + '</strong> — ' + desc });
+          } else if (insertType === 'Reuse') {
+            blocks.push({ type: 'text', content: desc });
+          } else if (insertType === 'Insert link') {
+            blocks.push({ type: 'button', label: title, url: '#' });
+          }
+
+          renderBlocks(TEMPLATES[currentTemplate].blocks);
+          renderPreview(currentTemplate, TEMPLATES[currentTemplate]);
+
+          // Flash the button
+          this.textContent = 'Inserted';
+          this.style.color = '#16A34A';
+          var self = this;
+          setTimeout(function() {
+            self.textContent = insertType;
+            self.style.color = '';
+          }, 1500);
+        }
+      });
+    });
+
+    // =========================================
+    // AUTOSAVE SIMULATION
+    // =========================================
+    var draftStatus = document.getElementById('draftStatus');
+    var draftStatusText = document.getElementById('draftStatusText');
+    var autosaveTimer = 0;
+    var autosaveInterval;
+
+    function startAutosave() {
+      autosaveTimer = 0;
+      updateDraftLabel();
+      autosaveInterval = setInterval(function() {
+        autosaveTimer++;
+        updateDraftLabel();
+
+        // Simulate save every 30 seconds
+        if (autosaveTimer % 30 === 0) {
+          triggerSave();
+        }
+      }, 1000);
+    }
+
+    function updateDraftLabel() {
+      if (draftStatus.classList.contains('saving')) return;
+      var text;
+      if (autosaveTimer < 5) {
+        text = 'Draft saved just now';
+      } else if (autosaveTimer < 60) {
+        text = 'Draft saved ' + autosaveTimer + 's ago';
+      } else {
+        var mins = Math.floor(autosaveTimer / 60);
+        text = 'Draft saved ' + mins + 'm ago';
+      }
+      draftStatusText.textContent = text;
+    }
+
+    function triggerSave() {
+      draftStatus.classList.add('saving');
+      draftStatusText.textContent = 'Saving...';
+      setTimeout(function() {
+        draftStatus.classList.remove('saving');
+        autosaveTimer = 0;
+        updateDraftLabel();
+      }, 1200);
+    }
+
+    // Trigger save on content-changing actions
+    subjectInput.addEventListener('input', function() {
+      clearTimeout(subjectInput._saveDebounce);
+      subjectInput._saveDebounce = setTimeout(triggerSave, 2000);
+    });
+
+    // =========================================
+    // INIT
+    // =========================================
+    previewToggleBtn.classList.add('btn-preview-active');
+    previewToggleBtn.classList.remove('btn-ghost');
+    startAutosave();
+  </script>
+</body>
+</html>

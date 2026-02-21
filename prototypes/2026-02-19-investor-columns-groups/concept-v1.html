@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investor Table — Column Management + Groups as Column</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 0 0% 96%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body { font-family: 'Satoshi', system-ui, -apple-system, sans-serif; background-color: hsl(var(--surface-primary)); color: hsl(var(--text-primary)); -webkit-font-smoothing: antialiased; }
+    .modal-backdrop { background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    .col-hidden { display: none; }
+    .group-popover { box-shadow: 0 4px 24px rgba(0,0,0,0.12); }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          'surface-primary': 'hsl(var(--surface-primary))', 'surface-secondary': 'hsl(var(--surface-secondary))',
+          'surface-tertiary': 'hsl(var(--surface-tertiary))', 'surface-inverse': 'hsl(var(--surface-inverse))',
+          'surface-hover': 'hsl(var(--surface-hover))', 'text-primary': 'hsl(var(--text-primary))',
+          'text-secondary': 'hsl(var(--text-secondary))', 'text-tertiary': 'hsl(var(--text-tertiary))',
+          'text-inverse': 'hsl(var(--text-inverse))', 'border-default': 'hsl(var(--border-default))',
+          'border-subtle': 'hsl(var(--border-subtle))', 'border-strong': 'hsl(var(--border-strong))',
+        },
+        borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+      }},
+    }
+  </script>
+</head>
+<body class="min-h-screen">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-60 h-screen border-r flex flex-col bg-surface-primary shrink-0">
+      <div class="h-14 flex items-center px-6 border-b"><div class="flex items-center gap-2"><div class="w-6 h-6 rounded bg-surface-inverse"></div><span class="font-semibold">Weftly</span></div></div>
+      <nav class="flex-1 overflow-y-auto py-4 px-3">
+        <div class="text-[11px] font-medium text-text-tertiary px-3 mb-2">Fundraising</div>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary">Overview</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-surface-tertiary font-medium">Investors</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary">Pipeline</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary">Activity</a>
+        <div class="text-[11px] font-medium text-text-tertiary px-3 mb-2 mt-6">Tools</div>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary">Data Room</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary">Investor Updates</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary">Contacts</a>
+      </nav>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <header class="h-14 border-b flex items-center justify-between px-6 shrink-0">
+        <div><p class="text-xs text-text-tertiary">Fundraising</p><h1 class="text-lg font-semibold">Investors</h1></div>
+      </header>
+
+      <main class="flex-1 overflow-auto p-6">
+        <div class="space-y-6">
+          <!-- Stats Cards -->
+          <div class="rounded-lg bg-surface-secondary p-4">
+            <div class="grid grid-cols-3 gap-4">
+              <div class="flex flex-col justify-between rounded-lg bg-surface-primary p-4 min-h-[88px]"><p class="text-sm text-text-secondary">Investors</p><div><p class="text-2xl font-semibold tabular-nums">24</p><p class="text-xs text-text-tertiary">In your network</p></div></div>
+              <div class="flex flex-col justify-between rounded-lg bg-surface-primary p-4 min-h-[88px]"><p class="text-sm text-text-secondary">Recently Active</p><div><p class="text-2xl font-semibold tabular-nums">8</p><p class="text-xs text-text-tertiary">In conversations</p></div></div>
+              <div class="flex flex-col justify-between rounded-lg bg-surface-primary p-4 min-h-[88px]"><p class="text-sm text-text-secondary">New</p><div><p class="text-2xl font-semibold tabular-nums">3</p><p class="text-xs text-text-tertiary">Past 30 days</p></div></div>
+            </div>
+          </div>
+
+          <!-- Lifecycle Segment Tabs (CLEAN — no groups here) -->
+          <div class="flex items-center gap-1 overflow-x-auto pb-1">
+            <button class="tab-btn rounded-full px-4 py-2 text-sm font-medium bg-surface-inverse text-text-inverse">All</button>
+            <button class="tab-btn rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary hover:bg-surface-tertiary">Prospects <span class="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs tabular-nums bg-surface-tertiary">12</span></button>
+            <button class="tab-btn rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary hover:bg-surface-tertiary">Active <span class="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs tabular-nums bg-surface-tertiary">6</span></button>
+            <button class="tab-btn rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary hover:bg-surface-tertiary">Portfolio</button>
+            <button class="tab-btn rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary hover:bg-surface-tertiary">Passed</button>
+          </div>
+
+          <!-- Control Bar -->
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <div class="relative w-64 shrink-0">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" placeholder="Search..." class="w-full pl-10 pr-8 py-2 text-sm rounded-lg border bg-surface-primary focus:outline-none focus:ring-1 focus:ring-zinc-900/50" />
+                <kbd class="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 font-mono text-[10px] font-medium bg-surface-secondary border rounded text-text-tertiary">/</kbd>
+              </div>
+              <button class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary hover:bg-surface-tertiary">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                Filters
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <button id="open-columns-btn" class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-surface-secondary text-text-secondary hover:bg-surface-tertiary" title="Manage columns">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
+                Columns
+              </button>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button class="flex h-9 w-9 items-center justify-center rounded-full text-text-tertiary hover:bg-surface-secondary hover:text-text-primary" title="Import"><svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg></button>
+              <button class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-surface-inverse text-text-inverse hover:opacity-90">Add investor <kbd class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 font-mono text-xs font-medium bg-white/20 border border-white/30 rounded text-white/80">N</kbd></button>
+            </div>
+          </div>
+
+          <!-- ========== INVESTOR TABLE (with Groups column) ========== -->
+          <div class="overflow-x-auto relative">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b">
+                  <th class="py-3 pr-4 text-left w-8"><input type="checkbox" class="rounded border-border-default" /></th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary" data-col="name">Firm Name</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary" data-col="groups">Groups</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary" data-col="firm_type">Type</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary" data-col="lifecycle_stage">Status</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary" data-col="stage_focus">Stage Focus</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary" data-col="headquarters">Location</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary" data-col="check_size">Check Size</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary" data-col="engagement">Engagement</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary" data-col="last_active">Last Active</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary col-hidden" data-col="sectors">Sectors</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary col-hidden" data-col="website">Website</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary col-hidden" data-col="lead_partner">Lead Partner</th>
+                  <th class="py-3 pr-4 text-left font-medium text-text-secondary col-hidden" data-col="date_added">Date Added</th>
+                  <th class="py-3 text-left font-medium text-text-secondary">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Row 1: Greylock — has groups -->
+                <tr class="border-b hover:bg-surface-hover transition-colors duration-[140ms] cursor-pointer">
+                  <td class="py-3 pr-4"><input type="checkbox" class="rounded border-border-default" /></td>
+                  <td class="py-3 pr-4" data-col="name"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-medium shrink-0">G</div><div><div class="font-medium">Greylock</div><div class="text-xs text-text-secondary">greylock.com</div></div></div></td>
+                  <td class="py-3 pr-4" data-col="groups">
+                    <div class="flex flex-wrap items-center gap-1.5 group-cell" data-investor="greylock">
+                      <span class="group-pill inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Series A Targets<button class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-0.5 hover:bg-blue-200 transition-colors" title="Remove from group"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></button></span>
+                      <span class="group-pill inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Warm Intros<button class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-0.5 hover:bg-emerald-200 transition-colors" title="Remove from group"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></button></span>
+                      <button class="group-add-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border border-dashed border-border-default text-text-tertiary hover:text-text-secondary hover:border-border-strong hover:bg-surface-tertiary transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="py-3 pr-4" data-col="firm_type"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-700">VC</span></td>
+                  <td class="py-3 pr-4" data-col="lifecycle_stage"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Prospect</span></td>
+                  <td class="py-3 pr-4" data-col="stage_focus"><div class="flex flex-wrap gap-1"><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">seed</span><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-sky-100 text-sky-700">series-a</span><span class="text-xs text-text-tertiary tabular-nums">+2</span></div></td>
+                  <td class="py-3 pr-4" data-col="headquarters">Menlo Park, US</td>
+                  <td class="py-3 pr-4 tabular-nums" data-col="check_size">$1M - $50M</td>
+                  <td class="py-3 pr-4" data-col="engagement"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">4 Medium</span></td>
+                  <td class="py-3 pr-4 text-text-secondary" data-col="last_active">2d ago</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="sectors">Enterprise, AI</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="website">greylock.com</td>
+                  <td class="py-3 pr-4 col-hidden" data-col="lead_partner">Reid Hoffman</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="date_added">Jan 15, 2026</td>
+                  <td class="py-3"><button class="flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary hover:bg-red-50 hover:text-red-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>
+                </tr>
+                <!-- Row 2: Sequoia — one group -->
+                <tr class="border-b hover:bg-surface-hover transition-colors duration-[140ms] cursor-pointer">
+                  <td class="py-3 pr-4"><input type="checkbox" class="rounded border-border-default" /></td>
+                  <td class="py-3 pr-4" data-col="name"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-xs font-medium shrink-0">SC</div><div><div class="font-medium">Sequoia Capital</div><div class="text-xs text-text-secondary">sequoiacap.com</div></div></div></td>
+                  <td class="py-3 pr-4" data-col="groups">
+                    <div class="flex flex-wrap items-center gap-1.5 group-cell" data-investor="sequoia">
+                      <span class="group-pill inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Series A Targets<button class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-0.5 hover:bg-blue-200 transition-colors" title="Remove from group"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></button></span>
+                      <button class="group-add-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border border-dashed border-border-default text-text-tertiary hover:text-text-secondary hover:border-border-strong hover:bg-surface-tertiary transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="py-3 pr-4" data-col="firm_type"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-700">VC</span></td>
+                  <td class="py-3 pr-4" data-col="lifecycle_stage"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">Active</span></td>
+                  <td class="py-3 pr-4" data-col="stage_focus"><div class="flex flex-wrap gap-1"><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">seed</span><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-sky-100 text-sky-700">series-a</span><span class="text-xs text-text-tertiary tabular-nums">+1</span></div></td>
+                  <td class="py-3 pr-4" data-col="headquarters">Menlo Park, US</td>
+                  <td class="py-3 pr-4 tabular-nums" data-col="check_size">$500K - $100M</td>
+                  <td class="py-3 pr-4" data-col="engagement"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">8 High</span></td>
+                  <td class="py-3 pr-4 text-text-secondary" data-col="last_active">4h ago</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="sectors">SaaS, Consumer</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="website">sequoiacap.com</td>
+                  <td class="py-3 pr-4 col-hidden" data-col="lead_partner">Roelof Botha</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="date_added">Dec 3, 2025</td>
+                  <td class="py-3"><button class="flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary hover:bg-red-50 hover:text-red-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>
+                </tr>
+                <!-- Row 3: Schuyler — warm intros only -->
+                <tr class="border-b hover:bg-surface-hover transition-colors duration-[140ms] cursor-pointer">
+                  <td class="py-3 pr-4"><input type="checkbox" class="rounded border-border-default" /></td>
+                  <td class="py-3 pr-4" data-col="name"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-xs font-medium shrink-0">S</div><div><div class="font-medium">Schuyler Family Foundation</div><div class="text-xs text-text-secondary">schuylerfamilyfoundation.org</div></div></div></td>
+                  <td class="py-3 pr-4" data-col="groups">
+                    <div class="flex flex-wrap items-center gap-1.5 group-cell" data-investor="schuyler">
+                      <span class="group-pill inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Warm Intros<button class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-0.5 hover:bg-emerald-200 transition-colors" title="Remove from group"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></button></span>
+                      <button class="group-add-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border border-dashed border-border-default text-text-tertiary hover:text-text-secondary hover:border-border-strong hover:bg-surface-tertiary transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="py-3 pr-4" data-col="firm_type"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-700">Family Office</span></td>
+                  <td class="py-3 pr-4" data-col="lifecycle_stage"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Prospect</span></td>
+                  <td class="py-3 pr-4" data-col="stage_focus"><div class="flex flex-wrap gap-1"><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">seed</span><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-sky-100 text-sky-700">series-a</span></div></td>
+                  <td class="py-3 pr-4" data-col="headquarters">Chicago, US</td>
+                  <td class="py-3 pr-4 tabular-nums" data-col="check_size">$250K - $2M</td>
+                  <td class="py-3 pr-4" data-col="engagement"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">4 Medium</span></td>
+                  <td class="py-3 pr-4 text-text-tertiary" data-col="last_active">1mo ago</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="sectors">Impact, Education</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="website">schuylerfamilyfoundation.org</td>
+                  <td class="py-3 pr-4 col-hidden" data-col="lead_partner">James Schuyler</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="date_added">Jan 28, 2026</td>
+                  <td class="py-3"><button class="flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary hover:bg-red-50 hover:text-red-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>
+                </tr>
+                <!-- Row 4: a16z — no groups -->
+                <tr class="border-b hover:bg-surface-hover transition-colors duration-[140ms] cursor-pointer">
+                  <td class="py-3 pr-4"><input type="checkbox" class="rounded border-border-default" /></td>
+                  <td class="py-3 pr-4" data-col="name"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-medium shrink-0">a16z</div><div><div class="font-medium">Andreessen Horowitz</div><div class="text-xs text-text-secondary">a16z.com</div></div></div></td>
+                  <td class="py-3 pr-4" data-col="groups">
+                    <div class="flex flex-wrap items-center gap-1 group-cell" data-investor="a16z">
+                      <!-- Empty — always-visible subtle affordance -->
+                      <button class="group-add-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border border-dashed border-border-default text-text-tertiary hover:text-text-secondary hover:border-border-strong hover:bg-surface-tertiary transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Add
+                      </button>
+                    </div>
+                  </td>
+                  <td class="py-3 pr-4" data-col="firm_type"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-700">VC</span></td>
+                  <td class="py-3 pr-4" data-col="lifecycle_stage"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">Active</span></td>
+                  <td class="py-3 pr-4" data-col="stage_focus"><div class="flex flex-wrap gap-1"><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">seed</span><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-sky-100 text-sky-700">series-a</span><span class="text-xs text-text-tertiary tabular-nums">+1</span></div></td>
+                  <td class="py-3 pr-4" data-col="headquarters">Menlo Park, US</td>
+                  <td class="py-3 pr-4 tabular-nums" data-col="check_size">$1M - $500M</td>
+                  <td class="py-3 pr-4" data-col="engagement"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">6 Medium</span></td>
+                  <td class="py-3 pr-4 text-text-secondary" data-col="last_active">1d ago</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="sectors">Crypto, AI, Enterprise</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="website">a16z.com</td>
+                  <td class="py-3 pr-4 col-hidden" data-col="lead_partner">Marc Andreessen</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="date_added">Nov 12, 2025</td>
+                  <td class="py-3"><button class="flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary hover:bg-red-50 hover:text-red-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>
+                </tr>
+                <!-- Row 5: First Round — warm intros -->
+                <tr class="border-b hover:bg-surface-hover transition-colors duration-[140ms] cursor-pointer">
+                  <td class="py-3 pr-4"><input type="checkbox" class="rounded border-border-default" /></td>
+                  <td class="py-3 pr-4" data-col="name"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-xs font-medium shrink-0">FR</div><div><div class="font-medium">First Round Capital</div><div class="text-xs text-text-secondary">firstround.com</div></div></div></td>
+                  <td class="py-3 pr-4" data-col="groups">
+                    <div class="flex flex-wrap items-center gap-1.5 group-cell" data-investor="firstround">
+                      <span class="group-pill inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Warm Intros<button class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-0.5 hover:bg-emerald-200 transition-colors" title="Remove from group"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></button></span>
+                      <button class="group-add-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border border-dashed border-border-default text-text-tertiary hover:text-text-secondary hover:border-border-strong hover:bg-surface-tertiary transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="py-3 pr-4" data-col="firm_type"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-700">VC</span></td>
+                  <td class="py-3 pr-4" data-col="lifecycle_stage"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">Active</span></td>
+                  <td class="py-3 pr-4" data-col="stage_focus"><div class="flex flex-wrap gap-1"><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">seed</span><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">pre-seed</span></div></td>
+                  <td class="py-3 pr-4" data-col="headquarters">San Francisco, US</td>
+                  <td class="py-3 pr-4 tabular-nums" data-col="check_size">$500K - $10M</td>
+                  <td class="py-3 pr-4" data-col="engagement"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">7 High</span></td>
+                  <td class="py-3 pr-4 text-text-secondary" data-col="last_active">6h ago</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="sectors">SaaS, Developer Tools</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="website">firstround.com</td>
+                  <td class="py-3 pr-4 col-hidden" data-col="lead_partner">Josh Kopelman</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="date_added">Oct 22, 2025</td>
+                  <td class="py-3"><button class="flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary hover:bg-red-50 hover:text-red-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>
+                </tr>
+                <!-- Row 6: YC — no groups -->
+                <tr class="border-b hover:bg-surface-hover transition-colors duration-[140ms] cursor-pointer">
+                  <td class="py-3 pr-4"><input type="checkbox" class="rounded border-border-default" /></td>
+                  <td class="py-3 pr-4" data-col="name"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-xs font-medium shrink-0">YC</div><div><div class="font-medium">Y Combinator</div><div class="text-xs text-text-secondary">ycombinator.com</div></div></div></td>
+                  <td class="py-3 pr-4" data-col="groups">
+                    <div class="flex flex-wrap items-center gap-1 group-cell" data-investor="yc">
+                      <button class="group-add-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border border-dashed border-border-default text-text-tertiary hover:text-text-secondary hover:border-border-strong hover:bg-surface-tertiary transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Add
+                      </button>
+                    </div>
+                  </td>
+                  <td class="py-3 pr-4" data-col="firm_type"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-700">Accelerator</span></td>
+                  <td class="py-3 pr-4" data-col="lifecycle_stage"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">Portfolio</span></td>
+                  <td class="py-3 pr-4" data-col="stage_focus"><div class="flex flex-wrap gap-1"><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">pre-seed</span><span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">seed</span></div></td>
+                  <td class="py-3 pr-4" data-col="headquarters">San Francisco, US</td>
+                  <td class="py-3 pr-4 tabular-nums" data-col="check_size">$500K</td>
+                  <td class="py-3 pr-4" data-col="engagement"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">9 High</span></td>
+                  <td class="py-3 pr-4 text-text-secondary" data-col="last_active">12h ago</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="sectors">Generalist</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="website">ycombinator.com</td>
+                  <td class="py-3 pr-4 col-hidden" data-col="lead_partner">Michael Seibel</td>
+                  <td class="py-3 pr-4 text-xs text-text-secondary col-hidden" data-col="date_added">Aug 15, 2025</td>
+                  <td class="py-3"><button class="flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary hover:bg-red-50 hover:text-red-500 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- ========== GROUP ASSIGNMENT POPOVER (shown on + click) ========== -->
+            <div id="group-popover" class="hidden absolute z-40 w-56 bg-surface-primary rounded-lg border shadow-lg group-popover">
+              <div class="p-2 border-b">
+                <input id="group-search" type="text" placeholder="Search or create group..." class="w-full px-3 py-1.5 text-sm rounded-md border bg-surface-primary focus:outline-none focus:ring-1 focus:ring-zinc-900/50" />
+              </div>
+              <div class="p-1 max-h-48 overflow-y-auto">
+                <!-- Group checkboxes — each row has checkbox + color dot + label + delete icon on hover -->
+                <div class="group/row flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-hover transition-colors">
+                  <label class="flex items-center gap-2 flex-1 cursor-pointer min-w-0">
+                    <input type="checkbox" class="rounded border-border-default shrink-0" checked />
+                    <span class="w-2 h-2 rounded-full bg-blue-400 shrink-0"></span>
+                    <span class="text-sm truncate">Series A Targets</span>
+                  </label>
+                  <button class="shrink-0 flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-colors " title="Delete group">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                </div>
+                <div class="group/row flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-hover transition-colors">
+                  <label class="flex items-center gap-2 flex-1 cursor-pointer min-w-0">
+                    <input type="checkbox" class="rounded border-border-default shrink-0" />
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                    <span class="text-sm truncate">Warm Intros</span>
+                  </label>
+                  <button class="shrink-0 flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-colors " title="Delete group">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                </div>
+                <div class="group/row flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-hover transition-colors">
+                  <label class="flex items-center gap-2 flex-1 cursor-pointer min-w-0">
+                    <input type="checkbox" class="rounded border-border-default shrink-0" />
+                    <span class="w-2 h-2 rounded-full bg-violet-400 shrink-0"></span>
+                    <span class="text-sm truncate">Board Prospects</span>
+                  </label>
+                  <button class="shrink-0 flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-colors " title="Delete group">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                </div>
+                <div class="group/row flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-hover transition-colors">
+                  <label class="flex items-center gap-2 flex-1 cursor-pointer min-w-0">
+                    <input type="checkbox" class="rounded border-border-default shrink-0" />
+                    <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                    <span class="text-sm truncate">Follow-up Needed</span>
+                  </label>
+                  <button class="shrink-0 flex items-center justify-center w-5 h-5 rounded text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-colors " title="Delete group">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="p-1 border-t">
+                <button id="create-new-group-btn" class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  Create new group
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== MANAGE COLUMNS MODAL ==================== -->
+  <div id="columns-modal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" id="modal-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="relative w-full max-w-2xl bg-surface-primary rounded-lg shadow-xl border border-border-subtle overflow-hidden">
+        <div class="px-6 pt-6 pb-2">
+          <h2 class="text-lg font-semibold">Manage Columns</h2>
+          <p class="text-sm text-text-secondary mt-1">Drag columns between panels to show or hide them. Drag within the visible panel to reorder.</p>
+        </div>
+        <div class="px-6 py-4">
+          <div class="grid grid-cols-2 gap-4 min-h-[300px]">
+            <div class="rounded-lg border bg-surface-secondary p-3">
+              <div class="mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                <span class="text-sm font-medium text-text-secondary">Hidden Columns</span>
+                <span id="hidden-count" class="text-xs text-text-tertiary">(3)</span>
+              </div>
+              <div id="hidden-list" class="space-y-1"></div>
+            </div>
+            <div class="rounded-lg border bg-surface-secondary p-3">
+              <div class="mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                <span class="text-sm font-medium text-text-secondary">Visible Columns</span>
+                <span id="visible-count" class="text-xs text-text-tertiary">(9)</span>
+              </div>
+              <div id="visible-list" class="space-y-1"></div>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t flex items-center justify-between">
+          <button id="reset-cols-btn" class="text-sm text-text-secondary hover:text-text-primary transition-colors">Reset to default</button>
+          <div class="flex items-center gap-2">
+            <button id="cancel-cols-btn" class="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">Cancel</button>
+            <button id="save-cols-btn" class="px-4 py-2 text-sm font-medium bg-surface-inverse text-text-inverse rounded-full hover:opacity-90 transition-opacity">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== COLUMN DATA (Groups is now a column) ====================
+    var ALL_COLUMNS = [
+      { key: 'name', label: 'Firm Name', required: true },
+      { key: 'groups', label: 'Groups' },
+      { key: 'firm_type', label: 'Type' },
+      { key: 'lifecycle_stage', label: 'Status' },
+      { key: 'stage_focus', label: 'Stage Focus' },
+      { key: 'headquarters', label: 'Location' },
+      { key: 'check_size', label: 'Check Size' },
+      { key: 'engagement', label: 'Engagement' },
+      { key: 'last_active', label: 'Last Active' },
+      { key: 'sectors', label: 'Sectors' },
+      { key: 'website', label: 'Website' },
+      { key: 'lead_partner', label: 'Lead Partner' },
+      { key: 'date_added', label: 'Date Added' },
+    ];
+    var DEFAULT_VISIBLE = ['name','groups','firm_type','lifecycle_stage','stage_focus','headquarters','check_size','engagement','last_active'];
+    var visibleColumns = DEFAULT_VISIBLE.slice();
+    var modalColumns = [];
+
+    // ==================== TAB SWITCHING ====================
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(function(b) {
+          b.classList.remove('bg-surface-inverse','text-text-inverse');
+          b.classList.add('bg-surface-secondary','text-text-secondary');
+        });
+        btn.classList.add('bg-surface-inverse','text-text-inverse');
+        btn.classList.remove('bg-surface-secondary','text-text-secondary');
+      });
+    });
+
+    // ==================== GROUP POPOVER ====================
+    var activePopoverCell = null;
+
+    // Show popover when clicking + button in group cells
+    document.querySelectorAll('.group-add-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var popover = document.getElementById('group-popover');
+        var rect = btn.getBoundingClientRect();
+        var tableRect = btn.closest('.overflow-x-auto').getBoundingClientRect();
+
+        popover.style.left = (rect.left - tableRect.left) + 'px';
+        popover.style.top = (rect.bottom - tableRect.top + 4) + 'px';
+        popover.classList.remove('hidden');
+        activePopoverCell = btn.closest('.group-cell');
+        document.getElementById('group-search').focus();
+      });
+    });
+
+    // Close popover on outside click
+    document.addEventListener('click', function(e) {
+      var popover = document.getElementById('group-popover');
+      if (!popover.contains(e.target) && !e.target.closest('.group-add-btn')) {
+        popover.classList.add('hidden');
+        activePopoverCell = null;
+      }
+    });
+
+    // ==================== COLUMNS MODAL ====================
+    document.getElementById('open-columns-btn').addEventListener('click', openModal);
+    document.getElementById('modal-backdrop').addEventListener('click', closeModal);
+    document.getElementById('cancel-cols-btn').addEventListener('click', closeModal);
+    document.getElementById('save-cols-btn').addEventListener('click', saveColumns);
+    document.getElementById('reset-cols-btn').addEventListener('click', resetColumns);
+
+    function openModal() {
+      modalColumns = visibleColumns.slice();
+      renderModal();
+      document.getElementById('columns-modal').classList.remove('hidden');
+    }
+    function closeModal() { document.getElementById('columns-modal').classList.add('hidden'); }
+
+    function makeGrip(isRequired) {
+      var grip = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      grip.setAttribute('class','w-3.5 h-3.5 ' + (isRequired ? 'text-transparent' : 'text-text-tertiary'));
+      grip.setAttribute('fill','currentColor'); grip.setAttribute('viewBox','0 0 256 256');
+      [[92,60],[164,60],[92,128],[164,128],[92,196],[164,196]].forEach(function(p) {
+        var c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx',p[0]); c.setAttribute('cy',p[1]); c.setAttribute('r','12');
+        grip.appendChild(c);
+      });
+      return grip;
+    }
+
+    function makeSvgIcon(d) {
+      var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('class','w-3.5 h-3.5'); svg.setAttribute('fill','none');
+      svg.setAttribute('stroke','currentColor'); svg.setAttribute('viewBox','0 0 24 24');
+      var path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('stroke-linecap','round'); path.setAttribute('stroke-linejoin','round');
+      path.setAttribute('stroke-width','2'); path.setAttribute('d',d);
+      svg.appendChild(path); return svg;
+    }
+
+    function renderModal() {
+      var hiddenList = document.getElementById('hidden-list');
+      var visibleList = document.getElementById('visible-list');
+      while (hiddenList.firstChild) hiddenList.removeChild(hiddenList.firstChild);
+      while (visibleList.firstChild) visibleList.removeChild(visibleList.firstChild);
+
+      var hidden = ALL_COLUMNS.filter(function(c) { return modalColumns.indexOf(c.key) === -1; });
+
+      if (hidden.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'py-8 text-center text-sm text-text-tertiary';
+        empty.textContent = 'All columns are visible';
+        hiddenList.appendChild(empty);
+      } else {
+        hidden.forEach(function(col) {
+          var row = document.createElement('div');
+          row.className = 'flex items-center justify-between rounded-md bg-surface-primary px-3 py-2 hover:bg-surface-tertiary transition-colors cursor-grab';
+          var left = document.createElement('div'); left.className = 'flex items-center gap-2';
+          left.appendChild(makeGrip(false));
+          var lbl = document.createElement('span'); lbl.className = 'text-sm'; lbl.textContent = col.label;
+          left.appendChild(lbl); row.appendChild(left);
+          var addBtn = document.createElement('button');
+          addBtn.className = 'flex items-center justify-center h-6 w-6 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-secondary transition-colors';
+          addBtn.appendChild(makeSvgIcon('M12 4v16m8-8H4'));
+          addBtn.addEventListener('click', (function(k){ return function(){ modalColumns.push(k); renderModal(); }; })(col.key));
+          row.appendChild(addBtn); hiddenList.appendChild(row);
+        });
+      }
+
+      modalColumns.forEach(function(key) {
+        var col = ALL_COLUMNS.find(function(c){ return c.key === key; });
+        if (!col) return;
+        var row = document.createElement('div');
+        row.className = 'flex items-center justify-between rounded-md bg-surface-primary px-3 py-2 transition-colors ' + (col.required ? 'opacity-60 cursor-not-allowed' : 'hover:bg-surface-tertiary cursor-grab');
+        var left = document.createElement('div'); left.className = 'flex items-center gap-2';
+        left.appendChild(makeGrip(col.required));
+        var lbl = document.createElement('span'); lbl.className = 'text-sm'; lbl.textContent = col.label;
+        left.appendChild(lbl);
+        if (col.required) { var req = document.createElement('span'); req.className = 'text-xs text-text-tertiary'; req.textContent = '(required)'; left.appendChild(req); }
+        row.appendChild(left);
+        if (!col.required) {
+          var rmBtn = document.createElement('button');
+          rmBtn.className = 'flex items-center justify-center h-6 w-6 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-secondary transition-colors';
+          rmBtn.appendChild(makeSvgIcon('M6 18L18 6M6 6l12 12'));
+          rmBtn.addEventListener('click', (function(k){ return function(){ modalColumns = modalColumns.filter(function(x){ return x !== k; }); renderModal(); }; })(col.key));
+          row.appendChild(rmBtn);
+        }
+        visibleList.appendChild(row);
+      });
+
+      document.getElementById('hidden-count').textContent = '(' + hidden.length + ')';
+      document.getElementById('visible-count').textContent = '(' + modalColumns.length + ')';
+    }
+
+    function resetColumns() { modalColumns = DEFAULT_VISIBLE.slice(); renderModal(); }
+    function saveColumns() { visibleColumns = modalColumns.slice(); applyColumns(); closeModal(); }
+
+    function applyColumns() {
+      ALL_COLUMNS.forEach(function(col) {
+        document.querySelectorAll('[data-col="' + col.key + '"]').forEach(function(cell) {
+          if (visibleColumns.indexOf(col.key) !== -1) cell.classList.remove('col-hidden');
+          else cell.classList.add('col-hidden');
+        });
+      });
+    }
+  </script>
+</body>
+</html>

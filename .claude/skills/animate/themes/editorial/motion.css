@@ -1,0 +1,545 @@
+/* ================================================================
+   EDITORIAL PERSONALITY — Animation System
+
+   Content-forward animation: gentle staggers, crossfade transitions,
+   content cycling, interface-as-demo patterns. Designed for
+   shareability — all tokens are CSS custom properties that can be
+   overridden by any design system.
+
+   Token prefix: --ed-
+   Personality: editorial
+   Mode: light (default) — override :root tokens for dark mode
+
+   Reference: reference.html
+   ================================================================ */
+
+/* ================================================================
+   LAYER 1: DESIGN TOKENS
+
+   All visual properties. Override these at :root level to adapt
+   the editorial personality to your design system.
+   ================================================================ */
+:root {
+  /* ---- Surfaces ---- */
+  --ed-bg-body: #fafaf9;                   /* stone-50 */
+  --ed-surface-card: #ffffff;
+  --ed-surface-secondary: #f5f5f4;         /* stone-100 */
+  --ed-surface-hover: #e7e5e4;             /* stone-200 */
+  --ed-surface-overlay: rgba(0,0,0,0.03);
+
+  /* ---- Text ---- */
+  --ed-text-primary: #1c1917;              /* stone-900 */
+  --ed-text-secondary: #44403c;            /* stone-700 */
+  --ed-text-tertiary: #78716c;             /* stone-500 */
+  --ed-text-quaternary: #a8a29e;           /* stone-400 */
+
+  /* ---- Borders ---- */
+  --ed-border-subtle: #e7e5e4;             /* stone-200 */
+  --ed-border-medium: #d6d3d1;             /* stone-300 */
+  --ed-border-active: #3b82f6;             /* blue-500 */
+
+  /* ---- Accents ---- */
+  --ed-accent: #3b82f6;                    /* blue-500 */
+  --ed-accent-bg: #eff6ff;                 /* blue-50 */
+  --ed-accent-text: #1d4ed8;              /* blue-700 */
+  --ed-success: #16a34a;                   /* green-600 */
+  --ed-success-bg: #f0fdf4;               /* green-50 */
+
+  /* ---- Shadows ---- */
+  --ed-shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --ed-shadow-elevated: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+
+  /* ---- Typography ---- */
+  --ed-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ed-font-mono: 'SF Mono', 'Fira Code', monospace;
+
+  /* ---- Radius ---- */
+  --ed-radius-sm: 4px;
+  --ed-radius-md: 8px;
+  --ed-radius-lg: 12px;
+  --ed-radius-xl: 16px;
+
+  /* ---- Timing ---- */
+  --ed-fast: 150ms;
+  --ed-medium: 400ms;
+  --ed-slow: 700ms;
+
+  /* ---- Easing ---- */
+  --ed-ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);      /* ease-out-quart */
+  --ed-ease-in: cubic-bezier(0.55, 0.06, 0.68, 0.19);
+  --ed-ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* ---- Ambient ---- */
+  --ed-gradient-start: #eff6ff;            /* blue-50 */
+  --ed-gradient-end: #f5f3ff;              /* violet-50 */
+}
+
+
+/* ================================================================
+   LAYER 2: BASE STYLES
+   ================================================================ */
+body {
+  background: var(--ed-bg-body);
+  color: var(--ed-text-primary);
+  font-family: var(--ed-font);
+  margin: 0;
+  padding: 40px 20px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+}
+
+
+/* ================================================================
+   LAYER 3: SCENE — Flat, no 3D perspective
+   ================================================================ */
+.scene {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  /* No perspective — editorial is flat */
+}
+
+
+/* ================================================================
+   LAYER 4: CARD — Clean, minimal
+   ================================================================ */
+.card {
+  background: var(--ed-surface-card);
+  border-radius: var(--ed-radius-xl);
+  border: 1px solid var(--ed-border-subtle);
+  box-shadow: var(--ed-shadow-card);
+  overflow: hidden;
+  position: relative;
+  /* No 3D transforms — editorial doesn't use camera motion */
+}
+
+
+/* ================================================================
+   LAYER 5: CARD HEADER
+   ================================================================ */
+.card-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--ed-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header .title-block {
+  opacity: 1;
+  transition: opacity var(--ed-fast) var(--ed-ease-out);
+}
+
+.card-header .title-block.transitioning {
+  opacity: 0;
+}
+
+.card-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ed-text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.card-header .subtitle {
+  font-size: 13px;
+  color: var(--ed-text-tertiary);
+  margin: 4px 0 0;
+}
+
+
+/* ================================================================
+   LAYER 6: PHASE CONTAINER — Crossfade transitions
+   ================================================================ */
+.phase-container {
+  position: relative;
+  overflow: hidden;
+  transition: height var(--ed-slow) var(--ed-ease-smooth);
+}
+
+.phase {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px 24px;
+  box-sizing: border-box;
+
+  /* Crossfade (editorial signature) */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ed-medium) var(--ed-ease-out);
+}
+
+.phase.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.phase.exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Measuring mode — used by engine to calculate heights */
+.phase.measuring {
+  position: relative;
+  opacity: 1;
+  pointer-events: none;
+}
+
+
+/* ================================================================
+   LAYER 7: SLIDE+FADE ENTRANCE — The editorial stagger
+   ================================================================ */
+.slide-enter {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity var(--ed-medium) var(--ed-ease-out),
+              transform var(--ed-medium) var(--ed-ease-out);
+}
+
+.slide-enter.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+/* ================================================================
+   LAYER 8: BLUR-TO-SHARP REVEAL — Hero moments only
+   ================================================================ */
+.blur-reveal {
+  opacity: 0;
+  filter: blur(8px);
+  transform: scale(0.98);
+  transition: opacity var(--ed-slow) var(--ed-ease-out),
+              filter var(--ed-slow) var(--ed-ease-out),
+              transform var(--ed-slow) var(--ed-ease-out);
+}
+
+.blur-reveal.visible {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+
+/* ================================================================
+   LAYER 9: CONTENT CYCLING — Editorial signature effect
+   ================================================================ */
+.cycle-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.cycle-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity var(--ed-medium) var(--ed-ease-out),
+              transform var(--ed-medium) var(--ed-ease-out);
+  white-space: nowrap;
+}
+
+.cycle-item.active {
+  position: relative;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cycle-item.exiting {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+
+/* ================================================================
+   LAYER 10: TAB SYSTEM
+   ================================================================ */
+.tab-bar {
+  display: flex;
+  gap: 2px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--ed-border-subtle);
+}
+
+.tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ed-text-tertiary);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--ed-fast) var(--ed-ease-out),
+              border-color var(--ed-fast) var(--ed-ease-out);
+}
+
+.tab.active {
+  color: var(--ed-accent-text);
+  border-bottom-color: var(--ed-accent);
+}
+
+
+/* ================================================================
+   LAYER 11: COUNT-UP NUMBERS
+   ================================================================ */
+.count-up {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+
+/* ================================================================
+   LAYER 12: AMBIENT GRADIENT
+   ================================================================ */
+.ambient-gradient {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    ellipse at 30% 40%,
+    var(--ed-gradient-start) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    ellipse at 70% 60%,
+    var(--ed-gradient-end) 0%,
+    transparent 50%
+  );
+  opacity: 0.5;
+  animation: ed-ambient-drift 14s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes ed-ambient-drift {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(3%, 2%) rotate(2deg); }
+}
+
+
+/* ================================================================
+   LAYER 13: TYPEWRITER
+   ================================================================ */
+.typewriter-text {
+  border-right: 2px solid var(--ed-text-primary);
+  padding-right: 2px;
+  animation: ed-cursor-blink 600ms step-end infinite;
+}
+
+.typewriter-text.done {
+  border-right-color: transparent;
+  animation: none;
+}
+
+@keyframes ed-cursor-blink {
+  0%, 100% { border-right-color: var(--ed-text-primary); }
+  50% { border-right-color: transparent; }
+}
+
+
+/* ================================================================
+   LAYER 14: UI ELEMENT STYLES — Generic product UI
+   ================================================================ */
+
+/* List rows */
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--ed-radius-sm);
+  transition: background var(--ed-fast) var(--ed-ease-out);
+}
+
+.list-row:hover {
+  background: var(--ed-surface-hover);
+}
+
+.list-row .icon-container {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ed-radius-md);
+  background: var(--ed-surface-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.list-row .row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-row .row-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ed-text-primary);
+}
+
+.list-row .row-meta {
+  font-size: 12px;
+  color: var(--ed-text-tertiary);
+  margin-top: 2px;
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badge--accent {
+  background: var(--ed-accent-bg);
+  color: var(--ed-accent-text);
+}
+
+.badge--success {
+  background: var(--ed-success-bg);
+  color: var(--ed-success);
+}
+
+/* Search input */
+.search-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--ed-surface-secondary);
+  border: 1px solid var(--ed-border-subtle);
+  border-radius: var(--ed-radius-md);
+  font-size: 14px;
+  color: var(--ed-text-primary);
+}
+
+.search-input .search-icon {
+  color: var(--ed-text-quaternary);
+  flex-shrink: 0;
+}
+
+/* Stat card */
+.stat-card {
+  padding: 16px 20px;
+  background: var(--ed-surface-card);
+  border: 1px solid var(--ed-border-subtle);
+  border-radius: var(--ed-radius-md);
+}
+
+.stat-card .stat-label {
+  font-size: 12px;
+  color: var(--ed-text-tertiary);
+  margin-bottom: 4px;
+}
+
+.stat-card .stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--ed-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ================================================================
+   LAYER 15: FOOTER / ACTION BAR
+   ================================================================ */
+.card-footer {
+  padding: 12px 24px 16px;
+  border-top: 1px solid var(--ed-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ed-text-tertiary);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  transition: opacity var(--ed-fast) var(--ed-ease-out);
+}
+
+.card-footer.active {
+  opacity: 1;
+}
+
+
+/* ================================================================
+   LAYER 16: PLAYBACK CONTROLS
+   ================================================================ */
+.playback-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 0 0;
+}
+
+.play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--ed-border-medium);
+  background: var(--ed-surface-card);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ed-text-secondary);
+  transition: border-color var(--ed-fast) var(--ed-ease-out),
+              color var(--ed-fast) var(--ed-ease-out);
+}
+
+.play-btn:hover {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}
+
+.phase-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.phase-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ed-border-medium);
+  cursor: pointer;
+  transition: background var(--ed-fast) var(--ed-ease-out),
+              transform var(--ed-fast) var(--ed-ease-out);
+}
+
+.phase-dot.active {
+  background: var(--ed-accent);
+  transform: scale(1.25);
+}
+
+.phase-dot.completed {
+  background: var(--ed-accent);
+  opacity: 0.5;
+}
+
+.phase-label {
+  font-size: 12px;
+  color: var(--ed-text-tertiary);
+  min-width: 60px;
+}

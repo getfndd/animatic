@@ -1,0 +1,17 @@
+{
+  "id": "2026-02-13-inline-ai-cmdj",
+  "name": "Inline AI Cmd+J",
+  "description": "Four-state interaction flow for Cmd+J inline AI: text selected with hint, action menu (Polish/Expand/Summarize), processing with pulse animation, result with undo hint. AI-assumed design — no sparkles or AI branding.",
+  "prompt": "/prototype Cmd+J inline AI experience for email composer",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Four states: selection → menu → processing → result. Plus implementation notes." }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--text-primary", "--text-tertiary", "--status-success", "--status-success-bg"],
+    "presets": [],
+    "patterns": ["bubble-menu-dark-pill", "ai-assumed-design"]
+  },
+  "createdAt": "2026-02-13T00:00:00Z"
+}

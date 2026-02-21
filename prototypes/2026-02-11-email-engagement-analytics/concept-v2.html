@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audience Engagement</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --status-info: 217 91% 60%;
+      --status-info-bg: 214 95% 93%;
+      --radius: 0.5rem;
+    }
+
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+
+    /* Avatar colors — 200-shade */
+    .avatar-blue { background-color: #bfdbfe; color: #1e40af; }
+    .avatar-emerald { background-color: #a7f3d0; color: #065f46; }
+    .avatar-amber { background-color: #fde68a; color: #92400e; }
+    .avatar-violet { background-color: #ddd6fe; color: #5b21b6; }
+    .avatar-rose { background-color: #fecdd3; color: #9f1239; }
+    .avatar-cyan { background-color: #a5f3fc; color: #155e75; }
+    .avatar-orange { background-color: #fed7aa; color: #9a3412; }
+    .avatar-teal { background-color: #99f6e4; color: #115e59; }
+
+    /* Sparkline bars */
+    .spark-bar {
+      width: 6px;
+      border-radius: 1px;
+      transition: opacity 150ms;
+    }
+    .spark-clicked { background: hsl(var(--status-success)); }
+    .spark-opened { background: hsl(var(--status-info)); }
+    .spark-delivered { background: hsl(var(--border-strong)); }
+    .spark-none { background: hsl(var(--border-subtle)); }
+    .spark-bounced { background: hsl(var(--status-error)); }
+
+    /* Tooltip on sparkline hover */
+    .spark-group:hover .spark-tooltip {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .spark-tooltip {
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all 120ms ease;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+            'status-info': 'hsl(var(--status-info))',
+            'status-info-bg': 'hsl(var(--status-info-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-60 h-screen border-r flex flex-col bg-surface-primary shrink-0">
+      <div class="h-14 flex items-center px-6 border-b">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded bg-surface-inverse"></div>
+          <span class="font-semibold">Weftly</span>
+        </div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-4 px-3">
+        <div class="text-[11px] font-medium text-text-tertiary px-3 mb-2">Workspace</div>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Home
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          People
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-surface-tertiary font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          Email
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Analytics
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Settings
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <!-- Top Bar -->
+      <header class="h-14 border-b flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold">Email</h1>
+          <span class="text-text-tertiary">/</span>
+          <span class="text-sm text-text-secondary">Audience Engagement</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="text-xs text-text-secondary px-3 py-1.5 rounded border hover:bg-surface-secondary transition-colors duration-[140ms]">Export</button>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-auto p-6">
+
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-4 gap-3 mb-8">
+          <div class="border rounded-md p-4">
+            <div class="text-xs font-medium text-text-tertiary mb-1">Total Recipients</div>
+            <div class="text-2xl font-semibold tabular-nums">34</div>
+            <div class="text-xs text-text-tertiary mt-1">Across 6 emails</div>
+          </div>
+          <div class="border rounded-md p-4">
+            <div class="text-xs font-medium text-text-tertiary mb-1">Engaged (90 days)</div>
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-2xl font-semibold tabular-nums">26</span>
+              <span class="text-xs text-status-success tabular-nums">76%</span>
+            </div>
+            <div class="text-xs text-text-tertiary mt-1">Opened or clicked at least once</div>
+          </div>
+          <div class="border rounded-md p-4 border-status-warning/30 bg-status-warning-bg/30">
+            <div class="text-xs font-medium text-text-tertiary mb-1">Going Cold</div>
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-2xl font-semibold tabular-nums">5</span>
+            </div>
+            <div class="text-xs text-status-warning mt-1">No engagement in 2+ emails</div>
+          </div>
+          <div class="border rounded-md p-4">
+            <div class="text-xs font-medium text-text-tertiary mb-1">Avg Click Rate</div>
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-2xl font-semibold tabular-nums">31%</span>
+            </div>
+            <div class="text-xs text-text-tertiary mt-1">Across last 6 sends</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <button class="text-xs font-medium px-3 py-1.5 rounded bg-surface-tertiary text-text-primary">All Recipients</button>
+            <button class="text-xs px-3 py-1.5 rounded text-text-secondary hover:bg-surface-secondary transition-colors duration-[140ms]">Highly Engaged</button>
+            <button class="text-xs px-3 py-1.5 rounded text-text-secondary hover:bg-surface-secondary transition-colors duration-[140ms]">Going Cold</button>
+            <button class="text-xs px-3 py-1.5 rounded text-text-secondary hover:bg-surface-secondary transition-colors duration-[140ms]">Bounced</button>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-text-tertiary">
+            <!-- Sparkline legend -->
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-sm bg-status-success"></div>
+              <span>Clicked</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-sm bg-status-info"></div>
+              <span>Opened</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-sm bg-border-strong"></div>
+              <span>Delivered</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-sm bg-border-subtle"></div>
+              <span>No data</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column Headers -->
+        <div class="flex items-center gap-4 px-4 py-2 text-xs font-medium text-text-tertiary border-b">
+          <div class="w-[240px]">Contact</div>
+          <div class="w-[180px] text-center">Last 6 Emails</div>
+          <div class="w-[100px] text-right">Click Rate</div>
+          <div class="w-[120px] text-right">Last Engaged</div>
+          <div class="flex-1 text-right">Trend</div>
+        </div>
+
+        <!-- Highly Engaged Section -->
+        <div class="mt-4 mb-2 flex items-center gap-2 px-4">
+          <div class="w-1.5 h-1.5 rounded-full bg-status-success"></div>
+          <span class="text-xs font-medium">Highly Engaged</span>
+          <span class="text-xs text-text-tertiary">12 contacts</span>
+        </div>
+
+        <div class="space-y-px mb-6">
+          <!-- Sarah Vance -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-blue flex items-center justify-center text-[10px] font-medium shrink-0">SV</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Sarah Vance</div>
+                <div class="text-xs text-text-tertiary truncate">Partner, Sequoia Capital</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <!-- 6 bars: most recent on right. clicked/opened/delivered/none -->
+              <div class="spark-bar h-5 spark-clicked" title="Jan — Clicked"></div>
+              <div class="spark-bar h-5 spark-clicked" title="Dec — Clicked"></div>
+              <div class="spark-bar h-5 spark-opened" title="Nov — Opened"></div>
+              <div class="spark-bar h-5 spark-clicked" title="Oct — Clicked"></div>
+              <div class="spark-bar h-5 spark-clicked" title="Sep — Clicked"></div>
+              <div class="spark-bar h-5 spark-clicked" title="Feb — Clicked"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums font-medium">83%</div>
+            <div class="w-[120px] text-right text-xs text-text-secondary tabular-nums">2 days ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-success">Consistent</span>
+            </div>
+          </div>
+
+          <!-- Mike Kim -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-emerald flex items-center justify-center text-[10px] font-medium shrink-0">MK</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Mike Kim</div>
+                <div class="text-xs text-text-tertiary truncate">GP, Founders Fund</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums font-medium">83%</div>
+            <div class="w-[120px] text-right text-xs text-text-secondary tabular-nums">2 days ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-success">Consistent</span>
+            </div>
+          </div>
+
+          <!-- Raj Patel -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-violet flex items-center justify-center text-[10px] font-medium shrink-0">RP</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Raj Patel</div>
+                <div class="text-xs text-text-tertiary truncate">Managing Director, a16z</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums font-medium">67%</div>
+            <div class="w-[120px] text-right text-xs text-text-secondary tabular-nums">2 days ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-success">Consistent</span>
+            </div>
+          </div>
+
+          <!-- Anya Chen -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-cyan flex items-center justify-center text-[10px] font-medium shrink-0">AC</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Anya Chen</div>
+                <div class="text-xs text-text-tertiary truncate">Principal, Lightspeed</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-none"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums font-medium">67%</div>
+            <div class="w-[120px] text-right text-xs text-text-secondary tabular-nums">2 days ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-success">Consistent</span>
+            </div>
+          </div>
+
+          <!-- Lisa Thompson -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-amber flex items-center justify-center text-[10px] font-medium shrink-0">LT</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Lisa Thompson</div>
+                <div class="text-xs text-text-tertiary truncate">Board Member</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums font-medium">67%</div>
+            <div class="w-[120px] text-right text-xs text-text-secondary tabular-nums">2 days ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-success">Consistent</span>
+            </div>
+          </div>
+
+          <!-- Collapsed -->
+          <div class="px-4 py-2 text-xs text-text-tertiary">+ 7 more highly engaged contacts</div>
+        </div>
+
+        <!-- Active Section -->
+        <div class="mb-2 flex items-center gap-2 px-4">
+          <div class="w-1.5 h-1.5 rounded-full bg-status-info"></div>
+          <span class="text-xs font-medium">Active</span>
+          <span class="text-xs text-text-tertiary">12 contacts &middot; engaged recently but not consistently</span>
+        </div>
+
+        <div class="space-y-px mb-6">
+          <!-- Tara Nguyen -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-blue flex items-center justify-center text-[10px] font-medium shrink-0">TN</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Tara Nguyen</div>
+                <div class="text-xs text-text-tertiary truncate">VP Product, Acme Corp</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums">17%</div>
+            <div class="w-[120px] text-right text-xs text-text-secondary tabular-nums">2 days ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-text-tertiary">Steady</span>
+            </div>
+          </div>
+
+          <!-- Ben Kowalski -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-emerald flex items-center justify-center text-[10px] font-medium shrink-0">BK</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Ben Kowalski</div>
+                <div class="text-xs text-text-tertiary truncate">Angel Investor</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums">17%</div>
+            <div class="w-[120px] text-right text-xs text-text-secondary tabular-nums">2 days ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-text-tertiary">Steady</span>
+            </div>
+          </div>
+
+          <!-- Elena Lopez -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-violet flex items-center justify-center text-[10px] font-medium shrink-0">EL</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Elena Lopez</div>
+                <div class="text-xs text-text-tertiary truncate">CTO, Meridian Labs</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-none"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-none"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums">17%</div>
+            <div class="w-[120px] text-right text-xs text-text-secondary tabular-nums">1 week ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-text-tertiary">Steady</span>
+            </div>
+          </div>
+
+          <div class="px-4 py-2 text-xs text-text-tertiary">+ 9 more active contacts</div>
+        </div>
+
+        <!-- Going Cold Section -->
+        <div class="mb-2 flex items-center gap-2 px-4">
+          <div class="w-1.5 h-1.5 rounded-full bg-status-warning"></div>
+          <span class="text-xs font-medium text-status-warning">Going Cold</span>
+          <span class="text-xs text-text-tertiary">5 contacts &middot; no engagement in last 2+ emails</span>
+        </div>
+
+        <div class="space-y-px mb-6">
+          <!-- Chris Martinez - with inline insight -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group bg-status-warning-bg/20">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-rose flex items-center justify-center text-[10px] font-medium shrink-0">CM</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Chris Martinez</div>
+                <div class="text-xs text-text-tertiary truncate">Partner, GV</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums text-text-secondary">0%</div>
+            <div class="w-[120px] text-right text-xs text-text-tertiary tabular-nums">3 months ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-warning">3 missed</span>
+            </div>
+          </div>
+
+          <!-- Kim Reeves -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group bg-status-warning-bg/20">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-cyan flex items-center justify-center text-[10px] font-medium shrink-0">KR</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Kim Reeves</div>
+                <div class="text-xs text-text-tertiary truncate">Operating Partner, Insight</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums text-text-secondary">0%</div>
+            <div class="w-[120px] text-right text-xs text-text-tertiary tabular-nums">2 months ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-warning">2 missed</span>
+            </div>
+          </div>
+
+          <!-- Amir Farooq -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group bg-status-warning-bg/20">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-orange flex items-center justify-center text-[10px] font-medium shrink-0">AF</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Amir Farooq</div>
+                <div class="text-xs text-text-tertiary truncate">Advisor</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums text-text-secondary">0%</div>
+            <div class="w-[120px] text-right text-xs text-text-tertiary tabular-nums">4 months ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-warning">4 missed</span>
+            </div>
+          </div>
+
+          <!-- Julia Okafor -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group bg-status-warning-bg/20">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-teal flex items-center justify-center text-[10px] font-medium shrink-0">JO</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Julia Okafor</div>
+                <div class="text-xs text-text-tertiary truncate">VP Eng, Stripe</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-none"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums text-text-secondary">0%</div>
+            <div class="w-[120px] text-right text-xs text-text-tertiary tabular-nums">4 months ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-warning">3 missed</span>
+            </div>
+          </div>
+
+          <!-- Henrik Strand -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded hover:bg-surface-secondary transition-colors duration-[140ms] cursor-pointer group bg-status-warning-bg/20">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full avatar-blue flex items-center justify-center text-[10px] font-medium shrink-0">HS</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Henrik Strand</div>
+                <div class="text-xs text-text-tertiary truncate">Angel Investor</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums text-text-secondary">0%</div>
+            <div class="w-[120px] text-right text-xs text-text-tertiary tabular-nums">3 months ago</div>
+            <div class="flex-1 text-right">
+              <span class="text-xs text-status-warning">2 missed</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bounced / Unreachable Section -->
+        <div class="mb-2 flex items-center gap-2 px-4">
+          <div class="w-1.5 h-1.5 rounded-full bg-status-error"></div>
+          <span class="text-xs font-medium text-status-error">Unreachable</span>
+          <span class="text-xs text-text-tertiary">2 contacts &middot; hard bounced or invalid</span>
+        </div>
+
+        <div class="space-y-px mb-6">
+          <!-- Frank Henderson -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded cursor-pointer group bg-status-error-bg/30">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full bg-status-error-bg flex items-center justify-center text-[10px] font-medium text-status-error shrink-0">FH</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Frank Henderson</div>
+                <div class="text-xs text-status-error truncate">Hard bounce &middot; f.henderson@oldcorp.com</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-bounced"></div>
+              <div class="spark-bar h-5 spark-none"></div>
+              <div class="spark-bar h-5 spark-none"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+              <div class="spark-bar h-5 spark-clicked"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums text-text-tertiary">--</div>
+            <div class="w-[120px] text-right text-xs text-text-tertiary tabular-nums">5 months ago</div>
+            <div class="flex-1 text-right">
+              <button class="text-xs text-text-secondary hover:text-text-primary px-2 py-1 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">Update email</button>
+            </div>
+          </div>
+
+          <!-- Roberto Diaz -->
+          <div class="flex items-center gap-4 px-4 py-2.5 rounded cursor-pointer group bg-status-error-bg/30">
+            <div class="w-[240px] flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full bg-status-error-bg flex items-center justify-center text-[10px] font-medium text-status-error shrink-0">RD</div>
+              <div class="min-w-0">
+                <div class="text-sm font-medium truncate">Roberto Diaz</div>
+                <div class="text-xs text-status-error truncate">Mailbox full &middot; r.diaz@startup.io</div>
+              </div>
+            </div>
+            <div class="w-[180px] flex items-center justify-center gap-1">
+              <div class="spark-bar h-5 spark-bounced"></div>
+              <div class="spark-bar h-5 spark-bounced"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-delivered"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+              <div class="spark-bar h-5 spark-opened"></div>
+            </div>
+            <div class="w-[100px] text-right text-sm tabular-nums text-text-tertiary">--</div>
+            <div class="w-[120px] text-right text-xs text-text-tertiary tabular-nums">2 months ago</div>
+            <div class="flex-1 text-right">
+              <button class="text-xs text-text-secondary hover:text-text-primary px-2 py-1 rounded hover:bg-surface-secondary transition-colors duration-[140ms]">Update email</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Relationship Insight (AI-assumed — no sparkles, no branding) -->
+        <div class="border rounded-md p-4 bg-surface-secondary mb-6">
+          <div class="text-xs font-medium text-text-secondary mb-2">Relationship Insights</div>
+          <div class="space-y-2">
+            <div class="flex items-start gap-2">
+              <div class="w-1 h-1 rounded-full bg-status-warning mt-1.5 shrink-0"></div>
+              <p class="text-sm text-text-secondary"><span class="text-text-primary font-medium">Chris Martinez</span> hasn't opened your last 3 updates. Previously engaged consistently for 4 months. Consider a personal check-in.</p>
+            </div>
+            <div class="flex items-start gap-2">
+              <div class="w-1 h-1 rounded-full bg-status-error mt-1.5 shrink-0"></div>
+              <p class="text-sm text-text-secondary"><span class="text-text-primary font-medium">Frank Henderson</span> bounced — likely changed roles. His LinkedIn shows a move to Acme Ventures in January.</p>
+            </div>
+            <div class="flex items-start gap-2">
+              <div class="w-1 h-1 rounded-full bg-status-success mt-1.5 shrink-0"></div>
+              <p class="text-sm text-text-secondary"><span class="text-text-primary font-medium">Sarah Vance</span> has clicked your financial links in 5 of the last 6 emails. Strongest signal of due diligence interest.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom padding -->
+        <div class="h-8"></div>
+
+      </main>
+    </div>
+  </div>
+</body>
+</html>

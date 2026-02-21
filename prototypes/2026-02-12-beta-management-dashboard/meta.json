@@ -1,0 +1,35 @@
+{
+  "id": "2026-02-12-beta-management-dashboard",
+  "name": "Beta Management Dashboard",
+  "description": "Internal admin tool for managing beta users through the lifecycle. Two tabs: Overview (funnel visualization, health summary, key metrics as stat cards) and Users (per-user table with filter pills, status badges, engagement scores, user detail slideout with onboarding timeline and actions).",
+  "prompt": "/prototype Beta Management Dashboard at /dev/beta — internal admin tool for managing beta users through the lifecycle. Two tabs: Overview and Users. Follows Demo Invites dashboard pattern exactly.",
+  "fidelity": "concept",
+  "chrome": "sidebar",
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "Full dashboard with Overview tab (stats, funnel, health cards, activity feed) and Users tab (filter pills, data table, slideout detail panel). Follows DemoInvites structural DNA."
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--surface-primary",
+      "--surface-secondary",
+      "--surface-hover",
+      "--text-primary",
+      "--text-secondary",
+      "--text-tertiary",
+      "--border-default",
+      "--border-subtle"
+    ],
+    "presets": [],
+    "patterns": [
+      "flat-row-hover",
+      "stat-card-grid",
+      "filter-pills",
+      "slideout-panel",
+      "segmented-control"
+    ]
+  },
+  "createdAt": "2026-02-12T00:00:00Z"
+}

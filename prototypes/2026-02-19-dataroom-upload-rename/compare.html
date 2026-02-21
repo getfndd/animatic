@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compare: v3 vs v4 — Data Room Upload Animation</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #fafafa;
+      -webkit-font-smoothing: antialiased;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Header bar */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 1px solid #222;
+      background: #111;
+    }
+    .header h1 {
+      font-size: 14px;
+      font-weight: 500;
+      color: #999;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .controls button {
+      background: #222;
+      border: 1px solid #333;
+      color: #ccc;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 150ms, border-color 150ms;
+    }
+    .controls button:hover {
+      background: #2a2a2a;
+      border-color: #444;
+    }
+    .controls button.active {
+      background: #fafafa;
+      color: #0a0a0a;
+      border-color: #fafafa;
+    }
+
+    /* Version labels */
+    .labels {
+      display: flex;
+      gap: 16px;
+      padding: 10px 24px 0;
+    }
+    .label {
+      flex: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .label .version {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fafafa;
+    }
+    .label .desc {
+      font-size: 12px;
+      color: #666;
+    }
+    .label .tag {
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tag-baseline { background: #1a2a1a; color: #4ade80; }
+    .tag-enhanced { background: #1a1a2e; color: #818cf8; }
+
+    /* Split view */
+    .split {
+      display: flex;
+      gap: 16px;
+      padding: 8px 24px 24px;
+      height: calc(100vh - 90px);
+    }
+    .pane {
+      flex: 1;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #222;
+      background: #111;
+      position: relative;
+    }
+    .pane iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Divider */
+    .divider {
+      width: 1px;
+      background: #333;
+      align-self: stretch;
+      flex-shrink: 0;
+    }
+
+    /* Sync indicator */
+    .sync-badge {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #222;
+      border: 1px solid #333;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 11px;
+      color: #888;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+      transition: opacity 300ms;
+    }
+    .sync-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Data Room Upload — Animation Comparison</h1>
+    <div class="controls">
+      <button onclick="syncRestart()" class="active">Restart Both</button>
+      <button onclick="syncPhase(0)">Source</button>
+      <button onclick="syncPhase(1)">Select</button>
+      <button onclick="syncPhase(2)">Process</button>
+      <button onclick="syncPhase(3)">Suggest</button>
+      <button onclick="syncPhase(4)">Success</button>
+    </div>
+  </div>
+
+  <div class="labels">
+    <div class="label">
+      <span class="version">v3</span>
+      <span class="tag tag-baseline">Light UI</span>
+      <span class="desc">Typewriter, progress connectors, self-drawing checks</span>
+    </div>
+    <div style="width: 17px"></div>
+    <div class="label">
+      <span class="version">v4</span>
+      <span class="tag tag-enhanced">Cinematic</span>
+      <span class="desc">Dark canvas, 3D perspective, ambient glow, focus-pull, clip-path wipes</span>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="pane">
+      <iframe id="frame-v2" src="autoplay-v3.html?embed"></iframe>
+    </div>
+    <div class="divider"></div>
+    <div class="pane">
+      <iframe id="frame-v3" src="autoplay-v4.html?embed"></iframe>
+    </div>
+  </div>
+
+  <div class="sync-badge">
+    <span class="dot"></span>
+    Synced playback — both animations run simultaneously
+  </div>
+
+  <script>
+    const v2 = document.getElementById('frame-v2');
+    const v3 = document.getElementById('frame-v3');
+
+    function getWindow(frame) {
+      try { return frame.contentWindow; } catch(e) { return null; }
+    }
+
+    function syncRestart() {
+      const w2 = getWindow(v2);
+      const w3 = getWindow(v3);
+      if (w2 && w2.restart) w2.restart();
+      if (w3 && w3.restart) w3.restart();
+    }
+
+    function syncPhase(phase) {
+      const w2 = getWindow(v2);
+      const w3 = getWindow(v3);
+      if (w2 && w2.jumpTo) w2.jumpTo(phase);
+      if (w3 && w3.jumpTo) w3.jumpTo(phase);
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'r' || e.key === 'R') syncRestart();
+      if (e.key >= '0' && e.key <= '4') syncPhase(parseInt(e.key));
+      if (e.key === ' ') {
+        e.preventDefault();
+        const w2 = getWindow(v2);
+        const w3 = getWindow(v3);
+        if (w2 && w2.togglePlay) w2.togglePlay();
+        if (w3 && w3.togglePlay) w3.togglePlay();
+      }
+    });
+  </script>
+
+</body>
+</html>

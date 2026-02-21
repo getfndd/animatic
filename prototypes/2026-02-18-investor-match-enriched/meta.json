@@ -1,0 +1,25 @@
+{
+  "id": "2026-02-18-investor-match-enriched",
+  "name": "Investor Match Results — Enriched Cards + Aligned Slideout",
+  "description": "Redesigned match cards with contacts, portfolio highlights, leads-rounds badge. Slideout aligned to AI-assumed chat pattern (no avatars, neutral dots, proper pills).",
+  "prompt": "Investor match results UI alignment and data enrichment",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "Enriched match cards + aligned slideout panel"
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--surface-primary", "--surface-secondary",
+      "--text-primary", "--text-secondary", "--text-tertiary",
+      "--border-default", "--border-subtle",
+      "--status-success", "--status-success-muted"
+    ],
+    "presets": ["tertiary-action (Why this match?)"],
+    "patterns": ["AIChat UserMessage", "AIChat suggestion pills", "ThinkingCursor dots"]
+  },
+  "createdAt": "2026-02-18T20:00:00Z"
+}

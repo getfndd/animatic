@@ -1,0 +1,32 @@
+{
+  "id": "2026-02-15-fundraising-matching-advisor",
+  "name": "Fundraising Matching + Advisor",
+  "description": "Two components: (1) Investor Matching card — 3 placement/treatment options (in-grid action, inline row, contextual/adaptive), (2) AI Advisor button — 3 styles using Weftly W mark (outline pill, compact pill, icon-only circle)",
+  "prompt": "/prototype 'Investor Matching card + AI Advisor button' --fidelity concept --chrome sidebar --options 3 --name fundraising-matching-advisor",
+  "fidelity": "concept",
+  "chrome": "sidebar",
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "Option A: Matching stays IN the 4-column stats grid with dashed border + icon container + primary CTA. Advisor: outline pill with W mark + label."
+    },
+    {
+      "file": "concept-v2.html",
+      "notes": "Option B: Matching pulled OUT of grid into a separate inline action row between stats and tabs. Stats go to clean 3-column. Advisor: compact pill with tight padding and border-default."
+    },
+    {
+      "file": "concept-v3.html",
+      "notes": "Option C: Contextual/adaptive — prominent callout when <5 investors, subtle pill near segment tabs when 5+. Advisor: W mark only as icon button with tooltip."
+    },
+    {
+      "file": "concept-v4-advisor-buttons.html",
+      "notes": "5 Advisor button variations side-by-side: V1 compact pill 18px, V2 icon-only circle 20px, V3 ghost 14px, V4 outline pill with ⌘J shortcut 16px, V5 'Ask' verb-first with trailing W mark 18px"
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-tertiary", "--surface-inverse", "--text-primary", "--text-secondary", "--text-tertiary", "--text-inverse", "--border-default", "--border-subtle", "--border-strong"],
+    "presets": [],
+    "patterns": ["flat-row-hover", "icon-container", "segment-tabs", "stat-cards"]
+  },
+  "createdAt": "2026-02-15T20:00:00Z"
+}

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V5 — Compact Two-Line</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --status-info: 217 91% 60%;
+      --status-info-bg: 214 95% 93%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+            'status-info': 'hsl(var(--status-info))',
+            'status-info-bg': 'hsl(var(--status-info-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+  <div class="mx-auto max-w-[420px]">
+    <div class="mb-6">
+      <h1 class="text-lg font-medium text-text-primary">V5 — Compact Two-Line</h1>
+      <p class="mt-1 text-xs text-text-tertiary">Maximum density. Each card is strictly two lines: company + signal summary. Inline severity badge replaces the dot. Designed for queues with 10+ items where vertical space is critical. Expandable on click for full detail.</p>
+    </div>
+
+    <h2 class="mb-2 text-xs font-medium text-text-tertiary">Needs Attention</h2>
+    <div class="space-y-0.5">
+
+      <!-- Card 1 — Critical -->
+      <div class="group relative rounded-md border border-transparent bg-surface-primary px-3 py-2.5 transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-violet-200 text-[9px] font-medium text-violet-700">QM</div>
+          <div class="min-w-0 flex-1">
+            <!-- Line 1: Company + severity -->
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">QuantumSens Medical</span>
+              <span class="rounded-sm bg-status-error-bg px-1 py-px text-[9px] font-medium uppercase tracking-wider text-status-error">Critical</span>
+            </div>
+            <!-- Line 2: Primary signal + count -->
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-text-secondary">Update cadence declining · meetings stalled</span>
+              <span class="text-[10px] tabular-nums text-text-tertiary">+2 more</span>
+            </div>
+          </div>
+          <!-- Hover actions -->
+          <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary" title="Acknowledge">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </button>
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary" title="Snooze">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2 — Warning -->
+      <div class="group relative rounded-md border border-transparent bg-surface-primary px-3 py-2.5 transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-emerald-200 text-[9px] font-medium text-emerald-700">NT</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">NanoSuture Therapeutics</span>
+              <span class="rounded-sm bg-status-warning-bg px-1 py-px text-[9px] font-medium uppercase tracking-wider text-status-warning">Warning</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-text-secondary">Data room 3/8 current · budget revised 2x</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3 — Info -->
+      <div class="group relative rounded-md border border-transparent bg-surface-primary px-3 py-2.5 transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-blue-200 text-[9px] font-medium text-blue-700">LL</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">LedgerLogic</span>
+              <span class="rounded-sm bg-status-info-bg px-1 py-px text-[9px] font-medium uppercase tracking-wider text-status-info">New</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-text-secondary">Projection tracking needs 3+ updates to assess</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4 — Success edge case -->
+      <div class="group relative rounded-md border border-transparent bg-surface-primary px-3 py-2.5 transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-amber-200 text-[9px] font-medium text-amber-700">MG</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">MeshGuard Security</span>
+              <span class="rounded-sm bg-status-success-bg px-1 py-px text-[9px] font-medium uppercase tracking-wider text-status-success">Resolved</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-text-secondary">Data room fully refreshed — 8/8 current</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 5 — Another -->
+      <div class="group relative rounded-md border border-transparent bg-surface-primary px-3 py-2.5 transition-all duration-150 hover:-translate-y-px hover:border-border-subtle hover:shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-rose-200 text-[9px] font-medium text-rose-700">AA</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">Archipelago AI</span>
+              <span class="rounded-sm bg-status-success-bg px-1 py-px text-[9px] font-medium uppercase tracking-wider text-status-success">On Track</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-text-secondary">Monthly update received · all signals healthy</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Expanded state example -->
+    <div class="mt-6">
+      <h2 class="mb-2 text-xs font-medium text-text-tertiary">Expanded State (click to view)</h2>
+      <div class="rounded-md border border-border-subtle bg-surface-primary shadow-sm">
+        <div class="flex items-center gap-3 px-3 py-2.5">
+          <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-violet-200 text-[9px] font-medium text-violet-700">QM</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-text-primary">QuantumSens Medical</span>
+              <span class="rounded-sm bg-status-error-bg px-1 py-px text-[9px] font-medium uppercase tracking-wider text-status-error">Critical</span>
+              <span class="text-xs text-text-tertiary">Medtech · Tier 1</span>
+            </div>
+            <span class="text-xs text-text-secondary">Update cadence declining · meetings stalled · +2 more</span>
+          </div>
+          <div class="flex items-center gap-0.5">
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+            <button class="rounded p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 6v6l4 2"/></svg></button>
+          </div>
+        </div>
+        <!-- Expanded detail -->
+        <div class="border-t border-border-subtle px-3 py-2.5">
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-2">
+              <span class="h-1.5 w-1.5 rounded-full bg-status-error"></span>
+              <span class="text-xs text-text-secondary">Update cadence declining — was monthly, now every 8–10 weeks</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="h-1.5 w-1.5 rounded-full bg-status-error"></span>
+              <span class="text-xs text-text-secondary">Meeting frequency declining — last meeting 14 weeks ago</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="h-1.5 w-1.5 rounded-full bg-status-warning"></span>
+              <span class="text-xs text-text-secondary">Data room: 4 of 8 categories current</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="h-1.5 w-1.5 rounded-full bg-surface-tertiary"></span>
+              <span class="text-xs text-text-tertiary">Projections: 1 update — need 3+ to assess</span>
+            </div>
+          </div>
+          <!-- Segment bars -->
+          <div class="mt-3 flex items-center gap-4">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] text-text-tertiary">Updates</span>
+              <div class="flex gap-[2px]">
+                <span class="h-[3px] w-[8px] rounded-full bg-text-tertiary"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-text-tertiary"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-border-subtle"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-border-subtle"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-text-tertiary"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-border-subtle"></span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] text-text-tertiary">Meetings</span>
+              <div class="flex gap-[2px]">
+                <span class="h-[3px] w-[8px] rounded-full bg-text-tertiary"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-border-subtle"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-border-subtle"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-border-subtle"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-border-subtle"></span>
+                <span class="h-[3px] w-[8px] rounded-full bg-border-subtle"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

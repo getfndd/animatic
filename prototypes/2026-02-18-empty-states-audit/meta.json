@@ -1,0 +1,18 @@
+{
+  "id": "2026-02-18-empty-states-audit",
+  "name": "Empty States Audit",
+  "description": "Comprehensive audit of all empty states across the fundraising section's 9 nav items + sub-pages. Documents current state, annotates spec violations and drifts, and identifies systematic issues for batch fixing.",
+  "prompt": "Review empty states for all fundraising nav items — create HTML prototype to document for review and improvement",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Full audit — current states with violation annotations, systematic issues summary, spec update candidates" },
+    { "file": "concept-v2.html", "notes": "Proposed redesign — ghost previews, warmer copy, dual CTAs, full spec compliance. Inspired by Superlist, Figma, Seline, Mobbin benchmarks." }
+  ],
+  "designSystemUsage": {
+    "tokens": ["surface-primary", "surface-secondary", "text-primary", "text-secondary", "text-tertiary", "border-default", "border-subtle"],
+    "presets": [],
+    "patterns": ["empty-states"]
+  },
+  "createdAt": "2026-02-18T23:20:00Z"
+}

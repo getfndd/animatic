@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intel Sidebar — 5 Directions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --status-success: 142 71% 45%;
+      --status-error: 0 84% 60%;
+      --status-warning: 38 92% 50%;
+      --status-info: 217 91% 60%;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-info': 'hsl(var(--status-info))',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+  <div class="mx-auto max-w-[1200px]">
+    <div class="mb-10">
+      <h1 class="text-lg font-medium text-text-primary">Intel Sidebar — 5 Directions</h1>
+      <p class="mt-1 text-xs leading-relaxed text-text-tertiary max-w-[600px]">
+        Exploring the right column: summary reactivity, signal feed density, status dot noise,
+        and how the sidebar relates to the queue cards. All panels are 340px wide to match production.
+      </p>
+      <div class="mt-3 space-y-2 rounded border border-border-subtle bg-surface-primary p-3 max-w-[600px]">
+        <p class="text-xs font-medium text-text-primary">Problems to solve</p>
+        <ul class="space-y-1 text-[11px] text-text-secondary">
+          <li>1. Summary doesn't react to snooze/acknowledge — broken feedback loop</li>
+          <li>2. Status dots on feed items feel like noise — left column already shows severity</li>
+          <li>3. Feed items are verbose — 3 lines each, wasteful for a sidebar</li>
+          <li>4. No connection between feed events and queue card actions</li>
+          <li>5. Summary is a wall of text — not scannable</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-8">
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           DIRECTION A — Dense Timeline
+           Drop dots, use time as anchor, compact single-line events
+           ═══════════════════════════════════════════════════════════════ -->
+      <div>
+        <div class="mb-3">
+          <h2 class="text-sm font-medium text-text-primary">A — Dense Timeline</h2>
+          <p class="text-[11px] text-text-secondary mt-0.5">Drop status dots entirely. Time-anchored left column. Events are scannable one-liners. Summary becomes a reactive count bar.</p>
+        </div>
+        <div class="w-[340px] border-l border-border-default bg-surface-primary">
+          <div class="p-4">
+            <!-- Reactive summary — count-based, not prose -->
+            <div class="mb-5">
+              <div class="flex items-center gap-3 text-xs">
+                <span class="flex items-center gap-1.5">
+                  <span class="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-100 px-1.5 text-[10px] font-medium text-text-primary">1</span>
+                  <span class="text-text-secondary">critical</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-100 px-1.5 text-[10px] font-medium text-text-primary">2</span>
+                  <span class="text-text-secondary">watching</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-surface-tertiary px-1.5 text-[10px] font-medium text-text-tertiary">2</span>
+                  <span class="text-text-tertiary">on track</span>
+                </span>
+              </div>
+            </div>
+
+            <h2 class="mb-3 text-xs font-medium text-text-tertiary">Signal Feed</h2>
+
+            <!-- Today -->
+            <div class="mb-1 text-[10px] font-medium text-text-tertiary">Today</div>
+            <div class="space-y-0">
+              <div class="flex gap-3 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="w-8 flex-shrink-0 pt-px text-right text-[10px] tabular-nums text-text-tertiary">2h</span>
+                <div class="min-w-0">
+                  <p class="text-xs text-text-primary"><span class="font-medium">QuantumSens</span> <span class="text-text-secondary">update cadence declined to every 8–10 weeks</span></p>
+                </div>
+              </div>
+              <div class="flex gap-3 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="w-8 flex-shrink-0 pt-px text-right text-[10px] tabular-nums text-text-tertiary">4h</span>
+                <div class="min-w-0">
+                  <p class="text-xs text-text-primary"><span class="font-medium">MeshGuard</span> <span class="text-text-secondary">data room fully refreshed (8/8 current)</span></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- This Week -->
+            <div class="mb-1 mt-4 text-[10px] font-medium text-text-tertiary">This Week</div>
+            <div class="space-y-0">
+              <div class="flex gap-3 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="w-8 flex-shrink-0 pt-px text-right text-[10px] tabular-nums text-text-tertiary">Tue</span>
+                <div class="min-w-0">
+                  <p class="text-xs text-text-primary"><span class="font-medium">NanoSuture</span> <span class="text-text-secondary">data room flagged — 3 of 8 current</span></p>
+                </div>
+              </div>
+              <div class="flex gap-3 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="w-8 flex-shrink-0 pt-px text-right text-[10px] tabular-nums text-text-tertiary">Mon</span>
+                <div class="min-w-0">
+                  <p class="text-xs text-text-primary"><span class="font-medium">Archipelago AI</span> <span class="text-text-secondary">monthly update received</span></p>
+                </div>
+              </div>
+              <div class="flex gap-3 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="w-8 flex-shrink-0 pt-px text-right text-[10px] tabular-nums text-text-tertiary">Mon</span>
+                <div class="min-w-0">
+                  <p class="text-xs text-text-primary"><span class="font-medium">LedgerLogic</span> <span class="text-text-secondary">projection tracking now assessable (3+ updates)</span></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Last Week -->
+            <div class="mb-1 mt-4 text-[10px] font-medium text-text-tertiary">Last Week</div>
+            <div class="space-y-0">
+              <div class="flex gap-3 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="w-8 flex-shrink-0 pt-px text-right text-[10px] tabular-nums text-text-tertiary">Jan 31</span>
+                <div class="min-w-0">
+                  <p class="text-xs text-text-primary"><span class="font-medium">MeshGuard</span> <span class="text-text-secondary">quarterly board meeting completed</span></p>
+                </div>
+              </div>
+              <div class="flex gap-3 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="w-8 flex-shrink-0 pt-px text-right text-[10px] tabular-nums text-text-tertiary">Jan 30</span>
+                <div class="min-w-0">
+                  <p class="text-xs text-text-primary"><span class="font-medium">QuantumSens</span> <span class="text-text-secondary">no meeting in 14+ weeks</span></p>
+                </div>
+              </div>
+              <div class="flex gap-3 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="w-8 flex-shrink-0 pt-px text-right text-[10px] tabular-nums text-text-tertiary">Jan 28</span>
+                <div class="min-w-0">
+                  <p class="text-xs text-text-primary"><span class="font-medium">NanoSuture</span> <span class="text-text-secondary">budget stable — no revisions in 6 months</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           DIRECTION B — Grouped by Company
+           Cluster events by company, not by time. Each company is a mini-row
+           with its recent signals collapsed underneath
+           ═══════════════════════════════════════════════════════════════ -->
+      <div>
+        <div class="mb-3">
+          <h2 class="text-sm font-medium text-text-primary">B — Grouped by Company</h2>
+          <p class="text-[11px] text-text-secondary mt-0.5">Events clustered under company names. Scans like a changelog per company. Summary becomes structured bullet points, not prose.</p>
+        </div>
+        <div class="w-[340px] border-l border-border-default bg-surface-primary">
+          <div class="p-4">
+            <!-- Structured summary — bullet points -->
+            <h2 class="mb-2 text-xs font-medium text-text-tertiary">Summary</h2>
+            <div class="mb-5 space-y-1.5 text-xs text-text-secondary">
+              <div class="flex items-start gap-2">
+                <span class="mt-[3px] h-1 w-1 flex-shrink-0 rounded-full bg-text-tertiary"></span>
+                <span><span class="font-medium text-text-primary">QuantumSens Medical</span> needs immediate attention — reporting gaps and thesis drift</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="mt-[3px] h-1 w-1 flex-shrink-0 rounded-full bg-text-tertiary"></span>
+                <span><span class="font-medium text-text-primary">LedgerLogic</span> and <span class="font-medium text-text-primary">NanoSuture</span> show engagement risk — reporting dropped off</span>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="mt-[3px] h-1 w-1 flex-shrink-0 rounded-full bg-text-tertiary"></span>
+                <span>2 companies tracking well</span>
+              </div>
+            </div>
+
+            <h2 class="mb-3 text-xs font-medium text-text-tertiary">Recent Activity</h2>
+
+            <!-- Per-company groups -->
+            <div class="space-y-3">
+              <div>
+                <div class="flex items-center gap-2 px-2 py-1">
+                  <div class="flex h-5 w-5 items-center justify-center rounded bg-violet-200 text-[8px] font-medium text-violet-700">QM</div>
+                  <span class="text-xs font-medium text-text-primary">QuantumSens Medical</span>
+                </div>
+                <div class="ml-9 space-y-0.5">
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-text-secondary">Update cadence declined to every 8–10 weeks</span>
+                    <span class="text-[10px] text-text-tertiary">2h</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-text-secondary">No meeting in 14+ weeks</span>
+                    <span class="text-[10px] text-text-tertiary">Jan 30</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-2 px-2 py-1">
+                  <div class="flex h-5 w-5 items-center justify-center rounded bg-blue-200 text-[8px] font-medium text-blue-700">MG</div>
+                  <span class="text-xs font-medium text-text-primary">MeshGuard Security</span>
+                </div>
+                <div class="ml-9 space-y-0.5">
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-text-secondary">Data room fully refreshed (8/8 current)</span>
+                    <span class="text-[10px] text-text-tertiary">4h</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-text-secondary">Quarterly board meeting completed</span>
+                    <span class="text-[10px] text-text-tertiary">Jan 31</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-2 px-2 py-1">
+                  <div class="flex h-5 w-5 items-center justify-center rounded bg-emerald-200 text-[8px] font-medium text-emerald-700">NT</div>
+                  <span class="text-xs font-medium text-text-primary">NanoSuture Therapeutics</span>
+                </div>
+                <div class="ml-9 space-y-0.5">
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-text-secondary">Data room flagged — 3 of 8 current</span>
+                    <span class="text-[10px] text-text-tertiary">Tue</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-text-secondary">Budget stable — no revisions in 6 months</span>
+                    <span class="text-[10px] text-text-tertiary">Jan 28</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-2 px-2 py-1">
+                  <div class="flex h-5 w-5 items-center justify-center rounded bg-amber-200 text-[8px] font-medium text-amber-700">AA</div>
+                  <span class="text-xs font-medium text-text-primary">Archipelago AI</span>
+                </div>
+                <div class="ml-9 space-y-0.5">
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-text-secondary">Monthly update received</span>
+                    <span class="text-[10px] text-text-tertiary">Mon</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-2 px-2 py-1">
+                  <div class="flex h-5 w-5 items-center justify-center rounded bg-rose-200 text-[8px] font-medium text-rose-700">LL</div>
+                  <span class="text-xs font-medium text-text-primary">LedgerLogic</span>
+                </div>
+                <div class="ml-9 space-y-0.5">
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-text-secondary">Projection tracking now assessable (3+ updates)</span>
+                    <span class="text-[10px] text-text-tertiary">Mon</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           DIRECTION C — Minimal Feed + Reactive Scorecard
+           Summary becomes a live 5-company scorecard. Feed is ultra-compact.
+           ═══════════════════════════════════════════════════════════════ -->
+      <div>
+        <div class="mb-3">
+          <h2 class="text-sm font-medium text-text-primary">C — Scorecard + Minimal Feed</h2>
+          <p class="text-[11px] text-text-secondary mt-0.5">Summary replaced by a live portfolio scorecard showing each company's status at a glance. Feed below is ultra-compact — just change events.</p>
+        </div>
+        <div class="w-[340px] border-l border-border-default bg-surface-primary">
+          <div class="p-4">
+            <!-- Portfolio scorecard -->
+            <h2 class="mb-2.5 text-xs font-medium text-text-tertiary">Portfolio Health</h2>
+            <div class="mb-5 space-y-0.5">
+              <!-- Each company = one row with mini signal dots -->
+              <div class="flex items-center gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <div class="flex h-5 w-5 items-center justify-center rounded bg-violet-200 text-[8px] font-medium text-violet-700">QM</div>
+                <span class="flex-1 text-xs text-text-primary">QuantumSens</span>
+                <div class="flex gap-[3px]">
+                  <span class="h-2 w-2 rounded-sm bg-red-100"></span>
+                  <span class="h-2 w-2 rounded-sm bg-red-100"></span>
+                  <span class="h-2 w-2 rounded-sm bg-amber-100"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <div class="flex h-5 w-5 items-center justify-center rounded bg-emerald-200 text-[8px] font-medium text-emerald-700">NT</div>
+                <span class="flex-1 text-xs text-text-primary">NanoSuture</span>
+                <div class="flex gap-[3px]">
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-amber-100"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-amber-100"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <div class="flex h-5 w-5 items-center justify-center rounded bg-rose-200 text-[8px] font-medium text-rose-700">LL</div>
+                <span class="flex-1 text-xs text-text-primary">LedgerLogic</span>
+                <div class="flex gap-[3px]">
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-blue-100"></span>
+                  <span class="h-2 w-2 rounded-sm bg-amber-100"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <div class="flex h-5 w-5 items-center justify-center rounded bg-amber-200 text-[8px] font-medium text-amber-700">AA</div>
+                <span class="flex-1 text-xs text-text-primary">Archipelago AI</span>
+                <div class="flex gap-[3px]">
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <div class="flex h-5 w-5 items-center justify-center rounded bg-blue-200 text-[8px] font-medium text-blue-700">MG</div>
+                <span class="flex-1 text-xs text-text-primary">MeshGuard</span>
+                <div class="flex gap-[3px]">
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                  <span class="h-2 w-2 rounded-sm bg-surface-tertiary"></span>
+                </div>
+              </div>
+            </div>
+
+            <h2 class="mb-3 text-xs font-medium text-text-tertiary">Changes</h2>
+            <div class="space-y-0">
+              <div class="rounded px-2 py-1.5 text-xs transition-colors hover:bg-surface-secondary">
+                <span class="font-medium text-text-primary">QuantumSens</span> <span class="text-text-secondary">cadence declined</span> <span class="text-text-tertiary">· 2h</span>
+              </div>
+              <div class="rounded px-2 py-1.5 text-xs transition-colors hover:bg-surface-secondary">
+                <span class="font-medium text-text-primary">MeshGuard</span> <span class="text-text-secondary">data room refreshed</span> <span class="text-text-tertiary">· 4h</span>
+              </div>
+              <div class="rounded px-2 py-1.5 text-xs transition-colors hover:bg-surface-secondary">
+                <span class="font-medium text-text-primary">NanoSuture</span> <span class="text-text-secondary">data room flagged</span> <span class="text-text-tertiary">· Tue</span>
+              </div>
+              <div class="rounded px-2 py-1.5 text-xs transition-colors hover:bg-surface-secondary">
+                <span class="font-medium text-text-primary">Archipelago AI</span> <span class="text-text-secondary">update received</span> <span class="text-text-tertiary">· Mon</span>
+              </div>
+              <div class="rounded px-2 py-1.5 text-xs transition-colors hover:bg-surface-secondary">
+                <span class="font-medium text-text-primary">LedgerLogic</span> <span class="text-text-secondary">projection assessable</span> <span class="text-text-tertiary">· Mon</span>
+              </div>
+              <div class="rounded px-2 py-1.5 text-xs transition-colors hover:bg-surface-secondary">
+                <span class="font-medium text-text-primary">MeshGuard</span> <span class="text-text-secondary">board meeting completed</span> <span class="text-text-tertiary">· Jan 31</span>
+              </div>
+              <div class="rounded px-2 py-1.5 text-xs transition-colors hover:bg-surface-secondary">
+                <span class="font-medium text-text-primary">QuantumSens</span> <span class="text-text-secondary">no meeting 14+ weeks</span> <span class="text-text-tertiary">· Jan 30</span>
+              </div>
+              <div class="rounded px-2 py-1.5 text-xs transition-colors hover:bg-surface-secondary">
+                <span class="font-medium text-text-primary">NanoSuture</span> <span class="text-text-secondary">budget stable</span> <span class="text-text-tertiary">· Jan 28</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           DIRECTION D — Conversational Summary + Unified Feed
+           AI summary is reactive prose (recalculates on snooze).
+           Feed drops temporal grouping — just a flat list with relative time.
+           ═══════════════════════════════════════════════════════════════ -->
+      <div>
+        <div class="mb-3">
+          <h2 class="text-sm font-medium text-text-primary">D — Reactive Prose + Flat Feed</h2>
+          <p class="text-[11px] text-text-secondary mt-0.5">Keep the Weftly avatar prose format but make it reactive (recalculates on snooze). Drop temporal group headers — time is inline. Smallest dot separators instead of status dots.</p>
+        </div>
+        <div class="w-[340px] border-l border-border-default bg-surface-primary">
+          <div class="p-4">
+            <!-- Reactive Weftly summary — same format, but note the reactive behavior -->
+            <div class="mb-5">
+              <div class="flex items-start gap-2.5">
+                <div class="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#404040]">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 5L8.5 19L12 8L15.5 19L20 5" stroke="#FAFAF9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-xs leading-relaxed text-text-secondary">
+                    <span class="font-medium text-text-primary">QuantumSens</span> needs attention — cadence and meetings declining.
+                    <span class="font-medium text-text-primary">LedgerLogic</span> and <span class="font-medium text-text-primary">NanoSuture</span> have reporting gaps despite strong thesis fit.
+                    2 companies on track.
+                  </p>
+                  <p class="mt-1 text-[10px] text-text-tertiary">Updated just now</p>
+                </div>
+              </div>
+            </div>
+
+            <h2 class="mb-2 text-xs font-medium text-text-tertiary">Activity</h2>
+            <div class="space-y-0">
+              <div class="flex items-start gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="mt-[5px] h-[3px] w-[3px] flex-shrink-0 rounded-full bg-border-default"></span>
+                <p class="flex-1 text-xs text-text-secondary"><span class="font-medium text-text-primary">QuantumSens</span> cadence declined to every 8–10 weeks</p>
+                <span class="flex-shrink-0 text-[10px] text-text-tertiary">2h</span>
+              </div>
+              <div class="flex items-start gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="mt-[5px] h-[3px] w-[3px] flex-shrink-0 rounded-full bg-border-default"></span>
+                <p class="flex-1 text-xs text-text-secondary"><span class="font-medium text-text-primary">MeshGuard</span> data room refreshed (8/8 current)</p>
+                <span class="flex-shrink-0 text-[10px] text-text-tertiary">4h</span>
+              </div>
+              <div class="flex items-start gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="mt-[5px] h-[3px] w-[3px] flex-shrink-0 rounded-full bg-border-default"></span>
+                <p class="flex-1 text-xs text-text-secondary"><span class="font-medium text-text-primary">NanoSuture</span> data room flagged — 3 of 8 current</p>
+                <span class="flex-shrink-0 text-[10px] text-text-tertiary">Tue</span>
+              </div>
+              <div class="flex items-start gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="mt-[5px] h-[3px] w-[3px] flex-shrink-0 rounded-full bg-border-default"></span>
+                <p class="flex-1 text-xs text-text-secondary"><span class="font-medium text-text-primary">Archipelago AI</span> monthly update received</p>
+                <span class="flex-shrink-0 text-[10px] text-text-tertiary">Mon</span>
+              </div>
+              <div class="flex items-start gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="mt-[5px] h-[3px] w-[3px] flex-shrink-0 rounded-full bg-border-default"></span>
+                <p class="flex-1 text-xs text-text-secondary"><span class="font-medium text-text-primary">LedgerLogic</span> projection tracking now assessable</p>
+                <span class="flex-shrink-0 text-[10px] text-text-tertiary">Mon</span>
+              </div>
+
+              <!-- Faint divider for older events -->
+              <div class="mx-2 my-2 border-t border-border-subtle"></div>
+
+              <div class="flex items-start gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="mt-[5px] h-[3px] w-[3px] flex-shrink-0 rounded-full bg-border-default"></span>
+                <p class="flex-1 text-xs text-text-tertiary"><span class="font-medium">MeshGuard</span> board meeting completed</p>
+                <span class="flex-shrink-0 text-[10px] text-text-tertiary">Jan 31</span>
+              </div>
+              <div class="flex items-start gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="mt-[5px] h-[3px] w-[3px] flex-shrink-0 rounded-full bg-border-default"></span>
+                <p class="flex-1 text-xs text-text-tertiary"><span class="font-medium">QuantumSens</span> no meeting in 14+ weeks</p>
+                <span class="flex-shrink-0 text-[10px] text-text-tertiary">Jan 30</span>
+              </div>
+              <div class="flex items-start gap-2 rounded px-2 py-1.5 transition-colors hover:bg-surface-secondary">
+                <span class="mt-[5px] h-[3px] w-[3px] flex-shrink-0 rounded-full bg-border-default"></span>
+                <p class="flex-1 text-xs text-text-tertiary"><span class="font-medium">NanoSuture</span> budget stable</p>
+                <span class="flex-shrink-0 text-[10px] text-text-tertiary">Jan 28</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           DIRECTION E — No Summary, Full Feed
+           Kill the summary entirely. The queue cards ARE the summary.
+           Sidebar becomes a pure activity log with density.
+           ═══════════════════════════════════════════════════════════════ -->
+      <div>
+        <div class="mb-3">
+          <h2 class="text-sm font-medium text-text-primary">E — No Summary, Pure Activity Log</h2>
+          <p class="text-[11px] text-text-secondary mt-0.5">The queue cards already summarize what needs attention. Kill the prose summary. Sidebar is just a dense activity log — the "what happened" complement to the queue's "what to do."</p>
+        </div>
+        <div class="w-[340px] border-l border-border-default bg-surface-primary">
+          <div class="p-4">
+            <h2 class="mb-3 text-xs font-medium text-text-tertiary">Activity</h2>
+
+            <div class="space-y-0">
+              <!-- Today cluster -->
+              <div class="px-2 pb-1 pt-2">
+                <span class="text-[10px] font-medium text-text-tertiary">Today</span>
+              </div>
+              <div class="flex gap-2 rounded px-2 py-1 transition-colors hover:bg-surface-secondary">
+                <div class="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-violet-200 text-[7px] font-medium text-violet-700">Q</div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-text-secondary">Cadence declined to every 8–10 weeks</p>
+                </div>
+                <span class="flex-shrink-0 pt-px text-[10px] tabular-nums text-text-tertiary">2h</span>
+              </div>
+              <div class="flex gap-2 rounded px-2 py-1 transition-colors hover:bg-surface-secondary">
+                <div class="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-blue-200 text-[7px] font-medium text-blue-700">M</div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-text-secondary">Data room refreshed (8/8)</p>
+                </div>
+                <span class="flex-shrink-0 pt-px text-[10px] tabular-nums text-text-tertiary">4h</span>
+              </div>
+
+              <!-- This week cluster -->
+              <div class="px-2 pb-1 pt-3">
+                <span class="text-[10px] font-medium text-text-tertiary">This Week</span>
+              </div>
+              <div class="flex gap-2 rounded px-2 py-1 transition-colors hover:bg-surface-secondary">
+                <div class="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-emerald-200 text-[7px] font-medium text-emerald-700">N</div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-text-secondary">Data room flagged — 3 of 8 current</p>
+                </div>
+                <span class="flex-shrink-0 pt-px text-[10px] tabular-nums text-text-tertiary">Tue</span>
+              </div>
+              <div class="flex gap-2 rounded px-2 py-1 transition-colors hover:bg-surface-secondary">
+                <div class="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-amber-200 text-[7px] font-medium text-amber-700">A</div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-text-secondary">Monthly update received</p>
+                </div>
+                <span class="flex-shrink-0 pt-px text-[10px] tabular-nums text-text-tertiary">Mon</span>
+              </div>
+              <div class="flex gap-2 rounded px-2 py-1 transition-colors hover:bg-surface-secondary">
+                <div class="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-rose-200 text-[7px] font-medium text-rose-700">L</div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-text-secondary">Projection tracking now assessable</p>
+                </div>
+                <span class="flex-shrink-0 pt-px text-[10px] tabular-nums text-text-tertiary">Mon</span>
+              </div>
+
+              <!-- Last week cluster -->
+              <div class="px-2 pb-1 pt-3">
+                <span class="text-[10px] font-medium text-text-tertiary">Last Week</span>
+              </div>
+              <div class="flex gap-2 rounded px-2 py-1 transition-colors hover:bg-surface-secondary">
+                <div class="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-blue-200 text-[7px] font-medium text-blue-700">M</div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-text-tertiary">Board meeting completed</p>
+                </div>
+                <span class="flex-shrink-0 pt-px text-[10px] tabular-nums text-text-tertiary">Jan 31</span>
+              </div>
+              <div class="flex gap-2 rounded px-2 py-1 transition-colors hover:bg-surface-secondary">
+                <div class="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-violet-200 text-[7px] font-medium text-violet-700">Q</div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-text-tertiary">No meeting in 14+ weeks</p>
+                </div>
+                <span class="flex-shrink-0 pt-px text-[10px] tabular-nums text-text-tertiary">Jan 30</span>
+              </div>
+              <div class="flex gap-2 rounded px-2 py-1 transition-colors hover:bg-surface-secondary">
+                <div class="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-emerald-200 text-[7px] font-medium text-emerald-700">N</div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-text-tertiary">Budget stable — no revisions</p>
+                </div>
+                <span class="flex-shrink-0 pt-px text-[10px] tabular-nums text-text-tertiary">Jan 28</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           COMPARISON NOTES
+           ═══════════════════════════════════════════════════════════════ -->
+      <div class="col-span-2 mt-4 rounded-md border border-border-subtle bg-surface-primary p-5">
+        <h2 class="text-sm font-medium text-text-primary mb-3">Comparison</h2>
+        <table class="w-full text-[11px]">
+          <thead>
+            <tr class="border-b border-border-subtle text-left text-text-tertiary">
+              <th class="pb-2 font-medium">Direction</th>
+              <th class="pb-2 font-medium">Summary</th>
+              <th class="pb-2 font-medium">Feed</th>
+              <th class="pb-2 font-medium">Status Dots</th>
+              <th class="pb-2 font-medium">Density</th>
+              <th class="pb-2 font-medium">Reactive</th>
+            </tr>
+          </thead>
+          <tbody class="text-text-secondary">
+            <tr class="border-b border-border-subtle">
+              <td class="py-2 font-medium text-text-primary">A — Dense Timeline</td>
+              <td class="py-2">Count badges (1 critical, 2 watching, 2 ok)</td>
+              <td class="py-2">Time-anchored left column, inline events</td>
+              <td class="py-2">None</td>
+              <td class="py-2">High</td>
+              <td class="py-2">Yes — counts update on snooze</td>
+            </tr>
+            <tr class="border-b border-border-subtle">
+              <td class="py-2 font-medium text-text-primary">B — By Company</td>
+              <td class="py-2">Structured bullets per company</td>
+              <td class="py-2">Clustered under company avatars</td>
+              <td class="py-2">None</td>
+              <td class="py-2">Medium</td>
+              <td class="py-2">Yes — bullets track filtered list</td>
+            </tr>
+            <tr class="border-b border-border-subtle">
+              <td class="py-2 font-medium text-text-primary">C — Scorecard</td>
+              <td class="py-2">Mini signal grid per company (6 squares)</td>
+              <td class="py-2">Ultra-compact single-line changes</td>
+              <td class="py-2">None (signal squares replace them)</td>
+              <td class="py-2">Highest</td>
+              <td class="py-2">Yes — scorecard rows hide on snooze</td>
+            </tr>
+            <tr class="border-b border-border-subtle">
+              <td class="py-2 font-medium text-text-primary">D — Reactive Prose</td>
+              <td class="py-2">Weftly avatar + prose (current format, made reactive)</td>
+              <td class="py-2">Flat list, no group headers, tiny dot separators</td>
+              <td class="py-2">Neutral micro-dots (not colored)</td>
+              <td class="py-2">Medium-high</td>
+              <td class="py-2">Yes — prose recalculates, timestamp shown</td>
+            </tr>
+            <tr>
+              <td class="py-2 font-medium text-text-primary">E — No Summary</td>
+              <td class="py-2">None — queue cards ARE the summary</td>
+              <td class="py-2">Dense log with mini avatars, temporal headers</td>
+              <td class="py-2">None (avatars identify company)</td>
+              <td class="py-2">Highest</td>
+              <td class="py-2">N/A — no summary to update</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="mt-4 space-y-2 text-[11px] text-text-secondary">
+          <p><strong class="text-text-primary">UX answer on snooze/summary:</strong> Currently the summary is computed from <code>intelligenceData</code> (unfiltered), so snoozing has zero effect on the summary text. All directions except E fix this — A uses counts that update, B/D use filtered company lists, C uses a live scorecard. The fix is a one-line change: compute from <code>needsAttention</code> instead of <code>intelligenceData</code>.</p>
+          <p><strong class="text-text-primary">On status dots:</strong> All directions remove colored status dots from the feed. The queue cards already communicate severity. The feed's job is temporal context — "what happened when" — not "how bad is it." Removing dots reduces visual noise by ~40% in the sidebar.</p>
+          <p><strong class="text-text-primary">Rams' recommendation:</strong> Direction D (Reactive Prose) or A (Dense Timeline). D preserves the Weftly voice while fixing the reactivity bug and cleaning noise. A is highest density but loses warmth. Avoid B (company grouping loses temporal signal) and C (scorecard duplicates the queue cards' signal bars).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

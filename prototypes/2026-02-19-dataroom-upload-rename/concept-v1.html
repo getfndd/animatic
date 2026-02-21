@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Room Upload with AI Rename</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 0 0% 95%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --status-info: 217 91% 60%;
+      --status-info-bg: 214 95% 95%;
+      --brand-accent: 217 91% 60%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-tertiary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+    @keyframes progress-fill { from { width: 0%; } }
+    .animate-progress { animation: progress-fill 0.6s ease-out forwards; }
+    @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+    @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    .animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
+    .btn-pill { border-radius: 9999px; }
+
+    /* Phase containers - show/hide */
+    .phase { display: none; }
+    .phase.active { display: block; }
+
+    /* Rename editing state */
+    .rename-display { display: flex; }
+    .rename-editing { display: none; }
+    .editing .rename-display { display: none; }
+    .editing .rename-editing { display: flex; }
+
+    /* Folder picker */
+    .folder-picker { display: none; }
+    .folder-picker.open { display: block; }
+
+    /* Summary expand */
+    .summary-content { display: none; }
+    .summary-content.open { display: block; }
+
+    /* Skipped state */
+    .rename-row.skipped .rename-active { display: none; }
+    .rename-row.skipped .rename-skipped { display: flex; }
+    .rename-row .rename-skipped { display: none; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+            'status-info': 'hsl(var(--status-info))',
+            'status-info-bg': 'hsl(var(--status-info-bg))',
+            'brand-accent': 'hsl(var(--brand-accent))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen flex items-start justify-center pt-12 px-4">
+
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-black/30"></div>
+
+  <!-- Modal -->
+  <div class="relative w-full max-w-2xl bg-surface-primary rounded-lg shadow-2xl border overflow-hidden">
+
+    <!-- Header -->
+    <div class="px-6 pt-6 pb-4">
+      <h2 class="text-lg font-semibold text-text-primary" id="modal-title">Add Documents to Your Data Room</h2>
+      <p class="text-sm text-text-secondary mt-1" id="modal-desc">AI will automatically analyze, summarize, and organize your documents.</p>
+    </div>
+
+    <!-- Body -->
+    <div class="px-6 pb-4">
+
+      <!-- ========== PHASE 0: SOURCE ========== -->
+      <div class="phase active" id="phase-0">
+        <!-- Upload Mode Toggle -->
+        <div class="flex bg-surface-secondary rounded-lg p-1 mb-5">
+          <button class="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md bg-surface-primary shadow-sm text-text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+            Upload Files
+          </button>
+          <button class="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md text-text-tertiary hover:text-text-secondary transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+            Upload Folder
+          </button>
+        </div>
+
+        <!-- Drop Zone -->
+        <div onclick="goToPhase(1)" class="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all hover:border-text-tertiary hover:bg-surface-secondary group">
+          <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-surface-tertiary flex items-center justify-center text-text-tertiary group-hover:text-text-secondary transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M232,152v56a16,16,0,0,1-16,16H40a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H216V152a8,8,0,0,1,16,0ZM88,88l32-32V152a8,8,0,0,0,16,0V56l32,32a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48,48A8,8,0,0,0,88,88Z"/></svg>
+          </div>
+          <p class="text-sm font-medium text-text-primary mb-1">Click to upload or drag and drop</p>
+          <p class="text-xs text-text-tertiary">PDF, DOC, XLS, PPT, images, and more</p>
+          <div class="mt-3 flex items-center justify-center gap-1.5 text-xs text-text-tertiary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V128a8,8,0,0,1,16,0v8a8,8,0,0,1-16,0Zm0-48a12,12,0,1,1,12,12A12,12,0,0,1,120,88Z"/></svg>
+            <span>Automatic summarization &amp; categorization</span>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="flex items-center gap-4 my-5">
+          <div class="flex-1 h-px bg-border-default"></div>
+          <span class="text-xs text-text-tertiary">or import from</span>
+          <div class="flex-1 h-px bg-border-default"></div>
+        </div>
+
+        <!-- Google Drive -->
+        <div class="flex flex-col items-center gap-2">
+          <button class="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-secondary border rounded-full hover:bg-surface-secondary transition-colors">
+            <svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-20.4 35.3c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.5l5.85 13.8z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-10.1-17.5c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 23.5h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+            Import from Google Drive
+          </button>
+        </div>
+
+        <!-- Skip AI -->
+        <div class="mt-5 text-center">
+          <button class="text-xs text-text-tertiary hover:text-text-secondary underline">Skip AI organization</button>
+        </div>
+      </div>
+
+      <!-- ========== PHASE 1: SELECT ========== -->
+      <div class="phase" id="phase-1">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-medium text-text-primary">Ready to Upload (3)</p>
+          <button class="text-xs text-text-tertiary hover:text-text-secondary transition-colors">Clear all</button>
+        </div>
+        <div class="space-y-2">
+          <!-- File 1 -->
+          <div class="rounded-lg border bg-surface-primary p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-surface-secondary p-2 text-text-tertiary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 class="text-sm font-medium text-text-primary truncate">Q3_2024_financial_model_FINAL_v2.xlsx</h4>
+                    <p class="text-xs text-text-tertiary mt-0.5">2.4 MB</p>
+                  </div>
+                  <button class="flex-shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- File 2 -->
+          <div class="rounded-lg border bg-surface-primary p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-surface-secondary p-2 text-text-tertiary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 class="text-sm font-medium text-text-primary truncate">Series A  pitch deck DRAFT (Johns Copy).pptx</h4>
+                    <p class="text-xs text-text-tertiary mt-0.5">8.1 MB</p>
+                  </div>
+                  <button class="flex-shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- File 3 -->
+          <div class="rounded-lg border bg-surface-primary p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-surface-secondary p-2 text-text-tertiary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 class="text-sm font-medium text-text-primary truncate">NDA-Signed-2024.pdf</h4>
+                    <p class="text-xs text-text-tertiary mt-0.5">156 KB</p>
+                  </div>
+                  <button class="flex-shrink-0 text-text-tertiary hover:text-text-secondary transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PHASE 2: PROCESSING ========== -->
+      <div class="phase" id="phase-2">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-medium text-text-primary">Processing (3)</p>
+        </div>
+        <div class="space-y-2">
+          <!-- File 1 - 85% -->
+          <div class="rounded-lg border bg-surface-primary p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-status-info-bg p-2">
+                <svg class="text-status-info animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Q3_2024_financial_model_FINAL_v2.xlsx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">2.4 MB</p>
+                <div class="mt-3">
+                  <div class="overflow-hidden rounded-full bg-surface-tertiary"><div class="h-2 rounded-full bg-status-info animate-progress" style="width: 85%"></div></div>
+                  <div class="mt-3 grid grid-cols-4 text-xs font-medium">
+                    <div class="flex items-center gap-1 text-status-info"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg><span>Uploading</span></div>
+                    <div class="text-center flex items-center justify-center gap-1 text-status-info"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg><span>Summarizing</span></div>
+                    <div class="text-center flex items-center justify-center gap-1 text-status-info"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg><span>Categorizing</span></div>
+                    <div class="text-right flex items-center justify-end gap-1 text-status-info"><span>Organizing</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- File 2 - 55% -->
+          <div class="rounded-lg border bg-surface-primary p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-status-info-bg p-2">
+                <svg class="text-status-info animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Series A  pitch deck DRAFT (Johns Copy).pptx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">8.1 MB</p>
+                <div class="mt-3">
+                  <div class="overflow-hidden rounded-full bg-surface-tertiary"><div class="h-2 rounded-full bg-status-info animate-progress" style="width: 55%"></div></div>
+                  <div class="mt-3 grid grid-cols-4 text-xs font-medium">
+                    <div class="flex items-center gap-1 text-status-info"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg><span>Uploading</span></div>
+                    <div class="text-center flex items-center justify-center gap-1 text-status-info"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg><span>Summarizing</span></div>
+                    <div class="text-center flex items-center justify-center gap-1 text-status-info"><span>Categorizing</span></div>
+                    <div class="text-right flex items-center justify-end gap-1 text-text-tertiary"><span>Organizing</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- File 3 - 30% -->
+          <div class="rounded-lg border bg-surface-primary p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 rounded-lg bg-status-info-bg p-2">
+                <svg class="text-status-info animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">NDA-Signed-2024.pdf</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">156 KB</p>
+                <div class="mt-3">
+                  <div class="overflow-hidden rounded-full bg-surface-tertiary"><div class="h-2 rounded-full bg-status-info animate-progress" style="width: 30%"></div></div>
+                  <div class="mt-3 grid grid-cols-4 text-xs font-medium">
+                    <div class="flex items-center gap-1 text-status-info"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg><span>Uploading</span></div>
+                    <div class="text-center flex items-center justify-center gap-1 text-status-info"><span>Summarizing</span></div>
+                    <div class="text-center flex items-center justify-center gap-1 text-text-tertiary"><span>Categorizing</span></div>
+                    <div class="text-right flex items-center justify-end gap-1 text-text-tertiary"><span>Organizing</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PHASE 3: SUGGESTIONS (the key phase) ========== -->
+      <div class="phase" id="phase-3">
+        <div class="divide-y divide-border-default">
+
+          <!-- File 1: Has rename suggestion -->
+          <div class="py-4 first:pt-0 animate-fade-in">
+            <div class="flex items-start gap-3">
+              <span class="text-text-tertiary mt-0.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Q3_2024_financial_model_FINAL_v2.xlsx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">2.4 MB</p>
+
+                <!-- RENAME TO: row -->
+                <div class="mt-2 flex items-center gap-2" id="rename-row-1">
+                  <span class="text-xs text-text-tertiary flex-shrink-0">Rename to:</span>
+                  <!-- Display mode -->
+                  <button onclick="startEdit('rename-row-1', 'rename-input-1')" class="inline-flex items-center gap-1 text-sm text-text-primary hover:text-brand-accent transition-colors min-w-0" id="rename-display-1">
+                    <span class="truncate">2024-Q3-Financial-Model.xlsx</span>
+                    <svg class="text-text-tertiary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M227.31,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120Z"/></svg>
+                  </button>
+                  <!-- Edit mode (hidden by default) -->
+                  <input type="text" value="2024-Q3-Financial-Model.xlsx" id="rename-input-1" onkeydown="handleKey(event, 'rename-row-1', 'rename-input-1', 'rename-display-1')" onblur="finishEdit('rename-row-1', 'rename-input-1', 'rename-display-1')" class="hidden flex-1 min-w-0 text-sm text-text-primary bg-surface-secondary border rounded-md px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1" />
+                  <!-- Skip rename -->
+                  <button onclick="skipRename('rename-row-1')" class="flex-shrink-0 text-text-tertiary hover:text-text-secondary transition-colors" title="Keep original name">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+                  </button>
+                </div>
+
+                <!-- File to: row -->
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-xs text-text-tertiary">File to:</span>
+                  <button onclick="togglePicker('picker-1')" class="inline-flex items-center gap-1.5 text-sm text-text-primary hover:text-brand-accent transition-colors">
+                    <svg class="text-brand-accent" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                    Financials
+                    <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+                  </button>
+                </div>
+
+                <!-- Folder picker (hidden by default) -->
+                <div class="folder-picker mt-2 p-2 rounded-lg border bg-surface-primary shadow-lg max-h-48 overflow-y-auto" id="picker-1">
+                  <button onclick="togglePicker('picker-1')" class="w-full text-left px-2 py-1.5 rounded-md text-sm flex items-center gap-2 bg-surface-secondary">
+                    <svg class="text-brand-accent" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+                    <span>Financials</span>
+                    <svg class="ml-auto text-brand-accent" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+                  </button>
+                  <button class="w-full text-left px-2 py-1.5 rounded-md text-sm flex items-center gap-2 hover:bg-surface-hover transition-colors">
+                    <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+                    <span>Legal</span>
+                  </button>
+                  <button class="w-full text-left px-2 py-1.5 rounded-md text-sm flex items-center gap-2 hover:bg-surface-hover transition-colors">
+                    <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Zm0,128H40V56H92.69l29.65,29.66A8,8,0,0,0,128,88h88Z"/></svg>
+                    <span>Fundraising</span>
+                  </button>
+                </div>
+
+                <!-- AI Summary toggle -->
+                <div class="mt-3">
+                  <button onclick="toggleSummary('summary-1')" class="text-xs text-text-tertiary hover:text-text-secondary flex items-center gap-1">
+                    <svg id="summary-caret-1" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"/></svg>
+                    View AI Summary
+                  </button>
+                  <div class="summary-content mt-2 p-3 rounded-lg bg-surface-secondary text-xs leading-relaxed text-text-secondary" id="summary-1">
+                    <p>Quarterly financial model with revenue projections, operating expenses, and cash flow analysis for Q3 2024. Includes scenario modeling for three growth trajectories.</p>
+                    <p class="pt-2 mt-2 border-t border-border-default text-text-tertiary">
+                      <svg class="inline mr-1" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Z"/></svg>
+                      Categorized as <span class="font-medium text-text-secondary">Financials</span> based on keywords like <span class="font-medium text-text-secondary">"Revenue Model"</span>, <span class="font-medium text-text-secondary">"Cash Flow"</span>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- File 2: Has rename suggestion -->
+          <div class="py-4 animate-fade-in">
+            <div class="flex items-start gap-3">
+              <span class="text-text-tertiary mt-0.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">Series A  pitch deck DRAFT (Johns Copy).pptx</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">8.1 MB</p>
+
+                <!-- RENAME TO: row -->
+                <div class="mt-2 flex items-center gap-2" id="rename-row-2">
+                  <span class="text-xs text-text-tertiary flex-shrink-0">Rename to:</span>
+                  <button onclick="startEdit('rename-row-2', 'rename-input-2')" class="inline-flex items-center gap-1 text-sm text-text-primary hover:text-brand-accent transition-colors min-w-0" id="rename-display-2">
+                    <span class="truncate">Series-A-Pitch-Deck.pptx</span>
+                    <svg class="text-text-tertiary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M227.31,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120Z"/></svg>
+                  </button>
+                  <input type="text" value="Series-A-Pitch-Deck.pptx" id="rename-input-2" onkeydown="handleKey(event, 'rename-row-2', 'rename-input-2', 'rename-display-2')" onblur="finishEdit('rename-row-2', 'rename-input-2', 'rename-display-2')" class="hidden flex-1 min-w-0 text-sm text-text-primary bg-surface-secondary border rounded-md px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-zinc-900/50 focus:ring-offset-1" />
+                  <button onclick="skipRename('rename-row-2')" class="flex-shrink-0 text-text-tertiary hover:text-text-secondary transition-colors" title="Keep original name">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+                  </button>
+                </div>
+
+                <!-- File to: row -->
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-xs text-text-tertiary">File to:</span>
+                  <button class="inline-flex items-center gap-1.5 text-sm text-text-primary hover:text-brand-accent transition-colors">
+                    <svg class="text-brand-accent" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                    Fundraising
+                    <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+                  </button>
+                </div>
+
+                <!-- AI Summary toggle -->
+                <div class="mt-3">
+                  <button onclick="toggleSummary('summary-2')" class="text-xs text-text-tertiary hover:text-text-secondary flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"/></svg>
+                    View AI Summary
+                  </button>
+                  <div class="summary-content mt-2 p-3 rounded-lg bg-surface-secondary text-xs leading-relaxed text-text-secondary" id="summary-2">
+                    <p>Series A fundraising pitch deck covering market opportunity, product traction, team, and financial ask. 24 slides with competitive analysis and go-to-market strategy.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- File 3: NO rename (already clean) -->
+          <div class="py-4 last:pb-0 animate-fade-in">
+            <div class="flex items-start gap-3">
+              <span class="text-text-tertiary mt-0.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </span>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-text-primary truncate">NDA-Signed-2024.pdf</h4>
+                <p class="text-xs text-text-tertiary mt-0.5">156 KB</p>
+
+                <!-- No rename row for this file (already clean name) -->
+
+                <!-- File to: row -->
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-xs text-text-tertiary">File to:</span>
+                  <button class="inline-flex items-center gap-1.5 text-sm text-text-primary hover:text-brand-accent transition-colors">
+                    <svg class="text-brand-accent" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                    Legal
+                    <svg class="text-text-tertiary" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+                  </button>
+                </div>
+
+                <!-- AI Summary -->
+                <div class="mt-3">
+                  <button onclick="toggleSummary('summary-3')" class="text-xs text-text-tertiary hover:text-text-secondary flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"/></svg>
+                    View AI Summary
+                  </button>
+                  <div class="summary-content mt-2 p-3 rounded-lg bg-surface-secondary text-xs leading-relaxed text-text-secondary" id="summary-3">
+                    <p>Mutual non-disclosure agreement dated January 2024. Standard two-year confidentiality terms with standard carve-outs.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ========== PHASE 4: SUCCESS ========== -->
+      <div class="phase" id="phase-4">
+        <!-- Success Banner -->
+        <div class="flex items-start gap-3 p-3 rounded-lg bg-status-success-bg border border-status-success/20 mb-4">
+          <svg class="text-status-success flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+          <div>
+            <p class="text-sm font-medium text-text-primary">Successfully organized 3 documents</p>
+            <p class="text-xs text-text-secondary mt-0.5">AI summaries and categories have been applied</p>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <!-- File 1: Renamed -->
+          <div class="flex items-center gap-3 p-3 rounded-lg border bg-surface-primary animate-fade-in">
+            <svg class="text-status-success flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+            <div class="flex-1 min-w-0">
+              <span class="text-sm text-text-primary truncate block">2024-Q3-Financial-Model.xlsx</span>
+              <span class="text-xs text-text-tertiary">was Q3_2024_financial_model_FINAL_v2.xlsx</span>
+            </div>
+            <span class="text-xs text-text-tertiary flex items-center gap-1 flex-shrink-0">
+              <svg class="text-status-info" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+              Financials
+            </span>
+          </div>
+          <!-- File 2: Renamed -->
+          <div class="flex items-center gap-3 p-3 rounded-lg border bg-surface-primary animate-fade-in" style="animation-delay: 0.1s">
+            <svg class="text-status-success flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+            <div class="flex-1 min-w-0">
+              <span class="text-sm text-text-primary truncate block">Series-A-Pitch-Deck.pptx</span>
+              <span class="text-xs text-text-tertiary">was Series A  pitch deck DRAFT (Johns Copy).pptx</span>
+            </div>
+            <span class="text-xs text-text-tertiary flex items-center gap-1 flex-shrink-0">
+              <svg class="text-status-info" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+              Fundraising
+            </span>
+          </div>
+          <!-- File 3: Not renamed (already clean) -->
+          <div class="flex items-center gap-3 p-3 rounded-lg border bg-surface-primary animate-fade-in" style="animation-delay: 0.2s">
+            <svg class="text-status-success flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+            <div class="flex-1 min-w-0">
+              <span class="text-sm text-text-primary truncate block">NDA-Signed-2024.pdf</span>
+            </div>
+            <span class="text-xs text-text-tertiary flex items-center gap-1 flex-shrink-0">
+              <svg class="text-status-info" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+              Legal
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-4 border-t flex items-center justify-between" id="modal-footer">
+      <!-- Phase 0 footer -->
+      <div class="phase-footer active" id="footer-0">
+        <button class="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors rounded-full">Cancel</button>
+      </div>
+      <!-- Phase 1 footer -->
+      <div class="phase-footer" id="footer-1" style="display: none;">
+        <div class="flex items-center justify-between w-full">
+          <button class="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors rounded-full">Cancel</button>
+          <button onclick="goToPhase(2)" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-surface-inverse text-text-inverse rounded-full hover:opacity-90 transition-opacity">
+            Upload &amp; Analyze
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,117.66a8,8,0,0,1-11.32,0L136,59.31V216a8,8,0,0,1-16,0V59.31L61.66,117.66a8,8,0,0,1-11.32-11.32l72-72a8,8,0,0,1,11.32,0l72,72A8,8,0,0,1,205.66,117.66Z"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- Phase 2 footer -->
+      <div class="phase-footer" id="footer-2" style="display: none;">
+        <div class="flex items-center justify-end w-full">
+          <button disabled class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-surface-inverse text-text-inverse rounded-full opacity-50 cursor-not-allowed animate-pulse-subtle">
+            Processing...
+          </button>
+        </div>
+      </div>
+      <!-- Phase 3 footer -->
+      <div class="phase-footer" id="footer-3" style="display: none;">
+        <div class="flex items-center justify-between w-full">
+          <button class="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors rounded-full">Cancel</button>
+          <button onclick="goToPhase(4)" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-surface-inverse text-text-inverse rounded-full hover:opacity-90 transition-opacity">
+            File All 3 Documents
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- Phase 4 footer -->
+      <div class="phase-footer" id="footer-4" style="display: none;">
+        <div class="flex items-center justify-between w-full">
+          <button class="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-secondary border rounded-full hover:bg-surface-secondary transition-colors">
+            Upload More
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg>
+          </button>
+          <button class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-surface-inverse text-text-inverse rounded-full hover:opacity-90 transition-opacity">
+            Done
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Phase Navigation (prototype only) -->
+  <div class="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-surface-inverse text-text-inverse px-4 py-2.5 rounded-full shadow-lg z-50">
+    <span class="text-xs font-medium opacity-70 mr-2">Phase:</span>
+    <button onclick="goToPhase(0)" class="phase-nav text-xs px-3 py-1 rounded-full bg-white text-black font-medium" data-phase="0">Source</button>
+    <button onclick="goToPhase(1)" class="phase-nav text-xs px-3 py-1 rounded-full text-white/60 hover:text-white/90" data-phase="1">Select</button>
+    <button onclick="goToPhase(2)" class="phase-nav text-xs px-3 py-1 rounded-full text-white/60 hover:text-white/90" data-phase="2">Processing</button>
+    <button onclick="goToPhase(3)" class="phase-nav text-xs px-3 py-1 rounded-full text-white/60 hover:text-white/90" data-phase="3">Suggestions</button>
+    <button onclick="goToPhase(4)" class="phase-nav text-xs px-3 py-1 rounded-full text-white/60 hover:text-white/90" data-phase="4">Success</button>
+  </div>
+
+  <script>
+    const titles = [
+      'Add Documents to Your Data Room',
+      'Add Documents to Your Data Room',
+      'Analyzing Your Documents',
+      'File Your Documents',
+      'Documents Organized',
+    ]
+    const descs = [
+      'AI will automatically analyze, summarize, and organize your documents.',
+      '3 files ready to upload.',
+      'AI is reading, summarizing, and categorizing each file.',
+      'Confirm or adjust where each document will be filed.',
+      'All files have been analyzed and moved to their folders.',
+    ]
+
+    function goToPhase(n) {
+      // Hide all phases
+      document.querySelectorAll('.phase').forEach(el => el.classList.remove('active'))
+      document.querySelectorAll('.phase-footer').forEach(el => el.style.display = 'none')
+
+      // Show target phase
+      document.getElementById('phase-' + n).classList.add('active')
+      document.getElementById('footer-' + n).style.display = 'block'
+
+      // Update header
+      document.getElementById('modal-title').textContent = titles[n]
+      document.getElementById('modal-desc').textContent = descs[n]
+
+      // Update nav
+      document.querySelectorAll('.phase-nav').forEach(btn => {
+        const p = parseInt(btn.dataset.phase)
+        if (p === n) {
+          btn.className = 'phase-nav text-xs px-3 py-1 rounded-full bg-white text-black font-medium'
+        } else {
+          btn.className = 'phase-nav text-xs px-3 py-1 rounded-full text-white/60 hover:text-white/90'
+        }
+      })
+    }
+
+    // Inline name editing
+    function startEdit(rowId, inputId) {
+      var display = document.querySelector('#' + rowId + ' button[id^="rename-display"]')
+      var input = document.getElementById(inputId)
+      if (display) display.classList.add('hidden')
+      if (input) {
+        input.classList.remove('hidden')
+        input.focus()
+        input.select()
+      }
+    }
+
+    function finishEdit(rowId, inputId, displayId) {
+      var display = document.getElementById(displayId)
+      var input = document.getElementById(inputId)
+      if (input && display) {
+        var val = input.value.trim()
+        if (val.length > 0) {
+          display.querySelector('span').textContent = val
+        }
+        display.classList.remove('hidden')
+        input.classList.add('hidden')
+      }
+    }
+
+    function handleKey(event, rowId, inputId, displayId) {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        finishEdit(rowId, inputId, displayId)
+      }
+      if (event.key === 'Escape') {
+        var display = document.getElementById(displayId)
+        var input = document.getElementById(inputId)
+        if (display) display.classList.remove('hidden')
+        if (input) input.classList.add('hidden')
+      }
+    }
+
+    function skipRename(rowId) {
+      var row = document.getElementById(rowId)
+      if (row) row.style.display = 'none'
+    }
+
+    // Folder picker toggle
+    function togglePicker(pickerId) {
+      var el = document.getElementById(pickerId)
+      if (el) el.classList.toggle('open')
+    }
+
+    // Summary toggle
+    function toggleSummary(summaryId) {
+      var el = document.getElementById(summaryId)
+      if (el) el.classList.toggle('open')
+    }
+  </script>
+</body>
+</html>

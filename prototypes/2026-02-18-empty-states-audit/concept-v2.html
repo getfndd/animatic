@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Empty States — Proposed Redesign</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-disabled: 0 0% 78%;
+      --text-inverse: 0 0% 98%;
+      --text-link: 220 60% 50%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 20px; border-radius: 9999px;
+      border: 1px solid hsl(var(--border-default));
+      font-size: 14px; font-weight: 500;
+      background: hsl(var(--surface-primary));
+      color: hsl(var(--text-primary));
+      cursor: pointer; transition: all 140ms;
+    }
+    .btn-secondary:hover { border-color: hsl(var(--border-strong)); box-shadow: 0 1px 2px hsl(0 0% 0% / 0.04); }
+    .btn-tertiary {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 20px; border-radius: 9999px;
+      border: none; font-size: 14px; font-weight: 500;
+      background: transparent; color: hsl(var(--text-secondary));
+      cursor: pointer; transition: color 140ms;
+    }
+    .btn-tertiary:hover { color: hsl(var(--text-primary)); }
+    /* Ghost preview patterns */
+    .ghost-line {
+      height: 8px; border-radius: 4px;
+      background: hsl(var(--border-subtle));
+    }
+    .ghost-line-dark {
+      height: 8px; border-radius: 4px;
+      background: hsl(var(--border-default));
+    }
+    .ghost-circle {
+      border-radius: 9999px;
+      background: hsl(var(--border-subtle));
+    }
+    .ghost-rect {
+      border-radius: 6px;
+      background: hsl(var(--surface-secondary));
+      border: 1px dashed hsl(var(--border-default));
+    }
+    .page-card {
+      background: hsl(var(--surface-primary));
+      border: 1px solid hsl(var(--border-subtle));
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    /* SVG icon helpers */
+    svg.icon { flex-shrink: 0; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-disabled': 'hsl(var(--text-disabled))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'text-link': 'hsl(var(--text-link))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+
+  <!-- Header -->
+  <div class="max-w-6xl mx-auto mb-12">
+    <h1 class="text-2xl font-bold">Empty States — Proposed Redesign</h1>
+    <p class="text-sm text-text-secondary mt-2 max-w-2xl">Updated empty states for every fundraising page. Spec-compliant, warmer copy, ghost previews where context helps. Inspired by Superlist, Figma, Seline, Mobbin.</p>
+    <div class="flex items-center gap-4 mt-4 text-xs text-text-tertiary">
+      <span>9 pages</span>
+      <span>&middot;</span>
+      <span>All spec-compliant</span>
+      <span>&middot;</span>
+      <span>Ghost previews on 4 pages</span>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto space-y-16">
+
+    <!-- ===================================================================== -->
+    <!-- 1. INVESTORS -->
+    <!-- ===================================================================== -->
+    <section>
+      <div class="flex items-baseline gap-3 mb-2">
+        <h2 class="text-sm font-bold">Investors</h2>
+        <span class="text-xs text-text-tertiary">True empty &middot; Ghost table preview</span>
+      </div>
+      <p class="text-xs text-text-tertiary mb-4">Was: generic "No data available" from DataTable. Now: contextual copy with ghost table showing what populated state looks like.</p>
+
+      <div class="page-card">
+        <div class="px-8 py-16">
+          <div class="max-w-lg mx-auto">
+            <!-- Ghost table preview -->
+            <div class="mb-10 opacity-[0.45] pointer-events-none select-none">
+              <!-- Ghost header row -->
+              <div class="flex items-center gap-4 pb-3 border-b">
+                <div class="ghost-line-dark w-24"></div>
+                <div class="ghost-line w-32 ml-auto"></div>
+                <div class="ghost-line w-20"></div>
+                <div class="ghost-line w-16"></div>
+              </div>
+              <!-- Ghost rows -->
+              <div class="flex items-center gap-4 py-3 border-b border-border-subtle">
+                <div class="ghost-circle w-8 h-8"></div>
+                <div class="ghost-line-dark w-28"></div>
+                <div class="ghost-line w-20 ml-auto"></div>
+                <div class="ghost-line w-16"></div>
+                <div class="ghost-line w-12"></div>
+              </div>
+              <div class="flex items-center gap-4 py-3 border-b border-border-subtle">
+                <div class="ghost-circle w-8 h-8"></div>
+                <div class="ghost-line-dark w-36"></div>
+                <div class="ghost-line w-24 ml-auto"></div>
+                <div class="ghost-line w-16"></div>
+                <div class="ghost-line w-12"></div>
+              </div>
+              <div class="flex items-center gap-4 py-3">
+                <div class="ghost-circle w-8 h-8"></div>
+                <div class="ghost-line-dark w-20"></div>
+                <div class="ghost-line w-28 ml-auto"></div>
+                <div class="ghost-line w-16"></div>
+                <div class="ghost-line w-12"></div>
+              </div>
+            </div>
+
+            <!-- Empty state message -->
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M22 14C22 17.3137 19.3137 20 16 20C12.6863 20 10 17.3137 10 14C10 10.6863 12.6863 8 16 8C19.3137 8 22 10.6863 22 14Z" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M6 26C6 22.6863 10.4772 20 16 20C21.5228 20 26 22.6863 26 26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">Build your investor list</h3>
+              <p class="mt-2 text-sm text-text-tertiary max-w-sm">Most successful seed rounds start with 40&ndash;60 targets. Add your first investor to start tracking engagement and pipeline progress.</p>
+              <div class="mt-6 flex items-center gap-3">
+                <button class="btn-secondary">
+                  Add Investor
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+                <button class="btn-tertiary">
+                  Import CSV
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2V9M7 2L4 5M7 2L10 5M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 2. INVESTORS — FILTERED EMPTY -->
+    <!-- ===================================================================== -->
+    <section>
+      <div class="flex items-baseline gap-3 mb-2">
+        <h2 class="text-sm font-bold">Investors</h2>
+        <span class="text-xs text-text-tertiary">Filtered empty &middot; Search result</span>
+      </div>
+
+      <div class="page-card">
+        <div class="px-8 py-16">
+          <div class="flex flex-col items-center text-center max-w-sm mx-auto">
+            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+              <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="14" cy="14" r="7" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                <path d="M19 19L26 26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+              </svg>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-text-primary">No investors match your search</h3>
+            <p class="mt-2 text-sm text-text-tertiary">Try a different search term or clear your filters.</p>
+            <button class="btn-secondary mt-6">
+              Clear Search
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 3. PIPELINE -->
+    <!-- ===================================================================== -->
+    <section>
+      <div class="flex items-baseline gap-3 mb-2">
+        <h2 class="text-sm font-bold">Pipeline</h2>
+        <span class="text-xs text-text-tertiary">Empty column &middot; Ghost card preview</span>
+      </div>
+      <p class="text-xs text-text-tertiary mb-4">Was: tiny 48px icon with "No deals yet" in text-disabled. Now: ghost deal card showing what a populated column looks like, with contextual CTA.</p>
+
+      <div class="page-card">
+        <div class="p-6">
+          <div class="flex gap-4 overflow-x-auto">
+            <!-- Column 1: has ghost deal cards -->
+            <div class="flex-shrink-0 w-72 rounded-lg bg-surface-secondary p-3">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-medium">Outreach</span>
+                <span class="text-xs text-text-tertiary tabular-nums">0</span>
+              </div>
+
+              <!-- Ghost deal card -->
+              <div class="opacity-30 pointer-events-none select-none space-y-2 mb-3">
+                <div class="rounded-md bg-surface-primary border border-border-subtle p-3 space-y-2">
+                  <div class="ghost-line-dark w-24"></div>
+                  <div class="ghost-line w-32"></div>
+                  <div class="flex gap-2 mt-1">
+                    <div class="ghost-line w-12" style="height:6px;"></div>
+                    <div class="ghost-line w-16" style="height:6px;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Add deal button -->
+              <button class="w-full flex items-center justify-center gap-1.5 py-2 rounded text-xs text-text-secondary hover:text-text-primary hover:bg-surface-primary transition-colors">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2V10M2 6H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Add deal
+              </button>
+            </div>
+
+            <!-- Column 2: standard empty -->
+            <div class="flex-shrink-0 w-72 rounded-lg bg-surface-secondary p-3">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-medium">Due Diligence</span>
+                <span class="text-xs text-text-tertiary tabular-nums">0</span>
+              </div>
+              <div class="flex flex-col items-center py-6 text-center">
+                <p class="text-xs text-text-tertiary">Drag deals here or</p>
+                <button class="mt-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2V10M2 6H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  add a deal
+                </button>
+              </div>
+            </div>
+
+            <!-- Column 3: minimal -->
+            <div class="flex-shrink-0 w-72 rounded-lg bg-surface-secondary p-3">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-medium">Term Sheet</span>
+                <span class="text-xs text-text-tertiary tabular-nums">0</span>
+              </div>
+              <div class="flex flex-col items-center py-6 text-center">
+                <p class="text-xs text-text-tertiary">No deals yet</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 4. ACTIVITY — BY INVESTOR -->
+    <!-- ===================================================================== -->
+    <section>
+      <div class="flex items-baseline gap-3 mb-2">
+        <h2 class="text-sm font-bold">Activity — By Investor</h2>
+        <span class="text-xs text-text-tertiary">True empty &middot; Spec-aligned</span>
+      </div>
+
+      <div class="page-card">
+        <div class="px-8 py-16">
+          <div class="flex flex-col items-center text-center max-w-sm mx-auto">
+            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+              <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M8 26V24C8 21.7909 9.79086 20 12 20H20C22.2091 20 24 21.7909 24 24V26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+                <circle cx="16" cy="12" r="4" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                <path d="M24 14C25.6569 14 27 12.6569 27 11C27 9.34315 25.6569 8 24 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+                <path d="M26 26V24C26 22.3431 24.6569 21 23 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+              </svg>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-text-primary">No investor activity yet</h3>
+            <p class="mt-2 text-sm text-text-tertiary">Connect your email and calendar to start tracking engagement automatically. Activity will appear here as investors interact with your materials.</p>
+            <button class="btn-secondary mt-6">
+              Log Interaction
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 5. ACTIVITY — TIMELINE -->
+    <!-- ===================================================================== -->
+    <section>
+      <div class="flex items-baseline gap-3 mb-2">
+        <h2 class="text-sm font-bold">Activity — Timeline</h2>
+        <span class="text-xs text-text-tertiary">True empty + Filtered empty</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <!-- True empty -->
+        <div class="page-card">
+          <div class="px-6 py-3 border-b">
+            <span class="text-xs text-text-tertiary">True empty</span>
+          </div>
+          <div class="px-8 py-12">
+            <div class="flex flex-col items-center text-center max-w-xs mx-auto">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <circle cx="16" cy="16" r="10" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M16 11V16L19 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">No activity yet</h3>
+              <p class="mt-2 text-sm text-text-tertiary">Emails, meetings, and engagement signals will appear here as your fundraise progresses.</p>
+              <button class="btn-secondary mt-6">
+                Log Interaction
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filtered empty -->
+        <div class="page-card">
+          <div class="px-6 py-3 border-b">
+            <span class="text-xs text-text-tertiary">Filtered empty</span>
+          </div>
+          <div class="px-8 py-12">
+            <div class="flex flex-col items-center text-center max-w-xs mx-auto">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <circle cx="16" cy="16" r="10" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M16 11V16L19 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">No activity matches your filters</h3>
+              <p class="mt-2 text-sm text-text-tertiary">Try adjusting your filters or clear them to see all activity.</p>
+              <button class="btn-secondary mt-6">
+                Clear Filters
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 6. DATA ROOM -->
+    <!-- ===================================================================== -->
+    <section>
+      <div class="flex items-baseline gap-3 mb-2">
+        <h2 class="text-sm font-bold">Data Room</h2>
+        <span class="text-xs text-text-tertiary">No folders &middot; Ghost folder tree</span>
+      </div>
+      <p class="text-xs text-text-tertiary mb-4">Was: primary-action button + "AI will summarize" copy. Now: secondary CTA, AI-assumed copy, ghost folder preview.</p>
+
+      <div class="page-card">
+        <div class="px-8 py-16">
+          <div class="max-w-md mx-auto">
+            <!-- Ghost folder tree -->
+            <div class="mb-10 opacity-[0.35] pointer-events-none select-none">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 py-1.5 px-2">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4.5C2 3.67 2.67 3 3.5 3H6L7.5 4.5H12.5C13.33 4.5 14 5.17 14 6V11.5C14 12.33 13.33 13 12.5 13H3.5C2.67 13 2 12.33 2 11.5V4.5Z" stroke="currentColor" stroke-width="1" style="color: hsl(var(--text-tertiary))"/></svg>
+                  <div class="ghost-line-dark w-20"></div>
+                </div>
+                <div class="flex items-center gap-2 py-1.5 px-2 pl-8">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4.5C2 3.67 2.67 3 3.5 3H6L7.5 4.5H12.5C13.33 4.5 14 5.17 14 6V11.5C14 12.33 13.33 13 12.5 13H3.5C2.67 13 2 12.33 2 11.5V4.5Z" stroke="currentColor" stroke-width="1" style="color: hsl(var(--text-tertiary))"/></svg>
+                  <div class="ghost-line w-24"></div>
+                </div>
+                <div class="flex items-center gap-2 py-1.5 px-2 pl-8">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4.5C2 3.67 2.67 3 3.5 3H6L7.5 4.5H12.5C13.33 4.5 14 5.17 14 6V11.5C14 12.33 13.33 13 12.5 13H3.5C2.67 13 2 12.33 2 11.5V4.5Z" stroke="currentColor" stroke-width="1" style="color: hsl(var(--text-tertiary))"/></svg>
+                  <div class="ghost-line w-28"></div>
+                </div>
+                <div class="flex items-center gap-2 py-1.5 px-2">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4.5C2 3.67 2.67 3 3.5 3H6L7.5 4.5H12.5C13.33 4.5 14 5.17 14 6V11.5C14 12.33 13.33 13 12.5 13H3.5C2.67 13 2 12.33 2 11.5V4.5Z" stroke="currentColor" stroke-width="1" style="color: hsl(var(--text-tertiary))"/></svg>
+                  <div class="ghost-line-dark w-16"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Message -->
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M4 10C4 8.34315 5.34315 7 7 7H13L15 9H25C26.6569 9 28 10.3431 28 12V23C28 24.6569 26.6569 26 25 26H7C5.34315 26 4 24.6569 4 23V10Z" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">Set up your data room</h3>
+              <p class="mt-2 text-sm text-text-tertiary max-w-sm">Organize your fundraising documents in folders investors can browse. Start with a template or create your own structure.</p>
+              <div class="mt-6 flex items-center gap-3">
+                <button class="btn-secondary">
+                  Use Template
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2L8.5 5.5L12 7L8.5 8.5L7 12L5.5 8.5L2 7L5.5 5.5L7 2Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="btn-tertiary">
+                  Create Folder
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 7. DEAL DOCS -->
+    <!-- ===================================================================== -->
+    <section>
+      <div class="flex items-baseline gap-3 mb-2">
+        <h2 class="text-sm font-bold">Deal Docs</h2>
+        <span class="text-xs text-text-tertiary">True empty &middot; Ghost table</span>
+      </div>
+
+      <div class="page-card">
+        <div class="px-8 py-16">
+          <div class="max-w-lg mx-auto">
+            <!-- Ghost tracker table -->
+            <div class="mb-10 opacity-[0.35] pointer-events-none select-none">
+              <div class="flex items-center gap-4 pb-3 border-b">
+                <div class="ghost-line-dark w-20"></div>
+                <div class="ghost-line w-16 ml-auto"></div>
+                <div class="ghost-line w-24"></div>
+                <div class="ghost-line w-16"></div>
+              </div>
+              <div class="flex items-center gap-4 py-3 border-b border-border-subtle">
+                <div class="ghost-line-dark w-32"></div>
+                <div class="ghost-line w-12 ml-auto" style="height:6px; background: hsl(142 60% 85%); border-radius: 9999px;"></div>
+                <div class="ghost-line w-20"></div>
+                <div class="ghost-line w-16"></div>
+              </div>
+              <div class="flex items-center gap-4 py-3">
+                <div class="ghost-line-dark w-24"></div>
+                <div class="ghost-line w-16 ml-auto" style="height:6px; background: hsl(48 80% 85%); border-radius: 9999px;"></div>
+                <div class="ghost-line w-20"></div>
+                <div class="ghost-line w-16"></div>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M8 6H20L24 10V26H8V6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M20 6V10H24" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M12 18H20M12 22H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">Track your deal documents</h3>
+              <p class="mt-2 text-sm text-text-tertiary max-w-sm">Keep SAFEs, NDAs, and side letters organized. Track status from draft through execution so nothing falls through the cracks.</p>
+              <button class="btn-secondary mt-6">
+                Track Document
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 8. INVESTOR UPDATES -->
+    <!-- ===================================================================== -->
+    <section>
+      <div class="flex items-baseline gap-3 mb-2">
+        <h2 class="text-sm font-bold">Investor Updates</h2>
+        <span class="text-xs text-text-tertiary">All three filter states</span>
+      </div>
+      <p class="text-xs text-text-tertiary mb-4">Already well-implemented. Copy improvements + spec alignment.</p>
+
+      <div class="grid grid-cols-3 gap-6">
+        <!-- All -->
+        <div class="page-card">
+          <div class="px-6 py-3 border-b"><span class="text-xs text-text-tertiary">All updates</span></div>
+          <div class="px-6 py-10">
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <rect x="6" y="8" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M6 12L16 18L26 12" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">Keep investors in the loop</h3>
+              <p class="mt-2 text-sm text-text-tertiary">Regular updates build trust and keep your raise top of mind. Create your first update to get started.</p>
+              <button class="btn-secondary mt-6">
+                Create Update
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drafts -->
+        <div class="page-card">
+          <div class="px-6 py-3 border-b"><span class="text-xs text-text-tertiary">Drafts filter</span></div>
+          <div class="px-6 py-10">
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M22 6L26 10L13 23H9V19L22 6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">No drafts</h3>
+              <p class="mt-2 text-sm text-text-tertiary">Start a new update and save it as a draft to continue later.</p>
+              <button class="btn-secondary mt-6">
+                Start New Draft
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sent -->
+        <div class="page-card">
+          <div class="px-6 py-3 border-b"><span class="text-xs text-text-tertiary">Sent filter</span></div>
+          <div class="px-6 py-10">
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M6 8L16 14L26 8V24H6V8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M6 8L16 14L26 8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">No sent updates yet</h3>
+              <p class="mt-2 text-sm text-text-tertiary">Once you send your first update, it will appear here with engagement analytics.</p>
+              <button class="btn-secondary mt-6">
+                Create Update
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 9. CONTACTS -->
+    <!-- ===================================================================== -->
+    <section>
+      <div class="flex items-baseline gap-3 mb-2">
+        <h2 class="text-sm font-bold">Contacts</h2>
+        <span class="text-xs text-text-tertiary">People + Organizations + Filtered</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-6">
+        <!-- People -->
+        <div class="page-card">
+          <div class="px-6 py-3 border-b"><span class="text-xs text-text-tertiary">People tab</span></div>
+          <div class="px-6 py-10">
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M22 14C22 17.3137 19.3137 20 16 20C12.6863 20 10 17.3137 10 14C10 10.6863 12.6863 8 16 8C19.3137 8 22 10.6863 22 14Z" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M6 26C6 22.6863 10.4772 20 16 20C21.5228 20 26 22.6863 26 26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">No people yet</h3>
+              <p class="mt-2 text-sm text-text-tertiary">Add contacts to track your network of investors, advisors, and partners.</p>
+              <div class="mt-6 flex items-center gap-3">
+                <button class="btn-secondary">
+                  Add Person
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+                <button class="btn-tertiary">
+                  Import CSV
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2V9M7 2L4 5M7 2L10 5M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Organizations -->
+        <div class="page-card">
+          <div class="px-6 py-3 border-b"><span class="text-xs text-text-tertiary">Organizations tab</span></div>
+          <div class="px-6 py-10">
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <rect x="6" y="12" width="8" height="14" rx="1" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                  <rect x="18" y="6" width="8" height="20" rx="1" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M14 20H18" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">No organizations yet</h3>
+              <p class="mt-2 text-sm text-text-tertiary">Add firms, funds, and companies to organize your professional network.</p>
+              <div class="mt-6 flex items-center gap-3">
+                <button class="btn-secondary">
+                  Add Organization
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2.5V11.5M2.5 7H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+                <button class="btn-tertiary">
+                  Import CSV
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2V9M7 2L4 5M7 2L10 5M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filtered -->
+        <div class="page-card">
+          <div class="px-6 py-3 border-b"><span class="text-xs text-text-tertiary">Filtered empty (all tabs)</span></div>
+          <div class="px-6 py-10">
+            <div class="flex flex-col items-center text-center">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-secondary">
+                <svg class="icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <circle cx="14" cy="14" r="7" stroke="currentColor" stroke-width="1.5" style="color: hsl(var(--text-tertiary))"/>
+                  <path d="M19 19L26 26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color: hsl(var(--text-tertiary))"/>
+                </svg>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-text-primary">No contacts found</h3>
+              <p class="mt-2 text-sm text-text-tertiary">Try adjusting your search or filters.</p>
+              <button class="btn-secondary mt-6">
+                Clear Filters
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- DESIGN DECISIONS -->
+    <!-- ===================================================================== -->
+    <section class="border-t border-border-default pt-12 mt-8">
+      <h2 class="text-base font-bold mb-6">Design Decisions</h2>
+
+      <div class="grid grid-cols-2 gap-6">
+        <div class="p-5 rounded-lg bg-surface-primary border">
+          <h3 class="text-sm font-semibold mb-2">Ghost Previews</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">Used on Investors, Pipeline, Data Room, and Deal Docs — pages where showing the populated layout helps users understand what they're building toward. Inspired by Figma's approach. Ghost elements use opacity 35% and are non-interactive.</p>
+        </div>
+
+        <div class="p-5 rounded-lg bg-surface-primary border">
+          <h3 class="text-sm font-semibold mb-2">Copy Tone</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">Shifted from clinical ("There are no records to display") to encouraging ("Build your investor list"). Added context about why ("Most successful seed rounds start with 40-60 targets") without being preachy. Body text explains value, not just mechanics.</p>
+        </div>
+
+        <div class="p-5 rounded-lg bg-surface-primary border">
+          <h3 class="text-sm font-semibold mb-2">Dual CTAs</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">Allowed on Investors, Data Room, Contacts where there's a clear primary + secondary path (Add vs Import, Template vs Manual). Secondary path uses tertiary-action style (no border, text-secondary). This is a spec update — the single-CTA rule was too restrictive for onboarding contexts.</p>
+        </div>
+
+        <div class="p-5 rounded-lg bg-surface-primary border">
+          <h3 class="text-sm font-semibold mb-2">Spec Alignment</h3>
+          <p class="text-xs text-text-secondary leading-relaxed">All empty states now use: text-lg font-semibold heading, text-sm text-tertiary body, text-tertiary icon color, 64px/32px icon sizing, secondary-action buttons, mt-6 button spacing (updated from mt-4 — the extra breathing room is better).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <div class="border-t border-border-default pt-8 mt-16 pb-16">
+      <p class="text-xs text-text-tertiary">
+        Empty States Redesign V2 &middot; February 18, 2026 &middot; Maya + Rams + Bobby
+      </p>
+    </div>
+  </div>
+
+</body>
+</html>

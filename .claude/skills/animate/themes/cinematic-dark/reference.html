@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Processing — Cinematic Dark Reference</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================
+       CSS CUSTOM PROPERTIES
+       ================================================================ */
+    :root {
+      /* ITO Dark Mode — Inky Palette */
+      --bg-body: #1a1a1a;              /* inky-900 */
+      --surface-card: #262626;          /* inky-800 */
+      --surface-glass: rgba(64,64,64,0.5); /* inky-700 at 50% */
+      --surface-glass-hover: #4d4d4d;   /* inky-600 */
+
+      /* ITO Dark Mode — Text */
+      --text-primary: #ffffff;
+      --text-secondary: #e7e5e4;        /* stone-200 */
+      --text-tertiary: #c7c4c0;         /* stone-300 */
+      --text-quaternary: #a8a29e;        /* stone-400 */
+
+      /* ITO Dark Mode — Borders (Inky) */
+      --border-subtle: #404040;          /* inky-700 */
+      --border-medium: #666666;          /* inky-500 */
+      --border-dashed: #404040;          /* inky-700 */
+      --border-active: #bfdbfe;          /* blue-200 */
+
+      /* Tailwind 100 Pastels for accents */
+      --success: #d1fae5;               /* emerald-100 */
+      --success-dim: rgba(209,250,229,0.12);
+      --accent: #dbeafe;                /* blue-100 */
+      --accent-dim: rgba(219,234,254,0.10);
+      --processing-amber: #fef3c7;      /* amber-100 */
+      --processing-glow: rgba(254,243,199,0.08);
+      --intelligence-blue: #dbeafe;      /* blue-100 */
+      --warning: #fef3c7;               /* amber-100 */
+      --warning-text: #92400e;           /* amber-800 */
+
+      /* Folder category pastels (100-shade) */
+      --folder-reports: #fef3c7;         /* amber-100 */
+      --folder-contracts: #ede9fe;       /* violet-100 */
+      --folder-invoices: #dbeafe;        /* blue-100 */
+
+      /* Spring easing via linear() */
+      --spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50%, 1.015 55%, 1.017 63.9%, 1.001 85.6%, 1);
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+    }
+
+    /* ================================================================
+       RESET & BASE
+       ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ================================================================
+       3D PERSPECTIVE SCENE
+       ================================================================ */
+    .scene {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+      width: 100%;
+      max-width: 640px;
+      padding: 24px;
+    }
+
+    /* ================================================================
+       CARD WRAPPER
+       ================================================================ */
+    .card-wrapper {
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    /* ================================================================
+       THE CARD — solid inky surface in 3D space
+       ================================================================ */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      box-shadow:
+        0 4px 16px rgba(0,0,0,0.2),
+        0 16px 48px rgba(0,0,0,0.15);
+      overflow: hidden;
+      transition: transform 800ms var(--spring);
+      will-change: transform;
+    }
+
+    /* Camera angles per phase */
+    .card.camera-0 { transform: rotateX(2deg) rotateY(0deg); }
+    .card.camera-1 { transform: rotateX(1deg) rotateY(-1deg); }
+    .card.camera-2 { transform: rotateX(0deg) rotateY(0deg); }
+    .card.camera-3 { transform: rotateX(-1deg) rotateY(1deg); }
+    .card.camera-4 { transform: rotateX(2deg) rotateY(0deg) scale(0.97); }
+
+    /* ================================================================
+       HEADER
+       ================================================================ */
+    .card-header {
+      padding: 28px 28px 0;
+    }
+
+    .phase-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .phase-subtitle {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    /* Title focus-pull entrance */
+    .title-focus {
+      opacity: 0;
+      filter: blur(8px);
+      transform: scale(0.97);
+      transition: opacity 500ms var(--ease-out-expo),
+                  filter 600ms var(--ease-out-expo),
+                  transform 500ms var(--ease-out-expo);
+    }
+    .title-focus.visible {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1);
+    }
+
+    /* ================================================================
+       PHASE CONTENT AREA
+       ================================================================ */
+    .phase-container {
+      position: relative;
+      overflow: hidden;
+      transition: height 700ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    /* ================================================================
+       CLIP-PATH WIPE TRANSITIONS
+       ================================================================ */
+    .phase-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 20px 28px 28px;
+      clip-path: inset(0 100% 0 0);
+      transition: clip-path 700ms var(--ease-out-expo);
+      pointer-events: none;
+      will-change: clip-path;
+    }
+    .phase-layer.active {
+      clip-path: inset(0 0 0 0);
+      pointer-events: auto;
+    }
+    .phase-layer.exiting {
+      clip-path: inset(0 0 0 100%);
+      transition: clip-path 500ms var(--ease-in);
+    }
+    .phase-layer.measuring {
+      clip-path: none;
+      position: static;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ================================================================
+       FOCUS-PULL ENTRANCE (blur-to-sharp)
+       ================================================================ */
+    .focus-enter {
+      opacity: 0;
+      filter: blur(8px);
+      transform: scale(0.97);
+      transition: opacity 500ms var(--ease-out-expo),
+                  filter 600ms var(--ease-out-expo),
+                  transform 500ms var(--ease-out-expo);
+    }
+    .focus-enter.visible {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1);
+    }
+
+    /* ================================================================
+       FOOTER
+       ================================================================ */
+    .card-footer {
+      border-top: 1px solid var(--border-subtle);
+      position: relative;
+      min-height: 64px;
+    }
+
+    .footer-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      padding: 16px 28px;
+      opacity: 0;
+      transition: opacity 220ms ease;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+    }
+    .footer-layer.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ================================================================
+       BUTTONS
+       ================================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 150ms ease;
+      border: none;
+      transform-origin: center;
+    }
+
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-body);
+      padding: 10px 20px;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 10px 16px;
+      border: 1px solid var(--border-medium);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 10px 16px;
+    }
+
+    .btn-disabled {
+      background: var(--text-primary);
+      color: var(--bg-body);
+      padding: 10px 20px;
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ================================================================
+       SPRING INTERACTION ANIMATIONS
+       ================================================================ */
+    @keyframes btn-press {
+      0%   { transform: scale(1);    filter: brightness(1); }
+      15%  { transform: scale(1.02); filter: brightness(1.08); }
+      40%  { transform: scale(0.97); filter: brightness(1.04); }
+      65%  { transform: scale(1.01); filter: brightness(1); }
+      100% { transform: scale(1);    filter: brightness(1); }
+    }
+    .btn.pressing {
+      animation: btn-press 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .btn.pressing svg {
+      animation: icon-wiggle 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes icon-wiggle {
+      0%   { transform: rotate(0deg); }
+      15%  { transform: rotate(0deg); }
+      30%  { transform: rotate(-14deg); }
+      45%  { transform: rotate(14deg); }
+      60%  { transform: rotate(-6deg); }
+      75%  { transform: rotate(4deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    /* Source card interaction */
+    @keyframes card-select {
+      0%   { border-color: var(--border-subtle); background-color: var(--surface-glass); }
+      20%  { border-color: var(--border-active); background-color: rgba(219,234,254,0.08); }
+      45%  { border-color: var(--accent); background-color: rgba(219,234,254,0.10); }
+      70%  { border-color: var(--border-active); background-color: rgba(219,234,254,0.06); }
+      100% { border-color: var(--border-subtle); background-color: var(--surface-glass); }
+    }
+    .source-card.selecting {
+      animation: card-select 1350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .source-card.selecting .source-icon {
+      animation: icon-wiggle 1350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Drop zone interaction */
+    @keyframes zone-receive {
+      0%   { border-color: var(--border-dashed); background-color: transparent; }
+      20%  { border-color: var(--border-active); background-color: rgba(219,234,254,0.06); }
+      45%  { border-color: var(--accent); background-color: rgba(219,234,254,0.08); }
+      70%  { border-color: var(--border-active); background-color: rgba(219,234,254,0.04); }
+      100% { border-color: var(--border-dashed); background-color: transparent; }
+    }
+    .drop-zone.receiving {
+      animation: zone-receive 1350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes zone-icon-wiggle {
+      0%   { transform: rotate(0deg) translateY(0); }
+      15%  { transform: rotate(0deg) translateY(0); }
+      25%  { transform: rotate(-10deg) translateY(-2px); }
+      40%  { transform: rotate(10deg) translateY(-2px); }
+      55%  { transform: rotate(-4deg) translateY(-1px); }
+      70%  { transform: rotate(3deg) translateY(0); }
+      100% { transform: rotate(0deg) translateY(0); }
+    }
+    .drop-zone.receiving .upload-icon {
+      animation: zone-icon-wiggle 1350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* ================================================================
+       PHASE 0: SELECT SOURCE — option cards
+       ================================================================ */
+    .source-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .source-card {
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 200ms ease, background-color 200ms ease;
+    }
+
+    .source-icon-container {
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 10px;
+      border-radius: 10px;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .source-icon {
+      color: var(--text-primary);
+    }
+
+    .source-card-title {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .source-card-sub {
+      font-size: 0.6875rem;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+    }
+
+    /* ================================================================
+       PHASE 1: UPLOAD FILES — drop zone + file rows
+       ================================================================ */
+    .drop-zone {
+      border: 2px dashed var(--border-dashed);
+      border-radius: 12px;
+      padding: 28px 24px;
+      text-align: center;
+      transform-origin: center;
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .upload-icon-container {
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 10px;
+      border-radius: 10px;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .drop-zone-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .drop-zone-sub {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+    }
+
+    .file-list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .file-list-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .file-list-action {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .file-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 8px;
+    }
+    .file-row:last-child { margin-bottom: 0; }
+
+    .file-icon {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--surface-glass);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+    }
+
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .file-remove {
+      flex-shrink: 0;
+      color: var(--text-quaternary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px;
+      margin-top: 2px;
+    }
+
+    /* ================================================================
+       PHASE 2: PROCESSING — file cards with step dots
+       ================================================================ */
+    .process-card {
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .process-card:last-child { margin-bottom: 0; }
+
+    .process-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .process-spinner {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      color: var(--processing-amber);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .process-file-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .process-file-size {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* Step progress: horizontal dots with labels and connectors */
+    .steps-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+    }
+
+    .step-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-quaternary);
+      transition: background 350ms ease, box-shadow 350ms ease;
+    }
+
+    .step-dot.active {
+      background: var(--processing-amber);
+      box-shadow: 0 0 6px rgba(254,243,199,0.3);
+    }
+
+    .step-dot.done {
+      background: var(--success);
+      box-shadow: none;
+    }
+
+    .step-label {
+      font-size: 0.625rem;
+      font-weight: 500;
+      color: var(--text-quaternary);
+      white-space: nowrap;
+      transition: color 300ms ease;
+      letter-spacing: 0.02em;
+    }
+
+    .step-label.active {
+      color: var(--processing-amber);
+    }
+
+    .step-label.done {
+      color: var(--text-tertiary);
+    }
+
+    .step-connector {
+      flex: 1;
+      height: 1px;
+      background: var(--text-quaternary);
+      margin: 0 6px;
+      position: relative;
+      overflow: hidden;
+      align-self: flex-start;
+      margin-top: 3.5px; /* center with dot */
+    }
+
+    .step-connector-fill {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 0%;
+      background: var(--success);
+      transition: width 350ms var(--ease-out-expo);
+    }
+
+    .step-connector.connected .step-connector-fill {
+      width: 100%;
+    }
+
+    /* Progress bar (thin, below steps) */
+    .progress-track {
+      height: 3px;
+      border-radius: 4px;
+      background: var(--border-subtle);
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--processing-amber);
+      width: 0%;
+      transition: width 80ms linear;
+    }
+
+    /* ================================================================
+       PHASE 3: RESULTS — status badges + folder assignments
+       ================================================================ */
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .result-row:last-child { border-bottom: none; }
+
+    .result-status {
+      flex-shrink: 0;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+
+    .status-badge.success {
+      background: var(--success-dim);
+      color: var(--success);
+    }
+
+    .status-badge.warning {
+      background: var(--processing-glow);
+      color: var(--warning);
+    }
+
+    .result-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .result-file-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-detail {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .result-folder {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 6px;
+      padding: 4px 10px;
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 400ms ease;
+    }
+    .result-folder[data-category="reports"] { background: var(--folder-reports); color: #92400e; }
+    .result-folder[data-category="contracts"] { background: var(--folder-contracts); color: #5b21b6; }
+    .result-folder[data-category="invoices"] { background: var(--folder-invoices); color: #1e40af; }
+
+    .result-folder.visible {
+      opacity: 1;
+    }
+
+    .result-folder-icon {
+      color: inherit;
+    }
+
+    /* ================================================================
+       PHASE 4: COMPLETE — count-up stats
+       ================================================================ */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: 20px 12px;
+      background: var(--surface-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-number.accent-green { color: var(--success); }
+    .stat-number.accent-amber { color: var(--warning); }
+
+    .stat-label {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .summary-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      padding: 12px 14px;
+      background: var(--success-dim);
+      border-radius: 10px;
+      border: 1px solid rgba(209,250,229,0.08);
+    }
+
+    .summary-icon {
+      flex-shrink: 0;
+      color: var(--success);
+    }
+
+    /* Self-drawing checkmarks */
+    @keyframes draw-check {
+      to { stroke-dashoffset: 0; }
+    }
+    .draw-check {
+      stroke-dasharray: 230;
+      stroke-dashoffset: 230;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 20;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .draw-check.check-active {
+      animation: draw-check 600ms var(--ease-out-expo) forwards;
+    }
+
+    /* ================================================================
+       TYPEWRITER
+       ================================================================ */
+    .typewriter-text::after {
+      content: '|';
+      color: var(--text-tertiary);
+      animation: blink-cursor 530ms steps(1) infinite;
+      margin-left: 1px;
+    }
+    .typewriter-text.done::after {
+      display: none;
+    }
+    @keyframes blink-cursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ================================================================
+       PULSE SUBTLE
+       ================================================================ */
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s ease-in-out infinite;
+    }
+
+    /* ================================================================
+       PLAYBACK CONTROLS
+       ================================================================ */
+    .playback-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 10px 20px;
+      border-radius: 9999px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 50;
+      font-size: 12px;
+    }
+
+    .playback-bar button {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      opacity: 0.7;
+      transition: opacity 150ms;
+    }
+    .playback-bar button:hover { opacity: 1; }
+
+    .phase-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-quaternary);
+      transition: all 300ms ease;
+      cursor: pointer;
+    }
+    .phase-dot.active {
+      background: var(--text-primary);
+      width: 20px;
+      border-radius: 3px;
+    }
+    .phase-dot.completed {
+      background: var(--text-tertiary);
+    }
+
+    .phase-label-text {
+      font-size: 0.75rem;
+      opacity: 0.5;
+      font-variant-numeric: tabular-nums;
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Perspective Scene -->
+  <div class="scene" id="scene">
+    <div class="card-wrapper">
+
+      <!-- Card -->
+      <div class="card camera-0" id="card">
+
+        <!-- Header -->
+        <div class="card-header" id="card-header">
+          <div class="title-focus visible" id="title-block">
+            <div class="phase-title" id="phase-title">Select Source</div>
+            <div class="phase-subtitle" id="phase-subtitle">Choose where to import your documents from.</div>
+          </div>
+        </div>
+
+        <!-- Phase Container -->
+        <div class="phase-container" id="phase-container">
+
+          <!-- ========== PHASE 0: SELECT SOURCE ========== -->
+          <div class="phase-layer active" id="phase-0">
+            <div class="source-grid">
+              <!-- Upload -->
+              <div class="source-card focus-enter" id="source-upload" data-focus-group="source" data-focus-index="0">
+                <div class="source-icon-container">
+                  <svg class="source-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 256 256"><path d="M232,152v56a16,16,0,0,1-16,16H40a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H216V152a8,8,0,0,1,16,0ZM88,88l32-32V152a8,8,0,0,0,16,0V56l32,32a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48,48A8,8,0,0,0,88,88Z"/></svg>
+                </div>
+                <div class="source-card-title">Upload</div>
+                <div class="source-card-sub">From your computer</div>
+              </div>
+              <!-- Cloud Storage -->
+              <div class="source-card focus-enter" data-focus-group="source" data-focus-index="1">
+                <div class="source-icon-container">
+                  <svg class="source-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 256 256"><path d="M160,40A88.09,88.09,0,0,0,81.29,88.68,64,64,0,1,0,72,216h88a88,88,0,0,0,0-176Zm0,160H72a48,48,0,0,1-2.64-96A87.83,87.83,0,0,0,72,128a8,8,0,0,0,16,0,72,72,0,1,1,72,72Z"/></svg>
+                </div>
+                <div class="source-card-title">Cloud</div>
+                <div class="source-card-sub">Google Drive, Dropbox</div>
+              </div>
+              <!-- Email Import -->
+              <div class="source-card focus-enter" data-focus-group="source" data-focus-index="2">
+                <div class="source-icon-container">
+                  <svg class="source-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"/></svg>
+                </div>
+                <div class="source-card-title">Email</div>
+                <div class="source-card-sub">Import attachments</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========== PHASE 1: UPLOAD FILES ========== -->
+          <div class="phase-layer" id="phase-1">
+            <div class="drop-zone" id="drop-zone">
+              <div class="upload-icon-container">
+                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 256 256" style="color: var(--text-primary);"><path d="M232,152v56a16,16,0,0,1-16,16H40a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H216V152a8,8,0,0,1,16,0ZM88,88l32-32V152a8,8,0,0,0,16,0V56l32,32a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48,48A8,8,0,0,0,88,88Z"/></svg>
+              </div>
+              <div class="drop-zone-title">Drop files here or click to browse</div>
+              <div class="drop-zone-sub">PDF, DOCX, XLSX, and more</div>
+            </div>
+
+            <div class="file-list-header">
+              <span class="file-list-label">Ready to Process (3)</span>
+              <button class="file-list-action">Clear all</button>
+            </div>
+
+            <!-- File 1 -->
+            <div class="file-row focus-enter" data-focus-group="upload" data-focus-index="0">
+              <div class="file-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="file-info">
+                <div class="file-name">annual_report_draft_FINAL_v3.pdf</div>
+                <div class="file-size">3.2 MB</div>
+              </div>
+              <button class="file-remove">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+              </button>
+            </div>
+
+            <!-- File 2 -->
+            <div class="file-row focus-enter" data-focus-group="upload" data-focus-index="1">
+              <div class="file-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="file-info">
+                <div class="file-name">vendor_services_agreement_unsigned.docx</div>
+                <div class="file-size">1.8 MB</div>
+              </div>
+              <button class="file-remove">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+              </button>
+            </div>
+
+            <!-- File 3 -->
+            <div class="file-row focus-enter" data-focus-group="upload" data-focus-index="2">
+              <div class="file-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg>
+              </div>
+              <div class="file-info">
+                <div class="file-name">Q4_invoice_batch_export.xlsx</div>
+                <div class="file-size">0.9 MB</div>
+              </div>
+              <button class="file-remove">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- ========== PHASE 2: PROCESSING ========== -->
+          <div class="phase-layer" id="phase-2">
+            <!-- File 1 -->
+            <div class="process-card">
+              <div class="process-header">
+                <svg class="process-spinner" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+                <span class="process-file-name">annual_report_draft_FINAL_v3.pdf</span>
+                <span class="process-file-size">3.2 MB</span>
+              </div>
+              <div class="steps-row">
+                <div class="step-node">
+                  <div class="step-dot" data-file="0" data-step="0"></div>
+                  <span class="step-label" data-file="0" data-step="0">Scanning</span>
+                </div>
+                <div class="step-connector" data-file="0" data-after="0"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="0" data-step="1"></div>
+                  <span class="step-label" data-file="0" data-step="1">Classifying</span>
+                </div>
+                <div class="step-connector" data-file="0" data-after="1"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="0" data-step="2"></div>
+                  <span class="step-label" data-file="0" data-step="2">Extracting</span>
+                </div>
+                <div class="step-connector" data-file="0" data-after="2"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="0" data-step="3"></div>
+                  <span class="step-label" data-file="0" data-step="3">Assigning</span>
+                </div>
+              </div>
+              <div class="progress-track"><div class="progress-bar" data-file="0"></div></div>
+            </div>
+
+            <!-- File 2 -->
+            <div class="process-card">
+              <div class="process-header">
+                <svg class="process-spinner" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+                <span class="process-file-name">vendor_services_agreement_unsigned.docx</span>
+                <span class="process-file-size">1.8 MB</span>
+              </div>
+              <div class="steps-row">
+                <div class="step-node">
+                  <div class="step-dot" data-file="1" data-step="0"></div>
+                  <span class="step-label" data-file="1" data-step="0">Scanning</span>
+                </div>
+                <div class="step-connector" data-file="1" data-after="0"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="1" data-step="1"></div>
+                  <span class="step-label" data-file="1" data-step="1">Classifying</span>
+                </div>
+                <div class="step-connector" data-file="1" data-after="1"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="1" data-step="2"></div>
+                  <span class="step-label" data-file="1" data-step="2">Extracting</span>
+                </div>
+                <div class="step-connector" data-file="1" data-after="2"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="1" data-step="3"></div>
+                  <span class="step-label" data-file="1" data-step="3">Assigning</span>
+                </div>
+              </div>
+              <div class="progress-track"><div class="progress-bar" data-file="1"></div></div>
+            </div>
+
+            <!-- File 3 -->
+            <div class="process-card">
+              <div class="process-header">
+                <svg class="process-spinner" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232,128a104,104,0,0,1-208,0c0-41,24-78.28,61.13-95.17a8,8,0,0,1,6.94,14.42C57.38,63.72,40,93.48,40,128a88,88,0,0,0,176,0c0-34.52-17.38-64.28-52.07-80.75a8,8,0,0,1,6.94-14.42C208,49.72,232,87,232,128Z"/></svg>
+                <span class="process-file-name">Q4_invoice_batch_export.xlsx</span>
+                <span class="process-file-size">0.9 MB</span>
+              </div>
+              <div class="steps-row">
+                <div class="step-node">
+                  <div class="step-dot" data-file="2" data-step="0"></div>
+                  <span class="step-label" data-file="2" data-step="0">Scanning</span>
+                </div>
+                <div class="step-connector" data-file="2" data-after="0"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="2" data-step="1"></div>
+                  <span class="step-label" data-file="2" data-step="1">Classifying</span>
+                </div>
+                <div class="step-connector" data-file="2" data-after="1"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="2" data-step="2"></div>
+                  <span class="step-label" data-file="2" data-step="2">Extracting</span>
+                </div>
+                <div class="step-connector" data-file="2" data-after="2"><div class="step-connector-fill"></div></div>
+                <div class="step-node">
+                  <div class="step-dot" data-file="2" data-step="3"></div>
+                  <span class="step-label" data-file="2" data-step="3">Assigning</span>
+                </div>
+              </div>
+              <div class="progress-track"><div class="progress-bar" data-file="2"></div></div>
+            </div>
+          </div>
+
+          <!-- ========== PHASE 3: RESULTS ========== -->
+          <div class="phase-layer" id="phase-3">
+            <!-- File 1: Success -->
+            <div class="result-row focus-enter" data-focus-group="results" data-focus-index="0">
+              <div class="result-status">
+                <span class="status-badge success">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+                  Done
+                </span>
+              </div>
+              <div class="result-info">
+                <div class="result-file-name typewriter-text" data-text="2024-Annual-Report.pdf"></div>
+                <div class="result-detail">12 pages, 4 tables extracted</div>
+              </div>
+              <div class="result-folder" data-folder-group="results" data-folder-index="0" data-category="reports">
+                <svg class="result-folder-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                <span>Reports</span>
+              </div>
+            </div>
+
+            <!-- File 2: Warning -->
+            <div class="result-row focus-enter" data-focus-group="results" data-focus-index="1">
+              <div class="result-status">
+                <span class="status-badge warning">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"/></svg>
+                  Review
+                </span>
+              </div>
+              <div class="result-info">
+                <div class="result-file-name typewriter-text" data-text="Vendor-Services-Agreement.docx"></div>
+                <div class="result-detail">Unsigned — needs signature</div>
+              </div>
+              <div class="result-folder" data-folder-group="results" data-folder-index="1" data-category="contracts">
+                <svg class="result-folder-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                <span>Contracts</span>
+              </div>
+            </div>
+
+            <!-- File 3: Success -->
+            <div class="result-row focus-enter" data-focus-group="results" data-focus-index="2">
+              <div class="result-status">
+                <span class="status-badge success">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+                  Done
+                </span>
+              </div>
+              <div class="result-info">
+                <div class="result-file-name typewriter-text" data-text="2024-Q4-Invoice-Batch.xlsx"></div>
+                <div class="result-detail">47 line items, 3 vendors</div>
+              </div>
+              <div class="result-folder" data-folder-group="results" data-folder-index="2" data-category="invoices">
+                <svg class="result-folder-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,72H131.31l-27.31-27.31A15.89,15.89,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.41,15.41,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+                <span>Invoices</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========== PHASE 4: COMPLETE ========== -->
+          <div class="phase-layer" id="phase-4">
+            <div class="stats-grid">
+              <div class="stat-card focus-enter" data-focus-group="complete" data-focus-index="0">
+                <div class="stat-number accent-green" id="stat-processed">0</div>
+                <div class="stat-label">Processed</div>
+              </div>
+              <div class="stat-card focus-enter" data-focus-group="complete" data-focus-index="1">
+                <div class="stat-number" id="stat-folders">0</div>
+                <div class="stat-label">Folders</div>
+              </div>
+              <div class="stat-card focus-enter" data-focus-group="complete" data-focus-index="2">
+                <div class="stat-number accent-amber" id="stat-review">0</div>
+                <div class="stat-label">Needs Review</div>
+              </div>
+            </div>
+            <div class="summary-line focus-enter" data-focus-group="complete" data-focus-index="3">
+              <svg class="summary-icon" width="20" height="20" viewBox="0 0 256 256">
+                <polyline class="draw-check" points="48,138 96,186 208,74" />
+              </svg>
+              <span>All documents processed and filed successfully.</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="card-footer" id="card-footer">
+          <!-- Footer 0: Source -->
+          <div class="footer-layer active" id="footer-0">
+            <div style="display: flex; align-items: center; justify-content: flex-end; width: 100%;">
+              <button class="btn btn-ghost" style="margin-right: auto;">Cancel</button>
+              <span style="font-size: 0.75rem; color: var(--text-tertiary);">Step 1 of 4</span>
+            </div>
+          </div>
+          <!-- Footer 1: Upload -->
+          <div class="footer-layer" id="footer-1">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <button class="btn btn-ghost">Back</button>
+              <button class="btn btn-primary" id="btn-process">
+                Process Files
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Footer 2: Processing -->
+          <div class="footer-layer" id="footer-2">
+            <div style="display: flex; align-items: center; justify-content: flex-end; width: 100%;">
+              <button class="btn btn-disabled animate-pulse-subtle" disabled>
+                Processing...
+              </button>
+            </div>
+          </div>
+          <!-- Footer 3: Results -->
+          <div class="footer-layer" id="footer-3">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <button class="btn btn-ghost">Cancel</button>
+              <button class="btn btn-primary" id="btn-confirm">
+                Confirm &amp; File
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Footer 4: Complete -->
+          <div class="footer-layer" id="footer-4">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <button class="btn btn-secondary">
+                Process More
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></svg>
+              </button>
+              <button class="btn btn-primary">
+                Done
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Playback Controls -->
+  <div class="playback-bar" id="playback">
+    <button onclick="togglePlay()" id="play-btn" title="Play/Pause">
+      <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48V208a16,16,0,0,1-16,16H160a16,16,0,0,1-16-16V48a16,16,0,0,1,16-16h40A16,16,0,0,1,216,48ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z"/></svg>
+      <svg id="icon-play" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" style="display:none"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,40.74V215.26a15.94,15.94,0,0,0,8.12,13.9,16,16,0,0,0,16.2-.3L232.4,141.51a16,16,0,0,0,0-27Z"/></svg>
+    </button>
+    <button onclick="restart()" title="Restart">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a96,96,0,0,1-94.71,96H128A95.38,95.38,0,0,1,62.1,197.8a8,8,0,0,1,11.8-10.81A80,80,0,1,0,71.43,71.39L87.17,87.17H48a8,8,0,0,1-8-8V40.83L55.29,56.12A96,96,0,0,1,224,128Z"/></svg>
+    </button>
+    <div style="display: flex; align-items: center; gap: 6px;" id="phase-dots">
+      <div class="phase-dot active" data-phase="0" onclick="jumpTo(0)"></div>
+      <div class="phase-dot" data-phase="1" onclick="jumpTo(1)"></div>
+      <div class="phase-dot" data-phase="2" onclick="jumpTo(2)"></div>
+      <div class="phase-dot" data-phase="3" onclick="jumpTo(3)"></div>
+      <div class="phase-dot" data-phase="4" onclick="jumpTo(4)"></div>
+    </div>
+    <span class="phase-label-text" id="phase-label">Source</span>
+  </div>
+
+  <!-- Engine -->
+  <script src="engine.js"></script>
+
+  <script>
+    /* ================================================================
+       COUNT-UP ANIMATION — ease-out-quad from 0 to target
+       ================================================================ */
+    function countUp(elementId, target, duration) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      const start = performance.now();
+      el.textContent = '0';
+
+      function tick(now) {
+        const elapsed = now - start;
+        const t = Math.min(elapsed / duration, 1);
+        const eased = 1 - (1 - t) * (1 - t); // ease-out-quad
+        const current = Math.round(eased * target);
+        el.textContent = current;
+        if (t < 1) requestAnimationFrame(tick);
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    /* ================================================================
+       RESET COUNT-UP STATS
+       ================================================================ */
+    function resetStats() {
+      document.getElementById('stat-processed').textContent = '0';
+      document.getElementById('stat-folders').textContent = '0';
+      document.getElementById('stat-review').textContent = '0';
+    }
+
+    /* ================================================================
+       ENGINE CONFIGURATION
+       ================================================================ */
+    const engine = new CinematicDarkEngine({
+      phases: [
+        { id: 0, label: 'Source',     dwell: 2500 },
+        { id: 1, label: 'Upload',     dwell: 2500 },
+        { id: 2, label: 'Processing', dwell: 4500 },
+        { id: 3, label: 'Results',    dwell: 4500 },
+        { id: 4, label: 'Complete',   dwell: 3500 },
+      ],
+
+      titles: [
+        'Select Source',
+        'Upload Files',
+        'Processing Documents',
+        'Review Results',
+        'Processing Complete',
+      ],
+
+      subtitles: [
+        'Choose where to import your documents from.',
+        '3 files ready to process.',
+        'Scanning, classifying, and extracting data from each file.',
+        'Confirm folder assignments and review flagged items.',
+        'All documents have been processed and organized.',
+      ],
+
+      interactions: {
+        0: async () => {
+          // Source card select animation
+          const card = document.getElementById('source-upload');
+          if (!card) return;
+          card.classList.add('selecting');
+          await engine.delay(1400);
+          card.classList.remove('selecting');
+        },
+        1: async () => {
+          // Process button spring press
+          const btn = document.getElementById('btn-process');
+          if (!btn) return;
+          btn.classList.add('pressing');
+          await engine.delay(1150);
+          btn.classList.remove('pressing');
+        },
+        3: async () => {
+          // Confirm button spring press
+          const btn = document.getElementById('btn-confirm');
+          if (!btn) return;
+          btn.classList.add('pressing');
+          await engine.delay(1150);
+          btn.classList.remove('pressing');
+        },
+      },
+
+      onPhaseEnter: {
+        0: (eng) => {
+          // Source cards stagger in
+          eng.runFocusStagger('source', 180);
+        },
+        1: (eng) => {
+          // File rows stagger in
+          eng.runFocusStagger('upload', 200);
+        },
+        2: (eng) => {
+          // Start processing progress animation
+          eng.startProgressAnimation();
+        },
+        3: (eng) => {
+          // Result rows focus-pull in
+          eng.runFocusStagger('results', 250);
+          // Typewriter starts after rows land
+          eng.runTypewriter(600);
+          // Folder badges appear last
+          eng.runFolderReveal('results', 300, 1800);
+        },
+        4: (eng) => {
+          // Reset stats before animating
+          resetStats();
+          // Stat cards stagger in
+          eng.runFocusStagger('complete', 200);
+
+          // Count-up stats after cards land (700ms delay)
+          eng.pushTimer(() => {
+            countUp('stat-processed', 3, 600);
+            countUp('stat-folders', 3, 600);
+            countUp('stat-review', 1, 600);
+          }, 700);
+
+          // Self-drawing check after count-up
+          eng.runDrawChecks('#phase-4', 200, 1400);
+        },
+      },
+    });
+
+    /* ================================================================
+       EXTENDED RESET — also reset source cards and stats
+       ================================================================ */
+    const originalReset = engine.resetAllAnimations.bind(engine);
+    engine.resetAllAnimations = function() {
+      originalReset();
+      // Source card selecting
+      const src = document.getElementById('source-upload');
+      if (src) src.classList.remove('selecting');
+      // Result folder badges
+      document.querySelectorAll('.result-folder').forEach(el => el.classList.remove('visible'));
+      // Count-up stats
+      resetStats();
+    };
+
+    /* ================================================================
+       BOOT
+       ================================================================ */
+    engine.exposeGlobals();
+    window.addEventListener('DOMContentLoaded', () => engine.boot());
+  </script>
+
+</body>
+</html>

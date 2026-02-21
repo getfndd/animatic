@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Domain Blocks — Editor + Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 0 0% 96%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --status-error: 0 84% 60%;
+      --status-error-bg: 0 86% 97%;
+      --status-warning: 38 92% 50%;
+      --status-warning-bg: 48 96% 95%;
+      --radius: 0.5rem;
+    }
+
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+            'status-error': 'hsl(var(--status-error))',
+            'status-error-bg': 'hsl(var(--status-error-bg))',
+            'status-warning': 'hsl(var(--status-warning))',
+            'status-warning-bg': 'hsl(var(--status-warning-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+
+  <!-- Page Header -->
+  <div class="max-w-7xl mx-auto mb-8">
+    <h1 class="text-2xl font-semibold text-text-primary tracking-tight">Email Composer — Domain Blocks</h1>
+    <p class="text-sm text-text-secondary mt-1">FND-1280: MetricCard, Columns, Ask/Request blocks in editor + preview</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 1: SLASH COMMAND MENU                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary  mb-4">Slash Command Menu — Updated</h2>
+
+    <div class="bg-surface-primary border rounded-lg shadow-lg p-2 max-w-[340px]">
+      <!-- Search hint -->
+      <div class="flex items-center gap-2 px-2 py-1.5">
+        <svg class="w-3.5 h-3.5 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <span class="text-sm text-text-tertiary">Filter blocks...</span>
+      </div>
+
+      <!-- Basic Blocks -->
+      <div class="px-2 pt-2 pb-1 text-xs font-medium text-text-tertiary">Basic Blocks</div>
+      <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors bg-surface-hover">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-primary text-text-primary">
+          <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM48,208V48H208V208Z" opacity="0.1"/><path d="M56,96H200a8,8,0,0,0,0-16H56a8,8,0,0,0,0,16Zm0,40H200a8,8,0,0,0,0-16H56a8,8,0,0,0,0,16Zm0,40H152a8,8,0,0,0,0-16H56a8,8,0,0,0,0,16Z"/></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-medium text-text-primary">Text</div>
+          <div class="text-xs text-text-tertiary truncate">Plain text paragraph</div>
+        </div>
+      </button>
+      <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+          <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M152,56V176a8,8,0,0,1-16,0V124H76v52a8,8,0,0,1-16,0V56a8,8,0,0,1,16,0v52h60V56a8,8,0,0,1,16,0Zm80,108a8,8,0,0,0-8,8v4H196V56a8,8,0,0,0-16,0V184a8,8,0,0,0,8,8h40a8,8,0,0,0,8-8v-12A8,8,0,0,0,232,164Z"/></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-medium text-text-primary">Heading</div>
+          <div class="text-xs text-text-tertiary truncate">Section title (H2, H3)</div>
+        </div>
+      </button>
+      <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+          <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM96,120v49.6L63.6,137.2a8,8,0,0,0-11.2,11.6l48,46.3a8.1,8.1,0,0,0,11.2,0l48-46.3a8,8,0,1,0-11.2-11.6L116,169.6V120a8,8,0,0,0-16,0Z" opacity="0.1"/><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200Z"/></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-medium text-text-primary">Image</div>
+          <div class="text-xs text-text-tertiary truncate">Upload or embed an image</div>
+        </div>
+      </button>
+
+      <!-- Domain Blocks (new category) -->
+      <div class="px-2 pt-3 pb-1 text-xs font-medium text-text-tertiary">Domain Blocks</div>
+      <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+          <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M232,200a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V56a8,8,0,0,1,16,0V192H224A8,8,0,0,1,232,200ZM77.3,161.7a8,8,0,0,0,11.4,0L128,122.3l21.3,21.4a8,8,0,0,0,11.4,0l56-56a8.1,8.1,0,0,0-11.4-11.4L155,126.6,133.7,105.3a8,8,0,0,0-11.4,0L83,144.6l-17.3-17.3a8.1,8.1,0,0,0-11.4,11.4Z"/></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-medium text-text-primary">Metric Card</div>
+          <div class="text-xs text-text-tertiary truncate">Key metric with value and trend</div>
+        </div>
+      </button>
+      <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+          <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M104,40V216a8,8,0,0,1-16,0V40a8,8,0,0,1,16,0Zm64-8a8,8,0,0,0-8,8V216a8,8,0,0,0,16,0V40A8,8,0,0,0,168,32Z"/></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-medium text-text-primary">Columns</div>
+          <div class="text-xs text-text-tertiary truncate">Side-by-side content layout</div>
+        </div>
+      </button>
+      <button class="w-full flex items-center gap-3 px-2.5 py-2.5 text-left rounded-md transition-colors hover:bg-surface-hover">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-secondary text-text-secondary">
+          <svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"/></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-medium text-text-primary">Ask</div>
+          <div class="text-xs text-text-tertiary truncate">Request or ask with context</div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 2: METRIC CARD BLOCK                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary  mb-4">1. Metric Card Block</h2>
+
+    <div class="grid grid-cols-2 gap-6">
+      <!-- Editor View -->
+      <div class="bg-surface-primary rounded-lg border p-6">
+        <div class="text-xs font-medium text-text-tertiary mb-4">Editor View — Editable attributes</div>
+
+        <!-- Single metric card in editor -->
+        <div class="relative group">
+          <!-- Drag handle (left side) -->
+          <div class="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
+            <svg class="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+          </div>
+
+          <!-- Metric card editor UI -->
+          <div class="border border-border-default rounded-md p-4 bg-surface-secondary/50">
+            <div class="flex items-start gap-4">
+              <!-- Trend icon area -->
+              <div class="w-10 h-10 rounded-md bg-status-success-bg flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-status-success" fill="currentColor" viewBox="0 0 256 256"><path d="M232,56v64a8,8,0,0,1-16,0V75.3l-82.3,82.4a8.1,8.1,0,0,1-11.4,0L88,123.3,29.7,181.7a8.2,8.2,0,0,1-11.4,0,8.1,8.1,0,0,1,0-11.4l64-64a8.1,8.1,0,0,1,11.4,0L128,140.7,204.7,64H160a8,8,0,0,1,0-16h64A8,8,0,0,1,232,56Z"/></svg>
+              </div>
+              <!-- Editable fields -->
+              <div class="flex-1 space-y-2">
+                <input type="text" value="Monthly Recurring Revenue" class="w-full text-xs font-medium text-text-tertiary bg-transparent outline-none border-b border-transparent hover:border-border-subtle focus:border-border-default transition-colors pb-0.5" placeholder="Metric label..." />
+                <div class="flex items-baseline gap-2">
+                  <input type="text" value="$2.1M" class="text-2xl font-semibold text-text-primary bg-transparent outline-none w-32 border-b border-transparent hover:border-border-subtle focus:border-border-default transition-colors" placeholder="Value" />
+                  <input type="text" value="+34% QoQ" class="text-sm font-medium text-status-success bg-transparent outline-none w-24 border-b border-transparent hover:border-border-subtle focus:border-border-default transition-colors" placeholder="Change" />
+                </div>
+              </div>
+              <!-- Trend direction toggle -->
+              <div class="flex gap-0.5 bg-surface-secondary rounded-md p-0.5">
+                <button class="w-7 h-7 flex items-center justify-center rounded text-status-success bg-surface-primary shadow-sm text-xs">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 256 256"><path d="M232,56v64a8,8,0,0,1-16,0V75.3l-82.3,82.4a8.1,8.1,0,0,1-11.4,0L88,123.3,29.7,181.7a8.2,8.2,0,0,1-11.4,0,8.1,8.1,0,0,1,0-11.4l64-64a8.1,8.1,0,0,1,11.4,0L128,140.7,204.7,64H160a8,8,0,0,1,0-16h64A8,8,0,0,1,232,56Z"/></svg>
+                </button>
+                <button class="w-7 h-7 flex items-center justify-center rounded text-text-tertiary hover:text-text-secondary transition-colors text-xs">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"/></svg>
+                </button>
+                <button class="w-7 h-7 flex items-center justify-center rounded text-text-tertiary hover:text-text-secondary transition-colors text-xs">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 256 256"><path d="M232,200a8,8,0,0,1-8,8H160a8,8,0,0,1,0-16h44.7L122.3,109.7a8.1,8.1,0,0,1,0-11.4L168,52.7,29.7,52.7A8,8,0,0,1,24,44.7V40a8,8,0,0,1,8-8H224a8,8,0,0,1,8,8v64a8,8,0,0,1-16,0V75.3l-82.3,82.4L168,192.7,204.7,192H160"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multiple metric cards (row of 3) -->
+        <div class="mt-6">
+          <div class="text-xs text-text-tertiary mb-2">Multiple metrics (auto-rows when inserting several)</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="border border-border-default rounded-md p-3 bg-surface-secondary/50">
+              <div class="text-xs text-text-tertiary mb-1">MRR</div>
+              <div class="text-lg font-semibold text-text-primary">$2.1M</div>
+              <div class="text-xs font-medium text-status-success mt-0.5">+34% QoQ</div>
+            </div>
+            <div class="border border-border-default rounded-md p-3 bg-surface-secondary/50">
+              <div class="text-xs text-text-tertiary mb-1">Customers</div>
+              <div class="text-lg font-semibold text-text-primary">847</div>
+              <div class="text-xs font-medium text-status-success mt-0.5">+12 this month</div>
+            </div>
+            <div class="border border-border-default rounded-md p-3 bg-surface-secondary/50">
+              <div class="text-xs text-text-tertiary mb-1">Runway</div>
+              <div class="text-lg font-semibold text-text-primary">18 mo</div>
+              <div class="text-xs font-medium text-text-secondary mt-0.5">Stable</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Preview (light) -->
+      <div class="bg-surface-primary rounded-lg border overflow-hidden">
+        <div class="text-xs font-medium text-text-tertiary px-6 pt-4 mb-4">Email Preview — Inline styles</div>
+
+        <!-- Preview iframe simulation -->
+        <div class="px-6 pb-6">
+          <!-- Single metric -->
+          <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 12px; font-family: 'Satoshi', -apple-system, sans-serif;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span style="font-size: 11px; font-weight: 500; color: #737373; ">Monthly Recurring Revenue</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 4px;">
+              <span style="font-size: 28px; font-weight: 700; color: #171717; letter-spacing: -0.02em;">$2.1M</span>
+              <span style="font-size: 13px; font-weight: 500; color: #22c55e;">&#9650; +34% QoQ</span>
+            </div>
+          </div>
+
+          <!-- Row of 3 metrics -->
+          <div class="text-xs text-text-tertiary mb-2 mt-6">Row of metrics (table-based for email clients)</div>
+          <table style="width: 100%; border-collapse: separate; border-spacing: 8px 0;" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="background-color: #f9fafb; border-radius: 8px; padding: 16px; width: 33%; vertical-align: top;">
+                <div style="font-size: 11px; font-weight: 500; color: #737373; ">MRR</div>
+                <div style="font-size: 24px; font-weight: 700; color: #171717; margin-top: 4px; letter-spacing: -0.02em;">$2.1M</div>
+                <div style="font-size: 12px; font-weight: 500; color: #22c55e; margin-top: 2px;">&#9650; +34% QoQ</div>
+              </td>
+              <td style="background-color: #f9fafb; border-radius: 8px; padding: 16px; width: 33%; vertical-align: top;">
+                <div style="font-size: 11px; font-weight: 500; color: #737373; ">Customers</div>
+                <div style="font-size: 24px; font-weight: 700; color: #171717; margin-top: 4px; letter-spacing: -0.02em;">847</div>
+                <div style="font-size: 12px; font-weight: 500; color: #22c55e; margin-top: 2px;">&#9650; +12 this month</div>
+              </td>
+              <td style="background-color: #f9fafb; border-radius: 8px; padding: 16px; width: 33%; vertical-align: top;">
+                <div style="font-size: 11px; font-weight: 500; color: #737373; ">Runway</div>
+                <div style="font-size: 24px; font-weight: 700; color: #171717; margin-top: 4px; letter-spacing: -0.02em;">18 mo</div>
+                <div style="font-size: 12px; font-weight: 500; color: #737373; margin-top: 2px;">&#8212; Stable</div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Dark theme preview -->
+          <div class="text-xs text-text-tertiary mb-2 mt-6">Dark theme</div>
+          <div style="background-color: #1a1a1a; border-radius: 12px; padding: 16px;">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 8px 0;" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background-color: #262626; border-radius: 8px; padding: 16px; width: 33%; vertical-align: top;">
+                  <div style="font-size: 11px; font-weight: 500; color: #737373; ">MRR</div>
+                  <div style="font-size: 24px; font-weight: 700; color: #e5e7eb; margin-top: 4px; letter-spacing: -0.02em;">$2.1M</div>
+                  <div style="font-size: 12px; font-weight: 500; color: #22c55e; margin-top: 2px;">&#9650; +34% QoQ</div>
+                </td>
+                <td style="background-color: #262626; border-radius: 8px; padding: 16px; width: 33%; vertical-align: top;">
+                  <div style="font-size: 11px; font-weight: 500; color: #737373; ">Customers</div>
+                  <div style="font-size: 24px; font-weight: 700; color: #e5e7eb; margin-top: 4px; letter-spacing: -0.02em;">847</div>
+                  <div style="font-size: 12px; font-weight: 500; color: #22c55e; margin-top: 2px;">&#9650; +12</div>
+                </td>
+                <td style="background-color: #262626; border-radius: 8px; padding: 16px; width: 33%; vertical-align: top;">
+                  <div style="font-size: 11px; font-weight: 500; color: #737373; ">Runway</div>
+                  <div style="font-size: 24px; font-weight: 700; color: #e5e7eb; margin-top: 4px; letter-spacing: -0.02em;">18 mo</div>
+                  <div style="font-size: 12px; font-weight: 500; color: #737373; margin-top: 2px;">&#8212; Stable</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 3: COLUMNS BLOCK                                           -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary  mb-4">2. Columns Block</h2>
+
+    <div class="grid grid-cols-2 gap-6">
+      <!-- Editor View -->
+      <div class="bg-surface-primary rounded-lg border p-6">
+        <div class="text-xs font-medium text-text-tertiary mb-4">Editor View — Editable columns with resize</div>
+
+        <!-- Column count toggle -->
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-xs text-text-tertiary">Columns:</span>
+          <div class="flex gap-0.5 bg-surface-secondary rounded-md p-0.5">
+            <button class="px-3 py-1 text-xs font-medium rounded bg-surface-primary shadow-sm text-text-primary">2</button>
+            <button class="px-3 py-1 text-xs font-medium rounded text-text-tertiary hover:text-text-secondary transition-colors">3</button>
+          </div>
+        </div>
+
+        <!-- 2-column layout in editor -->
+        <div class="relative group">
+          <div class="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
+            <svg class="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+          </div>
+
+          <div class="border border-border-default rounded-md overflow-hidden">
+            <div class="grid grid-cols-2 divide-x divide-border-default">
+              <!-- Column A -->
+              <div class="p-4 min-h-[120px]">
+                <div class="text-xs text-text-tertiary mb-2 flex items-center gap-1">
+                  <span class="w-4 h-4 rounded bg-surface-secondary flex items-center justify-center text-[10px] font-medium">A</span>
+                  Column 1
+                </div>
+                <div class="text-sm text-text-primary leading-relaxed" contenteditable="true">
+                  <strong>Cross-source Intelligence</strong><br/>
+                  Dynamic follow-ups from multiple knowledge sources, powered by context-aware analysis.
+                </div>
+              </div>
+              <!-- Column B -->
+              <div class="p-4 min-h-[120px]">
+                <div class="text-xs text-text-tertiary mb-2 flex items-center gap-1">
+                  <span class="w-4 h-4 rounded bg-surface-secondary flex items-center justify-center text-[10px] font-medium">B</span>
+                  Column 2
+                </div>
+                <div class="text-sm text-text-primary leading-relaxed" contenteditable="true">
+                  <strong>Model Selection per Task</strong><br/>
+                  Configurable AI model routing for each task type, optimizing for cost and quality.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3-column variant -->
+        <div class="mt-6">
+          <div class="text-xs text-text-tertiary mb-2">3-column variant</div>
+          <div class="border border-border-default rounded-md overflow-hidden">
+            <div class="grid grid-cols-3 divide-x divide-border-default">
+              <div class="p-3 min-h-[80px]">
+                <div class="text-xs text-text-tertiary mb-1">Column 1</div>
+                <div class="text-sm text-text-primary" contenteditable="true">Left content area</div>
+              </div>
+              <div class="p-3 min-h-[80px]">
+                <div class="text-xs text-text-tertiary mb-1">Column 2</div>
+                <div class="text-sm text-text-primary" contenteditable="true">Center content area</div>
+              </div>
+              <div class="p-3 min-h-[80px]">
+                <div class="text-xs text-text-tertiary mb-1">Column 3</div>
+                <div class="text-sm text-text-primary" contenteditable="true">Right content area</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Preview -->
+      <div class="bg-surface-primary rounded-lg border overflow-hidden">
+        <div class="text-xs font-medium text-text-tertiary px-6 pt-4 mb-4">Email Preview — Table-based layout for email clients</div>
+
+        <div class="px-6 pb-6">
+          <!-- 2-column preview -->
+          <table style="width: 100%; border-collapse: collapse; font-family: 'Satoshi', -apple-system, sans-serif;" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="width: 50%; vertical-align: top; padding: 16px 16px 16px 0;">
+                <p style="font-size: 15px; font-weight: 600; color: #171717; margin: 0 0 6px 0;">Cross-source Intelligence</p>
+                <p style="font-size: 14px; color: #525252; line-height: 1.5; margin: 0;">Dynamic follow-ups from multiple knowledge sources, powered by context-aware analysis.</p>
+              </td>
+              <td style="width: 50%; vertical-align: top; padding: 16px 0 16px 16px; border-left: 1px solid #e5e7eb;">
+                <p style="font-size: 15px; font-weight: 600; color: #171717; margin: 0 0 6px 0;">Model Selection per Task</p>
+                <p style="font-size: 14px; color: #525252; line-height: 1.5; margin: 0;">Configurable AI model routing for each task type, optimizing for cost and quality.</p>
+              </td>
+            </tr>
+          </table>
+
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
+
+          <!-- 3-column preview -->
+          <div class="text-xs text-text-tertiary mb-2">3-column</div>
+          <table style="width: 100%; border-collapse: collapse;" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="width: 33%; vertical-align: top; padding: 16px 12px 16px 0;">
+                <p style="font-size: 15px; font-weight: 600; color: #171717; margin: 0 0 4px 0;">Plan</p>
+                <p style="font-size: 14px; color: #525252; line-height: 1.5; margin: 0;">Map your roadmap with intelligent milestones.</p>
+              </td>
+              <td style="width: 33%; vertical-align: top; padding: 16px 12px; border-left: 1px solid #e5e7eb;">
+                <p style="font-size: 15px; font-weight: 600; color: #171717; margin: 0 0 4px 0;">Build</p>
+                <p style="font-size: 14px; color: #525252; line-height: 1.5; margin: 0;">Ship features with integrated tracking.</p>
+              </td>
+              <td style="width: 33%; vertical-align: top; padding: 16px 0 16px 12px; border-left: 1px solid #e5e7eb;">
+                <p style="font-size: 15px; font-weight: 600; color: #171717; margin: 0 0 4px 0;">Measure</p>
+                <p style="font-size: 14px; color: #525252; line-height: 1.5; margin: 0;">Track adoption and engagement automatically.</p>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Dark theme -->
+          <div class="text-xs text-text-tertiary mb-2 mt-6">Dark theme</div>
+          <div style="background-color: #1a1a1a; border-radius: 12px; padding: 16px;">
+            <table style="width: 100%; border-collapse: collapse;" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width: 50%; vertical-align: top; padding: 12px 16px 12px 0;">
+                  <p style="font-size: 15px; font-weight: 600; color: #e5e7eb; margin: 0 0 6px 0;">Cross-source Intelligence</p>
+                  <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin: 0;">Dynamic follow-ups from multiple knowledge sources.</p>
+                </td>
+                <td style="width: 50%; vertical-align: top; padding: 12px 0 12px 16px; border-left: 1px solid #374151;">
+                  <p style="font-size: 15px; font-weight: 600; color: #e5e7eb; margin: 0 0 6px 0;">Model Selection per Task</p>
+                  <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin: 0;">Configurable AI model routing for each task type.</p>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 4: ASK/REQUEST BLOCK                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary  mb-4">3. Ask / Request Block</h2>
+
+    <div class="grid grid-cols-2 gap-6">
+      <!-- Editor View -->
+      <div class="bg-surface-primary rounded-lg border p-6">
+        <div class="text-xs font-medium text-text-tertiary mb-4">Editor View — Ask block with editable heading, body, CTA</div>
+
+        <!-- Ask variant -->
+        <div class="relative group mb-6">
+          <div class="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
+            <svg class="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+          </div>
+
+          <div class="border border-border-default rounded-md bg-surface-secondary/50 overflow-hidden">
+            <!-- Variant toggle bar -->
+            <div class="flex items-center gap-2 px-4 py-2 bg-surface-secondary border-b border-border-subtle">
+              <span class="text-xs text-text-tertiary">Type:</span>
+              <div class="flex gap-0.5 bg-surface-primary rounded-md p-0.5">
+                <button class="px-2.5 py-1 text-xs font-medium rounded bg-surface-inverse text-text-inverse shadow-sm">Ask</button>
+                <button class="px-2.5 py-1 text-xs font-medium rounded text-text-tertiary hover:text-text-secondary transition-colors">Request</button>
+              </div>
+            </div>
+            <!-- Content -->
+            <div class="p-4 space-y-3">
+              <input type="text" value="Can you help with introductions?" class="w-full text-base font-semibold text-text-primary bg-transparent outline-none border-b border-transparent hover:border-border-subtle focus:border-border-default transition-colors pb-0.5" placeholder="Ask heading..." />
+              <textarea class="w-full text-sm text-text-secondary bg-transparent outline-none resize-none border border-transparent hover:border-border-subtle focus:border-border-default rounded transition-colors p-1" rows="2" placeholder="Context or details...">We're expanding into healthcare and looking for connections to hospital CIOs or health system CTOs. Any warm introductions would be incredibly helpful.</textarea>
+              <!-- CTA row -->
+              <div class="flex items-center gap-3 pt-1">
+                <input type="text" value="Make an intro" class="px-5 py-2 bg-surface-inverse text-text-inverse text-sm font-medium rounded-full outline-none min-w-[120px] text-center" />
+                <input type="text" value="https://calendly.com/..." class="text-xs text-text-tertiary px-2 py-1 border border-border-default rounded w-[200px] bg-transparent outline-none focus:border-border-strong transition-colors" placeholder="https://..." />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Request variant -->
+        <div class="text-xs text-text-tertiary mb-2">Request variant</div>
+        <div class="border border-border-default rounded-md bg-surface-secondary/50 overflow-hidden">
+          <div class="flex items-center gap-2 px-4 py-2 bg-surface-secondary border-b border-border-subtle">
+            <span class="text-xs text-text-tertiary">Type:</span>
+            <div class="flex gap-0.5 bg-surface-primary rounded-md p-0.5">
+              <button class="px-2.5 py-1 text-xs font-medium rounded text-text-tertiary hover:text-text-secondary transition-colors">Ask</button>
+              <button class="px-2.5 py-1 text-xs font-medium rounded bg-surface-inverse text-text-inverse shadow-sm">Request</button>
+            </div>
+          </div>
+          <div class="p-4 space-y-3">
+            <input type="text" value="Feedback needed: New pricing page" class="w-full text-base font-semibold text-text-primary bg-transparent outline-none" />
+            <div class="text-sm text-text-secondary">We've redesigned the pricing page and would love your candid feedback before we ship it to all users next week.</div>
+            <div class="flex items-center gap-3 pt-1">
+              <span class="px-5 py-2 bg-surface-inverse text-text-inverse text-sm font-medium rounded-full text-center inline-block">Review pricing page</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Preview -->
+      <div class="bg-surface-primary rounded-lg border overflow-hidden">
+        <div class="text-xs font-medium text-text-tertiary px-6 pt-4 mb-4">Email Preview — Ask/Request cards</div>
+
+        <div class="px-6 pb-6">
+          <!-- Ask preview (light) -->
+          <div style="background-color: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 16px; font-family: 'Satoshi', -apple-system, sans-serif;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 11px; font-weight: 600; color: #737373; ">Ask</span>
+            </div>
+            <p style="font-size: 18px; font-weight: 600; color: #171717; margin: 0 0 8px 0; line-height: 1.3;">Can you help with introductions?</p>
+            <p style="font-size: 14px; color: #525252; line-height: 1.6; margin: 0 0 16px 0;">We're expanding into healthcare and looking for connections to hospital CIOs or health system CTOs. Any warm introductions would be incredibly helpful.</p>
+            <a href="#" style="display: inline-block; padding: 10px 24px; background-color: #18181B; color: #ffffff; font-size: 14px; font-weight: 500; border-radius: 9999px; text-decoration: none;">Make an intro</a>
+          </div>
+
+          <!-- Request preview (light) -->
+          <div style="background-color: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 16px; font-family: 'Satoshi', -apple-system, sans-serif;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 11px; font-weight: 600; color: #737373; ">Request</span>
+            </div>
+            <p style="font-size: 18px; font-weight: 600; color: #171717; margin: 0 0 8px 0; line-height: 1.3;">Feedback needed: New pricing page</p>
+            <p style="font-size: 14px; color: #525252; line-height: 1.6; margin: 0 0 16px 0;">We've redesigned the pricing page and would love your candid feedback before we ship it to all users next week.</p>
+            <a href="#" style="display: inline-block; padding: 10px 24px; background-color: #18181B; color: #ffffff; font-size: 14px; font-weight: 500; border-radius: 9999px; text-decoration: none;">Review pricing page</a>
+          </div>
+
+          <!-- Dark theme -->
+          <div class="text-xs text-text-tertiary mb-2 mt-6">Dark theme</div>
+          <div style="background-color: #1a1a1a; border-radius: 12px; padding: 16px;">
+            <div style="background-color: #262626; border-radius: 12px; padding: 24px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="font-size: 11px; font-weight: 600; color: #737373; ">Ask</span>
+              </div>
+              <p style="font-size: 18px; font-weight: 600; color: #e5e7eb; margin: 0 0 8px 0; line-height: 1.3;">Can you help with introductions?</p>
+              <p style="font-size: 14px; color: #9ca3af; line-height: 1.6; margin: 0 0 16px 0;">We're expanding into healthcare and looking for connections to hospital CIOs or health system CTOs.</p>
+              <a href="#" style="display: inline-block; padding: 10px 24px; background-color: #e5e7eb; color: #171717; font-size: 14px; font-weight: 500; border-radius: 9999px; text-decoration: none;">Make an intro</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 5: FULL EMAIL CONTEXT — Investor Update with domain blocks -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary  mb-4">4. Full Context — Investor Update using domain blocks</h2>
+
+    <div class="grid grid-cols-2 gap-6">
+      <!-- Editor side (simplified) -->
+      <div class="bg-surface-primary rounded-lg border p-6">
+        <div class="text-xs font-medium text-text-tertiary mb-4">Editor View — Complete email with domain blocks</div>
+
+        <div class="space-y-4 pl-8">
+          <!-- Subject -->
+          <div class="text-xl font-semibold text-text-primary">Q4 2025 Investor Update</div>
+          <div class="text-sm text-text-tertiary">Preview: Highlights from a strong quarter — MRR up 34%, new enterprise deals, and our expansion into healthcare.</div>
+
+          <hr class="border-border-subtle" />
+
+          <!-- Regular text block -->
+          <div class="text-sm text-text-primary leading-relaxed">
+            <p>Hi investors,</p>
+            <p class="mt-3">Here's your quarterly update on our progress, metrics, and what's ahead.</p>
+          </div>
+
+          <!-- H2 -->
+          <h2 class="text-base font-semibold text-text-primary">Key Metrics</h2>
+
+          <!-- Metric cards row -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="border border-border-default rounded-md p-3 bg-surface-secondary/50">
+              <div class="text-xs text-text-tertiary mb-1">MRR</div>
+              <div class="text-lg font-semibold text-text-primary">$2.1M</div>
+              <div class="text-xs font-medium text-status-success mt-0.5">+34% QoQ</div>
+            </div>
+            <div class="border border-border-default rounded-md p-3 bg-surface-secondary/50">
+              <div class="text-xs text-text-tertiary mb-1">Customers</div>
+              <div class="text-lg font-semibold text-text-primary">847</div>
+              <div class="text-xs font-medium text-status-success mt-0.5">+89 QoQ</div>
+            </div>
+            <div class="border border-border-default rounded-md p-3 bg-surface-secondary/50">
+              <div class="text-xs text-text-tertiary mb-1">Runway</div>
+              <div class="text-lg font-semibold text-text-primary">18 mo</div>
+              <div class="text-xs font-medium text-text-secondary mt-0.5">Stable</div>
+            </div>
+          </div>
+
+          <!-- H2 -->
+          <h2 class="text-base font-semibold text-text-primary">Highlights</h2>
+
+          <!-- Columns block -->
+          <div class="border border-border-default rounded-md overflow-hidden">
+            <div class="grid grid-cols-2 divide-x divide-border-default">
+              <div class="p-3">
+                <div class="text-sm font-semibold text-text-primary mb-1">Enterprise Traction</div>
+                <div class="text-sm text-text-secondary">Signed 3 new enterprise contracts. Pipeline is 4x Q3. Deal sizes averaging $45k ARR.</div>
+              </div>
+              <div class="p-3">
+                <div class="text-sm font-semibold text-text-primary mb-1">Product Velocity</div>
+                <div class="text-sm text-text-secondary">Shipped 12 features this quarter including cap table modeling and AI-powered insights.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ask block -->
+          <div class="border border-border-default rounded-md bg-surface-secondary/50 p-4 border-l-[3px] border-l-text-primary">
+            <div class="text-[11px] font-semibold text-text-tertiary r mb-1">Ask</div>
+            <div class="text-base font-semibold text-text-primary mb-1">Healthcare introductions</div>
+            <div class="text-sm text-text-secondary mb-3">Looking for warm intros to hospital CIOs or health system CTOs as we expand into healthcare.</div>
+            <span class="px-5 py-2 bg-surface-inverse text-text-inverse text-sm font-medium rounded-full inline-block">Make an intro</span>
+          </div>
+
+          <!-- Closing text -->
+          <div class="text-sm text-text-primary leading-relaxed">
+            <p>Thanks for your continued support. Happy to jump on a call anytime.</p>
+          </div>
+
+          <!-- Empty block hint -->
+          <div class="flex items-center gap-2 text-sm text-text-tertiary py-2">
+            <span class="w-[22px] h-[22px] flex items-center justify-center border border-border-default rounded-md text-xs shadow-sm">
+              /
+            </span>
+            Type to add a block...
+          </div>
+        </div>
+      </div>
+
+      <!-- Full email preview -->
+      <div class="bg-surface-primary rounded-lg border overflow-hidden">
+        <div class="text-xs font-medium text-text-tertiary px-6 pt-4 mb-4">Email Preview — Complete investor update</div>
+
+        <div class="px-4 pb-4">
+          <div style="max-width: 600px; margin: 0 auto; font-family: 'Satoshi', -apple-system, sans-serif;">
+            <!-- Header -->
+            <div style="padding: 32px 32px 24px;">
+              <img src="https://mzctymakcnzhpmjdvybl.supabase.co/storage/v1/object/public/public-assets/weftly-wordmark.png" alt="Weftly" style="height: 32px; width: auto; display: block;" />
+            </div>
+            <!-- Subject -->
+            <div style="padding: 0 32px 12px;">
+              <h1 style="margin: 0; font-size: 20px; font-weight: 600; color: #171717; line-height: 1.4;">Q4 2025 Investor Update</h1>
+            </div>
+            <!-- Content -->
+            <div style="padding: 0 32px 32px; font-size: 15px; line-height: 1.5; color: #171717;">
+              <p style="margin-bottom: 12px;">Hi investors,</p>
+              <p style="margin-bottom: 12px;">Here's your quarterly update on our progress, metrics, and what's ahead.</p>
+
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+
+              <h2 style="font-size: 16px; font-weight: 600; margin: 16px 0 12px;">Key Metrics</h2>
+
+              <!-- Metrics row -->
+              <table style="width: 100%; border-collapse: separate; border-spacing: 6px 0; margin-bottom: 20px;" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background-color: #f9fafb; border-radius: 8px; padding: 14px; width: 33%; vertical-align: top;">
+                    <div style="font-size: 11px; font-weight: 500; color: #737373; ">MRR</div>
+                    <div style="font-size: 22px; font-weight: 700; color: #171717; margin-top: 4px; letter-spacing: -0.02em;">$2.1M</div>
+                    <div style="font-size: 12px; font-weight: 500; color: #22c55e; margin-top: 2px;">&#9650; +34% QoQ</div>
+                  </td>
+                  <td style="background-color: #f9fafb; border-radius: 8px; padding: 14px; width: 33%; vertical-align: top;">
+                    <div style="font-size: 11px; font-weight: 500; color: #737373; ">Customers</div>
+                    <div style="font-size: 22px; font-weight: 700; color: #171717; margin-top: 4px; letter-spacing: -0.02em;">847</div>
+                    <div style="font-size: 12px; font-weight: 500; color: #22c55e; margin-top: 2px;">&#9650; +89 QoQ</div>
+                  </td>
+                  <td style="background-color: #f9fafb; border-radius: 8px; padding: 14px; width: 33%; vertical-align: top;">
+                    <div style="font-size: 11px; font-weight: 500; color: #737373; ">Runway</div>
+                    <div style="font-size: 22px; font-weight: 700; color: #171717; margin-top: 4px; letter-spacing: -0.02em;">18 mo</div>
+                    <div style="font-size: 12px; font-weight: 500; color: #737373; margin-top: 2px;">&#8212; Stable</div>
+                  </td>
+                </tr>
+              </table>
+
+              <h2 style="font-size: 16px; font-weight: 600; margin: 16px 0 12px;">Highlights</h2>
+
+              <!-- Columns -->
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width: 50%; vertical-align: top; padding: 0 12px 0 0;">
+                    <p style="font-size: 15px; font-weight: 600; color: #171717; margin: 0 0 4px 0;">Enterprise Traction</p>
+                    <p style="font-size: 14px; color: #525252; line-height: 1.5; margin: 0;">Signed 3 new enterprise contracts. Pipeline is 4x Q3. Deal sizes averaging $45k ARR.</p>
+                  </td>
+                  <td style="width: 50%; vertical-align: top; padding: 0 0 0 12px; border-left: 1px solid #e5e7eb;">
+                    <p style="font-size: 15px; font-weight: 600; color: #171717; margin: 0 0 4px 0;">Product Velocity</p>
+                    <p style="font-size: 14px; color: #525252; line-height: 1.5; margin: 0;">Shipped 12 features this quarter including cap table modeling and AI-powered insights.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Ask block -->
+              <div style="background-color: #f9fafb; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
+                <div style="font-size: 11px; font-weight: 600; color: #737373;  margin-bottom: 8px;">Ask</div>
+                <p style="font-size: 18px; font-weight: 600; color: #171717; margin: 0 0 8px 0; line-height: 1.3;">Healthcare introductions</p>
+                <p style="font-size: 14px; color: #525252; line-height: 1.6; margin: 0 0 16px 0;">Looking for warm intros to hospital CIOs or health system CTOs as we expand into healthcare.</p>
+                <a href="#" style="display: inline-block; padding: 10px 24px; background-color: #18181B; color: #ffffff; font-size: 14px; font-weight: 500; border-radius: 9999px; text-decoration: none;">Make an intro</a>
+              </div>
+
+              <p style="margin-bottom: 12px;">Thanks for your continued support. Happy to jump on a call anytime.</p>
+            </div>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #e5e7eb; padding: 24px 32px;">
+              <img src="https://mzctymakcnzhpmjdvybl.supabase.co/storage/v1/object/public/public-assets/weftly-wordmark.png" alt="Weftly" style="height: 24px; width: auto; display: block; margin-bottom: 8px;" />
+              <p style="margin: 0 0 4px 0; font-size: 12px; color: #9ca3af;">powered by <a href="#" style="color: #6b7280; text-decoration: none;">weftlyai.com</a></p>
+              <p style="margin: 0; font-size: 12px; color: #9ca3af;"><a href="#" style="color: #6b7280; text-decoration: none;">Privacy Policy</a> &middot; <a href="#" style="color: #6b7280; text-decoration: none;">Terms of Service</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 6: IMPLEMENTATION NOTES                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary  mb-4">Implementation Notes</h2>
+
+    <div class="bg-surface-primary rounded-lg border p-6">
+      <div class="grid grid-cols-3 gap-6 text-sm">
+        <!-- MetricCard notes -->
+        <div>
+          <h3 class="font-semibold text-text-primary mb-2">MetricCard Extension</h3>
+          <ul class="space-y-1.5 text-text-secondary">
+            <li class="flex gap-2"><span class="text-text-tertiary">Attrs:</span> label, value, change, trend</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Trend:</span> up | down | neutral</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">HTML:</span> div with data-metric-card</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Email:</span> table cell with inline styles</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Group:</span> Auto-rows when 2+ adjacent</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Colors:</span> Green for up, red for down, gray for neutral</li>
+          </ul>
+        </div>
+        <!-- Columns notes -->
+        <div>
+          <h3 class="font-semibold text-text-primary mb-2">Columns Extension</h3>
+          <ul class="space-y-1.5 text-text-secondary">
+            <li class="flex gap-2"><span class="text-text-tertiary">Attrs:</span> columnCount (2 or 3)</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Content:</span> Each column is a nested text editor</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">HTML:</span> div with data-columns</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Email:</span> table-based layout (no flexbox)</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Mobile:</span> Stacks vertically at narrow widths</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Note:</span> NOT atom — contains editable content</li>
+          </ul>
+        </div>
+        <!-- Ask/Request notes -->
+        <div>
+          <h3 class="font-semibold text-text-primary mb-2">Ask/Request Extension</h3>
+          <ul class="space-y-1.5 text-text-secondary">
+            <li class="flex gap-2"><span class="text-text-tertiary">Attrs:</span> heading, body, ctaLabel, ctaUrl, variant</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Variant:</span> ask | request (differentiated by label, not border)</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">HTML:</span> div with data-ask-block</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Email:</span> card surface with rounded corners, no callout borders</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">CTA:</span> Optional — same pattern as CtaButton</li>
+            <li class="flex gap-2"><span class="text-text-tertiary">Dark:</span> Inverted surface + button colors</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

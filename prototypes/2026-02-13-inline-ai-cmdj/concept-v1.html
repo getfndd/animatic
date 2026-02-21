@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inline AI — Cmd+J Experience</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-primary: 0 0% 100%;
+      --surface-secondary: 0 0% 98%;
+      --surface-tertiary: 0 0% 96%;
+      --surface-inverse: 0 0% 9%;
+      --surface-hover: 0 0% 96%;
+      --text-primary: 0 0% 9%;
+      --text-secondary: 0 0% 45%;
+      --text-tertiary: 0 0% 64%;
+      --text-inverse: 0 0% 98%;
+      --border-default: 0 0% 90%;
+      --border-subtle: 0 0% 94%;
+      --border-strong: 0 0% 80%;
+      --status-success: 142 71% 45%;
+      --status-success-bg: 142 76% 94%;
+      --radius: 0.5rem;
+    }
+    * { border-color: hsl(var(--border-default)); }
+    body {
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      background-color: hsl(var(--surface-secondary));
+      color: hsl(var(--text-primary));
+      -webkit-font-smoothing: antialiased;
+    }
+    @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .pulse-soft { animation: pulse-soft 1.2s ease-in-out infinite; }
+    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-primary': 'hsl(var(--surface-primary))',
+            'surface-secondary': 'hsl(var(--surface-secondary))',
+            'surface-tertiary': 'hsl(var(--surface-tertiary))',
+            'surface-inverse': 'hsl(var(--surface-inverse))',
+            'surface-hover': 'hsl(var(--surface-hover))',
+            'text-primary': 'hsl(var(--text-primary))',
+            'text-secondary': 'hsl(var(--text-secondary))',
+            'text-tertiary': 'hsl(var(--text-tertiary))',
+            'text-inverse': 'hsl(var(--text-inverse))',
+            'border-default': 'hsl(var(--border-default))',
+            'border-subtle': 'hsl(var(--border-subtle))',
+            'border-strong': 'hsl(var(--border-strong))',
+            'status-success': 'hsl(var(--status-success))',
+            'status-success-bg': 'hsl(var(--status-success-bg))',
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen p-8">
+
+  <div class="max-w-4xl mx-auto mb-8">
+    <h1 class="text-2xl font-semibold text-text-primary tracking-tight">Inline AI — Cmd+J</h1>
+    <p class="text-sm text-text-secondary mt-1">FND-1281: Polish, Expand, Summarize on text selection. AI-assumed design — no sparkles.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 1: Text selected, standard bubble menu visible               -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-4xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary uppercase tracking-wide mb-4">State 1: Text selected — Standard toolbar + Cmd+J hint</h2>
+
+    <div class="bg-surface-primary rounded-lg border p-8 relative">
+      <!-- Simulated editor content -->
+      <div class="text-sm text-text-primary leading-relaxed max-w-lg">
+        <h2 class="text-base font-semibold mb-3">Highlights</h2>
+        <p class="mb-3">
+          We signed three new enterprise contracts this quarter, bringing our total enterprise customer count to 12.
+          <span class="bg-blue-100 rounded px-0.5">The pipeline is looking strong heading into Q1, with several late-stage deals that should close in January. Our sales cycle has shortened from 45 days to about 32 days on average, which is a significant improvement.</span>
+          The team has been doing great work on the product side as well.
+        </p>
+      </div>
+
+      <!-- Standard bubble menu (existing) -->
+      <div class="absolute" style="top: 72px; left: 220px;">
+        <div class="bg-zinc-900 rounded-full shadow-lg flex items-center px-1.5 py-1 gap-0.5">
+          <button class="w-7 h-7 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors">
+            <svg class="w-[15px] h-[15px]" fill="currentColor" viewBox="0 0 256 256"><path d="M178,36a8,8,0,0,0-8,8V72.4L91.6,176H56V140a8,8,0,0,0-16,0v44a8,8,0,0,0,8,8H92.4a8.2,8.2,0,0,0,6.4-3.2L186,76.4V120a8,8,0,0,0,16,0V44A8,8,0,0,0,178,36Z"/></svg>
+          </button>
+          <button class="w-7 h-7 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors">
+            <svg class="w-[15px] h-[15px]" fill="currentColor" viewBox="0 0 256 256"><path d="M200,56a8,8,0,0,0-8,8V96L136.4,200H104V160a8,8,0,0,0-16,0v48a8,8,0,0,0,8,8h40a8,8,0,0,0,6.4-3.2L200,96V136a8,8,0,0,0,16,0V64A8,8,0,0,0,200,56Z"/></svg>
+          </button>
+          <div class="w-px h-4 bg-white/20 mx-0.5"></div>
+          <button class="w-7 h-7 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors">
+            <svg class="w-[15px] h-[15px]" fill="currentColor" viewBox="0 0 256 256"><path d="M137.5,187.5a12,12,0,1,1-12-12A12,12,0,0,1,137.5,187.5ZM224,48V208a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32H208A16,16,0,0,1,224,48Z"/></svg>
+          </button>
+          <div class="w-px h-4 bg-white/20 mx-0.5"></div>
+          <!-- Cmd+J hint -->
+          <div class="flex items-center gap-1 px-1.5">
+            <span class="text-[11px] text-white/40 font-medium">
+              <kbd class="px-1 py-0.5 rounded bg-white/10 text-white/50 text-[10px] font-mono">J</kbd>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-text-tertiary mt-8">
+        The existing bubble menu shows Bold, Italic, Link. A subtle <kbd class="px-1 py-0.5 rounded bg-surface-secondary text-text-tertiary text-[10px] font-mono">J</kbd> hint at the end indicates Cmd+J is available. No "AI" label, no sparkle — just a keyboard shortcut hint.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 2: Cmd+J pressed — AI action menu appears                    -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-4xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary uppercase tracking-wide mb-4">State 2: Cmd+J pressed — Action menu replaces toolbar</h2>
+
+    <div class="bg-surface-primary rounded-lg border p-8 relative">
+      <div class="text-sm text-text-primary leading-relaxed max-w-lg">
+        <h2 class="text-base font-semibold mb-3">Highlights</h2>
+        <p class="mb-3">
+          We signed three new enterprise contracts this quarter, bringing our total enterprise customer count to 12.
+          <span class="bg-blue-100 rounded px-0.5">The pipeline is looking strong heading into Q1, with several late-stage deals that should close in January. Our sales cycle has shortened from 45 days to about 32 days on average, which is a significant improvement.</span>
+          The team has been doing great work on the product side as well.
+        </p>
+      </div>
+
+      <!-- AI action menu — replaces the bubble menu -->
+      <div class="absolute" style="top: 72px; left: 220px;">
+        <div class="bg-zinc-900 rounded-full shadow-lg flex items-center px-1 py-1 gap-0.5">
+          <button class="px-3 py-1.5 rounded-full text-white text-xs font-medium bg-white/15 transition-colors">
+            Polish
+          </button>
+          <button class="px-3 py-1.5 rounded-full text-white/70 text-xs font-medium hover:text-white hover:bg-white/15 transition-colors">
+            Expand
+          </button>
+          <button class="px-3 py-1.5 rounded-full text-white/70 text-xs font-medium hover:text-white hover:bg-white/15 transition-colors">
+            Summarize
+          </button>
+          <div class="w-px h-4 bg-white/20 mx-0.5"></div>
+          <button class="w-7 h-7 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/15 transition-colors" title="Cancel (Esc)">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <p class="text-xs text-text-tertiary mt-8">
+        Cmd+J replaces the standard toolbar with three actions. Same pill shape, same dark background. <strong>Polish</strong> = rewrite for clarity. <strong>Expand</strong> = turn into a fuller paragraph. <strong>Summarize</strong> = condense. Esc to cancel.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 3: Processing — loading indicator in place                    -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-4xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary uppercase tracking-wide mb-4">State 3: Processing — Subtle loading state</h2>
+
+    <div class="bg-surface-primary rounded-lg border p-8 relative">
+      <div class="text-sm text-text-primary leading-relaxed max-w-lg">
+        <h2 class="text-base font-semibold mb-3">Highlights</h2>
+        <p class="mb-3">
+          We signed three new enterprise contracts this quarter, bringing our total enterprise customer count to 12.
+          <span class="bg-blue-100/60 rounded px-0.5 pulse-soft">The pipeline is looking strong heading into Q1, with several late-stage deals that should close in January. Our sales cycle has shortened from 45 days to about 32 days on average, which is a significant improvement.</span>
+          The team has been doing great work on the product side as well.
+        </p>
+      </div>
+
+      <!-- Processing toolbar -->
+      <div class="absolute" style="top: 72px; left: 220px;">
+        <div class="bg-zinc-900 rounded-full shadow-lg flex items-center px-3 py-1.5 gap-2">
+          <div class="w-3.5 h-3.5 border-2 border-white/30 border-t-white/80 rounded-full animate-spin"></div>
+          <span class="text-xs text-white/70">Polishing...</span>
+          <button class="w-6 h-6 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/15 transition-colors ml-1" title="Cancel">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <p class="text-xs text-text-tertiary mt-8">
+        Selected text pulses softly. Toolbar shows a spinner + action name. Cancel available. Selection highlight dims slightly to indicate processing.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 4: Result — Text replaced, undo available                    -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-4xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary uppercase tracking-wide mb-4">State 4: Complete — Text replaced inline</h2>
+
+    <div class="bg-surface-primary rounded-lg border p-8 relative">
+      <div class="text-sm text-text-primary leading-relaxed max-w-lg">
+        <h2 class="text-base font-semibold mb-3">Highlights</h2>
+        <p class="mb-3">
+          We signed three new enterprise contracts this quarter, bringing our total enterprise customer count to 12.
+          <span class="bg-status-success-bg rounded px-0.5">Pipeline entering Q1 is strong with several late-stage deals expected to close in January. Average sales cycle: 32 days, down from 45.</span>
+          The team has been doing great work on the product side as well.
+        </p>
+      </div>
+
+      <!-- Success flash — briefly visible then fades -->
+      <div class="absolute" style="top: 72px; left: 220px;">
+        <div class="bg-zinc-900 rounded-full shadow-lg flex items-center px-3 py-1.5 gap-2">
+          <svg class="w-3.5 h-3.5 text-status-success" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>
+          <span class="text-xs text-white/70">Polished</span>
+          <span class="text-[10px] text-white/30 ml-1">Cmd+Z to undo</span>
+        </div>
+      </div>
+
+      <p class="text-xs text-text-tertiary mt-8">
+        Replaced text gets a brief green highlight (fades after 2s). Toolbar shows checkmark + "Polished" + undo hint. Standard Cmd+Z undo restores original text. Toolbar auto-dismisses after 2 seconds.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- IMPLEMENTATION NOTES                                                -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-4xl mx-auto mb-12">
+    <h2 class="text-xs font-medium text-text-tertiary uppercase tracking-wide mb-4">Implementation Notes</h2>
+
+    <div class="bg-surface-primary rounded-lg border p-6">
+      <div class="grid grid-cols-2 gap-6 text-sm">
+        <div>
+          <h3 class="font-semibold text-text-primary mb-2">Frontend</h3>
+          <ul class="space-y-1.5 text-text-secondary">
+            <li><strong>Trigger:</strong> Cmd+J (Mac) / Ctrl+J (Win) via Tiptap keymap extension</li>
+            <li><strong>UI:</strong> Custom floating panel — same position as BubbleMenu, replaces it when active</li>
+            <li><strong>Selection:</strong> Capture via editor.state.selection, lock during processing</li>
+            <li><strong>Replace:</strong> editor.chain().focus().insertContentAt(range, newText).run()</li>
+            <li><strong>Undo:</strong> Native ProseMirror undo stack — Cmd+Z works automatically</li>
+            <li><strong>Cancel:</strong> Esc key or X button dismisses without changes</li>
+            <li><strong>Auto-dismiss:</strong> Success state disappears after 2s</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-text-primary mb-2">Backend</h3>
+          <ul class="space-y-1.5 text-text-secondary">
+            <li><strong>Edge function:</strong> ai-text-transform</li>
+            <li><strong>Input:</strong> { text, action, context? }</li>
+            <li><strong>Actions:</strong> polish, expand, summarize</li>
+            <li><strong>Model:</strong> Claude Haiku (fast, cheap)</li>
+            <li><strong>Response:</strong> { transformed: string }</li>
+            <li><strong>Auth:</strong> Supabase JWT required</li>
+            <li><strong>Rate limit:</strong> 20 req/min per user</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-border-subtle">
+        <h3 class="font-semibold text-text-primary mb-2 text-sm">AI-Assumed Design Decisions</h3>
+        <ul class="space-y-1 text-sm text-text-secondary">
+          <li>No sparkle icon, no "AI" label, no gradient — it's just a text action</li>
+          <li>Same dark pill toolbar as Bold/Italic/Link — consistent UI language</li>
+          <li>Keyboard shortcut (Cmd+J) is primary trigger, not a button</li>
+          <li>Success state says "Polished" not "AI polished" — the verb describes the outcome, not the mechanism</li>
+          <li>Loading says "Polishing..." not "AI is processing..." — focus on the action</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

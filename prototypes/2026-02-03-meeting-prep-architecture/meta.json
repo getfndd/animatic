@@ -1,0 +1,31 @@
+{
+  "id": "2026-02-03-meeting-prep-architecture",
+  "name": "Meeting Prep Architecture",
+  "description": "Expanded Meeting Prep sidebar with Deal Summaries and Portfolio Reports, IC Memos list page, and New IC Memo company selection modal",
+  "prompt": "/prototype 'Meeting Prep architecture with expanded sidebar navigation (LP Meetings, IC Memos, Deal Summaries, Portfolio Reports), IC Memos list page, and New IC Memo modal'",
+  "fidelity": "concept",
+  "chrome": "sidebar",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Full sidebar with Meeting Prep expansion, IC Memos list, and company selection modal" }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--surface-primary",
+      "--surface-secondary",
+      "--surface-tertiary",
+      "--text-primary",
+      "--text-secondary",
+      "--text-tertiary",
+      "--border-default",
+      "--border-strong",
+      "--status-success",
+      "--status-success-bg",
+      "--status-warning",
+      "--status-warning-bg"
+    ],
+    "presets": [],
+    "patterns": ["expandable-nav-section", "list-page", "company-selection-modal"]
+  },
+  "linearIssue": "FND-1202",
+  "createdAt": "2026-02-03T13:52:00Z"
+}

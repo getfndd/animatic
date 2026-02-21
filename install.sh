@@ -20,7 +20,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ANIMATIC_DIR="$SCRIPT_DIR"
 
 # Find project root via git (works regardless of where the submodule is mounted)
-PROJECT_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-superproject-working-tree 2>/dev/null || cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-superproject-working-tree 2>/dev/null || true)"
+if [ -z "$PROJECT_ROOT" ]; then
+  PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+fi
 CLAUDE_DIR="$PROJECT_ROOT/.claude"
 
 echo "Animatic Install"

@@ -8,12 +8,12 @@ Collected motion design references organized by pattern type. Each file links to
 
 | File | Pattern | Description | Personality Affinity |
 |------|---------|-------------|---------------------|
-| `04df08e89170524c776dc2f3a1290b9e.gif` | Kinetic bars — horizontal scatter | White bars on black, scattered with varying spacing then reconverging. Rhythmic horizontal motion study. | cinematic-dark |
+| `04df08e89170524c776dc2f3a1290b9e.gif` | Kinetic bars — horizontal scatter | White bars on black, scattered with varying spacing then reconverging. Rhythmic horizontal motion study. **[Breakdown](../breakdowns/kinetic-bars-scatter.md)** | cinematic-dark |
 | `0901d0c2a29983d7f82a8ed679ab6741.gif` | Kinetic bars — vertical expand/collapse | Horizontal white lines on black, expanding vertically from clustered to spread then back. Breathing rhythm. | cinematic-dark |
 | `2b8d7583666fb3daf812352bb6a9f0aa.gif` | Dot grid ripple | Dense dot grid with traveling wave distortion — dots enlarge/shift as a ripple passes through. Organic field effect. | cinematic-dark |
-| `5fb8c0ab314dfdca42f994a38c636ef2.gif` | Particle vortex field | Line segments arranged in a grid rotating to form a vortex/flow field pattern. Wind-like directional motion. | cinematic-dark |
-| `1dbb8e843ebd768cc3d74370493489ac.gif` | Arc wave cascade | Curved arcs staggering vertically, creating a cascading wave pattern. Elegant rhythmic motion. | cinematic-dark |
-| `d554090aad9cd82e16d78252ed52d0d1.gif` | Dot grid — sparse breathing | Sparse dot grid on dark gray with subtle scale pulsing. Ambient background texture. | universal |
+| `5fb8c0ab314dfdca42f994a38c636ef2.gif` | Particle vortex field | Line segments arranged in a grid rotating to form a vortex/flow field pattern. Wind-like directional motion. **[Breakdown](../breakdowns/flow-field-vortex.md)** | cinematic-dark |
+| `1dbb8e843ebd768cc3d74370493489ac.gif` | Arc wave cascade | Curved arcs staggering vertically, creating a cascading wave pattern. Elegant rhythmic motion. **[Breakdown](../breakdowns/arc-wave-cascade.md)** | cinematic-dark |
+| `d554090aad9cd82e16d78252ed52d0d1.gif` | Dot grid — sparse breathing | Sparse dot grid on dark gray with subtle scale pulsing. Ambient background texture. **[Breakdown](../breakdowns/sparse-dot-breathing.md)** | universal |
 | `6007791dca5dbd85392a382d233b8506.gif` | Dot cluster — hexagonal pulse | Dots arranged in hexagonal pattern, pulsing outward from center. Organic radial expansion. | cinematic-dark |
 | `320126a400f1eba249fd922a119f7281.gif` | Dot grid — halftone morph | Red/orange dots on black forming a rounded square, with halftone-style scale breathing at edges. | cinematic-dark |
 | `c79fe55baf222da88a2552480b593def.gif` | Dot grid — minimal breathing | Small black dots on light background with subtle scale oscillation. Minimal ambient motion. | neutral-light |
@@ -27,7 +27,7 @@ Collected motion design references organized by pattern type. Each file links to
 
 | File | Pattern | Description | Personality Affinity |
 |------|---------|-------------|---------------------|
-| `8f7cd2b9101369ef1989a302fa54148f.gif` | Text block — image reveal | Bold "OUR STAGE / YOUR STAGE" typography with center image expanding/contracting between text blocks. | editorial |
+| `8f7cd2b9101369ef1989a302fa54148f.gif` | Text block — image reveal | Bold "OUR STAGE / YOUR STAGE" typography with center image expanding/contracting between text blocks. **[Breakdown](../breakdowns/text-image-reveal.md)** | editorial |
 | `2d93764cc6f62e90fddf91a91920d737.gif` | Kinetic type — scale cascade | Large bold text ("ALICIA KEYS") at three scales, cascading with scroll-like parallax motion. | cinematic-dark |
 | `ba9b8dd56d89017a806d6ba853ffe80e.gif` | Editorial layout — image + floating text | Centered image with floating text fragments ("the", "them") — editorial composition with motion. | editorial |
 | `fee1b45083b5cdde6675576040a638c2.gif` | Logo animation — pixel assembly | "pixel" logotype with pixels assembling/disassembling into the letterforms. Materialization effect. | cinematic-dark |

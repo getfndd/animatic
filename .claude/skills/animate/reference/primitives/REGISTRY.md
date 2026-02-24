@@ -66,6 +66,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ct-bars-reveal` | Staggered Bars Reveal | 1200ms | cinematic-dark | research |
 | `bk-distance-stagger` | Distance-Based Stagger | variable | universal | breakdown |
 | `bk-grid-flip-cascade` | Grid Flip Cascade | 80ms interval | editorial | breakdown |
+| `bk-arc-cascade` | Arc Stagger Entrance | 80ms interval | cinematic-dark | breakdown |
+| `bk-bidirectional-stagger` | Bidirectional Stagger | variable | universal | breakdown |
 
 ### Continuous / Ambient
 
@@ -77,6 +79,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `bk-grid-wave` | Grid Wave Propagation | ~2000ms/wave | cinematic-dark | breakdown |
 | `ct-glow-pulse` | Ambient Glow Pulse | 4000ms loop | cinematic-dark | research |
 | `ct-font-breathe` | Variable Font Breathe | 3000ms loop | cinematic-dark | research |
+| `bk-sparse-breathe` | Sparse Grid Breathing | 4000ms loop | universal | breakdown |
+| `bk-flow-field` | Flow Field Vortex | continuous | cinematic-dark | breakdown |
 
 ### Content Effects
 
@@ -85,6 +89,7 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ed-count-up` | Animated Number Count | 800ms | editorial, neutral-light | engine |
 | `nl-step-progress` | Step Indicator Update | 450ms | neutral-light | engine |
 | `ct-word-carousel` | Word Carousel | 8000ms cycle | editorial | research |
+| `bk-text-image-split` | Image Breathing Between Text | 3200ms cycle | editorial | breakdown |
 
 ### Interactions
 
@@ -105,6 +110,7 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ct-camera-pan` | Camera Pan | 1200ms | cinematic-dark | research |
 | `ct-camera-tilt` | Camera Tilt Reveal | 1200ms | cinematic-dark | research |
 | `ct-camera-orbit` | Camera Orbit | 1200ms | cinematic-dark | research |
+| `bk-bars-scatter` | Horizontal Scatter & Reconverge | 3400ms cycle | cinematic-dark | breakdown |
 
 ### Typography
 
@@ -117,8 +123,9 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ct-font-breathe` | Variable Font Breathe | 3000ms loop | cinematic-dark | research |
 | `cd-typewriter` | Typewriter Reveal | 28-50ms/char | cinematic-dark, editorial | engine |
 | `bk-text-parallax-stack` | Text Parallax Stack | 3000ms cycle | cinematic-dark | breakdown |
+| `bk-text-image-split` | Image Breathing Between Text | 3200ms cycle | editorial | breakdown |
 
-> **Note:** Typography entries duplicate some IDs from Entrances, Reveals, and Continuous categories above. This section is a cross-reference view for personality-filtered lookups.
+> **Note:** Typography entries duplicate some IDs from Entrances, Reveals, Content Effects, and Continuous categories above. This section is a cross-reference view for personality-filtered lookups.
 
 ---
 
@@ -127,9 +134,9 @@ Master lookup table of named animation effects. Consult this when generating pro
 ### Cinematic Dark — Drama and Impact
 
 Best entrances: `cd-focus-stagger`, `ct-focus-pull`, `ct-zoom-from-space`, `as-zoomIn`
-Best reveals: `ct-iris-open`, `ct-wipe-reveal`, `ct-bars-reveal`
-Best ambient: `ct-float`, `ct-glow-pulse`, `cd-progress-animation`
-Best transitions: `cd-phase-transition`, `ct-camera-dolly`, `ct-camera-orbit`
+Best reveals: `ct-iris-open`, `ct-wipe-reveal`, `ct-bars-reveal`, `bk-arc-cascade`
+Best ambient: `ct-float`, `ct-glow-pulse`, `cd-progress-animation`, `bk-flow-field`
+Best transitions: `cd-phase-transition`, `ct-camera-dolly`, `ct-camera-orbit`, `bk-bars-scatter`
 Best typography: `ct-text-hero`, `ct-char-stagger`, `cd-typewriter`
 
 ### Editorial — Content-Forward Restraint
@@ -137,14 +144,15 @@ Best typography: `ct-text-hero`, `ct-char-stagger`, `cd-typewriter`
 Best entrances: `ed-slide-stagger`, `ed-blur-reveal`, `as-fadeInUp`, `as-fadeInLeft`
 Best reveals: `ct-text-sweep`, `ed-all-typewriters`
 Best ambient: `ed-content-cycle`
-Best content: `ed-count-up`, `ct-word-carousel`
+Best content: `ed-count-up`, `ct-word-carousel`, `bk-text-image-split`
 Best transitions: `ed-phase-transition`, `ed-tab-switch`
-Best typography: `cd-typewriter`, `ct-text-sweep`
+Best typography: `cd-typewriter`, `ct-text-sweep`, `bk-text-image-split`
 
 ### Neutral Light — Clean and Guided
 
 Best entrances: `nl-slide-stagger`, `as-fadeInUp`, `as-slideInUp`
 Best attention: `nl-spotlight`, `nl-tooltip`, `as-pulse`, `as-headShake`
+Best ambient: `bk-sparse-breathe`
 Best content: `nl-step-progress`, `ed-count-up`
 Best interactions: `nl-cursor-to`
 Best transitions: `nl-phase-transition`
@@ -363,6 +371,100 @@ Full CSS implementations for effects extracted from cinematic-techniques-researc
 
 ---
 
+## Detail Blocks — Breakdown Primitives (CSS)
+
+Full CSS implementations for effects extracted from reference breakdowns.
+
+### `bk-sparse-breathe` — Sparse Grid Breathing
+
+```css
+@keyframes sparse-breathe {
+  0%, 100% { transform: scale(0.6); opacity: 0.5; }
+  50% { transform: scale(1.0); opacity: 0.9; }
+}
+.dot {
+  width: 4px; height: 4px; border-radius: 50%; background: currentColor;
+  animation: sparse-breathe var(--breathe-duration, 4000ms) ease-in-out infinite;
+  animation-delay: var(--breathe-offset, 0ms);
+}
+/* Phase decorrelation: offset = (row + col) * 300 + random(0, 400)ms */
+/* Duration jitter: 3600-4400ms per dot prevents phase-locking */
+```
+
+### `bk-arc-cascade` — Arc Stagger Entrance
+
+```css
+.arc {
+  opacity: 0;
+  transform: scale(0.3) rotate(calc(var(--arc-rotation, 0) * 1deg));
+  animation: arc-enter 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--arc-index) * 80ms);
+}
+@keyframes arc-enter {
+  0% { opacity: 0; transform: scale(0.3) rotate(calc(var(--arc-rotation, 0) * 1deg)); }
+  40% { opacity: 1; }
+  100% { opacity: 0.85; transform: scale(1) rotate(calc(var(--arc-rotation, 0) * 1deg)); }
+}
+/* Exit: reverse stagger (bottom-to-top), tighter interval (60ms), ease-in */
+```
+
+### `bk-text-image-split` — Image Breathing Between Text
+
+```css
+@keyframes image-breathe {
+  0%, 100% { height: 60px; }
+  50% { height: 200px; }
+}
+@keyframes image-crop-shift {
+  0%, 100% { object-position: 50% 40%; }
+  50% { object-position: 50% 55%; }
+}
+@keyframes tracking-breathe {
+  0%, 100% { letter-spacing: 0.01em; }
+  50% { letter-spacing: 0.06em; }
+}
+.image-window { animation: image-breathe 3200ms ease-in-out infinite; }
+.image-window img { animation: image-crop-shift 3200ms ease-in-out infinite; }
+.text-block { animation: tracking-breathe 3200ms ease-in-out infinite; }
+```
+
+### `bk-flow-field` — Flow Field Vortex
+
+```css
+.flow-segment {
+  position: absolute;
+  width: var(--seg-length, 20px); height: 1px;
+  background: white;
+  opacity: var(--seg-opacity, 0.5);
+  transform: rotate(var(--seg-angle, 0deg));
+  transition: transform 100ms linear;
+}
+/* JS drives --seg-angle per segment via requestAnimationFrame:
+   angle = atan2(dy, dx) + PI/2 + noise
+   opacity = 0.3 + influence * 0.6
+   Attractor drifts on Lissajous path (3000ms cycle) */
+```
+
+### `bk-bars-scatter` — Horizontal Scatter & Reconverge
+
+```css
+.bar {
+  width: 3px; height: var(--bar-height, 60px);
+  background: white; position: absolute;
+  left: var(--bar-target, 50%);
+  transition: left var(--scatter-duration, 600ms) cubic-bezier(0.16, 1, 0.3, 1);
+  animation: bar-breathe 2000ms ease-in-out infinite;
+}
+@keyframes bar-breathe {
+  0%, 100% { height: var(--bar-height, 60px); }
+  50% { height: calc(var(--bar-height, 60px) + 5px); }
+}
+/* JS toggles --bar-target between even distribution and clustered random positions.
+   Scatter: 600ms expo-out. Converge: 800ms expo-in-out. */
+```
+
+---
+
 ## Sources
 
 | Source | File | Primitives |
@@ -370,6 +472,6 @@ Full CSS implementations for effects extracted from cinematic-techniques-researc
 | Engine builtins | `sources/engine-builtins.md` | 20 |
 | animate.style (Use tier) | `sources/animate-style.md` | 18 |
 | Cinematic techniques research | `../cinematic-techniques-research.md` | ~20 |
-| Reference breakdowns | `sources/breakdowns.md` | 6 |
+| Reference breakdowns | `sources/breakdowns.md` | 12 |
 
-**Total cataloged:** ~64 named primitives
+**Total cataloged:** ~70 named primitives

@@ -31,10 +31,21 @@ Design engineer at Linear (formerly Vercel). Creator of [animations.dev](https:/
 | **[React Spring](https://react-spring.dev)** | Natural physics motion, Three.js | Modular | MIT |
 | **[Rive](https://rive.app)** | Interactive state-machine animations, icons | Small binary | Commercial |
 | **[Lottie](https://lottiefiles.com)** | Simple looping animations, icons | JSON | Open source |
+| **[animate.style](https://animate.style/)** | Drop-in CSS entrance/exit/attention effects | ~16KB CSS | MIT |
+| **[TailwindCSS Motion](https://motion.tailwindcss.com/)** | Utility-first CSS animations for Tailwind projects | ~5KB CSS | Open source |
+| **[Animate UI](https://animate-ui.com/)** | Pre-built animated React components (80+), Shadcn-compatible | Copy-paste | MIT |
+| **[Remotion](https://remotion.dev/)** | Programmatic video from React components | Framework | Open source |
+| **[Anime.js](https://animejs.com/)** | Lightweight timeline/stagger, SVG animation | ~7KB | MIT |
 
-**For product demos:** CSS animations with spring-physics keyframes (what we already do) — zero dependencies, instant load, embeddable. For production React app: Motion is the right choice.
+**For product demos:** CSS animations with spring-physics keyframes (what we already do) — zero dependencies, instant load, embeddable. For production React app: Motion is the right choice. For Tailwind prototypes: TailwindCSS Motion for zero-JS animation utilities.
+
+**In our toolbox:**
+- **animate.style** — Curated subset (18 Use, 12 Adapt, 50+ Skip). See `reference/primitives/sources/animate-style.md`.
+- **TailwindCSS Motion** — Active tool for Tailwind-based prototypes. ~5KB pure CSS, zero JS, composes via utility classes. Highest performance scores alongside native CSS.
 
 **Rive > Lottie** for 2026: 10-15x smaller files, ~60 FPS vs ~17 FPS, built-in state machines. Intercom migrated from Lottie to Rive.
+
+**Remotion** is the upgrade path for programmatic video at scale. Same mental model as our pipeline (React components as animation source → video frames). Their AI Skills system validates our agent-driven approach. See SKILL.md "Future: Remotion Upgrade Path."
 
 ## CSS Features Now Production-Ready
 

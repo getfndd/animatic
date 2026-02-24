@@ -145,6 +145,7 @@ Read the source prototype and identify:
 Read these reference files:
 - `.claude/skills/animate/reference/animation-principles.md` — Disney's 12 principles adapted for UI
 - `.claude/skills/animate/reference/spring-physics.md` — Spring animation recipes and squash/stretch
+- `.claude/skills/animate/reference/primitives/REGISTRY.md` — Named animation primitives with CSS implementations, filtered by personality
 
 #### 3. Design the Phase System
 
@@ -425,10 +426,15 @@ The skill produces:
 ## Related Files
 
 - `scripts/capture-prototype.mjs` — Puppeteer + ffmpeg capture pipeline
+- `.claude/skills/animate/SAUL.md` — Saul (Animation Design Lead) persona and commands
 - `.claude/skills/animate/reference/animation-principles.md` — Disney's 12 principles for UI
 - `.claude/skills/animate/reference/spring-physics.md` — Spring recipes, icon wiggle, and stagger patterns
+- `.claude/skills/animate/reference/primitives/REGISTRY.md` — Named animation primitives with CSS implementations
+- `.claude/skills/animate/reference/breakdowns/INDEX.md` — Animation reference breakdown index
+- `.claude/skills/animate/reference/SCHEMA.md` — Template for creating new reference breakdowns
 - `.claude/skills/animate/reference/industry-references.md` — Gold-standard products, libraries, and learning resources
 - `.claude/skills/animate/reference/cinematic-techniques-research.md` — Research: camera motion, focus-pull, clip-path, parallax
+- `.claude/skills/animate/reference/inspiration/INDEX.md` — Collected GIF/video reference catalog
 - `.claude/skills/maya/reference/motion-design.md` — Duration/easing/performance reference
 - `.claude/skills/prototype/SKILL.md` — Prototype generation skill (upstream)
 

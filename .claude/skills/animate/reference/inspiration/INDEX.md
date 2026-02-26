@@ -40,6 +40,14 @@ Collected motion design references organized by pattern type. Each file links to
 | `4741682fe0bac7601c10dd15deb2a6fe.gif` | Card grid — 3D flip stagger | 4x5 grid of cards with staggered 3D Y-axis flip reveal. Pink faces on dark background with hatched backs. | editorial |
 | `6310b8b8f16fea7893e24093a08ddb6b.mp4` | Icon-to-document morph | Terminal `>_` icon morphs into abstract document layout, content animates, then scatters and reconverges back to icon. Identity/loading loop. **[Breakdown](../breakdowns/icon-document-morph.md)** | cinematic-dark |
 
+## Mobbin Flow Studies (Screenshot Sequences)
+
+| Directory | Flow | Screens | Description | Personality Affinity |
+|-----------|------|---------|-------------|---------------------|
+| `mobbin/linear-onboarding/` | Linear Onboarding Wizard | 25 | Full onboarding: landing → auth → workspace setup → loading gate → 7-step wizard with dot progress → app landing. **[Breakdown](../breakdowns/linear-onboarding-wizard.md)** | neutral-light |
+| `mobbin/notion-onboarding/` | Notion Onboarding | 17 | Full onboarding: landing → auth → profile → purpose selection → interest tags → workspace creation → app with checklist tutorial. **[Breakdown](../breakdowns/notion-onboarding-flow.md)** | neutral-light |
+| `mobbin/vercel-onboarding/` | Vercel Onboarding | 14 | Minimal onboarding: plan radio cards → name → git provider buttons → email → verification code → dashboard. **[Breakdown](../breakdowns/vercel-onboarding-flow.md)** | neutral-light |
+
 ## Video References
 
 | File | Pattern | Description | Personality Affinity |

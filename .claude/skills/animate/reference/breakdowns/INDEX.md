@@ -19,6 +19,9 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | [kinetic-bars-scatter](kinetic-bars-scatter.md) | Kinetic Bars — Horizontal Scatter & Reconverge | gif | cinematic-dark | strong | bars, kinetic, scatter, converge, rhythm, loading, transition, typography |
 | [nl-dot-grid-breathing](nl-dot-grid-breathing.md) | Neutral Light Dot Grid — Minimal Breathing | gif | neutral-light | exemplary | grid, ambient, breathing, dot, subtle, background, light-mode, minimal |
 | [icon-document-morph](icon-document-morph.md) | Icon-to-Document Morph — Terminal Identity Loop | video | cinematic-dark | strong | morph, icon, document, scatter, reconverge, stagger, loading, transition, identity, loop |
+| [linear-onboarding-wizard](linear-onboarding-wizard.md) | Linear Onboarding Wizard — Multi-Step Setup Flow | motion-study | neutral-light | exemplary | onboarding, wizard, step-indicator, form, card, selection, stagger, transition, multi-step, light-mode, crossfade, progress-dots |
+| [notion-onboarding-flow](notion-onboarding-flow.md) | Notion Web Onboarding — Multi-Phase Progressive Disclosure | motion-study | neutral-light | strong | onboarding, form, card, selection, checklist, tutorial, sidebar, stagger, transition, light-mode |
+| [vercel-onboarding-flow](vercel-onboarding-flow.md) | Vercel Web Onboarding — Centered Minimal Flow | motion-study | neutral-light | strong | onboarding, form, verification, button-stack, radio-card, loading, input, stagger, transition, light-mode |
 
 ---
 
@@ -26,13 +29,13 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 
 **Cinematic Dark:** dot-grid-ripple, kinetic-type-scale-cascade, linear-homepage, arc-wave-cascade, flow-field-vortex, kinetic-bars-scatter, icon-document-morph
 **Editorial:** 3d-card-cascade, text-image-reveal
-**Neutral Light:** nl-dot-grid-breathing
+**Neutral Light:** nl-dot-grid-breathing, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow
 **Universal:** sparse-dot-breathing
 
 ## By Quality Tier
 
-**Exemplary:** dot-grid-ripple, linear-homepage, text-image-reveal, nl-dot-grid-breathing
-**Strong:** kinetic-type-scale-cascade, 3d-card-cascade, sparse-dot-breathing, arc-wave-cascade, flow-field-vortex, kinetic-bars-scatter, icon-document-morph
+**Exemplary:** dot-grid-ripple, linear-homepage, text-image-reveal, nl-dot-grid-breathing, linear-onboarding-wizard
+**Strong:** kinetic-type-scale-cascade, 3d-card-cascade, sparse-dot-breathing, arc-wave-cascade, flow-field-vortex, kinetic-bars-scatter, icon-document-morph, notion-onboarding-flow, vercel-onboarding-flow
 **Interesting:** *(none yet)*
 
 ## By Tag
@@ -40,7 +43,7 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | Tag | Breakdowns |
 |-----|-----------|
 | grid | dot-grid-ripple, 3d-card-cascade, sparse-dot-breathing, nl-dot-grid-breathing |
-| stagger | 3d-card-cascade, linear-homepage, arc-wave-cascade, icon-document-morph |
+| stagger | 3d-card-cascade, linear-homepage, arc-wave-cascade, icon-document-morph, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
 | typography | kinetic-type-scale-cascade, text-image-reveal |
 | spring | linear-homepage |
 | 3d | 3d-card-cascade |
@@ -56,19 +59,35 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | bars | kinetic-bars-scatter |
 | scatter | kinetic-bars-scatter, icon-document-morph |
 | rhythm | kinetic-bars-scatter |
-| transition | kinetic-bars-scatter, icon-document-morph |
+| transition | kinetic-bars-scatter, icon-document-morph, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
 | morph | icon-document-morph |
 | icon | icon-document-morph |
 | document | icon-document-morph |
 | reconverge | icon-document-morph |
-| loading | icon-document-morph |
+| loading | icon-document-morph, linear-onboarding-wizard, vercel-onboarding-flow |
 | identity | icon-document-morph |
 | loop | icon-document-morph |
 | image | text-image-reveal |
 | hero | text-image-reveal |
 | breathing | sparse-dot-breathing, nl-dot-grid-breathing |
-| light-mode | nl-dot-grid-breathing |
-| minimal | nl-dot-grid-breathing |
+| light-mode | nl-dot-grid-breathing, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
+| minimal | nl-dot-grid-breathing, vercel-onboarding-flow |
+| onboarding | linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
+| wizard | linear-onboarding-wizard |
+| step-indicator | linear-onboarding-wizard |
+| form | linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
+| card | linear-onboarding-wizard, notion-onboarding-flow |
+| selection | linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
+| multi-step | linear-onboarding-wizard |
+| crossfade | linear-onboarding-wizard |
+| progress-dots | linear-onboarding-wizard |
+| checklist | notion-onboarding-flow |
+| tutorial | notion-onboarding-flow |
+| sidebar | notion-onboarding-flow |
+| verification | vercel-onboarding-flow |
+| button-stack | vercel-onboarding-flow |
+| radio-card | vercel-onboarding-flow |
+| input | vercel-onboarding-flow |
 
 ---
 

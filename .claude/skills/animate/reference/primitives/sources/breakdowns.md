@@ -177,3 +177,20 @@ New animation primitives discovered through reference analysis. Each links back 
 | `bk-icon-to-layout` | Icon-to-Layout Morph | Transitions | icon-document-morph |
 | `bk-content-line-stagger` | Content Line Stagger w/ Brightness | Reveals / Stagger | icon-document-morph |
 | `bk-nl-dot-breathe` | Light Palette Dot Grid Breathing | Continuous / Ambient | nl-dot-grid-breathing |
+| `nl-wizard-step-crossfade` | Wizard Step Crossfade | Transitions | linear-onboarding-wizard |
+| `nl-progress-dots` | Progress Dot Indicator | Component / State | linear-onboarding-wizard |
+| `nl-inline-expand` | Inline Expand Reveal | Transitions / Interaction | linear-onboarding-wizard |
+| `nl-card-select` | Card Selection State | Interaction / State | linear-onboarding-wizard |
+| `nl-completion-stagger` | Completion Card Stagger | Entrances / Stagger | linear-onboarding-wizard |
+| `nl-list-row-stagger` | List Row Stagger | Entrances / Stagger | linear-onboarding-wizard |
+| `nl-loading-gate` | Loading Gate Interstitial | Transitions / State | linear-onboarding-wizard |
+| `nl-phase-crossfade` | Phase Content Crossfade | Transitions | notion-onboarding-flow, vercel-onboarding-flow |
+| `nl-field-reveal` | Form Field Height Reveal | Entrances | notion-onboarding-flow, vercel-onboarding-flow |
+| `nl-staggered-card-entrance` | Staggered Card Entrance | Entrances / Stagger | notion-onboarding-flow |
+| `nl-tag-pill-select` | Tag Pill Selection | Interaction / State | notion-onboarding-flow |
+| `nl-button-activate` | Button Activation State | Interaction / State | notion-onboarding-flow, vercel-onboarding-flow |
+| `nl-app-materialize` | Onboarding-to-App Dissolve | Transitions / Choreography | notion-onboarding-flow |
+| `nl-radio-card-select` | Radio Card Selection | Interaction | vercel-onboarding-flow |
+| `nl-provider-button-stagger` | Branded Button Stack Stagger | Entrances / Stagger | vercel-onboarding-flow |
+| `nl-segmented-code-input` | Segmented Code Input | Entrances / Stagger | vercel-onboarding-flow |
+| `nl-button-loading-swap` | Button Loading State Demotion | Interaction / Loading | vercel-onboarding-flow |

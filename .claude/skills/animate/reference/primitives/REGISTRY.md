@@ -32,6 +32,7 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `as-slideInLeft` | Slide In Left | 500ms | universal | animate.style |
 | `as-slideInRight` | Slide In Right | 500ms | universal | animate.style |
 | `as-zoomIn` | Zoom In | 500ms | cinematic-dark | animate.style |
+| `nl-field-reveal` | Form Field Height Reveal | 300ms | neutral-light | breakdown |
 
 ### Exits
 
@@ -69,6 +70,11 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `bk-arc-cascade` | Arc Stagger Entrance | 80ms interval | cinematic-dark | breakdown |
 | `bk-bidirectional-stagger` | Bidirectional Stagger | variable | universal | breakdown |
 | `bk-content-line-stagger` | Content Line Stagger w/ Brightness | 100ms interval | cinematic-dark, editorial | breakdown |
+| `nl-completion-stagger` | Completion Card Stagger | 80ms interval | neutral-light | breakdown |
+| `nl-list-row-stagger` | List Row Stagger | 70ms interval | neutral-light | breakdown |
+| `nl-staggered-card-entrance` | Staggered Card Entrance | 100ms interval | neutral-light | breakdown |
+| `nl-provider-button-stagger` | Branded Button Stack Stagger | 120ms interval | neutral-light | breakdown |
+| `nl-segmented-code-input` | Segmented Code Input | 60ms interval | neutral-light | breakdown |
 
 ### Continuous / Ambient
 
@@ -90,6 +96,7 @@ Master lookup table of named animation effects. Consult this when generating pro
 |----|------|----------|-------------|--------|
 | `ed-count-up` | Animated Number Count | 800ms | editorial, neutral-light | engine |
 | `nl-step-progress` | Step Indicator Update | 450ms | neutral-light | engine |
+| `nl-progress-dots` | Progress Dot Indicator | 150ms per dot | neutral-light | breakdown |
 | `ct-word-carousel` | Word Carousel | 8000ms cycle | editorial | research |
 | `bk-text-image-split` | Image Breathing Between Text | 3200ms cycle | editorial | breakdown |
 
@@ -100,6 +107,12 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ed-tab-switch` | Tab Highlight + Crossfade | CSS transition | editorial | engine |
 | `nl-cursor-to` | Simulated Cursor | 600ms movement | neutral-light | engine |
 | `bk-spring-card-hover` | Spring Card Hover | 200ms | universal | breakdown |
+| `nl-card-select` | Card Selection State | 150ms | neutral-light | breakdown |
+| `nl-radio-card-select` | Radio Card Selection | 150ms | neutral-light | breakdown |
+| `nl-tag-pill-select` | Tag Pill Selection | 150ms | neutral-light | breakdown |
+| `nl-button-activate` | Button Activation State | 150ms | neutral-light | breakdown |
+| `nl-button-loading-swap` | Button Loading Demotion | 200ms | neutral-light | breakdown |
+| `nl-inline-expand` | Inline Expand Reveal | 300ms | neutral-light | breakdown |
 
 ### Transitions (Phase-Level)
 
@@ -114,6 +127,10 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ct-camera-orbit` | Camera Orbit | 1200ms | cinematic-dark | research |
 | `bk-bars-scatter` | Horizontal Scatter & Reconverge | 3400ms cycle | cinematic-dark | breakdown |
 | `bk-icon-to-layout` | Icon-to-Layout Morph | ~1000ms build | cinematic-dark | breakdown |
+| `nl-wizard-step-crossfade` | Wizard Step Crossfade | 300-400ms | neutral-light | breakdown |
+| `nl-phase-crossfade` | Phase Content Crossfade | 300ms | neutral-light | breakdown |
+| `nl-loading-gate` | Loading Gate Interstitial | 500-650ms | neutral-light | breakdown |
+| `nl-app-materialize` | Onboarding-to-App Dissolve | 600ms stagger | neutral-light | breakdown |
 
 ### Typography
 
@@ -153,12 +170,13 @@ Best typography: `cd-typewriter`, `ct-text-sweep`, `bk-text-image-split`
 
 ### Neutral Light — Clean and Guided
 
-Best entrances: `nl-slide-stagger`, `as-fadeInUp`, `as-slideInUp`
-Best attention: `nl-spotlight`, `nl-tooltip`, `as-pulse`, `as-headShake`
+Best entrances: `nl-slide-stagger`, `as-fadeInUp`, `nl-field-reveal`, `nl-staggered-card-entrance`, `nl-completion-stagger`
+Best attention: `nl-spotlight`, `nl-tooltip`, `nl-progress-dots`
 Best ambient: `bk-sparse-breathe`, `bk-nl-dot-breathe`
-Best content: `nl-step-progress`, `ed-count-up`
-Best interactions: `nl-cursor-to`
-Best transitions: `nl-phase-transition`
+Best content: `nl-step-progress`, `ed-count-up`, `nl-progress-dots`
+Best interactions: `nl-cursor-to`, `nl-card-select`, `nl-radio-card-select`, `nl-button-activate`, `nl-tag-pill-select`
+Best transitions: `nl-phase-transition`, `nl-wizard-step-crossfade`, `nl-phase-crossfade`, `nl-app-materialize`, `nl-loading-gate`
+Best stagger: `nl-list-row-stagger`, `nl-provider-button-stagger`, `nl-segmented-code-input`
 
 ---
 
@@ -539,6 +557,6 @@ Full CSS implementations for effects extracted from reference breakdowns.
 | Engine builtins | `sources/engine-builtins.md` | 20 |
 | animate.style (Use tier) | `sources/animate-style.md` | 18 |
 | Cinematic techniques research | `../cinematic-techniques-research.md` | ~20 |
-| Reference breakdowns | `sources/breakdowns.md` | 15 |
+| Reference breakdowns | `sources/breakdowns.md` | 33 |
 
-**Total cataloged:** ~73 named primitives
+**Total cataloged:** ~91 named primitives

@@ -68,6 +68,7 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `bk-grid-flip-cascade` | Grid Flip Cascade | 80ms interval | editorial | breakdown |
 | `bk-arc-cascade` | Arc Stagger Entrance | 80ms interval | cinematic-dark | breakdown |
 | `bk-bidirectional-stagger` | Bidirectional Stagger | variable | universal | breakdown |
+| `bk-content-line-stagger` | Content Line Stagger w/ Brightness | 100ms interval | cinematic-dark, editorial | breakdown |
 
 ### Continuous / Ambient
 
@@ -80,6 +81,7 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ct-glow-pulse` | Ambient Glow Pulse | 4000ms loop | cinematic-dark | research |
 | `ct-font-breathe` | Variable Font Breathe | 3000ms loop | cinematic-dark | research |
 | `bk-sparse-breathe` | Sparse Grid Breathing | 4000ms loop | universal | breakdown |
+| `bk-nl-dot-breathe` | Light Palette Dot Grid Breathing | 4500ms loop | neutral-light | breakdown |
 | `bk-flow-field` | Flow Field Vortex | continuous | cinematic-dark | breakdown |
 
 ### Content Effects
@@ -111,6 +113,7 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ct-camera-tilt` | Camera Tilt Reveal | 1200ms | cinematic-dark | research |
 | `ct-camera-orbit` | Camera Orbit | 1200ms | cinematic-dark | research |
 | `bk-bars-scatter` | Horizontal Scatter & Reconverge | 3400ms cycle | cinematic-dark | breakdown |
+| `bk-icon-to-layout` | Icon-to-Layout Morph | ~1000ms build | cinematic-dark | breakdown |
 
 ### Typography
 
@@ -134,9 +137,9 @@ Master lookup table of named animation effects. Consult this when generating pro
 ### Cinematic Dark — Drama and Impact
 
 Best entrances: `cd-focus-stagger`, `ct-focus-pull`, `ct-zoom-from-space`, `as-zoomIn`
-Best reveals: `ct-iris-open`, `ct-wipe-reveal`, `ct-bars-reveal`, `bk-arc-cascade`
+Best reveals: `ct-iris-open`, `ct-wipe-reveal`, `ct-bars-reveal`, `bk-arc-cascade`, `bk-content-line-stagger`
 Best ambient: `ct-float`, `ct-glow-pulse`, `cd-progress-animation`, `bk-flow-field`
-Best transitions: `cd-phase-transition`, `ct-camera-dolly`, `ct-camera-orbit`, `bk-bars-scatter`
+Best transitions: `cd-phase-transition`, `ct-camera-dolly`, `ct-camera-orbit`, `bk-bars-scatter`, `bk-icon-to-layout`
 Best typography: `ct-text-hero`, `ct-char-stagger`, `cd-typewriter`
 
 ### Editorial — Content-Forward Restraint
@@ -152,7 +155,7 @@ Best typography: `cd-typewriter`, `ct-text-sweep`, `bk-text-image-split`
 
 Best entrances: `nl-slide-stagger`, `as-fadeInUp`, `as-slideInUp`
 Best attention: `nl-spotlight`, `nl-tooltip`, `as-pulse`, `as-headShake`
-Best ambient: `bk-sparse-breathe`
+Best ambient: `bk-sparse-breathe`, `bk-nl-dot-breathe`
 Best content: `nl-step-progress`, `ed-count-up`
 Best interactions: `nl-cursor-to`
 Best transitions: `nl-phase-transition`
@@ -391,6 +394,70 @@ Full CSS implementations for effects extracted from reference breakdowns.
 /* Duration jitter: 3600-4400ms per dot prevents phase-locking */
 ```
 
+### `bk-icon-to-layout` — Icon-to-Layout Morph
+
+```css
+/* Phase 1: Icon fades while layout rectangle expands from center */
+@keyframes icon-fade { 0% { opacity: 1; } 40%, 100% { opacity: 0; } }
+@keyframes layout-expand {
+  0% { transform: scale(0.2); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.icon-glyph { animation: icon-fade 400ms ease-out forwards; }
+.layout-container { animation: layout-expand 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* Phase 2: Content lines stagger in with brightness cascade */
+.content-line {
+  opacity: 0; transform: translateX(-8px);
+  animation: line-reveal 300ms ease-out forwards;
+  animation-delay: calc(var(--line-index) * 100ms + 400ms);
+}
+@keyframes line-reveal {
+  0% { opacity: 0; transform: translateX(-8px); }
+  100% { opacity: var(--line-brightness, 1); transform: translateX(0); }
+}
+/* Per-line brightness: 1.0, 1.0, 0.9, 0.7, 0.8, 0.5 (cascade) */
+```
+
+### `bk-content-line-stagger` — Content Line Stagger with Brightness Cascade
+
+```css
+.content-line {
+  --line-width: 80%;
+  width: var(--line-width);
+  height: 3px;
+  background: white;
+  opacity: 0;
+  animation: line-enter 300ms ease-out forwards;
+  animation-delay: calc(var(--line-index) * 100ms);
+}
+@keyframes line-enter {
+  0% { opacity: 0; transform: translateX(-8px); }
+  100% { opacity: var(--line-brightness, 1); transform: translateX(0); }
+}
+/* Brightness descends per line: nth-child(1) 1.0, (2) 1.0, (3) 0.9, (4) 0.7, (5) 0.8, (6) 0.5 */
+/* Width varies per line for visual rhythm: 70%, 85%, 65%, 90%, 75%, 55% */
+```
+
+### `bk-nl-dot-breathe` — Light Palette Dot Grid Breathing
+
+```css
+@keyframes nl-dot-breathe {
+  0%, 100% { transform: scale(0.7); opacity: 0.35; }
+  50% { transform: scale(1.0); opacity: 0.6; }
+}
+.nl-dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: var(--nl-text-tertiary, #78716c);
+  animation: nl-dot-breathe var(--breathe-duration, 4500ms) ease-in-out infinite;
+  animation-delay: var(--breathe-offset, 0ms);
+}
+/* Phase decorrelation: offset = (row + col) * 200 + random(0, 500)ms */
+/* Duration jitter: 4200-4800ms per dot prevents phase-locking */
+/* Grid: 9x9, gap 40px, on --nl-bg-body (#fafaf9) */
+```
+
 ### `bk-arc-cascade` — Arc Stagger Entrance
 
 ```css
@@ -472,6 +539,6 @@ Full CSS implementations for effects extracted from reference breakdowns.
 | Engine builtins | `sources/engine-builtins.md` | 20 |
 | animate.style (Use tier) | `sources/animate-style.md` | 18 |
 | Cinematic techniques research | `../cinematic-techniques-research.md` | ~20 |
-| Reference breakdowns | `sources/breakdowns.md` | 12 |
+| Reference breakdowns | `sources/breakdowns.md` | 15 |
 
-**Total cataloged:** ~70 named primitives
+**Total cataloged:** ~73 named primitives

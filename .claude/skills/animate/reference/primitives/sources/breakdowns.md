@@ -124,6 +124,38 @@ New animation primitives discovered through reference analysis. Each links back 
 - **Personality:** cinematic-dark (primary), editorial (compatible)
 - **Key mechanism:** JS controls `--bar-target` CSS custom property per bar. Clustering logic biases random positions toward 2 focal zones. CSS `transition` handles smooth movement.
 
+## From `icon-document-morph`
+
+### `bk-icon-to-layout` — Icon-to-Layout Morph
+- **Category:** Transitions
+- **Duration:** ~400ms (morph) + ~600ms (line stagger) = ~1000ms total build
+- **Easing:** expo-out (expand), ease-out (line reveal)
+- **Description:** Compact icon expands into a full content layout. The icon fades as a rectangle grows from its center, then the rectangle splits into structural elements (sidebar + content rows) with staggered line reveal. Solves the loading → content transition: the loading indicator *becomes* the content rather than being replaced. Icon and layout share a geometric center for spatial continuity.
+- **Parameters:** icon selector, layout container, line count, stagger interval, expand duration
+- **Personality:** cinematic-dark (primary), universal (at reduced scale/speed)
+- **Key mechanism:** CSS `scale(0.2) → scale(1)` expansion on layout container with `animation-delay: calc(var(--line-index) * 100ms)` stagger on child lines. Icon opacity fades during first 40% of expansion.
+
+### `bk-content-line-stagger` — Content Line Stagger with Brightness Cascade
+- **Category:** Reveals / Stagger
+- **Duration:** 300ms per line, 100ms interval
+- **Easing:** ease-out
+- **Description:** Horizontal placeholder lines (representing text/content rows) reveal top-to-bottom with staggered opacity. Differentiator from standard stagger: each successive line enters slightly dimmer than the previous, creating a "progressive rendering" effect — like a document loading in real-time. All lines then normalize to full brightness. Per-line width variation adds visual rhythm.
+- **Parameters:** line count, stagger interval, brightness range (1.0 → 0.5), line width variation
+- **Personality:** cinematic-dark (primary), editorial (compatible)
+- **Key mechanism:** CSS custom property `--line-brightness` per line sets target opacity in `@keyframes line-enter`. Combined with `--line-width` for varied lengths. `translateX(-8px) → 0` adds subtle slide from left.
+
+## From `nl-dot-grid-breathing`
+
+### `bk-nl-dot-breathe` — Light Palette Dot Grid Breathing
+- **Category:** Continuous / Ambient
+- **Duration:** ~4500ms cycle (infinite loop)
+- **Easing:** ease-in-out
+- **Description:** Dense grid (~9x9) of small dark dots on light background oscillates between scale(0.7) and scale(1.0) with phase-decorrelated timing. Adapted from `bk-sparse-breathe` for light palettes: denser grid, smaller dots (3px vs 4px), lower opacity range (0.35–0.6 vs 0.5–0.9), tighter scale range, and slower cycle. Uses `--nl-text-tertiary` (stone-500) for warm dot color.
+- **Parameters:** grid cols/rows, dot size, breathe duration range, gap size, dot color token
+- **Personality:** neutral-light (primary)
+- **Key mechanism:** Per-dot `animation-delay` calculated as `(row + col) * 200 + random(0, 500)` with per-dot `animation-duration` jitter (4200–4800ms). Reduced base phase multiplier (200 vs 300) compensates for higher grid density.
+- **Light-palette adaptation formula:** density +30%, element size -25%, opacity ceiling -35%, scale range -33% vs dark equivalent.
+
 ---
 
 ## Summary
@@ -142,3 +174,6 @@ New animation primitives discovered through reference analysis. Each links back 
 | `bk-text-image-split` | Image Breathing Between Text | Content Effects | text-image-reveal |
 | `bk-flow-field` | Flow Field Vortex | Continuous / Ambient | flow-field-vortex |
 | `bk-bars-scatter` | Horizontal Scatter & Reconverge | Transitions | kinetic-bars-scatter |
+| `bk-icon-to-layout` | Icon-to-Layout Morph | Transitions | icon-document-morph |
+| `bk-content-line-stagger` | Content Line Stagger w/ Brightness | Reveals / Stagger | icon-document-morph |
+| `bk-nl-dot-breathe` | Light Palette Dot Grid Breathing | Continuous / Ambient | nl-dot-grid-breathing |

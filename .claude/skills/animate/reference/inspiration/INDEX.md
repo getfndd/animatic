@@ -38,7 +38,7 @@ Collected motion design references organized by pattern type. Each file links to
 | File | Pattern | Description | Personality Affinity |
 |------|---------|-------------|---------------------|
 | `4741682fe0bac7601c10dd15deb2a6fe.gif` | Card grid — 3D flip stagger | 4x5 grid of cards with staggered 3D Y-axis flip reveal. Pink faces on dark background with hatched backs. | editorial |
-| `6310b8b8f16fea7893e24093a08ddb6b.mp4` | UI micro-interaction | Short UI motion clip — interaction detail. | neutral-light |
+| `6310b8b8f16fea7893e24093a08ddb6b.mp4` | Icon-to-document morph | Terminal `>_` icon morphs into abstract document layout, content animates, then scatters and reconverges back to icon. Identity/loading loop. **[Breakdown](../breakdowns/icon-document-morph.md)** | cinematic-dark |
 
 ## Video References
 

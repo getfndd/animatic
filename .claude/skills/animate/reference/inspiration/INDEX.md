@@ -48,6 +48,13 @@ Collected motion design references organized by pattern type. Each file links to
 | `mobbin/notion-onboarding/` | Notion Onboarding | 17 | Full onboarding: landing → auth → profile → purpose selection → interest tags → workspace creation → app with checklist tutorial. **[Breakdown](../breakdowns/notion-onboarding-flow.md)** | neutral-light |
 | `mobbin/vercel-onboarding/` | Vercel Onboarding | 14 | Minimal onboarding: plan radio cards → name → git provider buttons → email → verification code → dashboard. **[Breakdown](../breakdowns/vercel-onboarding-flow.md)** | neutral-light |
 
+## AI Product Demos
+
+| File | Pattern | Description | Personality Affinity |
+|------|---------|-------------|---------------------|
+| `nume-ai-chat-to-report.mp4` | Chat-to-dashboard progressive build | AI CFO chatbot: typewriter input → user bubble → AI response streaming → report card materialize → split-pane transition (chat left, dashboard right) → stat count-ups → chart render. 14s loop. **[Breakdown](../breakdowns/nume-ai-chat-dashboard.md)** | editorial |
+| `nume-ai-drilldown-thread.mp4` | Conversation drill-down thread | Continues from GIF_01: suggestion chip stagger (cyan-outlined pills) → chip select → new AI response stream → panel content swap → table row stagger → recommendations stream → new chips. 18s loop. **[Breakdown](../breakdowns/nume-ai-chat-dashboard.md)** | editorial |
+
 ## Video References
 
 | File | Pattern | Description | Personality Affinity |
@@ -84,3 +91,4 @@ The references above cluster into these extractable patterns:
 5. **Ambient field** — Continuous background motion for texture (3 refs)
 6. **Materialization** — Elements assembling from particles or fragments (1 ref)
 7. **Parametric curves** — Mathematical/generative motion (2 refs)
+8. **AI conversation progressive disclosure** — Chat interfaces that build into dashboards/reports through dialogue (2 refs)

@@ -156,6 +156,89 @@ New animation primitives discovered through reference analysis. Each links back 
 - **Key mechanism:** Per-dot `animation-delay` calculated as `(row + col) * 200 + random(0, 500)` with per-dot `animation-duration` jitter (4200–4800ms). Reduced base phase multiplier (200 vs 300) compensates for higher grid density.
 - **Light-palette adaptation formula:** density +30%, element size -25%, opacity ceiling -35%, scale range -33% vs dark equivalent.
 
+## From `nume-ai-chat-dashboard`
+
+### `bk-chat-typewriter-submit` — Chat Input Typewriter → Bubble Submit
+- **Category:** Entrances / Interaction
+- **Duration:** ~2000ms (typing) + 400ms (submit transition)
+- **Easing:** linear (per char ~80ms), ease-out (bubble appear)
+- **Description:** Text types character-by-character into a chat input field (monospace font, block cursor), then on submit the input clears and the text reappears in a right-aligned user bubble. The bubble fades in with subtle scale(0.97→1.0). Block cursor (solid rectangle, not line) blinks at 530ms with step-end timing.
+- **Parameters:** text content, type speed (ms/char), input selector, bubble selector
+- **Personality:** editorial (primary), cinematic-dark (compatible)
+- **Key mechanism:** Monospace font in the input creates the "someone is actually typing" effect. Block cursor vs line cursor is a deliberate choice — it says "terminal" and "command," not "word processor."
+
+### `bk-ai-response-stream` — AI Response Word-Group Streaming
+- **Category:** Content Effects / Entrances
+- **Duration:** Variable (~120ms per word-group, total 2000-3000ms for a paragraph)
+- **Easing:** ease-out (per chunk fade+slide)
+- **Description:** AI response text appears in word-groups (3-5 words at a time), simulating real-time LLM generation. Each chunk fades in with translateY(4px→0). Container height transitions smoothly as content is added. Fundamentally different from typewriter — chunked streaming reads naturally at paragraph scale, while character-by-character would be agonizingly slow.
+- **Parameters:** chunk size (word count), chunk interval (ms), container selector
+- **Personality:** editorial (primary), neutral-light (compatible)
+- **Key mechanism:** JS splits text at word boundaries into ~4-word chunks, wraps each in a span with `--chunk-delay`, then CSS handles the fade+slide entrance. Container uses `transition: height 300ms ease-out` to grow smoothly.
+
+### `bk-report-card-materialize` — Document Report Card Entrance
+- **Category:** Entrances
+- **Duration:** 500ms
+- **Easing:** expo-out
+- **Description:** Compact document card (icon + title + subtitle + arrow CTA) slides up from below with opacity 0→1. Dark elevated card on dark background with subtle border. The card is an intermediate object — it exists inline in conversation, then when clicked, becomes the anchor for a full dashboard panel. Icon is a document glyph, right side has an arrow affordance.
+- **Parameters:** card selector, icon type, title, subtitle
+- **Personality:** editorial (primary), cinematic-dark (compatible)
+- **Key mechanism:** `opacity: 0; transform: translateY(16px);` → `opacity: 1; transform: translateY(0);` with expo-out. Card acts as a portal — its inline appearance in chat is a preview of the full report.
+
+### `bk-chat-to-split-pane` — Single-to-Dual Pane Split Transition
+- **Category:** Transitions (Phase-Level)
+- **Duration:** 600ms
+- **Easing:** expo-out
+- **Description:** The signature choreography. A single-column chat view compresses leftward (~45% width) as a report panel slides in from the right edge (~55% width). Both panes gain header bars simultaneously. The chat content doesn't reflow — it compresses. The report panel enters with translateX(40px→0) + opacity 0→1 with a 200ms delay after the compression begins.
+- **Parameters:** left pane width, right pane width, transition duration
+- **Personality:** editorial (primary)
+- **Key mechanism:** Chat container `transition: width 600ms expo-out`. Report panel `transition: opacity 400ms ease-out 200ms, transform 600ms expo-out`. Header bars use `height: 0→48px` transition. The 200ms stagger between compress-start and panel-appear prevents the eye from being split.
+
+### `bk-stat-card-count-up` — Metric Card Stagger with Count-Up Values
+- **Category:** Content Effects / Stagger
+- **Duration:** 200ms interval stagger, 400ms entrance per card, 800ms count-up per value
+- **Easing:** expo-out (entrance), ease-out (count-up)
+- **Description:** Financial metric cards (label + large value + delta badge) enter left-to-right with stagger. After each card's entrance settles, its numeric value counts up from 0 to final. After value lands, a green/red delta badge fades in. Three sequential micro-animations on the same element, timed to the stagger offset: enter → count → badge.
+- **Parameters:** card count, stagger interval, count duration, badge delay
+- **Personality:** editorial (primary), neutral-light (compatible)
+- **Key mechanism:** Card entrance via `animation-delay: calc(var(--stat-index) * 200ms)`. Count-up starts at `entrance-delay + 400ms`. Badge appears at `entrance-delay + 600ms`. Creates a waterfall of activity across the row.
+
+### `bk-suggestion-chip-stagger` — Action Suggestion Chip Stack
+- **Category:** Entrances / Interaction
+- **Duration:** 150ms interval, 350ms per chip
+- **Easing:** expo-out (enter), ease-in (dismiss)
+- **Description:** Outlined pill buttons with monospace text and cyan/teal accent border stagger top-to-bottom. On selection: selected chip border brightens with a subtle pulse, unselected chips fade out simultaneously. Selected chip's text migrates to a right-aligned user bubble. The monospace font inside rounded pills is a strong design choice — it signals "these are commands" not "these are suggestions."
+- **Parameters:** chip count, stagger interval, accent color, dismiss duration
+- **Personality:** editorial (primary), cinematic-dark (compatible)
+- **Key mechanism:** Stagger via `animation-delay: calc(var(--chip-index) * 150ms)`. Select state: `border-color` brightens + 200ms scale pulse. Dismiss: `opacity 0, translateY(-4px)` at 200ms ease-in.
+
+### `bk-panel-content-swap` — Dashboard Panel Interior Crossfade
+- **Category:** Transitions
+- **Duration:** 500ms total (200ms exit + 300ms enter)
+- **Easing:** ease-in (exit), expo-out (enter)
+- **Description:** Report panel frame stays fixed while interior content crossfades between different views. Old content fades out (opacity 1→0, 200ms), new content fades in with micro-slide (opacity 0→1 + translateY(8px→0), 300ms). Header updates in sync. Keeps the user oriented — the container is stable, only the content changes.
+- **Parameters:** exit duration, enter duration, enter slide distance
+- **Personality:** editorial (primary), neutral-light (compatible)
+- **Key mechanism:** Position old and new content absolutely within the panel. Old: `opacity → 0` at 200ms. New: `opacity → 1, translateY → 0` starting at 150ms (slight overlap for seamless feel).
+
+### `bk-table-row-stagger` — Data Table Row Reveal
+- **Category:** Reveals / Stagger
+- **Duration:** 80ms interval per row
+- **Easing:** ease-out
+- **Description:** Data table rows enter top-to-bottom with tight stagger. Header row appears first as a group, then data rows follow individually. Each row: opacity 0→1 + translateX(-4px→0) (subtle leftward slide). Column values can include color-coded text (red for overruns, green for savings) that appears as part of the row entrance.
+- **Parameters:** row count, stagger interval, slide distance
+- **Personality:** editorial (primary), neutral-light (compatible)
+- **Key mechanism:** `animation-delay: calc(var(--row-index) * 80ms)`. Header row at index 0 enters without slide. Color-coded cells use inline `color` property that becomes visible with the opacity transition.
+
+### `bk-scroll-trigger-typewriter` — Scroll-Triggered Typewriter with Pre-Blink
+- **Category:** Content Effects / Typography
+- **Duration:** Variable (50ms/char) + 800ms pre-blink
+- **Easing:** linear (typing), power1.inOut (blinks)
+- **Description:** A heading typewriter effect triggered by GSAP ScrollTrigger (start: "top 90%"). Before typing begins, the cursor blinks twice (400ms each, yoyo) to create a "thinking before speaking" beat. After typing completes, cursor continues blinking indefinitely. Uses Typed.js for the typing, GSAP for the scroll trigger and cursor animation.
+- **Parameters:** trigger selector, text content, type speed, cursor selector
+- **Personality:** editorial (primary), universal
+- **Key mechanism:** GSAP ScrollTrigger `once: true` fires → GSAP cursor blink (repeat: 1, yoyo) → `onComplete` triggers `new Typed()` → Typed `onComplete` starts infinite cursor blink. Three chained animation layers.
+
 ---
 
 ## Summary
@@ -194,3 +277,12 @@ New animation primitives discovered through reference analysis. Each links back 
 | `nl-provider-button-stagger` | Branded Button Stack Stagger | Entrances / Stagger | vercel-onboarding-flow |
 | `nl-segmented-code-input` | Segmented Code Input | Entrances / Stagger | vercel-onboarding-flow |
 | `nl-button-loading-swap` | Button Loading State Demotion | Interaction / Loading | vercel-onboarding-flow |
+| `bk-chat-typewriter-submit` | Chat Input Typewriter → Bubble Submit | Entrances / Interaction | nume-ai-chat-dashboard |
+| `bk-ai-response-stream` | AI Response Word-Group Streaming | Content Effects / Entrances | nume-ai-chat-dashboard |
+| `bk-report-card-materialize` | Document Report Card Entrance | Entrances | nume-ai-chat-dashboard |
+| `bk-chat-to-split-pane` | Single-to-Dual Pane Split | Transitions | nume-ai-chat-dashboard |
+| `bk-stat-card-count-up` | Metric Card Stagger + Count-Up | Content Effects / Stagger | nume-ai-chat-dashboard |
+| `bk-suggestion-chip-stagger` | Action Suggestion Chip Stack | Entrances / Interaction | nume-ai-chat-dashboard |
+| `bk-panel-content-swap` | Dashboard Panel Interior Crossfade | Transitions | nume-ai-chat-dashboard |
+| `bk-table-row-stagger` | Data Table Row Reveal | Reveals / Stagger | nume-ai-chat-dashboard |
+| `bk-scroll-trigger-typewriter` | Scroll-Triggered Typewriter w/ Pre-Blink | Content Effects / Typography | nume-ai-chat-dashboard |

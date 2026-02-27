@@ -22,19 +22,20 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | [linear-onboarding-wizard](linear-onboarding-wizard.md) | Linear Onboarding Wizard — Multi-Step Setup Flow | motion-study | neutral-light | exemplary | onboarding, wizard, step-indicator, form, card, selection, stagger, transition, multi-step, light-mode, crossfade, progress-dots |
 | [notion-onboarding-flow](notion-onboarding-flow.md) | Notion Web Onboarding — Multi-Phase Progressive Disclosure | motion-study | neutral-light | strong | onboarding, form, card, selection, checklist, tutorial, sidebar, stagger, transition, light-mode |
 | [vercel-onboarding-flow](vercel-onboarding-flow.md) | Vercel Web Onboarding — Centered Minimal Flow | motion-study | neutral-light | strong | onboarding, form, verification, button-stack, radio-card, loading, input, stagger, transition, light-mode |
+| [nume-ai-chat-dashboard](nume-ai-chat-dashboard.md) | Nume.ai — Chat-to-Dashboard Progressive Build | video | editorial | exemplary | chat, ai, dashboard, typewriter, progressive-reveal, split-pane, report, stagger, count-up, suggestion-chips, streaming, product-demo, conversation |
 
 ---
 
 ## By Personality
 
 **Cinematic Dark:** dot-grid-ripple, kinetic-type-scale-cascade, linear-homepage, arc-wave-cascade, flow-field-vortex, kinetic-bars-scatter, icon-document-morph
-**Editorial:** 3d-card-cascade, text-image-reveal
+**Editorial:** 3d-card-cascade, text-image-reveal, nume-ai-chat-dashboard
 **Neutral Light:** nl-dot-grid-breathing, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow
 **Universal:** sparse-dot-breathing
 
 ## By Quality Tier
 
-**Exemplary:** dot-grid-ripple, linear-homepage, text-image-reveal, nl-dot-grid-breathing, linear-onboarding-wizard
+**Exemplary:** dot-grid-ripple, linear-homepage, text-image-reveal, nl-dot-grid-breathing, linear-onboarding-wizard, nume-ai-chat-dashboard
 **Strong:** kinetic-type-scale-cascade, 3d-card-cascade, sparse-dot-breathing, arc-wave-cascade, flow-field-vortex, kinetic-bars-scatter, icon-document-morph, notion-onboarding-flow, vercel-onboarding-flow
 **Interesting:** *(none yet)*
 
@@ -43,7 +44,7 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | Tag | Breakdowns |
 |-----|-----------|
 | grid | dot-grid-ripple, 3d-card-cascade, sparse-dot-breathing, nl-dot-grid-breathing |
-| stagger | 3d-card-cascade, linear-homepage, arc-wave-cascade, icon-document-morph, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
+| stagger | 3d-card-cascade, linear-homepage, arc-wave-cascade, icon-document-morph, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow, nume-ai-chat-dashboard |
 | typography | kinetic-type-scale-cascade, text-image-reveal |
 | spring | linear-homepage |
 | 3d | 3d-card-cascade |
@@ -59,7 +60,7 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | bars | kinetic-bars-scatter |
 | scatter | kinetic-bars-scatter, icon-document-morph |
 | rhythm | kinetic-bars-scatter |
-| transition | kinetic-bars-scatter, icon-document-morph, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
+| transition | kinetic-bars-scatter, icon-document-morph, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow, nume-ai-chat-dashboard |
 | morph | icon-document-morph |
 | icon | icon-document-morph |
 | document | icon-document-morph |
@@ -88,6 +89,18 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | button-stack | vercel-onboarding-flow |
 | radio-card | vercel-onboarding-flow |
 | input | vercel-onboarding-flow |
+| chat | nume-ai-chat-dashboard |
+| ai | nume-ai-chat-dashboard |
+| dashboard | nume-ai-chat-dashboard |
+| typewriter | nume-ai-chat-dashboard |
+| progressive-reveal | nume-ai-chat-dashboard |
+| split-pane | nume-ai-chat-dashboard |
+| report | nume-ai-chat-dashboard |
+| count-up | nume-ai-chat-dashboard |
+| suggestion-chips | nume-ai-chat-dashboard |
+| streaming | nume-ai-chat-dashboard |
+| product-demo | linear-homepage, nume-ai-chat-dashboard |
+| conversation | nume-ai-chat-dashboard |
 
 ---
 

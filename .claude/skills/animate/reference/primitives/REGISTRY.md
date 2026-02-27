@@ -33,6 +33,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `as-slideInRight` | Slide In Right | 500ms | universal | animate.style |
 | `as-zoomIn` | Zoom In | 500ms | cinematic-dark | animate.style |
 | `nl-field-reveal` | Form Field Height Reveal | 300ms | neutral-light | breakdown |
+| `bk-chat-typewriter-submit` | Chat Input Typewriter → Bubble | ~2400ms | editorial, cinematic-dark | breakdown |
+| `bk-report-card-materialize` | Document Report Card Entrance | 500ms | editorial, cinematic-dark | breakdown |
 
 ### Exits
 
@@ -75,6 +77,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `nl-staggered-card-entrance` | Staggered Card Entrance | 100ms interval | neutral-light | breakdown |
 | `nl-provider-button-stagger` | Branded Button Stack Stagger | 120ms interval | neutral-light | breakdown |
 | `nl-segmented-code-input` | Segmented Code Input | 60ms interval | neutral-light | breakdown |
+| `bk-suggestion-chip-stagger` | Action Suggestion Chip Stack | 150ms interval | editorial, cinematic-dark | breakdown |
+| `bk-table-row-stagger` | Data Table Row Reveal | 80ms interval | editorial, neutral-light | breakdown |
 
 ### Continuous / Ambient
 
@@ -99,6 +103,9 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `nl-progress-dots` | Progress Dot Indicator | 150ms per dot | neutral-light | breakdown |
 | `ct-word-carousel` | Word Carousel | 8000ms cycle | editorial | research |
 | `bk-text-image-split` | Image Breathing Between Text | 3200ms cycle | editorial | breakdown |
+| `bk-ai-response-stream` | AI Response Word-Group Streaming | ~120ms/chunk | editorial, neutral-light | breakdown |
+| `bk-stat-card-count-up` | Metric Card Stagger + Count-Up | 200ms interval | editorial, neutral-light | breakdown |
+| `bk-scroll-trigger-typewriter` | Scroll-Triggered Typewriter w/ Pre-Blink | 50ms/char | editorial, universal | breakdown |
 
 ### Interactions
 
@@ -131,6 +138,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `nl-phase-crossfade` | Phase Content Crossfade | 300ms | neutral-light | breakdown |
 | `nl-loading-gate` | Loading Gate Interstitial | 500-650ms | neutral-light | breakdown |
 | `nl-app-materialize` | Onboarding-to-App Dissolve | 600ms stagger | neutral-light | breakdown |
+| `bk-chat-to-split-pane` | Single-to-Dual Pane Split | 600ms | editorial | breakdown |
+| `bk-panel-content-swap` | Dashboard Panel Interior Crossfade | 500ms | editorial, neutral-light | breakdown |
 
 ### Typography
 
@@ -144,6 +153,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `cd-typewriter` | Typewriter Reveal | 28-50ms/char | cinematic-dark, editorial | engine |
 | `bk-text-parallax-stack` | Text Parallax Stack | 3000ms cycle | cinematic-dark | breakdown |
 | `bk-text-image-split` | Image Breathing Between Text | 3200ms cycle | editorial | breakdown |
+| `bk-chat-typewriter-submit` | Chat Input Typewriter → Bubble | ~2400ms | editorial, cinematic-dark | breakdown |
+| `bk-scroll-trigger-typewriter` | Scroll-Triggered Typewriter w/ Pre-Blink | 50ms/char | editorial, universal | breakdown |
 
 > **Note:** Typography entries duplicate some IDs from Entrances, Reveals, Content Effects, and Continuous categories above. This section is a cross-reference view for personality-filtered lookups.
 
@@ -153,30 +164,30 @@ Master lookup table of named animation effects. Consult this when generating pro
 
 ### Cinematic Dark — Drama and Impact
 
-Best entrances: `cd-focus-stagger`, `ct-focus-pull`, `ct-zoom-from-space`, `as-zoomIn`
-Best reveals: `ct-iris-open`, `ct-wipe-reveal`, `ct-bars-reveal`, `bk-arc-cascade`, `bk-content-line-stagger`
+Best entrances: `cd-focus-stagger`, `ct-focus-pull`, `ct-zoom-from-space`, `as-zoomIn`, `bk-chat-typewriter-submit`, `bk-report-card-materialize`
+Best reveals: `ct-iris-open`, `ct-wipe-reveal`, `ct-bars-reveal`, `bk-arc-cascade`, `bk-content-line-stagger`, `bk-suggestion-chip-stagger`
 Best ambient: `ct-float`, `ct-glow-pulse`, `cd-progress-animation`, `bk-flow-field`
 Best transitions: `cd-phase-transition`, `ct-camera-dolly`, `ct-camera-orbit`, `bk-bars-scatter`, `bk-icon-to-layout`
 Best typography: `ct-text-hero`, `ct-char-stagger`, `cd-typewriter`
 
 ### Editorial — Content-Forward Restraint
 
-Best entrances: `ed-slide-stagger`, `ed-blur-reveal`, `as-fadeInUp`, `as-fadeInLeft`
-Best reveals: `ct-text-sweep`, `ed-all-typewriters`
+Best entrances: `ed-slide-stagger`, `ed-blur-reveal`, `as-fadeInUp`, `as-fadeInLeft`, `bk-report-card-materialize`
+Best reveals: `ct-text-sweep`, `ed-all-typewriters`, `bk-suggestion-chip-stagger`, `bk-table-row-stagger`
 Best ambient: `ed-content-cycle`
-Best content: `ed-count-up`, `ct-word-carousel`, `bk-text-image-split`
-Best transitions: `ed-phase-transition`, `ed-tab-switch`
-Best typography: `cd-typewriter`, `ct-text-sweep`, `bk-text-image-split`
+Best content: `ed-count-up`, `ct-word-carousel`, `bk-text-image-split`, `bk-ai-response-stream`, `bk-stat-card-count-up`
+Best transitions: `ed-phase-transition`, `ed-tab-switch`, `bk-chat-to-split-pane`, `bk-panel-content-swap`
+Best typography: `cd-typewriter`, `ct-text-sweep`, `bk-text-image-split`, `bk-chat-typewriter-submit`, `bk-scroll-trigger-typewriter`
 
 ### Neutral Light — Clean and Guided
 
 Best entrances: `nl-slide-stagger`, `as-fadeInUp`, `nl-field-reveal`, `nl-staggered-card-entrance`, `nl-completion-stagger`
 Best attention: `nl-spotlight`, `nl-tooltip`, `nl-progress-dots`
 Best ambient: `bk-sparse-breathe`, `bk-nl-dot-breathe`
-Best content: `nl-step-progress`, `ed-count-up`, `nl-progress-dots`
+Best content: `nl-step-progress`, `ed-count-up`, `nl-progress-dots`, `bk-ai-response-stream`, `bk-stat-card-count-up`
 Best interactions: `nl-cursor-to`, `nl-card-select`, `nl-radio-card-select`, `nl-button-activate`, `nl-tag-pill-select`
-Best transitions: `nl-phase-transition`, `nl-wizard-step-crossfade`, `nl-phase-crossfade`, `nl-app-materialize`, `nl-loading-gate`
-Best stagger: `nl-list-row-stagger`, `nl-provider-button-stagger`, `nl-segmented-code-input`
+Best transitions: `nl-phase-transition`, `nl-wizard-step-crossfade`, `nl-phase-crossfade`, `nl-app-materialize`, `nl-loading-gate`, `bk-panel-content-swap`
+Best stagger: `nl-list-row-stagger`, `nl-provider-button-stagger`, `nl-segmented-code-input`, `bk-table-row-stagger`
 
 ---
 
@@ -557,6 +568,6 @@ Full CSS implementations for effects extracted from reference breakdowns.
 | Engine builtins | `sources/engine-builtins.md` | 20 |
 | animate.style (Use tier) | `sources/animate-style.md` | 18 |
 | Cinematic techniques research | `../cinematic-techniques-research.md` | ~20 |
-| Reference breakdowns | `sources/breakdowns.md` | 33 |
+| Reference breakdowns | `sources/breakdowns.md` | 42 |
 
-**Total cataloged:** ~91 named primitives
+**Total cataloged:** ~100 named primitives

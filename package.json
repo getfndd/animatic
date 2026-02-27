@@ -6,10 +6,14 @@
   "scripts": {
     "sync": "node scripts/sync-to-preset.mjs",
     "sync:dry": "node scripts/sync-to-preset.mjs --dry-run",
-    "setup-hook": "bash scripts/setup-hook.sh"
+    "setup-hook": "bash scripts/setup-hook.sh",
+    "start:mcp": "node mcp/index.js"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.49.1",
     "dotenv": "^16.4.7"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1"
   }
 }

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "animatic": {
+      "command": "node",
+      "args": ["mcp/index.js"]
+    }
+  }
+}

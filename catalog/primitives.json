@@ -1,0 +1,393 @@
+[
+  {
+    "name": "Focus Pull Stagger",
+    "slug": "cd-focus-stagger",
+    "category": "entrance",
+    "description": "Staggered entrance with blur-to-sharp + scale pull. Elements go from blurred/slightly scaled down to sharp/full size with 180ms intervals between siblings.",
+    "default_duration": "180ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "180ms",
+    "css_class": "anim-cd-focus-stagger",
+    "keyframes": {
+      "focus-pull": {
+        "0%": { "filter": "blur(8px)", "opacity": "0", "transform": "scale(0.97)" },
+        "100%": { "filter": "blur(0)", "opacity": "1", "transform": "scale(1)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0; filter: blur(8px); transform: scale(0.97)",
+      "visible": "opacity: 1; filter: blur(0); transform: scale(1)"
+    },
+    "when_to_use": ["Hero entrances", "Feature reveals", "Card/row stagger entrances in cinematic demos"],
+    "when_to_avoid": ["Subtle UI transitions", "Tutorials (too dramatic)", "Editorial personality"],
+    "ai_guidance": "Signature cinematic-dark entrance. Use with data-focus-group attribute and engine.runFocusStagger(). Requires 4-tier speed hierarchy context. Pairs with clip-path wipe phase transitions.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "engine"
+  },
+  {
+    "name": "Typewriter Reveal",
+    "slug": "cd-typewriter",
+    "category": "text",
+    "description": "Character-by-character text reveal with cursor, simulating typing. 28-50ms per character depending on content length.",
+    "default_duration": "28ms",
+    "default_easing": "linear",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-cd-typewriter",
+    "keyframes": null,
+    "css_properties": {
+      "element": ".typewriter-text with data-text attribute",
+      "cursor": "blinking cursor via border-right animation"
+    },
+    "when_to_use": ["AI-generated text reveals", "Renamed filenames", "Search queries", "Suggestions"],
+    "when_to_avoid": ["Long paragraphs", "Static labels", "Navigation text"],
+    "ai_guidance": "Use for text that appears to be 'typed' — AI suggestions, search queries, renamed files. Speed: 28ms/char for short text, 50ms/char for longer. Works in both cinematic-dark and editorial personalities.",
+    "personality_affinity": ["cinematic-dark", "editorial"],
+    "source": "engine"
+  },
+  {
+    "name": "Self-Drawing Checkmarks",
+    "slug": "cd-draw-checks",
+    "category": "emphasis",
+    "description": "SVG polyline checkmarks that draw themselves using stroke-dashoffset animation. 200ms stagger between multiple checkmarks.",
+    "default_duration": "200ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "200ms",
+    "css_class": "anim-cd-draw-checks",
+    "keyframes": {
+      "draw-check": {
+        "0%": { "stroke-dashoffset": "var(--check-length)" },
+        "100%": { "stroke-dashoffset": "0" }
+      }
+    },
+    "css_properties": {
+      "element": "SVG polyline.draw-check",
+      "requires": "stroke-dasharray and stroke-dashoffset setup"
+    },
+    "when_to_use": ["Success/completion confirmation", "Task done indicators", "Multi-step completion"],
+    "when_to_avoid": ["Loading states", "Non-completion contexts"],
+    "ai_guidance": "Cinematic-dark completion primitive. Use SVG polyline with stroke-dasharray set to path length. Trigger by removing stroke-dashoffset. Stagger multiple checks with 200ms intervals.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "engine"
+  },
+  {
+    "name": "Multi-File Progress",
+    "slug": "cd-progress-animation",
+    "category": "continuous",
+    "description": "Animated progress bars for multi-file processing visualization. Each bar fills independently with linear easing over the phase dwell time.",
+    "default_duration": "4000ms",
+    "default_easing": "linear",
+    "composable": false,
+    "stagger_compatible": true,
+    "stagger_offset": "300ms",
+    "css_class": "anim-cd-progress-animation",
+    "keyframes": {
+      "progress-fill": {
+        "0%": { "width": "0%" },
+        "100%": { "width": "var(--progress-target, 100%)" }
+      }
+    },
+    "css_properties": {
+      "bar": "height: 3px; background: var(--cd-accent); border-radius: 2px",
+      "track": "height: 3px; background: var(--cd-surface-glass); border-radius: 2px"
+    },
+    "when_to_use": ["File upload progress", "Processing visualization", "Multi-step operations"],
+    "when_to_avoid": ["Indeterminate loading", "Quick operations under 1s"],
+    "ai_guidance": "Use during processing/upload phases in cinematic demos. Progress bars always use linear easing (never ease-out). Stagger start times for multiple files to create visual rhythm. Pair with step-dot progress indicators.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "engine"
+  },
+  {
+    "name": "Slide + Fade Stagger",
+    "slug": "ed-slide-stagger",
+    "category": "entrance",
+    "description": "Elements slide up 10px while fading in, with 120ms stagger intervals between siblings. The editorial signature entrance.",
+    "default_duration": "400ms",
+    "default_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "120ms",
+    "css_class": "anim-ed-slide-stagger",
+    "keyframes": {
+      "slide-fade-in": {
+        "0%": { "opacity": "0", "transform": "translateY(10px)" },
+        "100%": { "opacity": "1", "transform": "translateY(0)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0; transform: translateY(10px)",
+      "visible": "opacity: 1; transform: translateY(0)"
+    },
+    "when_to_use": ["Content item entrances", "List reveals", "Card grid staggers", "Feature showcases"],
+    "when_to_avoid": ["Hero moments (use blur-reveal)", "Phase transitions (use crossfade)"],
+    "ai_guidance": "Default editorial entrance. Use with data-stagger-group attribute and engine.runSlideStagger(). Stagger timing: 80-150ms between siblings, 400-600ms per element. No blur, no 3D — just translateY + opacity.",
+    "personality_affinity": ["editorial"],
+    "source": "engine"
+  },
+  {
+    "name": "Blur-to-Sharp Reveal",
+    "slug": "ed-blur-reveal",
+    "category": "entrance",
+    "description": "Elements transition from blurred to sharp focus over 600-800ms. Reserved for hero moments and key statistics in editorial personality.",
+    "default_duration": "600ms",
+    "default_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "200ms",
+    "css_class": "anim-ed-blur-reveal",
+    "keyframes": {
+      "blur-reveal": {
+        "0%": { "filter": "blur(8px)", "opacity": "0" },
+        "100%": { "filter": "blur(0)", "opacity": "1" }
+      }
+    },
+    "css_properties": {
+      "initial": "filter: blur(8px); opacity: 0",
+      "visible": "filter: blur(0); opacity: 1"
+    },
+    "when_to_use": ["Hero moments", "Key statistics", "Primary headline reveals"],
+    "when_to_avoid": ["Content list items", "Regular UI elements", "Repeated use within a demo"],
+    "ai_guidance": "Editorial hero-only primitive. Do NOT use for general content items — reserve for one or two key moments per demo. Use engine.runBlurReveal() method. Content items should use ed-slide-stagger instead.",
+    "personality_affinity": ["editorial"],
+    "source": "engine"
+  },
+  {
+    "name": "Content Cycling",
+    "slug": "ed-content-cycle",
+    "category": "continuous",
+    "description": "Crossfades between multiple content variations in a fixed container. Shows different use cases for a single feature. 2.5-3.5s per cycle item.",
+    "default_duration": "2800ms",
+    "default_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    "composable": false,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ed-content-cycle",
+    "keyframes": {
+      "cycle-in": {
+        "0%": { "opacity": "0" },
+        "100%": { "opacity": "1" }
+      },
+      "cycle-out": {
+        "0%": { "opacity": "1" },
+        "100%": { "opacity": "0" }
+      }
+    },
+    "css_properties": {
+      "container": "position: relative; overflow: hidden",
+      "item": "position: absolute; inset: 0; opacity: 0; transition: opacity var(--ed-medium) var(--ed-ease-out)"
+    },
+    "when_to_use": ["Multiple use case demonstrations", "Feature variation showcases", "Search query examples"],
+    "when_to_avoid": ["Single-state features", "Tutorials", "Quick interactions"],
+    "ai_guidance": "The editorial signature effect. Use engine.runContentCycle() method. Each cycle item gets text + optional icon/image. Crossfade between items with --ed-medium timing. Cycle interval: 2.5-3.5s per item. Container must have fixed dimensions.",
+    "personality_affinity": ["editorial"],
+    "source": "engine"
+  },
+  {
+    "name": "Animated Number Count",
+    "slug": "ed-count-up",
+    "category": "data",
+    "description": "Numbers animate from 0 to target value with ease-out deceleration. Duration scales with magnitude — small numbers faster, large numbers 800ms.",
+    "default_duration": "800ms",
+    "default_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "150ms",
+    "css_class": "anim-ed-count-up",
+    "keyframes": null,
+    "css_properties": {
+      "element": "data-count-target attribute with numeric value",
+      "requires": "JavaScript requestAnimationFrame for smooth interpolation"
+    },
+    "when_to_use": ["Statistics reveals", "Metric dashboards", "Score displays", "Pricing numbers"],
+    "when_to_avoid": ["Non-numeric content", "Decorative numbers that don't represent data"],
+    "ai_guidance": "Use engine.runCountUp() method. Animate using requestAnimationFrame with ease-out-quad interpolation. Format numbers appropriately (commas, decimals, units). Works in both editorial and neutral-light personalities.",
+    "personality_affinity": ["editorial", "neutral-light"],
+    "source": "engine"
+  },
+  {
+    "name": "Tab Highlight + Crossfade",
+    "slug": "ed-tab-switch",
+    "category": "emphasis",
+    "description": "Tab selection with highlight indicator transition and content panel crossfade. CSS transition-based, not keyframe animation.",
+    "default_duration": "200ms",
+    "default_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    "composable": false,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ed-tab-switch",
+    "keyframes": null,
+    "css_properties": {
+      "tab": "transition: color var(--ed-fast), background var(--ed-fast)",
+      "indicator": "transition: left var(--ed-fast), width var(--ed-fast)",
+      "panel": "transition: opacity var(--ed-medium)"
+    },
+    "when_to_use": ["Multi-view data displays", "Feature category switching", "Content panel navigation"],
+    "when_to_avoid": ["Single-view features", "Phase transitions (use engine transitions instead)"],
+    "ai_guidance": "Editorial interaction primitive. Use engine.runTabSwitch() or CSS transitions directly. Tab highlight slides between tabs (FAST tier), content panel crossfades (MEDIUM tier). Two distinct speed tiers create visual hierarchy.",
+    "personality_affinity": ["editorial"],
+    "source": "engine"
+  },
+  {
+    "name": "Slide + Fade Stagger (Light)",
+    "slug": "nl-slide-stagger",
+    "category": "entrance",
+    "description": "Elements slide up 8px while fading in with 150ms stagger intervals. Neutral-light variant — slightly less vertical travel than editorial (8px vs 10px).",
+    "default_duration": "350ms",
+    "default_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "150ms",
+    "css_class": "anim-nl-slide-stagger",
+    "keyframes": {
+      "slide-fade-in-light": {
+        "0%": { "opacity": "0", "transform": "translateY(8px)" },
+        "100%": { "opacity": "1", "transform": "translateY(0)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0; transform: translateY(8px)",
+      "visible": "opacity: 1; transform: translateY(0)"
+    },
+    "when_to_use": ["Tutorial content reveals", "Onboarding step items", "Help content stagger"],
+    "when_to_avoid": ["Hero moments", "Dramatic reveals", "Marketing demos"],
+    "ai_guidance": "Default neutral-light entrance. Use with data-slide-group attribute and engine.runSlideStagger(). No blur effects — tutorials should feel sharp and clear from frame 1. Slightly less travel than editorial (8px vs 10px).",
+    "personality_affinity": ["neutral-light"],
+    "source": "engine"
+  },
+  {
+    "name": "Simulated Cursor",
+    "slug": "nl-cursor-to",
+    "category": "attention",
+    "description": "Animated SVG arrow cursor that moves to target coordinates over 600ms. Simulates user interaction for tutorial walkthroughs.",
+    "default_duration": "600ms",
+    "default_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-nl-cursor-to",
+    "keyframes": null,
+    "css_properties": {
+      "cursor": "position: absolute; pointer-events: none; z-index: 100",
+      "movement": "transition: left var(--nl-medium) var(--nl-ease-out), top var(--nl-medium) var(--nl-ease-out)"
+    },
+    "when_to_use": ["Tutorial click targets", "Onboarding walkthroughs", "Feature discovery guidance"],
+    "when_to_avoid": ["Non-tutorial contexts", "Marketing demos", "Cinematic personality"],
+    "ai_guidance": "Neutral-light tutorial primitive. Cursor moves from current position to target element coordinates. Often paired with nl-spotlight. Use engine cursor methods with target element selectors. SVG arrow cursor, not default pointer.",
+    "personality_affinity": ["neutral-light"],
+    "source": "engine"
+  },
+  {
+    "name": "Element Spotlight",
+    "slug": "nl-spotlight",
+    "category": "attention",
+    "description": "Semi-transparent overlay with a cutout around the target element. Draws focus to a specific UI area during tutorials. 2000ms typical display time.",
+    "default_duration": "300ms",
+    "default_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-nl-spotlight",
+    "keyframes": {
+      "spotlight-in": {
+        "0%": { "opacity": "0" },
+        "100%": { "opacity": "1" }
+      }
+    },
+    "css_properties": {
+      "overlay": "position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 50",
+      "cutout": "box-shadow: 0 0 0 9999px rgba(0,0,0,0.4); border-radius: 8px; border: 2px solid var(--nl-accent)"
+    },
+    "when_to_use": ["Drawing attention to specific UI areas", "Step-by-step tutorial highlights", "Feature discovery"],
+    "when_to_avoid": ["Non-tutorial contexts", "Multiple simultaneous spotlights", "Marketing demos"],
+    "ai_guidance": "Neutral-light tutorial primitive. Creates overlay with cutout around target element. Often paired with nl-cursor-to and nl-tooltip. Transition the spotlight position between steps using --nl-ease-out easing. Display each spotlight for 2-3 seconds.",
+    "personality_affinity": ["neutral-light"],
+    "source": "engine"
+  },
+  {
+    "name": "Step Indicator Update",
+    "slug": "nl-step-progress",
+    "category": "data",
+    "description": "Numbered horizontal dots with connector lines showing progress through a multi-step tutorial. Active dot scales up and gets accent color.",
+    "default_duration": "450ms",
+    "default_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    "composable": false,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-nl-step-progress",
+    "keyframes": {
+      "dot-activate": {
+        "0%": { "transform": "scale(1)", "background": "var(--nl-surface-secondary)" },
+        "50%": { "transform": "scale(1.3)" },
+        "100%": { "transform": "scale(1.15)", "background": "var(--nl-accent)" }
+      }
+    },
+    "css_properties": {
+      "dot": "width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center",
+      "connector": "height: 2px; flex: 1; background: var(--nl-border-subtle)"
+    },
+    "when_to_use": ["Multi-step tutorials", "Onboarding progress", "Wizard navigation"],
+    "when_to_avoid": ["Linear progress (use progress bar)", "Non-sequential flows"],
+    "ai_guidance": "Neutral-light tutorial primitive. Horizontal layout: dot-connector-dot-connector-dot. Active dot scales up and gets --nl-accent color. Completed dots get --nl-success. Use engine step methods to advance through steps.",
+    "personality_affinity": ["neutral-light"],
+    "source": "engine"
+  },
+  {
+    "name": "Fade In",
+    "slug": "fade-in",
+    "category": "entrance",
+    "description": "Universal opacity fade from 0 to 1. The simplest entrance primitive, works with any personality.",
+    "default_duration": "400ms",
+    "default_easing": "ease-out",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "100ms",
+    "css_class": "anim-fade-in",
+    "keyframes": {
+      "fade-in": {
+        "0%": { "opacity": "0" },
+        "100%": { "opacity": "1" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0",
+      "visible": "opacity: 1"
+    },
+    "when_to_use": ["Generic entrances", "Fallback when no personality-specific entrance fits", "Overlay appearances"],
+    "when_to_avoid": ["When a personality-specific entrance exists", "Phase transitions (use personality transition technique)"],
+    "ai_guidance": "Universal fallback entrance. Prefer personality-specific entrances (cd-focus-stagger, ed-slide-stagger, nl-slide-stagger) when a personality is active. Use fade-in only for elements that don't need personality-specific motion.",
+    "personality_affinity": ["cinematic-dark", "editorial", "neutral-light"],
+    "source": "engine"
+  },
+  {
+    "name": "Fade Out",
+    "slug": "fade-out",
+    "category": "exit",
+    "description": "Universal opacity fade from 1 to 0. The simplest exit primitive, works with any personality.",
+    "default_duration": "300ms",
+    "default_easing": "ease-in",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "80ms",
+    "css_class": "anim-fade-out",
+    "keyframes": {
+      "fade-out": {
+        "0%": { "opacity": "1" },
+        "100%": { "opacity": "0" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 1",
+      "visible": "opacity: 0; pointer-events: none"
+    },
+    "when_to_use": ["Generic exits", "Element removal", "Overlay dismissals"],
+    "when_to_avoid": ["When a personality-specific exit exists", "Phase transitions"],
+    "ai_guidance": "Universal fallback exit. Slightly faster than fade-in (300ms vs 400ms) because exits should feel snappier. Add pointer-events: none after fade completes to prevent ghost clicks.",
+    "personality_affinity": ["cinematic-dark", "editorial", "neutral-light"],
+    "source": "engine"
+  }
+]

@@ -11,8 +11,12 @@ prototypes/**/*.png
 !prototypes/**/*.json
 !prototypes/**/meta.json
 
+# Environment (secrets)
+.env
+
 # macOS
 .DS_Store
 
-# Node (if installed in consuming project)
+# Node
 node_modules/
+package-lock.json

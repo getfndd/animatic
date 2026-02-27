@@ -1,0 +1,108 @@
+[
+  {
+    "name": "Cinematic Dark",
+    "slug": "cinematic-dark",
+    "css_prefix": "cd",
+    "duration_overrides": {
+      "fast": "180ms",
+      "medium": "500ms",
+      "slow": "700ms",
+      "spring": "1200ms",
+      "feedback": "120ms",
+      "structural": "240ms",
+      "spatial": "320ms",
+      "emphasis": "600ms"
+    },
+    "easing_overrides": {
+      "enter": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "exit": "cubic-bezier(0.7, 0, 0.84, 0)",
+      "smooth": "cubic-bezier(0.25, 0.1, 0.25, 1)",
+      "spring": "cubic-bezier(0.22, 1, 0.36, 1)"
+    },
+    "speed_hierarchy": ["fast", "medium", "slow", "spring"],
+    "characteristics": {
+      "contrast": "high",
+      "motion_intensity": "dramatic",
+      "entrance_style": "focus-pull blur",
+      "transition_style": "clip-path wipe",
+      "perspective": "3D (1200px)",
+      "color_mode": "dark",
+      "loop_time": "17-19s"
+    },
+    "default_stagger": "180ms",
+    "default_entrance": "cd-focus-stagger",
+    "default_exit": "fade-out",
+    "is_active": true,
+    "ai_guidance": "Use for dramatic product demos, landing page embeds, and marketing films. Features 3D camera perspective (1200px), clip-path wipe transitions, focus-pull blur entrances, and 4-tier speed hierarchy (fast/medium/slow/spring). Inky dark palette with Tailwind 100-shade pastel accents. Never use for tutorials or micro-interactions."
+  },
+  {
+    "name": "Editorial",
+    "slug": "editorial",
+    "css_prefix": "ed",
+    "duration_overrides": {
+      "fast": "150ms",
+      "medium": "400ms",
+      "slow": "700ms",
+      "feedback": "120ms",
+      "structural": "300ms",
+      "spatial": "500ms",
+      "emphasis": "600ms"
+    },
+    "easing_overrides": {
+      "enter": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+      "exit": "cubic-bezier(0.55, 0.06, 0.68, 0.19)",
+      "smooth": "cubic-bezier(0.25, 0.1, 0.25, 1)"
+    },
+    "speed_hierarchy": ["fast", "medium", "slow"],
+    "characteristics": {
+      "contrast": "medium",
+      "motion_intensity": "restrained",
+      "entrance_style": "slide+fade",
+      "transition_style": "opacity crossfade",
+      "perspective": "flat (no 3D)",
+      "color_mode": "light",
+      "loop_time": "12-16s",
+      "signature_effect": "content-cycling"
+    },
+    "default_stagger": "120ms",
+    "default_entrance": "ed-slide-stagger",
+    "default_exit": "fade-out",
+    "is_active": true,
+    "ai_guidance": "Use for content-forward product showcases, feature pages, and data visualization reveals. Animation serves the content rather than framing it. No 3D perspective, no clip-path wipes, no spring physics. Uses opacity crossfade for phase transitions, slide+fade (translateY) for entrances. Content cycling is the signature effect. Stone palette with blue/green accents."
+  },
+  {
+    "name": "Neutral Light",
+    "slug": "neutral-light",
+    "css_prefix": "nl",
+    "duration_overrides": {
+      "fast": "175ms",
+      "medium": "350ms",
+      "slow": "575ms",
+      "feedback": "120ms",
+      "structural": "300ms",
+      "spatial": "400ms",
+      "emphasis": "450ms"
+    },
+    "easing_overrides": {
+      "enter": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+      "exit": "cubic-bezier(0.55, 0.06, 0.68, 0.19)",
+      "smooth": "cubic-bezier(0.25, 0.1, 0.25, 1)"
+    },
+    "speed_hierarchy": ["fast", "medium", "slow"],
+    "characteristics": {
+      "contrast": "low",
+      "motion_intensity": "gentle",
+      "entrance_style": "slide+fade (no blur)",
+      "transition_style": "opacity crossfade",
+      "perspective": "flat (no 3D)",
+      "color_mode": "light",
+      "loop_time": "13-15s",
+      "specialty": "tutorial primitives (spotlight, cursor, step indicators)"
+    },
+    "default_stagger": "150ms",
+    "default_entrance": "nl-slide-stagger",
+    "default_exit": "fade-out",
+    "is_active": true,
+    "ai_guidance": "Use for onboarding tutorials, help documentation, changelog introductions, and internal reviews. Features spotlight highlights, cursor simulation, step indicators, and positioned tooltips. No blur effects — tutorials should feel sharp and clear from frame 1. No 3D perspective, no spring physics. Light stone palette. Architecturally: editorial choreography + tutorial primitives + light mode colors."
+  }
+]

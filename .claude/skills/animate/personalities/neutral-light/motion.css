@@ -1,10 +1,13 @@
 /* ================================================================
-   NEUTRAL LIGHT THEME — Animatic System
+   NEUTRAL LIGHT PERSONALITY — Animatic System
 
    ITO Design System light mode tokens + gentle animation CSS.
    Import this into any autoplay prototype to get the neutral-light
    visual treatment: spotlight highlights, cursor simulation,
    step indicators, and slide+fade transitions.
+
+   Tutorial primitives (spotlight, cursor, tooltip, step indicator CSS)
+   are also available in primitives/tutorial/tutorial.css.
 
    Reference: reference.html (Data Room Setup onboarding)
    ================================================================ */

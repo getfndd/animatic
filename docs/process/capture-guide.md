@@ -25,7 +25,7 @@ Capture mode takes a self-running autoplay HTML prototype and records it to vide
 /animate autoplay-v1.html --mode capture --kit
 
 # Generate autoplay + capture in one step
-/animate concept-v1.html --mode all --theme cinematic-dark
+/animate concept-v1.html --mode all --personality cinematic
 ```
 
 ---

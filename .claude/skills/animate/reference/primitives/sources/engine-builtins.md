@@ -3,9 +3,9 @@
 Exhaustive catalog of every public animation method across our three engine files. Each entry is a named primitive with structured metadata for the registry.
 
 **Source files:**
-- `.claude/skills/animate/themes/cinematic-dark/engine.js` — `CinematicDarkEngine` (545 lines)
-- `.claude/skills/animate/themes/editorial/engine.js` — `EditorialEngine` (556 lines)
-- `.claude/skills/animate/themes/neutral-light/engine.js` — `NeutralLightEngine` (538 lines)
+- `.claude/skills/animate/personalities/cinematic/engine.js` — `CinematicDarkEngine` (545 lines)
+- `.claude/skills/animate/personalities/editorial/engine.js` — `EditorialEngine` (556 lines)
+- `.claude/skills/animate/personalities/neutral-light/engine.js` — `NeutralLightEngine` (538 lines)
 
 ---
 
@@ -18,10 +18,10 @@ Exhaustive catalog of every public animation method across our three engine file
 - **Category:** Entrance
 - **Duration:** 180ms interval between items; individual transition ~400ms
 - **Easing:** CSS transition (expo-out via theme)
-- **Description:** Blur-to-sharp entrance for grouped items. Items start blurred and scaled down, then transition to sharp and full-size with staggered timing. The cinematic-dark signature entrance.
+- **Description:** Blur-to-sharp entrance for grouped items. Items start blurred and scaled down, then transition to sharp and full-size with staggered timing. The cinematic signature entrance.
 - **Data attribute:** `data-focus-group="{groupName}"`
 - **CSS class:** Items get `.focus-enter` toggled via JS setTimeout stagger
-- **Personality:** cinematic-dark (primary)
+- **Personality:** cinematic (primary)
 
 #### `cd-typewriter` — Typewriter Reveal
 - **Method:** `runTypewriter(startDelay)`
@@ -31,7 +31,7 @@ Exhaustive catalog of every public animation method across our three engine file
 - **Description:** Character-by-character text reveal with blinking cursor. Reads text from data attribute and types it out.
 - **Data attribute:** `data-text="{text content}"`
 - **CSS class:** `.typewriter-text`
-- **Personality:** cinematic-dark, editorial (shared)
+- **Personality:** cinematic, editorial (shared)
 
 ### Reveals / Staggers
 
@@ -42,7 +42,7 @@ Exhaustive catalog of every public animation method across our three engine file
 - **Easing:** CSS transition (opacity)
 - **Description:** Staggered opacity fade-in for folder badge elements. Simple but effective for metadata reveals.
 - **Data attribute:** `data-folder-group="{groupName}"`
-- **Personality:** cinematic-dark
+- **Personality:** cinematic
 
 #### `cd-draw-checks` — Self-Drawing Checkmarks
 - **Method:** `runDrawChecks(phaseSelector, staggerInterval, startDelay)`
@@ -51,7 +51,7 @@ Exhaustive catalog of every public animation method across our three engine file
 - **Easing:** CSS animation (stroke-dashoffset)
 - **Description:** SVG checkmarks that draw themselves with staggered timing. Applied after focus stagger for layered reveals.
 - **Parameters:** CSS selector for phase container, stagger interval, start delay
-- **Personality:** cinematic-dark
+- **Personality:** cinematic
 
 ### Continuous / Ambient
 
@@ -63,7 +63,7 @@ Exhaustive catalog of every public animation method across our three engine file
 - **Description:** Animated progress bars with step dot indicators. Tracks multi-file processing with staggered offsets per file. rAF-driven for smooth 60fps.
 - **Parameters:** `{ fileCount, offsets, stepThresholds, phaseIndex }`
 - **Defaults:** 3 files, offsets [0, 0.25, 0.50], thresholds [0.12, 0.37, 0.62, 0.87]
-- **Personality:** cinematic-dark
+- **Personality:** cinematic
 
 ### Transitions
 
@@ -73,7 +73,7 @@ Exhaustive catalog of every public animation method across our three engine file
 - **Duration:** 300ms title, 100ms phase content, slow container height
 - **Easing:** Multiple (expo-out for content, smooth for height)
 - **Description:** Orchestrates 7 simultaneous transitions at different speeds: container height (slow), 3D camera motion (slow), title focus-pull (fast), clip-path wipe (medium), footer crossfade (fast), playback dots (fast), phase callback. The full cinematic phase change.
-- **Personality:** cinematic-dark (exclusive)
+- **Personality:** cinematic (exclusive)
 
 ---
 
@@ -107,9 +107,9 @@ Exhaustive catalog of every public animation method across our three engine file
 - **Category:** Entrance / Reveal
 - **Duration:** 28-50ms per character (randomized), 400ms final delay
 - **Easing:** Linear per-character, random timing
-- **Description:** Same typewriter effect as cinematic-dark. Accepts CSS selector or DOM element.
+- **Description:** Same typewriter effect as cinematic. Accepts CSS selector or DOM element.
 - **Data attribute:** `data-text="{text content}"`
-- **Personality:** editorial, cinematic-dark (shared)
+- **Personality:** editorial, cinematic (shared)
 
 #### `ed-all-typewriters` — Batch Typewriter
 - **Method:** `runAllTypewriters(startDelay)`

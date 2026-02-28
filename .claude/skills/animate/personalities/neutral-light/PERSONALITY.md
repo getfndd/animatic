@@ -1,6 +1,6 @@
-# Neutral Light Theme
+# Neutral Light Personality
 
-> **Architecture note:** This file contains **tutorial primitives** (spotlight, cursor simulation, step indicators, tooltips) that will be restructured as a shared primitives library composing with the **editorial** personality. The neutral-light "theme" is not a standalone personality — it's editorial choreography + tutorial primitives + light mode colors. See `docs/design-patterns/motion-design-system.md` for the 3+2 personality model.
+> **Architecture note:** Tutorial primitives (spotlight, cursor simulation, step indicators, tooltips) have been extracted to `primitives/tutorial/`. The neutral-light personality composes editorial choreography + tutorial primitives + light mode colors. See `docs/design-patterns/motion-design-system.md` for the 3+2 personality model.
 
 Approachable, educational light environment with spotlight highlights, cursor simulation, step indicators, and gentle slide+fade transitions. Designed for onboarding tutorials, help documentation, changelog introductions, and internal reviews.
 
@@ -12,17 +12,17 @@ Approachable, educational light environment with spotlight highlights, cursor si
 | Help center / documentation walkthroughs | **Perfect** |
 | Changelog feature introductions | **Good** |
 | Internal prototype reviews | **Good** |
-| Marketing demos / landing page hero | Not ideal (use cinematic-dark) |
+| Marketing demos / landing page hero | Not ideal (use cinematic) |
 | Brand campaigns | Wrong tool |
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `theme.css` | All tokens, component classes, keyframes, and layout |
+| `motion.css` | All tokens, component classes, keyframes, and layout |
 | `engine.js` | Reusable `NeutralLightEngine` class (playback, transitions, animation primitives) |
 | `reference.html` | Canonical reference prototype (Data Room Setup onboarding) |
-| `THEME.md` | This document |
+| `PERSONALITY.md` | This document |
 
 ## Color Rules
 
@@ -68,7 +68,7 @@ All backgrounds use warm stone tones. Clean and professional, never stark white.
 
 ### Speed Hierarchy (3 Tiers)
 
-Gentler than cinematic-dark. No SPRING tier — tutorials don't need dramatic spring presses.
+Gentler than cinematic. No SPRING tier — tutorials don't need dramatic spring presses.
 
 | Tier | Duration | What | CSS Variable |
 |------|----------|------|-------------|
@@ -98,7 +98,7 @@ Phase content transitions use simple opacity crossfade — not clip-path wipes.
 /* Exiting (leaving) */ opacity: 0; pointer-events: none;
 ```
 
-This is deliberately gentler than cinematic-dark's directional wipes. Tutorials prioritize clarity over drama.
+This is deliberately gentler than cinematic's directional wipes. Tutorials prioritize clarity over drama.
 
 ### Entrance Technique: Slide+Fade
 
@@ -126,7 +126,7 @@ No blur effects — tutorials should feel sharp and clear from the first frame.
 
 ### Do
 
-- Use only tokens from `theme.css` — all colors are prefixed `--nl-`
+- Use only tokens from `motion.css` — all colors are prefixed `--nl-`
 - Maintain 3-tier speed hierarchy in every transition
 - Use opacity crossfade for phase transitions (not clip-path wipes)
 - Use slide+fade for row/card entrances (not focus-pull blur)
@@ -138,7 +138,7 @@ No blur effects — tutorials should feel sharp and clear from the first frame.
 ### Don't
 
 - Add 3D perspective, camera motion, or `perspective: Xpx`
-- Use clip-path wipe transitions (that's cinematic-dark's identity)
+- Use clip-path wipe transitions (that's cinematic's identity)
 - Use focus-pull blur entrances (too dramatic for tutorials)
 - Add spring physics interactions (tutorials don't simulate button presses)
 - Use glassmorphism, gradients, or backdrop-filter
@@ -155,7 +155,7 @@ Is this an educational/tutorial animation?
 │   ├── Does it have 1-2 steps? → Simplified engine (no step dots)
 │   └── Is it for in-app embed? → Add ?embed mode, hide controls
 └── NO
-    ├── Is it a marketing demo? → Use cinematic-dark
+    ├── Is it a marketing demo? → Use cinematic
     ├── Is it a brand campaign? → Evaluate case-by-case
     └── Is it an internal review? → Use default (no theme)
 ```
@@ -172,4 +172,4 @@ Is this an educational/tutorial animation?
 
 **Total loop time for 4 phases: ~13-15s**
 
-Shorter than cinematic-dark (17-19s) because tutorials are more focused and don't need dramatic pauses.
+Shorter than cinematic (17-19s) because tutorials are more focused and don't need dramatic pauses.

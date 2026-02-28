@@ -96,10 +96,10 @@ Generates an HTML file in `prototypes/YYYY-MM-DD-name/`. See `.claude/skills/pro
 ### Animating a Prototype
 
 ```
-/animate prototypes/2026-02-21-file-upload/concept-v1.html --theme cinematic-dark
+/animate prototypes/2026-02-21-file-upload/concept-v1.html --personality cinematic
 ```
 
-Transforms an interactive prototype into a self-running autoplay demo. See `.claude/skills/animate/SKILL.md` for themes and options.
+Transforms an interactive prototype into a self-running autoplay demo. See `.claude/skills/animate/SKILL.md` for personalities and options.
 
 ### Capturing Video
 

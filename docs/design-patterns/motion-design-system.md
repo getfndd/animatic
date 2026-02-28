@@ -56,61 +56,39 @@ A personality defines *how things move*. A mode defines *what color they are*. T
 | **Engine** | Phase management, animation primitives, playback, embed mode | New animation capabilities needed |
 | **Content** | HTML structure, phase config, titles, data, interaction callbacks | New prototype created |
 
-### File Structure (Current)
+### File Structure
 
 ```
 .claude/skills/animate/
-├── SKILL.md                          # Skill definition + --theme flag
-├── reference/
+├── SKILL.md                          # Skill definition + --personality flag
+├── reference/                        # Shared animation knowledge
 │   ├── animation-principles.md       # Disney's 12 principles for UI
 │   ├── spring-physics.md             # Spring recipes
 │   ├── industry-references.md        # Gold-standard products
 │   └── cinematic-techniques-research.md  # Camera, focus-pull, clip-path
-└── themes/
-    ├── cinematic-dark/               # Cinematic personality, dark mode (built)
-    │   ├── theme.css                 # Tokens + component classes
-    │   ├── engine.js                 # CinematicDarkEngine class
-    │   ├── THEME.md                  # Rules, do/don't, decision tree
-    │   └── reference.html            # Canonical example
-    ├── neutral-light/                # Tutorial personality primitives (partial)
-    │   ├── THEME.md                  # Rules (needs restructure)
-    │   ├── theme.css                 # Tokens (needs mode split)
-    │   └── engine.js                 # NeutralLightEngine (needs rename)
-    └── editorial/                    # Editorial personality (built, decoupled)
-        ├── PERSONALITY.md            # Rules, choreography, do/don't
-        ├── motion.css                # Tokens + animation classes (--ed- prefix)
-        ├── engine.js                 # EditorialEngine class
-        └── reference.html            # Canonical example (Product Search demo)
-```
-
-### File Structure (Target — after restructure)
-
-```
-.claude/skills/animate/
-├── SKILL.md                          # Skill definition
-├── reference/                        # Shared animation knowledge
-│   └── personality-research.md       # Research findings (3+2 model)
 ├── personalities/
-│   ├── cinematic/
+│   ├── cinematic/                    # Cinematic personality (built)
 │   │   ├── PERSONALITY.md            # Rules, choreography, do/don't
 │   │   ├── motion.css                # Animation classes, keyframes (mode-independent)
-│   │   ├── engine.js                 # CinematicEngine class
+│   │   ├── engine.js                 # CinematicDarkEngine class
 │   │   ├── modes/
-│   │   │   ├── dark.css              # Dark color tokens (--c-*)
-│   │   │   └── light.css             # Light color tokens (--c-*)
+│   │   │   └── dark.css              # Dark color tokens (--cd-*)
 │   │   └── reference.html            # Canonical example
-│   ├── editorial/
-│   │   └── ...
-│   └── montage/
-│       └── ...
+│   ├── editorial/                    # Editorial personality (built)
+│   │   ├── PERSONALITY.md            # Rules, choreography, do/don't
+│   │   ├── motion.css                # Tokens + animation classes (--ed- prefix)
+│   │   ├── engine.js                 # EditorialEngine class
+│   │   └── reference.html            # Canonical example (Product Search demo)
+│   └── neutral-light/               # Neutral light personality (tutorial-focused)
+│       ├── PERSONALITY.md            # Rules, do/don't, decision tree
+│       ├── motion.css                # Tokens + component classes (--nl- prefix)
+│       └── engine.js                 # NeutralLightEngine class
 └── primitives/
-    ├── processing/                   # AI/system state primitives (shared across personalities)
-    │   └── ...
-    └── tutorial/                     # Pedagogical primitives (compose with editorial)
-        └── ...
+    └── tutorial/                     # Pedagogical primitives (compose with any engine)
+        ├── tutorial-primitives.js    # spotlight, cursorTo, tooltip, stepProgress
+        ├── tutorial.css              # Spotlight, cursor, tooltip, step indicator styles
+        └── README.md                 # Usage documentation
 ```
-
-> **Note:** Current files still use the old `themes/cinematic-dark/` structure. Restructure will happen once personality definitions are finalized. Existing files work as-is.
 
 ## Workflow: Creating a New Animated Demo
 
@@ -121,7 +99,7 @@ A personality defines *how things move*. A mode defines *what color they are*. T
 5. **Content layer only** — the generated file uses personality tokens and engine class, only writing new HTML and phase config
 6. **Capture** — `--mode capture` to produce WebM/MP4 for embedding
 
-> **Current syntax:** `--theme cinematic-dark` (personality and mode combined). Will evolve to `--personality cinematic --mode dark` as more personalities are built.
+> **Current syntax:** `--personality cinematic --color-mode dark`. The old `--theme cinematic-dark` is supported as a deprecated alias.
 
 ## Motion Design Taxonomy
 

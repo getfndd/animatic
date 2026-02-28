@@ -457,13 +457,14 @@ Evaluate an autoplay prototype's animation quality against theme rules, Disney's
 
 **Execution:**
 
-1. **Detect theme** from CSS token prefixes in the file:
-   - `--cd-` prefix → cinematic-dark
+1. **Detect personality** from CSS token prefixes in the file:
+   - `--cd-` prefix → cinematic
+   - `--ed-` prefix → editorial
    - `--nl-` prefix → neutral-light
-   - No prefix → default theme
+   - No prefix → default
 
 2. **Load reference files:**
-   - The detected theme's `THEME.md` (rules, do/don't, timing guide)
+   - The detected personality's `PERSONALITY.md` (rules, do/don't, timing guide)
    - `.claude/skills/animate/reference/animation-principles.md` (Disney's 12 principles)
    - Quality checklist from `.claude/skills/animate/SKILL.md`
 
@@ -475,7 +476,7 @@ Evaluate an autoplay prototype's animation quality against theme rules, Disney's
    **Disney's Principles** (-7 per violation):
    - Staging, anticipation, follow-through, overlapping action, slow in/out, timing, exaggeration, secondary action
 
-   **Theme Compliance** (-5 per violation):
+   **Personality Compliance** (-5 per violation):
    - Correct token prefix usage, transition technique (wipes vs crossfade), entrance technique (focus-pull vs slide), camera motion (3D vs flat), speed tier count, easing curves
 
    **Timing Analysis** (-3 per issue):
@@ -506,11 +507,11 @@ DISNEY'S PRINCIPLES (X/8 pass)
   Fix: Add brightness glow before scale down
 ...
 
-THEME COMPLIANCE (X/N pass)
-────────────────────────────
+PERSONALITY COMPLIANCE (X/N pass)
+─────────────────────────────────
 [PASS] Token usage: All colors use --cd-* prefix
 [FAIL] Transitions: Phase 2 uses opacity fade
-  Fix: Use clip-path: inset() wipe per THEME.md
+  Fix: Use clip-path: inset() wipe per PERSONALITY.md
 ...
 
 TIMING (X/N pass)

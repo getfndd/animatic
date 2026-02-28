@@ -1,37 +1,40 @@
 /**
- * NeutralLightEngine — Reusable autoplay animation engine
+ * CinematicDarkEngine — Reusable autoplay animation engine
  *
- * Drives the neutral-light theme: opacity crossfade transitions,
- * slide+fade staggers, spotlight highlights, cursor simulation,
- * step indicators, and positioned tooltips.
+ * Drives the cinematic personality: 3D camera motion, clip-path wipe
+ * transitions, focus-pull staggers, typewriter reveals, self-drawing
+ * SVG checkmarks, rAF-driven progress, and spring interactions.
  *
  * Usage:
- *   const engine = new NeutralLightEngine({
+ *   const engine = new CinematicDarkEngine({
  *     phases: [
- *       { id: 0, label: 'Welcome',  dwell: 3000 },
- *       { id: 1, label: 'Upload',   dwell: 3500 },
- *       { id: 2, label: 'Organize', dwell: 3500 },
- *       { id: 3, label: 'Complete', dwell: 3000 },
+ *       { id: 0, label: 'Source',      dwell: 2500 },
+ *       { id: 1, label: 'Select',      dwell: 2500 },
+ *       { id: 2, label: 'Processing',  dwell: 4500 },
+ *       { id: 3, label: 'Suggestions', dwell: 4500 },
+ *       { id: 4, label: 'Success',     dwell: 3500 },
  *     ],
- *     titles: ['Set Up Your Data Room', 'Upload Documents', ...],
- *     subtitles: ['Get started in 4 steps.', ...],
+ *     titles: ['Add Documents', 'Add Documents', 'Analyzing...', 'Review', 'Done'],
+ *     subtitles: ['Subtitle 0', 'Subtitle 1', ...],
+ *     interactions: {
+ *       0: async () => { ... },  // drop zone spring
+ *       1: async () => { ... },  // button press
+ *     },
  *     onPhaseEnter: {
- *       1: (engine) => {
- *         engine.runSpotlight('.action-area', 2000);
- *         engine.runCursorTo(320, 200, { click: true });
- *       },
- *       2: (engine) => engine.runSlideStagger('files', 150),
+ *       1: (engine) => engine.runFocusStagger('select', 200),
+ *       2: (engine) => engine.startProgressAnimation(),
+ *       3: (engine) => { ... },
  *     },
  *     // Optional overrides
  *     selectors: { ... },
  *     loopPause: 1500,
+ *     interactionLeadTime: 1550,
  *   });
- *   engine.exposeGlobals();
- *   window.addEventListener('DOMContentLoaded', () => engine.boot());
+ *   engine.boot();
  *
- * Reference: themes/neutral-light/reference.html
+ * Reference: prototypes/2026-02-19-dataroom-upload-rename/autoplay-v4.html
  */
-class NeutralLightEngine {
+class CinematicDarkEngine {
 
   /* ================================================================
      CONSTRUCTOR
@@ -43,10 +46,12 @@ class NeutralLightEngine {
     this.subtitles = config.subtitles;
 
     // Optional callbacks
+    this.interactions = config.interactions || {};
     this.phaseCallbacks = config.onPhaseEnter || {};
 
     // Optional overrides
     this.loopPause = config.loopPause ?? 1500;
+    this.interactionLeadTime = config.interactionLeadTime ?? 1550;
 
     // DOM selectors (overridable for non-standard layouts)
     this.sel = Object.assign({
@@ -63,14 +68,14 @@ class NeutralLightEngine {
       iconPlay: '#icon-play',
       phaseDots: '#phase-dots',
       phaseLabel: '#phase-label',
-      spotlightOverlay: '#spotlight-overlay',
-      tutorialCursor: '#tutorial-cursor',
     }, config.selectors || {});
 
     // State
     this.currentPhase = 0;
     this.playing = true;
     this.phaseTimer = null;
+    this.progressRAF = null;
+    this.progressStartTime = 0;
     this.phaseHeights = {};
     this._timers = [];
 
@@ -132,19 +137,29 @@ class NeutralLightEngine {
       el.classList.remove('active');
       el.classList.add('measuring');
 
-      // Show slide-enter items at full size for measurement
-      el.querySelectorAll('.slide-enter').forEach(f => {
+      // Show focus-enter items at full size for measurement
+      el.querySelectorAll('.focus-enter').forEach(f => {
         f.style.opacity = '1';
+        f.style.filter = 'none';
         f.style.transform = 'none';
+      });
+
+      // Show folder badges
+      el.querySelectorAll('.suggest-folder').forEach(f => {
+        f.style.opacity = '1';
       });
 
       el.offsetHeight; // force layout
       this.phaseHeights[p.id] = el.scrollHeight + 8;
 
       // Reset
-      el.querySelectorAll('.slide-enter').forEach(f => {
+      el.querySelectorAll('.focus-enter').forEach(f => {
         f.style.opacity = '';
+        f.style.filter = '';
         f.style.transform = '';
+      });
+      el.querySelectorAll('.suggest-folder').forEach(f => {
+        f.style.opacity = '';
       });
 
       el.classList.remove('measuring');
@@ -162,14 +177,14 @@ class NeutralLightEngine {
      ================================================================ */
 
   /**
-   * Slide+fade stagger — translateY(8px) entrance for a group of items.
-   * Items are identified by data-slide-group="groupName".
-   * @param {string} groupName — matches data-slide-group attribute
-   * @param {number} interval — ms between each item (default 150)
+   * Focus-pull stagger — blur-to-sharp entrance for a group of items.
+   * Items are identified by data-focus-group="groupName".
+   * @param {string} groupName — matches data-focus-group attribute
+   * @param {number} interval — ms between each item (default 180)
    */
-  runSlideStagger(groupName, interval) {
-    interval = interval || 150;
-    const items = this.$$('[data-slide-group="' + groupName + '"]');
+  runFocusStagger(groupName, interval) {
+    interval = interval || 180;
+    const items = this.$$('[data-focus-group="' + groupName + '"]');
     items.forEach(el => el.classList.remove('visible'));
     items.forEach((el, i) => {
       this.pushTimer(() => {
@@ -179,223 +194,203 @@ class NeutralLightEngine {
   }
 
   /**
-   * Spotlight — highlights a specific element with a dim overlay and blue border.
-   * Uses the spotlight-overlay element with a cutout positioned over the target.
-   * @param {string} selector — CSS selector for the element to spotlight
-   * @param {number} duration — how long to keep spotlight active (ms)
-   * @returns {Promise} — resolves when spotlight deactivates
+   * Typewriter — character-by-character reveal with blinking cursor.
+   * Targets all .typewriter-text elements. Text comes from data-text.
+   * @param {number} startDelay — ms before first character
    */
-  runSpotlight(selector, duration) {
-    duration = duration || 2000;
-    const overlay = this.$(this.sel.spotlightOverlay);
-    const target = this.$(selector);
-    if (!overlay || !target) return Promise.resolve();
-
-    // Position the cutout over the target
-    const card = this.$(this.sel.card);
-    const cardRect = card.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-
-    const cutout = overlay.querySelector('.spotlight-cutout');
-    if (cutout) {
-      cutout.style.top = (targetRect.top - cardRect.top - 4) + 'px';
-      cutout.style.left = (targetRect.left - cardRect.left - 4) + 'px';
-      cutout.style.width = (targetRect.width + 8) + 'px';
-      cutout.style.height = (targetRect.height + 8) + 'px';
-    }
-
-    overlay.classList.add('active');
-
-    return new Promise(resolve => {
-      this.pushTimer(() => {
-        overlay.classList.remove('active');
-        resolve();
-      }, duration);
+  runTypewriter(startDelay) {
+    const els = this.$$('.typewriter-text');
+    els.forEach((el, elIdx) => {
+      const text = el.dataset.text;
+      if (!text) return;
+      el.textContent = '';
+      el.classList.remove('done');
+      const charDelay = startDelay + elIdx * 500;
+      let i = 0;
+      const typeChar = () => {
+        if (i < text.length) {
+          el.textContent += text[i];
+          i++;
+          this.pushTimer(typeChar, 28 + Math.random() * 22);
+        } else {
+          this.pushTimer(() => el.classList.add('done'), 400);
+        }
+      };
+      this.pushTimer(typeChar, charDelay);
     });
   }
 
   /**
-   * Cursor simulation — moves an SVG cursor to target coordinates.
-   * @param {number} x — target x position relative to card
-   * @param {number} y — target y position relative to card
-   * @param {Object} opts — optional settings
-   * @param {boolean} opts.click — simulate a click pulse at destination
-   * @param {number} opts.delay — ms before cursor starts moving (default 200)
-   * @returns {Promise} — resolves after cursor arrives (and click if applicable)
+   * Folder badge reveal — staggered opacity fade-in.
+   * @param {string} groupName — matches data-folder-group attribute
+   * @param {number} interval — ms between each badge
+   * @param {number} startDelay — ms before first badge
    */
-  runCursorTo(x, y, opts) {
-    opts = opts || {};
-    const cursor = this.$(this.sel.tutorialCursor);
-    if (!cursor) return Promise.resolve();
-
-    const startDelay = opts.delay ?? 200;
-
-    return new Promise(resolve => {
-      // Show cursor
+  runFolderReveal(groupName, interval, startDelay) {
+    const items = this.$$('[data-folder-group="' + groupName + '"]');
+    items.forEach(el => el.classList.remove('visible'));
+    items.forEach((el, i) => {
       this.pushTimer(() => {
-        cursor.classList.add('visible');
-        cursor.style.left = x + 'px';
-        cursor.style.top = y + 'px';
+        el.classList.add('visible');
+      }, startDelay + i * interval);
+    });
+  }
 
-        // Wait for movement to complete, then optionally click
+  /**
+   * Self-drawing SVG checkmarks — staged after focus stagger.
+   * @param {string} phaseSelector — CSS selector for the phase container (e.g. '#phase-4')
+   * @param {number} staggerInterval — ms between each check (default 200)
+   * @param {number} startDelay — ms before first check draws (default 700)
+   */
+  runDrawChecks(phaseSelector, staggerInterval, startDelay) {
+    staggerInterval = staggerInterval || 200;
+    startDelay = startDelay || 700;
+    this.pushTimer(() => {
+      this.$$(phaseSelector + ' .draw-check').forEach((check, i) => {
         this.pushTimer(() => {
-          if (opts.click) {
-            cursor.classList.add('clicking');
-            this.pushTimer(() => {
-              cursor.classList.remove('clicking');
-              resolve();
-            }, 500);
-          } else {
-            resolve();
+          check.classList.add('check-active');
+        }, i * staggerInterval);
+      });
+    }, startDelay);
+  }
+
+  /* ================================================================
+     PROGRESS ANIMATION (rAF-driven)
+
+     Drives multi-file progress bars with step dot indicators.
+     File count and step thresholds are configurable.
+     ================================================================ */
+
+  /**
+   * Start animated progress for processing phase.
+   * @param {Object} opts — Optional overrides
+   * @param {number} opts.fileCount — number of files (default 3)
+   * @param {number[]} opts.offsets — stagger offsets per file (default [0, 0.25, 0.5])
+   * @param {number[]} opts.stepThresholds — when each step completes (default [0.12, 0.37, 0.62, 0.87])
+   * @param {number} opts.phaseIndex — which phase to read dwell from (default 2)
+   */
+  startProgressAnimation(opts) {
+    opts = opts || {};
+    const phaseIndex = opts.phaseIndex ?? 2;
+    const dwell = this.phases[phaseIndex].dwell;
+    const fileCount = opts.fileCount ?? 3;
+    const offsets = opts.offsets || [0, 0.25, 0.50];
+    const stepThresholds = opts.stepThresholds || [0.12, 0.37, 0.62, 0.87];
+
+    this.progressStartTime = performance.now();
+
+    const tick = (now) => {
+      const elapsed = now - this.progressStartTime;
+      const t = Math.min(elapsed / dwell, 1);
+
+      for (let f = 0; f < fileCount; f++) {
+        const fileT = Math.max(0, Math.min((t - offsets[f]) / (1 - offsets[f]), 1));
+        const eased = 1 - Math.pow(1 - fileT, 3); // ease-out cubic
+        const pct = eased * 100;
+
+        // Progress bar
+        const bar = this.$('.progress-bar[data-file="' + f + '"]');
+        if (bar) bar.style.width = pct + '%';
+
+        // Step dots and labels
+        for (let s = 0; s < stepThresholds.length; s++) {
+          const dot = this.$('.step-dot[data-file="' + f + '"][data-step="' + s + '"]');
+          const label = this.$('.step-label[data-file="' + f + '"][data-step="' + s + '"]');
+          if (!dot || !label) continue;
+
+          if (fileT >= stepThresholds[s]) {
+            dot.classList.remove('active');
+            dot.classList.add('done');
+            label.classList.remove('active');
+            label.classList.add('done');
+
+            if (s < stepThresholds.length - 1) {
+              const connector = this.$('.step-connector[data-file="' + f + '"][data-after="' + s + '"]');
+              if (connector && !connector.classList.contains('connected')) {
+                connector.classList.add('connected');
+              }
+            }
+          } else if (s === 0 || fileT >= stepThresholds[s - 1]) {
+            dot.classList.add('active');
+            dot.classList.remove('done');
+            label.classList.add('active');
+            label.classList.remove('done');
           }
-        }, 600); // movement duration matches --nl-slow
-      }, startDelay);
-    });
+        }
+      }
+
+      if (t < 1) {
+        this.progressRAF = requestAnimationFrame(tick);
+      }
+    };
+
+    this.progressRAF = requestAnimationFrame(tick);
   }
 
-  /**
-   * Tooltip — shows a positioned tooltip near an anchor element.
-   * @param {string} anchorSelector — CSS selector for the element to annotate
-   * @param {string} text — tooltip text to display
-   * @param {string} position — 'below' or 'above' (default 'below')
-   * @param {number} duration — how long to show (ms, default 2000)
-   * @returns {Promise} — resolves when tooltip hides
-   */
-  runTooltip(anchorSelector, text, position, duration) {
-    position = position || 'below';
-    duration = duration || 2000;
-
-    const tooltip = this.$('.tutorial-tooltip');
-    const anchor = this.$(anchorSelector);
-    if (!tooltip || !anchor) return Promise.resolve();
-
-    const card = this.$(this.sel.card);
-    const cardRect = card.getBoundingClientRect();
-    const anchorRect = anchor.getBoundingClientRect();
-
-    // Position tooltip
-    const tooltipText = tooltip.querySelector('.tutorial-tooltip-text');
-    if (tooltipText) tooltipText.textContent = text;
-
-    if (position === 'above') {
-      tooltip.classList.add('above');
-      tooltip.style.bottom = (cardRect.bottom - anchorRect.top + 10) + 'px';
-      tooltip.style.top = 'auto';
-    } else {
-      tooltip.classList.remove('above');
-      tooltip.style.top = (anchorRect.bottom - cardRect.top + 10) + 'px';
-      tooltip.style.bottom = 'auto';
+  /** Stop and reset the rAF-driven progress animation. Clears bars, dots, labels, connectors. */
+  stopProgressAnimation() {
+    if (this.progressRAF) {
+      cancelAnimationFrame(this.progressRAF);
+      this.progressRAF = null;
     }
-    tooltip.style.left = (anchorRect.left - cardRect.left) + 'px';
-
-    tooltip.classList.add('visible');
-
-    return new Promise(resolve => {
-      this.pushTimer(() => {
-        tooltip.classList.remove('visible');
-        resolve();
-      }, duration);
-    });
-  }
-
-  /**
-   * Step progress — updates numbered step indicators.
-   * Marks the specified step as done with a scale pop animation,
-   * and fills the connector line to the next step.
-   * @param {number} stepNumber — 0-indexed step to mark as done
-   */
-  runStepProgress(stepNumber) {
-    const dots = this.$$('.step-indicator-dot');
-    const labels = this.$$('.step-indicator-label');
-    const connectors = this.$$('.step-indicator-connector');
-
-    // Mark this step as done
-    if (dots[stepNumber]) {
-      dots[stepNumber].classList.remove('active');
-      dots[stepNumber].classList.add('done', 'pop');
-      // Remove pop class after animation
-      this.pushTimer(() => {
-        dots[stepNumber].classList.remove('pop');
-      }, 450);
-    }
-    if (labels[stepNumber]) {
-      labels[stepNumber].classList.remove('active');
-      labels[stepNumber].classList.add('done');
-    }
-
-    // Fill connector after this step
-    if (connectors[stepNumber]) {
-      connectors[stepNumber].classList.add('connected');
-    }
-
-    // Mark next step as active (if exists)
-    const next = stepNumber + 1;
-    if (dots[next]) {
-      dots[next].classList.add('active');
-    }
-    if (labels[next]) {
-      labels[next].classList.add('active');
-    }
+    this.$$('.progress-bar').forEach(bar => bar.style.width = '0%');
+    this.$$('.step-dot').forEach(dot => dot.classList.remove('active', 'done'));
+    this.$$('.step-label').forEach(label => label.classList.remove('active', 'done'));
+    this.$$('.step-connector').forEach(c => c.classList.remove('connected'));
   }
 
   /* ================================================================
      RESET ALL ANIMATIONS
      ================================================================ */
-  /** Reset all animation state for clean loop replay. Clears timers, spotlight, cursor, tooltips, step indicators. */
+  /** Reset all animation state for clean loop replay. Clears timers, CSS classes, and element text. */
   resetAllAnimations() {
     this.clearAllTimers();
 
-    // Slide-enter items
-    this.$$('.slide-enter').forEach(el => el.classList.remove('visible'));
+    // Focus-enter items
+    this.$$('.focus-enter').forEach(el => el.classList.remove('visible'));
 
-    // Spotlight
-    const overlay = this.$(this.sel.spotlightOverlay);
-    if (overlay) overlay.classList.remove('active');
-
-    // Cursor
-    const cursor = this.$(this.sel.tutorialCursor);
-    if (cursor) {
-      cursor.classList.remove('visible', 'clicking');
-    }
-
-    // Tooltips
-    this.$$('.tutorial-tooltip').forEach(el => el.classList.remove('visible'));
-
-    // Step indicators
-    this.$$('.step-indicator-dot').forEach((el, i) => {
-      el.classList.remove('active', 'done', 'pop');
-      if (i === 0) el.classList.add('active');
-    });
-    this.$$('.step-indicator-label').forEach((el, i) => {
-      el.classList.remove('active', 'done');
-      if (i === 0) el.classList.add('active');
-    });
-    this.$$('.step-indicator-connector').forEach(el => {
-      el.classList.remove('connected');
+    // Typewriters
+    this.$$('.typewriter-text').forEach(el => {
+      el.textContent = '';
+      el.classList.remove('done');
     });
 
-    // CTA glow
-    this.$$('.btn').forEach(el => el.classList.remove('cta-glow'));
+    // Self-drawing checks
+    this.$$('.draw-check').forEach(el => {
+      el.classList.remove('check-active');
+      el.style.strokeDashoffset = '230';
+    });
+
+    // Folder badges
+    this.$$('.suggest-folder').forEach(el => el.classList.remove('visible'));
+
+    // Button pressing
+    this.$$('.btn').forEach(el => el.classList.remove('pressing'));
+
+    // Drop zone
+    const dz = this.$('.drop-zone');
+    if (dz) dz.classList.remove('receiving');
 
     // Title
     const tb = this.$(this.sel.titleBlock);
-    if (tb) tb.classList.remove('hidden');
+    if (tb) tb.classList.add('visible');
   }
 
   /* ================================================================
      PHASE TRANSITION ORCHESTRATOR
 
-     Coordinates transitions at different speeds:
+     Coordinates 7 simultaneous transitions at different speeds:
      1. SLOW — container height
-     2. FAST — title fade out/in
-     3. MEDIUM — opacity crossfade body content
-     4. FAST — footer crossfade
-     5. FAST — playback dot update
-     6. — phase enter callback
+     2. SLOW — 3D camera motion
+     3. FAST — title focus-pull out/in
+     4. MEDIUM — clip-path wipe body content
+     5. FAST — footer crossfade
+     6. FAST — playback dot update
+     7. — phase enter callback
      ================================================================ */
   /**
    * Orchestrate multi-speed transition to a target phase.
-   * Coordinates container height, title fade, opacity crossfade,
+   * Coordinates container height, 3D camera, title focus-pull, clip-path wipe,
    * footer crossfade, playback dots, and phase enter callbacks.
    * @param {number} targetPhase — phase index to transition to
    */
@@ -403,6 +398,7 @@ class NeutralLightEngine {
     if (targetPhase === this.currentPhase) return;
 
     const container = this.$(this.sel.phaseContainer);
+    const card = this.$(this.sel.card);
     const titleBlock = this.$(this.sel.titleBlock);
     const oldPhaseEl = this.$('#phase-' + this.currentPhase);
     const newPhaseEl = this.$('#phase-' + targetPhase);
@@ -412,19 +408,22 @@ class NeutralLightEngine {
     // 1. SLOW: Container height
     container.style.height = this.phaseHeights[targetPhase] + 'px';
 
-    // 2. FAST: Title fade out then in
+    // 2. SLOW: Camera motion
+    card.className = 'card camera-' + targetPhase;
+
+    // 3. FAST: Title focus-pull out then in
     if (titleBlock) {
-      titleBlock.classList.add('hidden');
+      titleBlock.classList.remove('visible');
       this.pushTimer(() => {
         const title = this.$(this.sel.phaseTitle);
         const subtitle = this.$(this.sel.phaseSubtitle);
         if (title) title.textContent = this.titles[targetPhase];
         if (subtitle) subtitle.textContent = this.subtitles[targetPhase];
-        titleBlock.classList.remove('hidden');
+        titleBlock.classList.add('visible');
       }, 300);
     }
 
-    // 3. MEDIUM: Opacity crossfade body content
+    // 4. MEDIUM: Clip-path wipe body content
     oldPhaseEl.classList.remove('active');
     oldPhaseEl.classList.add('exiting');
     this.pushTimer(() => {
@@ -432,11 +431,11 @@ class NeutralLightEngine {
       oldPhaseEl.classList.remove('exiting');
     }, 100);
 
-    // 4. FAST: Footer crossfade
+    // 5. FAST: Footer crossfade
     if (oldFooter) oldFooter.classList.remove('active');
     if (newFooter) newFooter.classList.add('active');
 
-    // 5. Update playback dots
+    // 6. Update playback dots
     this.$$('.phase-dot').forEach(dot => {
       const p = parseInt(dot.dataset.phase);
       dot.classList.remove('active', 'completed');
@@ -446,9 +445,12 @@ class NeutralLightEngine {
     const label = this.$(this.sel.phaseLabel);
     if (label) label.textContent = this.phases[targetPhase].label;
 
+    // 7. Cleanup old phase
+    this.stopProgressAnimation();
+
     this.currentPhase = targetPhase;
 
-    // 6. Phase enter callback
+    // 8. Phase enter callback
     const callback = this.phaseCallbacks[targetPhase];
     if (callback) callback(this);
   }
@@ -456,16 +458,19 @@ class NeutralLightEngine {
   /* ================================================================
      PLAYBACK ENGINE
      ================================================================ */
-  /** Schedule the next phase transition based on current phase's dwell time. */
+  /** Schedule the next phase transition based on current phase's dwell time. Runs interactions before advancing. */
   scheduleNext() {
     if (!this.playing) return;
     clearTimeout(this.phaseTimer);
 
     const dwell = this.phases[this.currentPhase].dwell;
+    const interaction = this.interactions[this.currentPhase];
+    const leadTime = interaction ? this.interactionLeadTime : 0;
 
-    this.phaseTimer = setTimeout(() => {
+    this.phaseTimer = setTimeout(async () => {
       const next = this.currentPhase + 1;
       if (next < this.phases.length) {
+        if (interaction) await interaction();
         this.transitionTo(next);
         this.scheduleNext();
       } else {
@@ -474,7 +479,7 @@ class NeutralLightEngine {
           if (this.playing) this.restart();
         }, this.loopPause);
       }
-    }, dwell);
+    }, dwell - leadTime);
   }
 
   /** Toggle play/pause. Updates icon visibility and pauses or resumes scheduling. */
@@ -495,6 +500,7 @@ class NeutralLightEngine {
   jumpTo(phase) {
     clearTimeout(this.phaseTimer);
     this.resetAllAnimations();
+    this.stopProgressAnimation();
     this.transitionTo(phase);
     if (this.playing) this.scheduleNext();
   }
@@ -502,6 +508,7 @@ class NeutralLightEngine {
   /** Reset to phase 0 and restart playback from the beginning. */
   restart() {
     clearTimeout(this.phaseTimer);
+    this.stopProgressAnimation();
     this.resetAllAnimations();
     if (this.currentPhase !== 0) this.transitionTo(0);
     if (this.playing) this.scheduleNext();
@@ -551,8 +558,9 @@ class NeutralLightEngine {
 
      Wires up window-level functions so onclick handlers in
      HTML (onclick="togglePlay()") work without changes.
+     Also enables iframe postMessage control for compare.html.
      ================================================================ */
-  /** Wire window-level togglePlay(), jumpTo(), restart() for HTML onclick handlers. */
+  /** Wire window-level togglePlay(), jumpTo(), restart() for HTML onclick handlers and iframe control. */
   exposeGlobals() {
     window.togglePlay = () => this.togglePlay();
     window.jumpTo = (phase) => this.jumpTo(phase);
@@ -562,5 +570,5 @@ class NeutralLightEngine {
 
 // Export for both module and script-tag usage
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = NeutralLightEngine;
+  module.exports = CinematicDarkEngine;
 }

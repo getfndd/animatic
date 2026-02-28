@@ -13,9 +13,9 @@ Three animation engines drive Animatic's personality system. Each engine shares 
 | `NeutralLightEngine` | Neutral Light | Opacity crossfade | Slide stagger, spotlight, cursor simulation, tooltips, step progress |
 
 **Source files:**
-- `.claude/skills/animate/themes/cinematic-dark/engine.js`
-- `.claude/skills/animate/themes/editorial/engine.js`
-- `.claude/skills/animate/themes/neutral-light/engine.js`
+- `.claude/skills/animate/personalities/cinematic/engine.js`
+- `.claude/skills/animate/personalities/editorial/engine.js`
+- `.claude/skills/animate/personalities/neutral-light/engine.js`
 
 ---
 
@@ -246,12 +246,13 @@ Every engine exposes these methods:
 
 To create a new animation personality:
 
-1. **Create directory:** `.claude/skills/animate/themes/{personality-name}/`
+1. **Create directory:** `.claude/skills/animate/personalities/{personality-name}/`
 
 2. **Required files:**
    - `engine.js` — Engine class extending the shared lifecycle pattern
-   - `motion.css` or `theme.css` — CSS tokens (prefixed with personality abbreviation, e.g. `--xx-`)
-   - `PERSONALITY.md` or `THEME.md` — Rules, decision tree, timing guide
+   - `motion.css` — Animation classes, keyframes, easing, timing (mode-independent)
+   - `modes/dark.css` / `modes/light.css` — Color tokens per mode
+   - `PERSONALITY.md` — Rules, decision tree, timing guide
    - `reference.html` — Canonical example demonstrating all primitives
 
 3. **Engine must implement:**

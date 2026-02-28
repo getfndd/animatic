@@ -1,0 +1,56 @@
+/* ================================================================
+   CINEMATIC PERSONALITY — Dark Mode Color Tokens
+
+   ITO inky palette + Tailwind 100-shade pastels.
+   Prefix: --cd-   Palette: inky + stone + Tailwind pastels.
+
+   Load alongside motion.css:
+     <link rel="stylesheet" href="modes/dark.css">
+     <link rel="stylesheet" href="motion.css">
+   ================================================================ */
+:root {
+  /* ---- Surfaces (Inky Palette) ---- */
+  --cd-bg-body: #1a1a1a;                 /* inky-900 */
+  --cd-surface-card: #262626;             /* inky-800 */
+  --cd-surface-glass: rgba(64,64,64,0.5); /* inky-700 at 50% */
+  --cd-surface-glass-hover: #4d4d4d;      /* inky-600 */
+
+  /* ---- Text (Stone) ---- */
+  --cd-text-primary: #ffffff;
+  --cd-text-secondary: #e7e5e4;           /* stone-200 */
+  --cd-text-tertiary: #c7c4c0;            /* stone-300 */
+  --cd-text-quaternary: #a8a29e;           /* stone-400 */
+
+  /* ---- Borders (Inky) ---- */
+  --cd-border-subtle: #404040;             /* inky-700 */
+  --cd-border-medium: #666666;             /* inky-500 */
+  --cd-border-dashed: #404040;             /* inky-700 */
+  --cd-border-active: #bfdbfe;             /* blue-200 */
+
+  /* ---- Accent Pastels (Tailwind 100-shade) ---- */
+  --cd-success: #d1fae5;                  /* emerald-100 */
+  --cd-success-dim: rgba(209,250,229,0.12);
+  --cd-accent: #dbeafe;                   /* blue-100 */
+  --cd-accent-dim: rgba(219,234,254,0.10);
+  --cd-processing: #fef3c7;               /* amber-100 */
+  --cd-processing-glow: rgba(254,243,199,0.08);
+  --cd-intelligence: #dbeafe;              /* blue-100 */
+
+  /* ---- Category Pastels (100-shade + 800-shade text) ---- */
+  --cd-cat-financials-bg: #fef3c7;         /* amber-100 */
+  --cd-cat-financials-text: #92400e;       /* amber-800 */
+  --cd-cat-fundraising-bg: #ede9fe;        /* violet-100 */
+  --cd-cat-fundraising-text: #5b21b6;      /* violet-800 */
+  --cd-cat-legal-bg: #dbeafe;             /* blue-100 */
+  --cd-cat-legal-text: #1e40af;           /* blue-800 */
+  --cd-cat-operations-bg: #d1fae5;         /* emerald-100 */
+  --cd-cat-operations-text: #065f46;       /* emerald-800 */
+  --cd-cat-governance-bg: #fce7f3;         /* pink-100 */
+  --cd-cat-governance-text: #9d174d;       /* pink-800 */
+  --cd-cat-team-bg: #ccfbf1;              /* teal-100 */
+  --cd-cat-team-text: #115e59;            /* teal-800 */
+
+  /* ---- Shadows ---- */
+  --cd-shadow-card: 0 4px 16px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.15);
+  --cd-shadow-playback: 0 8px 32px rgba(0,0,0,0.3);
+}

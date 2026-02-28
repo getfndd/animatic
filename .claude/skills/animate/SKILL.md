@@ -15,7 +15,7 @@ Transform interactive prototypes into polished, self-running animated demos that
 ```
 /animate <prototype-path> [options]
   --mode autoplay|capture|all (default: autoplay)
-  --personality default|cinematic|editorial (default: default)
+  --personality editorial|cinematic|neutral-light|montage (default: editorial)
   --color-mode light|dark (default: inferred from personality)
   --format webm|mp4|av1|hevc|prores|gif|all (default: webm)
   --width 800 (viewport width)
@@ -43,14 +43,12 @@ Transform interactive prototypes into polished, self-running animated demos that
 ### Personalities
 
 Personalities define *how things move* (animation behavior), independent of color mode (light/dark). Use `--personality` to select, `--color-mode` to override the default color scheme. See `docs/design-patterns/motion-design-system.md` for the full personality roadmap.
-
-> **Deprecated:** `--theme cinematic-dark` still works as an alias for `--personality cinematic --color-mode dark`. Prefer the new flags.
-
-| Personality | Visual | Best For |
-|-------------|--------|----------|
-| `default` | Light UI, ITO design system colors, fade+translate transitions | Internal reviews, quick iteration |
-| `cinematic` | 3D perspective, clip-path wipes, focus-pull entrances, spring physics | Landing pages, marketing demos, investor presentations |
-| `editorial` | Content-forward, crossfade transitions, slide+fade staggers, content cycling | Product showcases, content tools, visual search demos |
+| Personality | Token prefix | Engine | Visual | Best For |
+|-------------|-------------|--------|--------|----------|
+| `editorial` | `--ed-` | `EditorialEngine` | Content-forward, crossfade transitions, slide+fade staggers, content cycling | Product showcases, content tools |
+| `cinematic` | `--cd-` | `CinematicDarkEngine` | 3D perspective, clip-path wipes, focus-pull, spring physics | Landing pages, marketing, investor decks |
+| `neutral-light` | `--nl-` | `NeutralLightEngine` | Spotlight, cursor simulation, step indicators, slide+fade | Onboarding, tutorials, help docs |
+| `montage` | `--mo-` | `MontageEngine` | Hard cuts, whip-wipes, full-screen type, stat callouts | Brand launches, sizzle reels, keynotes |
 
 When `--personality cinematic` is specified:
 
@@ -118,12 +116,86 @@ When `--personality editorial` is specified:
    window.addEventListener('DOMContentLoaded', () => engine.boot());
    ```
 
+When `--personality neutral-light` is specified:
+
+1. **Load personality files** from `.claude/skills/animate/personalities/neutral-light/`:
+   - `motion.css` — all tokens (prefixed `--nl-`), animation classes, keyframes
+   - `engine.js` — `NeutralLightEngine` class with playback, transitions, animation primitives
+   - `PERSONALITY.md` — rules, do/don't, decision tree, timing guide
+   - `reference.html` — canonical reference prototype (Data Room Setup onboarding)
+
+2. **Follow the personality rules** in `PERSONALITY.md`:
+   - Use only `--nl-` prefixed tokens for all colors
+   - Maintain 3-tier speed hierarchy (FAST/MEDIUM/SLOW — no SPRING tier)
+   - Use opacity crossfade for phase transitions (not clip-path wipes)
+   - Use slide+fade for entrances (not focus-pull blur)
+   - No 3D perspective, no camera motion, no spring physics, no blur
+   - Spotlight, cursor simulation, step indicators for tutorial guidance
+
+3. **Instantiate the engine** in your `<script>` block:
+   ```js
+   const engine = new NeutralLightEngine({
+     phases: [...],
+     titles: [...],
+     subtitles: [...],
+     onPhaseEnter: {
+       0: (e) => e.runSlideStagger('welcome', 120),
+       1: (e) => { e.runSpotlight('target'); e.runCursor('target'); },
+       2: (e) => e.runSlideStagger('items', 150),
+       3: (e) => e.runSlideStagger('summary', 120),
+     },
+   });
+   engine.exposeGlobals();
+   window.addEventListener('DOMContentLoaded', () => engine.boot());
+   ```
+
+When `--personality montage` is specified:
+
+1. **Load personality files** from `.claude/skills/animate/personalities/montage/`:
+   - `motion.css` — all tokens (prefixed `--mo-`), whip-wipe keyframes, scale entrances
+   - `engine.js` — `MontageEngine` class with playback, per-phase transitions, animation primitives
+   - `PERSONALITY.md` — rules, choreography, do/don't
+   - `reference.html` — canonical reference prototype ("Introducing Velocity")
+
+2. **Follow the personality rules** in `PERSONALITY.md`:
+   - Use only `--mo-` prefixed tokens for all colors
+   - Maintain 3-tier speed hierarchy (FAST/MEDIUM/SLOW — fastest of all personalities)
+   - Per-phase transition mixing: hard cuts + whip-wipes within the same reel
+   - Scale hero entrances (1.15→1.0) for hero elements
+   - No 3D perspective, no spring physics, no blur, no content cycling
+   - Title cards, stat callouts, split-screen, grid reveals
+
+3. **Instantiate the engine** in your `<script>` block:
+   ```js
+   const engine = new MontageEngine({
+     phases: [
+       { id: 0, label: 'Title',  dwell: 2500, transition: 'hard-cut' },
+       { id: 1, label: 'Demo',   dwell: 3500, transition: 'whip-left' },
+       { id: 2, label: 'Stats',  dwell: 2500, transition: 'hard-cut' },
+       { id: 3, label: 'Grid',   dwell: 3000, transition: 'whip-right' },
+       { id: 4, label: 'CTA',    dwell: 2500, transition: 'hard-cut' },
+     ],
+     titles: [...],
+     onPhaseEnter: {
+       0: (e) => e.runTextHero('title'),
+       1: (e) => e.runScaleEntrance('features', 100),
+       2: (e) => e.runStatReveal('metrics', 150),
+       3: (e) => e.runGridReveal('grid', 80),
+     },
+     tokenOverrides: { '--mo-accent': '#8b5cf6' },
+   });
+   engine.exposeGlobals();
+   window.addEventListener('DOMContentLoaded', () => engine.boot());
+   ```
+
 ### Examples
 
 ```
 /animate prototypes/2026-02-21-file-upload/concept-v1.html
 /animate prototypes/2026-02-21-file-upload/concept-v1.html --personality cinematic
 /animate prototype.html --personality editorial
+/animate prototype.html --personality neutral-light
+/animate prototype.html --personality montage
 /animate prototypes/2026-02-21-file-upload/autoplay-v1.html --mode capture --format all
 /animate prototypes/2026-02-21-file-upload/concept-v1.html --mode all
 ```
@@ -449,8 +521,9 @@ The skill produces:
 - `.claude/skills/animate/personalities/cinematic/engine.js` — `CinematicDarkEngine` reusable class
 - `.claude/skills/animate/personalities/cinematic/PERSONALITY.md` — Rules, decision tree, timing guide
 - `.claude/skills/animate/personalities/cinematic/reference.html` — Canonical reference demo
-- `.claude/skills/animate/personalities/editorial/` — Editorial personality (same structure)
-- `.claude/skills/animate/personalities/neutral-light/` — Neutral light personality (tutorial-focused)
+- `.claude/skills/animate/personalities/editorial/` — Editorial personality (motion.css, engine.js, PERSONALITY.md, reference.html)
+- `.claude/skills/animate/personalities/neutral-light/` — Neutral light personality (motion.css, engine.js, PERSONALITY.md, reference.html)
+- `.claude/skills/animate/personalities/montage/` — Montage personality (motion.css, engine.js, PERSONALITY.md, reference.html)
 - `.claude/skills/animate/primitives/tutorial/` — Tutorial primitives (spotlight, cursor, tooltip, step progress)
 - `docs/design-patterns/motion-design-system.md` — Motion design taxonomy and approach document
 

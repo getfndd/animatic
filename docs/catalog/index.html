@@ -367,9 +367,26 @@ body {
   perspective: 600px; perspective-origin: 50% 40%;
   width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
 }
+.demo-camera-stage {
+  width: 200px; height: 160px; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  transform-style: preserve-3d; transition: transform 1.2s var(--cat-ease-out);
+}
+.demo-camera-grid {
+  position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  pointer-events: none;
+}
+.dark-bg .demo-camera-grid {
+  background: radial-gradient(circle, rgba(255,255,255,0.55) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.light-bg .demo-camera-grid {
+  background: radial-gradient(circle, rgba(0,0,0,0.45) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
 .demo-camera-scene {
   width: 80px; height: 56px; border-radius: 6px;
-  transform-style: preserve-3d; transition: transform 1.2s var(--cat-ease-out);
+  transform-style: preserve-3d; position: relative; z-index: 1;
 }
 .dark-bg .demo-camera-scene { background: #404040; border: 1px solid #525252; }
 .light-bg .demo-camera-scene { background: #e7e5e4; border: 1px solid #d6d3d1; }
@@ -917,9 +934,15 @@ var RENDERERS = {
   camera: function(area, p) {
     var rig = document.createElement('div');
     rig.className = 'demo-camera-rig';
+    var stage = document.createElement('div');
+    stage.className = 'demo-camera-stage';
+    var grid = document.createElement('div');
+    grid.className = 'demo-camera-grid';
     var scene = document.createElement('div');
     scene.className = 'demo-camera-scene';
-    rig.appendChild(scene);
+    stage.appendChild(grid);
+    stage.appendChild(scene);
+    rig.appendChild(stage);
     area.appendChild(rig);
     var transforms = {
       'ct-camera-dolly': 'translateZ(100px)',
@@ -937,7 +960,7 @@ var RENDERERS = {
     var active = false;
     area._cameraInterval = setInterval(function() {
       active = !active;
-      scene.style.transform = active ? target : 'none';
+      stage.style.transform = active ? target : 'none';
     }, 2000);
   }
 };
@@ -1653,39 +1676,39 @@ function moSplitScreenAnim(area) {
 // CAMERA ANIMATION FUNCTIONS
 // ============================================================
 function rackFocusAnim(area) {
-  var scene = area.querySelector('.demo-camera-scene');
-  if (!scene) return;
-  scene.style.transition = 'filter 800ms cubic-bezier(0.16,1,0.3,1)';
+  var stage = area.querySelector('.demo-camera-stage');
+  if (!stage) return;
+  stage.style.transition = 'filter 800ms cubic-bezier(0.16,1,0.3,1)';
   var blurred = false;
   area._cameraInterval = setInterval(function() {
     blurred = !blurred;
-    scene.style.filter = blurred ? 'blur(3px)' : 'blur(0)';
+    stage.style.filter = blurred ? 'blur(3px)' : 'blur(0)';
   }, 2000);
 }
 
 function handheldAnim(area) {
-  var scene = area.querySelector('.demo-camera-scene');
-  if (!scene) return;
+  var stage = area.querySelector('.demo-camera-stage');
+  if (!stage) return;
   function jitter() {
     var dx = (Math.random() - 0.5) * 2.4;
     var dy = (Math.random() - 0.5) * 2.4;
-    scene.style.transform = 'translateX(' + dx.toFixed(2) + 'px) translateY(' + dy.toFixed(2) + 'px)';
+    stage.style.transform = 'translateX(' + dx.toFixed(2) + 'px) translateY(' + dy.toFixed(2) + 'px)';
     area._handheldRaf = requestAnimationFrame(jitter);
   }
   jitter();
 }
 
 function cameraShakeAnim(area) {
-  var scene = area.querySelector('.demo-camera-scene');
-  if (!scene) return;
+  var stage = area.querySelector('.demo-camera-stage');
+  if (!stage) return;
   function burst() {
     var steps = 10;
     var i = 0;
     function step() {
-      if (i >= steps) { scene.style.transform = 'none'; return; }
+      if (i >= steps) { stage.style.transform = 'none'; return; }
       var dx = (Math.random() - 0.5) * 6;
       var dy = (Math.random() - 0.5) * 6;
-      scene.style.transform = 'translateX(' + dx.toFixed(1) + 'px) translateY(' + dy.toFixed(1) + 'px)';
+      stage.style.transform = 'translateX(' + dx.toFixed(1) + 'px) translateY(' + dy.toFixed(1) + 'px)';
       i++;
       setTimeout(step, 60);
     }
@@ -1696,24 +1719,24 @@ function cameraShakeAnim(area) {
 }
 
 function edPushInAnim(area) {
-  var scene = area.querySelector('.demo-camera-scene');
-  if (!scene) return;
-  scene.style.transition = 'transform 2000ms ease-out';
+  var stage = area.querySelector('.demo-camera-stage');
+  if (!stage) return;
+  stage.style.transition = 'transform 2000ms ease-out';
   var pushed = false;
   area._cameraInterval = setInterval(function() {
     pushed = !pushed;
-    scene.style.transform = pushed ? 'scale(1.01)' : 'scale(1)';
+    stage.style.transform = pushed ? 'scale(1.01)' : 'scale(1)';
   }, 2000);
 }
 
 function edDriftAnim(area) {
-  var scene = area.querySelector('.demo-camera-scene');
-  if (!scene) return;
+  var stage = area.querySelector('.demo-camera-stage');
+  if (!stage) return;
   var t = 0;
   function drift() {
     t += 0.015;
     var dx = Math.sin(t) * 0.5;
-    scene.style.transform = 'translateX(' + dx.toFixed(3) + 'px)';
+    stage.style.transform = 'translateX(' + dx.toFixed(3) + 'px)';
     area._driftRaf = requestAnimationFrame(drift);
   }
   drift();

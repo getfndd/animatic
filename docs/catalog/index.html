@@ -212,6 +212,7 @@ body {
 .badge-personality-ed { background: #dbeafe; color: #1e40af; }
 .badge-personality-nl { background: #dcfce7; color: #166534; }
 .badge-personality-uni { background: #f3e8ff; color: #6b21a8; }
+.badge-personality-mo { background: #2e1065; color: #c4b5fd; }
 
 /* Card Name */
 .card-name {
@@ -476,6 +477,23 @@ body {
 @keyframes stagger-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ============================================================
+   KEYFRAMES — Montage
+   ============================================================ */
+@keyframes mo-text-hero-entrance {
+  0% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes mo-stat-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes mo-scale-enter {
+  0% { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 768px) {
@@ -503,6 +521,7 @@ body {
         <button class="filter-pill" data-filter="cinematic-dark">Cinematic Dark</button>
         <button class="filter-pill" data-filter="editorial">Editorial</button>
         <button class="filter-pill" data-filter="neutral-light">Neutral Light</button>
+        <button class="filter-pill" data-filter="montage">Montage</button>
       </div>
       <input type="text" class="search-input" id="searchInput" placeholder="Search primitives...">
     </div>
@@ -539,6 +558,9 @@ var PRIMITIVES = [
   { id: 'as-slideInRight', name: 'Slide In Right', category: 'entrances', duration: '500ms', easing: 'expo-out', personality: ['universal'], source: 'animate.style', preview: 'box' },
   { id: 'as-zoomIn', name: 'Zoom In', category: 'entrances', duration: '500ms', easing: 'expo-out', personality: ['cinematic-dark'], source: 'animate.style', preview: 'box' },
   { id: 'nl-field-reveal', name: 'Form Field Reveal', category: 'entrances', duration: '300ms', easing: 'ease-out', personality: ['neutral-light'], source: 'breakdown', preview: 'multi' },
+  { id: 'mo-scale-entrance', name: 'Scale Entrance', category: 'entrances', duration: '100ms interval', easing: 'expo-out', personality: ['montage'], source: 'engine', preview: 'multi' },
+  { id: 'mo-text-hero', name: 'Text Hero Entrance', category: 'entrances', duration: '400ms', easing: 'expo-out', personality: ['montage'], source: 'engine', preview: 'text' },
+  { id: 'mo-stat-reveal', name: 'Stat Reveal Pop', category: 'entrances', duration: '150ms interval', easing: 'expo-out', personality: ['montage'], source: 'engine', preview: 'multi' },
   // EXITS
   { id: 'as-fadeOut', name: 'Fade Out', category: 'exits', duration: '300ms', easing: 'ease-in', personality: ['universal'], source: 'animate.style', preview: 'box' },
   { id: 'as-fadeOutUp', name: 'Fade Out Up', category: 'exits', duration: '400ms', easing: 'ease-in', personality: ['editorial', 'neutral-light'], source: 'animate.style', preview: 'box' },
@@ -569,6 +591,8 @@ var PRIMITIVES = [
   { id: 'nl-staggered-card-entrance', name: 'Staggered Card Entrance', category: 'reveals', duration: '100ms interval', easing: 'ease-out', personality: ['neutral-light'], source: 'breakdown', preview: 'multi' },
   { id: 'nl-provider-button-stagger', name: 'Provider Button Stagger', category: 'reveals', duration: '120ms interval', easing: 'ease-out', personality: ['neutral-light'], source: 'breakdown', preview: 'multi' },
   { id: 'nl-segmented-code-input', name: 'Segmented Code Input', category: 'reveals', duration: '60ms interval', easing: 'ease-out', personality: ['neutral-light'], source: 'breakdown', preview: 'multi' },
+  { id: 'mo-grid-reveal', name: 'Grid Reveal', category: 'reveals', duration: '80ms interval', easing: 'expo-out', personality: ['montage'], source: 'engine', preview: 'grid' },
+  { id: 'mo-split-screen', name: 'Split-Screen Reveal', category: 'reveals', duration: '200ms stagger', easing: 'expo-out', personality: ['montage'], source: 'engine', preview: 'multi' },
   // CONTINUOUS / AMBIENT
   { id: 'cd-progress-animation', name: 'Multi-File Progress', category: 'continuous', duration: 'phase dwell', easing: 'linear', personality: ['cinematic-dark'], source: 'engine', preview: 'bars' },
   { id: 'ed-content-cycle', name: 'Content Cycling', category: 'continuous', duration: '2800ms/item', easing: 'ease-in-out', personality: ['editorial'], source: 'engine', preview: 'text' },
@@ -625,18 +649,20 @@ var CATEGORIES = [
 // ============================================================
 // HELPERS
 // ============================================================
-function isDark(p) { return p.personality.indexOf('cinematic-dark') !== -1; }
+function isDark(p) { return p.personality.indexOf('cinematic-dark') !== -1 || p.personality.indexOf('montage') !== -1; }
 function bgClass(p) { return isDark(p) ? 'dark-bg' : 'light-bg'; }
 function pBadgeClass(x) {
   if (x === 'cinematic-dark') return 'badge-personality-cd';
   if (x === 'editorial') return 'badge-personality-ed';
   if (x === 'neutral-light') return 'badge-personality-nl';
+  if (x === 'montage') return 'badge-personality-mo';
   return 'badge-personality-uni';
 }
 function pLabel(x) {
   if (x === 'cinematic-dark') return 'CD';
   if (x === 'editorial') return 'ED';
   if (x === 'neutral-light') return 'NL';
+  if (x === 'montage') return 'MO';
   return 'UNI';
 }
 
@@ -1134,6 +1160,7 @@ var CSS_ANIMS = {
   'ct-glow-pulse': { kf: 'glow-pulse', dur: '4000ms', ease: 'ease-in-out', fill: 'none', loop: true, alt: true },
   'ct-text-hero': { kf: 'text-hero-entrance', dur: '1200ms', ease: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' },
   'ct-text-sweep': { kf: 'text-sweep', dur: '800ms', ease: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' },
+  'mo-text-hero': { kf: 'mo-text-hero-entrance', dur: '400ms', ease: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' },
 };
 
 var JS_ANIMS = {
@@ -1169,6 +1196,10 @@ var JS_ANIMS = {
   'cd-progress-animation': progressAnim,
   'bk-bars-scatter': barsScatterAnim,
   'bk-icon-to-layout': iconMorphAnim,
+  'mo-scale-entrance': moScaleEntranceAnim,
+  'mo-stat-reveal': moStatRevealAnim,
+  'mo-grid-reveal': moGridRevealAnim,
+  'mo-split-screen': moSplitScreenAnim,
 };
 
 function staggerAnim(area, interval, style, bidi) {
@@ -1531,6 +1562,68 @@ function iconMorphAnim(area) {
       icon = newIcon;
     }
   }, 3000);
+}
+
+// ============================================================
+// MONTAGE ANIMATION FUNCTIONS
+// ============================================================
+function moScaleEntranceAnim(area) {
+  var targets = area.querySelectorAll('.demo-target');
+  for (var i = 0; i < targets.length; i++) {
+    (function(el, idx) {
+      el.style.opacity = '0';
+      el.style.transform = 'scale(1.15)';
+      setTimeout(function() {
+        el.style.transition = 'opacity 400ms cubic-bezier(0.16,1,0.3,1), transform 400ms cubic-bezier(0.16,1,0.3,1)';
+        el.style.opacity = '1';
+        el.style.transform = 'scale(1)';
+      }, idx * 100);
+    })(targets[i], i);
+  }
+}
+
+function moStatRevealAnim(area) {
+  var targets = area.querySelectorAll('.demo-target');
+  for (var i = 0; i < targets.length; i++) {
+    (function(el, idx) {
+      el.style.opacity = '0';
+      el.style.transform = 'scale(0.8)';
+      setTimeout(function() {
+        el.style.animation = 'mo-stat-pop 400ms cubic-bezier(0.16,1,0.3,1) forwards';
+      }, idx * 150);
+    })(targets[i], i);
+  }
+}
+
+function moGridRevealAnim(area) {
+  var dots = area.querySelectorAll('.demo-dot');
+  for (var i = 0; i < dots.length; i++) {
+    (function(dot, idx) {
+      dot.style.opacity = '0';
+      dot.style.transform = 'scale(0)';
+      setTimeout(function() {
+        dot.style.transition = 'opacity 300ms cubic-bezier(0.16,1,0.3,1), transform 300ms cubic-bezier(0.16,1,0.3,1)';
+        dot.style.opacity = '1';
+        dot.style.transform = 'scale(1)';
+      }, idx * 80);
+    })(dots[i], i);
+  }
+}
+
+function moSplitScreenAnim(area) {
+  var targets = area.querySelectorAll('.demo-target');
+  for (var i = 0; i < targets.length; i++) {
+    (function(el, idx) {
+      var fromLeft = idx % 2 === 0;
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(' + (fromLeft ? '-20px' : '20px') + ')';
+      setTimeout(function() {
+        el.style.transition = 'opacity 400ms cubic-bezier(0.16,1,0.3,1), transform 400ms cubic-bezier(0.16,1,0.3,1)';
+        el.style.opacity = '1';
+        el.style.transform = 'translateX(0)';
+      }, idx * 200);
+    })(targets[i], i);
+  }
 }
 
 // ============================================================

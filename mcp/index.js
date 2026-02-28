@@ -760,6 +760,17 @@ function handleGetReferenceDoc(args) {
   }
 }
 
+// ── Shared helper ────────────────────────────────────────────────────────────
+
+/** Filter primitive IDs to those compatible with the given personality (or universal). */
+function filterByPersonality(primitiveIds, personalitySlug, registry) {
+  return primitiveIds.filter(primId => {
+    const entry = registry.byId.get(primId);
+    if (!entry) return true; // keep unknowns visible
+    return entry.personality.some(p => p === personalitySlug || p === 'universal');
+  });
+}
+
 // ── recommend_choreography ───────────────────────────────────────────────────
 
 function handleRecommendChoreography(args) {
@@ -805,14 +816,15 @@ function handleRecommendChoreography(args) {
       out += `---\n\n## ${personality.name}\n\n`;
     }
 
-    // Camera move
+    // Camera move — filter by personality
+    const cameraPrims = filterByPersonality(mapping.camera_primitives, pSlug, registry);
     out += `### Camera Move\n\n`;
-    if (mapping.camera_primitives.length === 0) {
+    if (cameraPrims.length === 0) {
       out += `No camera movement — use attention-direction primitives instead.\n\n`;
     } else {
       out += `| Primitive | Name | Duration |\n`;
       out += `|-----------|------|----------|\n`;
-      for (const primId of mapping.camera_primitives) {
+      for (const primId of cameraPrims) {
         const entry = registry.byId.get(primId);
         if (entry) {
           out += `| \`${primId}\` | ${entry.name} | ${entry.duration} |\n`;
@@ -866,12 +878,13 @@ function handleRecommendChoreography(args) {
     }
     out += '\n';
 
-    // Ambient motion
-    if (mapping.ambient_primitives.length > 0) {
+    // Ambient motion — filter by personality
+    const ambientPrims = filterByPersonality(mapping.ambient_primitives, pSlug, registry);
+    if (ambientPrims.length > 0) {
       out += `### Ambient Motion\n\n`;
       out += `| Primitive | Name | Duration |\n`;
       out += `|-----------|------|----------|\n`;
-      for (const primId of mapping.ambient_primitives) {
+      for (const primId of ambientPrims) {
         const entry = registry.byId.get(primId);
         if (entry) {
           out += `| \`${primId}\` | ${entry.name} | ${entry.duration} |\n`;
@@ -887,14 +900,9 @@ function handleRecommendChoreography(args) {
       }
     }
 
-    // Companion entrance primitives
+    // Companion entrance primitives — filter by personality
     if (mapping.companion_entrance.length > 0) {
-      // Filter companions relevant to this personality
-      const relevantCompanions = mapping.companion_entrance.filter(primId => {
-        const entry = registry.byId.get(primId);
-        if (!entry) return true; // keep unknowns
-        return entry.personality.some(p => p === pSlug || p === 'universal');
-      });
+      const relevantCompanions = filterByPersonality(mapping.companion_entrance, pSlug, registry);
 
       if (relevantCompanions.length > 0) {
         out += `### Companion Entrances\n\n`;
@@ -994,15 +1002,16 @@ function handleValidateChoreography(args) {
       }
     }
 
-    // Blur check
-    if (forbiddenFeatures.includes('blur') && amplitude) {
-      if (amplitude.property === 'blur') {
-        blocks.push(`**Forbidden feature (blur):** \`${id}\` uses blur, which is forbidden in ${targetPersonality}.`);
-      }
+    // Blur check — use blur_primitives list (covers non-camera blur primitives too)
+    const isBlurPrimitive = cameraGuardrails.blur_primitives?.includes(id);
+
+    if (forbiddenFeatures.includes('blur') && (isBlurPrimitive || (amplitude && amplitude.property === 'blur'))) {
+      blocks.push(`**Forbidden feature (blur):** \`${id}\` uses blur, forbidden in ${targetPersonality}.`);
     }
-    if (forbiddenFeatures.includes('blur_entrance') && amplitude) {
-      if (amplitude.property === 'blur') {
-        blocks.push(`**Forbidden feature (blur entrance):** \`${id}\` uses blur, which is forbidden in ${targetPersonality}.`);
+    if (forbiddenFeatures.includes('blur_entrance') && isBlurPrimitive) {
+      const isEntrance = entry.category === 'Entrances';
+      if (isEntrance) {
+        blocks.push(`**Forbidden feature (blur entrance):** \`${id}\` uses blur entrance, forbidden in ${targetPersonality}.`);
       }
     }
 
@@ -1066,7 +1075,7 @@ function handleValidateChoreography(args) {
       if (!mapping.personality_support.includes(targetPersonality)) {
         notes.push(`Intent \`${intentSlug}\` does not support ${targetPersonality}. Supported: ${mapping.personality_support.join(', ')}.`);
       }
-      const expectedPrimitives = mapping.camera_primitives;
+      const expectedPrimitives = filterByPersonality(mapping.camera_primitives, targetPersonality, registry);
       const missing = expectedPrimitives.filter(id => !primitive_ids.includes(id));
       if (missing.length > 0) {
         notes.push(`Intent \`${intentSlug}\` expects these camera primitives not in your plan: ${missing.map(id => `\`${id}\``).join(', ')}.`);

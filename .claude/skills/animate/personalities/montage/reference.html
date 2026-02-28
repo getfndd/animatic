@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Montage Personality — Reference</title>
+<link rel="stylesheet" href="motion.css">
+<style>
+  /* ================================================================
+     REFERENCE PROTOTYPE: "Introducing Velocity"
+     Brand launch sizzle reel — 6 phases, ~35s loop.
+
+     Demonstrates all montage signature techniques:
+     - Phase 0: Title card with text-hero scale entrance
+     - Phase 1: Product demo with staggered metric cards
+     - Phase 2: Stats with stat-pop + count-up
+     - Phase 3: Split-screen feature comparison
+     - Phase 4: Feature grid (2×3) with 80ms stagger
+     - Phase 5: Closing CTA with text-hero
+     ================================================================ */
+
+  /* -- Phase 0: Title Card -- */
+  .title-card .product-name {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--mo-text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin: 0 0 16px;
+  }
+
+  .title-card .product-name .accent {
+    color: var(--mo-accent);
+  }
+
+  /* -- Phase 1: Dashboard Demo -- */
+  .dashboard-demo {
+    padding: 8px 0;
+  }
+
+  .dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mo-text-primary);
+    margin: 0;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .mini-metric {
+    padding: 14px 16px;
+    background: var(--mo-surface-secondary);
+    border: 1px solid var(--mo-border-subtle);
+    border-radius: var(--mo-radius-md);
+  }
+
+  .mini-metric .mini-label {
+    font-size: 11px;
+    color: var(--mo-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .mini-metric .mini-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--mo-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .dashboard-rows .dashboard-row {
+    border-bottom: 1px solid var(--mo-border-subtle);
+    padding-bottom: 10px;
+  }
+
+  .dashboard-rows .dashboard-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  /* -- Phase 2: Stats -- */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    padding: 20px 0;
+  }
+
+  .stats-row .metric-card {
+    padding: 24px 20px;
+  }
+
+  .stats-row .metric-value {
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .stats-row .metric-label {
+    margin-top: 8px;
+  }
+
+  /* -- Phase 3: Split Screen -- */
+  .split-container {
+    padding: 8px 0;
+  }
+
+  .split-panel h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--mo-text-primary);
+    margin: 0 0 8px;
+  }
+
+  .split-panel p {
+    font-size: 13px;
+    color: var(--mo-text-tertiary);
+    margin: 0 0 16px;
+    line-height: 1.5;
+  }
+
+  .split-panel .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .split-panel .feature-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--mo-text-secondary);
+  }
+
+  .split-panel .feature-list li svg {
+    color: var(--mo-success);
+    flex-shrink: 0;
+  }
+
+  /* -- Phase 4: Feature Grid -- */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 8px 0;
+  }
+
+  /* -- Phase 5: CTA -- */
+  .cta-section {
+    text-align: center;
+    padding: 40px 24px;
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cta-section .cta-product {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--mo-text-primary);
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+  }
+
+  .cta-section .cta-tagline {
+    font-size: 15px;
+    color: var(--mo-text-secondary);
+    margin: 0 0 24px;
+  }
+
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    background: var(--mo-accent);
+    color: white;
+    border: none;
+    border-radius: var(--mo-radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Phosphor icon helpers */
+  svg.ph {
+    display: inline-block;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div id="scene" class="scene">
+  <div id="card" class="card">
+
+    <!-- Header -->
+    <div id="card-header" class="card-header">
+      <div id="title-block" class="title-block">
+        <h2 id="phase-title">Velocity</h2>
+        <div id="phase-subtitle" class="subtitle">Real-time analytics platform</div>
+      </div>
+      <div class="badge badge--accent">
+        <svg class="ph" width="12" height="12" viewBox="0 0 256 256"><polygon points="128,24 166,96 244,108 184,166 200,244 128,204 56,244 72,166 12,108 90,96" fill="none" stroke="currentColor" stroke-width="16" stroke-linejoin="round"/></svg>
+        New
+      </div>
+    </div>
+
+    <!-- Phase container -->
+    <div id="phase-container" class="phase-container">
+
+      <!-- Phase 0: Title Card — full-screen "Velocity" -->
+      <div id="phase-0" class="phase active">
+        <div class="title-card">
+          <h1 id="hero-title" class="product-name text-hero">
+            <span class="accent">Velocity</span>
+          </h1>
+          <p id="hero-tagline" class="tagline text-hero" style="transition-delay: 100ms;">
+            Real-time analytics for modern teams
+          </p>
+        </div>
+      </div>
+
+      <!-- Phase 1: Dashboard with staggered metric cards -->
+      <div id="phase-1" class="phase">
+        <div class="dashboard-demo">
+          <div class="dashboard-header">
+            <h3>Live Dashboard</h3>
+            <span class="badge badge--success">
+              <svg class="ph" width="10" height="10" viewBox="0 0 256 256"><circle cx="128" cy="128" r="96" fill="currentColor"/></svg>
+              Live
+            </span>
+          </div>
+          <div class="metrics-grid">
+            <div class="mini-metric scale-enter" data-stagger-group="metrics">
+              <div class="mini-label">Events / sec</div>
+              <div class="mini-value" data-count-target="2847" data-count-suffix="">0</div>
+            </div>
+            <div class="mini-metric scale-enter" data-stagger-group="metrics">
+              <div class="mini-label">Latency</div>
+              <div class="mini-value" data-count-target="12" data-count-suffix="ms">0</div>
+            </div>
+            <div class="mini-metric scale-enter" data-stagger-group="metrics">
+              <div class="mini-label">Uptime</div>
+              <div class="mini-value" data-count-target="99.9" data-count-suffix="%" data-count-decimals="1">0</div>
+            </div>
+          </div>
+          <div class="dashboard-rows">
+            <div class="dashboard-row slide-enter" data-stagger-group="rows">
+              <span class="row-label">API Requests</span>
+              <span class="row-value">1.2M</span>
+            </div>
+            <div class="dashboard-row slide-enter" data-stagger-group="rows">
+              <span class="row-label">Active Users</span>
+              <span class="row-value">14,293</span>
+            </div>
+            <div class="dashboard-row slide-enter" data-stagger-group="rows">
+              <span class="row-label">Error Rate</span>
+              <span class="row-value" style="color: var(--mo-success);">0.02%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2: Stats with pop + count-up -->
+      <div id="phase-2" class="phase">
+        <div class="stats-row">
+          <div class="metric-card stat-pop" data-stagger-group="stats">
+            <div class="metric-value" data-count-target="10" data-count-suffix="M+">0</div>
+            <div class="metric-label">Events processed daily</div>
+          </div>
+          <div class="metric-card stat-pop" data-stagger-group="stats">
+            <div class="metric-value" data-count-target="99.9" data-count-suffix="%" data-count-decimals="1">0</div>
+            <div class="metric-label">Uptime SLA</div>
+          </div>
+          <div class="metric-card stat-pop" data-stagger-group="stats">
+            <div class="metric-value" data-count-target="50" data-count-prefix="<" data-count-suffix="ms">0</div>
+            <div class="metric-label">P95 Latency</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3: Split-screen — two features side by side -->
+      <div id="phase-3" class="phase">
+        <div class="split-container">
+          <div id="split-left" class="split-panel">
+            <h3>Real-time Streaming</h3>
+            <p>Process millions of events per second with sub-millisecond latency.</p>
+            <ul class="feature-list">
+              <li>
+                <svg class="ph" width="14" height="14" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                WebSocket &amp; SSE support
+              </li>
+              <li>
+                <svg class="ph" width="14" height="14" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Auto-scaling pipelines
+              </li>
+              <li>
+                <svg class="ph" width="14" height="14" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Schema validation
+              </li>
+            </ul>
+          </div>
+          <div id="split-right" class="split-panel">
+            <h3>Smart Alerting</h3>
+            <p>Anomaly detection powered by ML. Get notified before issues impact users.</p>
+            <ul class="feature-list">
+              <li>
+                <svg class="ph" width="14" height="14" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                ML anomaly detection
+              </li>
+              <li>
+                <svg class="ph" width="14" height="14" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Slack, PagerDuty, email
+              </li>
+              <li>
+                <svg class="ph" width="14" height="14" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Custom thresholds
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 4: Feature grid (2×3) -->
+      <div id="phase-4" class="phase">
+        <div class="features-grid">
+          <div class="feature-tile slide-enter" data-stagger-group="grid">
+            <div class="tile-icon">
+              <svg class="ph" viewBox="0 0 256 256"><path d="M40,56V200a8,8,0,0,0,8,8H216" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><polyline points="216 96 160 152 120 120 72 168" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Dashboards</h3>
+            <p>Custom real-time views with drag-and-drop widgets.</p>
+          </div>
+          <div class="feature-tile slide-enter" data-stagger-group="grid">
+            <div class="tile-icon">
+              <svg class="ph" viewBox="0 0 256 256"><circle cx="116" cy="116" r="84" fill="none" stroke="currentColor" stroke-width="16"/><line x1="175.4" y1="175.4" x2="224" y2="224" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/></svg>
+            </div>
+            <h3>Query Engine</h3>
+            <p>SQL-like queries on streaming data in milliseconds.</p>
+          </div>
+          <div class="feature-tile slide-enter" data-stagger-group="grid">
+            <div class="tile-icon">
+              <svg class="ph" viewBox="0 0 256 256"><rect x="48" y="48" width="160" height="160" rx="8" fill="none" stroke="currentColor" stroke-width="16"/><line x1="128" y1="48" x2="128" y2="208" fill="none" stroke="currentColor" stroke-width="16"/><line x1="48" y1="128" x2="208" y2="128" fill="none" stroke="currentColor" stroke-width="16"/></svg>
+            </div>
+            <h3>Segmentation</h3>
+            <p>Slice data by any dimension, any time range.</p>
+          </div>
+          <div class="feature-tile slide-enter" data-stagger-group="grid">
+            <div class="tile-icon">
+              <svg class="ph" viewBox="0 0 256 256"><path d="M152,208V160a8,8,0,0,0-8-8H112a8,8,0,0,0-8,8v48" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path d="M40,104l88-72,88,72V208a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8Z" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Team Spaces</h3>
+            <p>Org-level permissions and shared views.</p>
+          </div>
+          <div class="feature-tile slide-enter" data-stagger-group="grid">
+            <div class="tile-icon">
+              <svg class="ph" viewBox="0 0 256 256"><polyline points="64 88 16 128 64 168" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><polyline points="192 88 240 128 192 168" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><line x1="160" y1="40" x2="96" y2="216" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/></svg>
+            </div>
+            <h3>API Access</h3>
+            <p>RESTful and GraphQL endpoints for everything.</p>
+          </div>
+          <div class="feature-tile slide-enter" data-stagger-group="grid">
+            <div class="tile-icon">
+              <svg class="ph" viewBox="0 0 256 256"><path d="M168,224a96,96,0,1,1,56-56" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/><polyline points="224 168 168 168 168 224" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Integrations</h3>
+            <p>Connect 50+ data sources in minutes.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 5: Closing CTA -->
+      <div id="phase-5" class="phase">
+        <div class="cta-section">
+          <div id="cta-title" class="cta-product text-hero">Velocity</div>
+          <div id="cta-tagline" class="cta-tagline text-hero" style="transition-delay: 100ms;">Analytics that move at the speed of your business</div>
+          <button class="cta-btn scale-enter" data-stagger-group="cta" style="transition-delay: 200ms;">
+            Get Started Free
+            <svg class="ph" width="14" height="14" viewBox="0 0 256 256"><line x1="40" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><polyline points="184 96 216 128 184 160" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /phase-container -->
+
+    <!-- Footers per phase -->
+    <div id="footer-0" class="card-footer active">
+      <span>Introducing Velocity</span>
+      <span>Brand Launch 2026</span>
+    </div>
+    <div id="footer-1" class="card-footer">
+      <span>Live metrics</span>
+      <span>Real-time dashboard</span>
+    </div>
+    <div id="footer-2" class="card-footer">
+      <span>By the numbers</span>
+      <span>Enterprise scale</span>
+    </div>
+    <div id="footer-3" class="card-footer">
+      <span>Core capabilities</span>
+      <span>Built for speed</span>
+    </div>
+    <div id="footer-4" class="card-footer">
+      <span>6 core features</span>
+      <span>And counting</span>
+    </div>
+    <div id="footer-5" class="card-footer">
+      <span>Start free today</span>
+      <span>velocity.dev</span>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /scene -->
+
+<!-- Playback controls -->
+<div id="playback" class="playback-bar">
+  <button id="play-btn" class="play-btn" onclick="togglePlay()">
+    <svg id="icon-pause" width="14" height="14" viewBox="0 0 256 256"><rect x="156" y="48" width="36" height="160" rx="4" fill="currentColor"/><rect x="64" y="48" width="36" height="160" rx="4" fill="currentColor"/></svg>
+    <svg id="icon-play" width="14" height="14" viewBox="0 0 256 256" style="display:none;"><path d="M72,39.9V216.1a8,8,0,0,0,12.15,6.69l144.08-88.1a7.82,7.82,0,0,0,0-13.38L84.15,33.21A8,8,0,0,0,72,39.9Z" fill="currentColor"/></svg>
+  </button>
+  <div id="phase-dots" class="phase-dots">
+    <span class="phase-dot active" data-phase="0" onclick="jumpTo(0)"></span>
+    <span class="phase-dot" data-phase="1" onclick="jumpTo(1)"></span>
+    <span class="phase-dot" data-phase="2" onclick="jumpTo(2)"></span>
+    <span class="phase-dot" data-phase="3" onclick="jumpTo(3)"></span>
+    <span class="phase-dot" data-phase="4" onclick="jumpTo(4)"></span>
+    <span class="phase-dot" data-phase="5" onclick="jumpTo(5)"></span>
+  </div>
+  <span id="phase-label" class="phase-label">Title</span>
+</div>
+
+<script src="engine.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const engine = new MontageEngine({
+      phases: [
+        { id: 0, label: 'Title',     dwell: 2500, transition: 'hard-cut' },
+        { id: 1, label: 'Dashboard', dwell: 3500, transition: 'whip-left' },
+        { id: 2, label: 'Stats',     dwell: 2500, transition: 'hard-cut' },
+        { id: 3, label: 'Features',  dwell: 3000, transition: 'whip-right' },
+        { id: 4, label: 'Grid',      dwell: 3000, transition: 'whip-up' },
+        { id: 5, label: 'CTA',       dwell: 2500 },
+      ],
+      titles: [
+        'Velocity',
+        'Live Dashboard',
+        'By the Numbers',
+        'Core Features',
+        'Everything You Need',
+        'Velocity',
+      ],
+      subtitles: [
+        'Real-time analytics platform',
+        'Metrics that matter, live',
+        'Enterprise-grade performance',
+        'Two pillars of speed',
+        'Built for modern teams',
+        'Start building today',
+      ],
+      onPhaseEnter: {
+        0: (eng) => {
+          eng.runTextHero('#hero-title');
+          eng.runTextHero('#hero-tagline');
+        },
+        1: (eng) => {
+          eng.runScaleEntrance('metrics', 100);
+          eng.pushTimer(() => eng.runSlideStagger('rows', 100), 300);
+          eng.pushTimer(() => eng.runCountUp(600), 200);
+        },
+        2: (eng) => {
+          eng.runStatReveal('stats', 150);
+        },
+        3: (eng) => {
+          eng.runSplitScreen('#split-left', '#split-right', 200);
+        },
+        4: (eng) => {
+          eng.runGridReveal('grid', 80);
+        },
+        5: (eng) => {
+          eng.runTextHero('#cta-title');
+          eng.runTextHero('#cta-tagline');
+          eng.pushTimer(() => eng.runScaleEntrance('cta', 100), 200);
+        },
+      },
+    });
+
+    engine.exposeGlobals();
+    engine.boot();
+  });
+</script>
+
+</body>
+</html>

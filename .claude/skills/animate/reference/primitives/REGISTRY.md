@@ -35,6 +35,9 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `nl-field-reveal` | Form Field Height Reveal | 300ms | neutral-light | breakdown |
 | `bk-chat-typewriter-submit` | Chat Input Typewriter → Bubble | ~2400ms | editorial, cinematic-dark | breakdown |
 | `bk-report-card-materialize` | Document Report Card Entrance | 500ms | editorial, cinematic-dark | breakdown |
+| `mo-scale-entrance` | Scale Entrance | 100ms interval | montage | engine |
+| `mo-text-hero` | Text Hero Entrance | 400ms | montage | engine |
+| `mo-stat-reveal` | Stat Reveal Pop | 150ms interval | montage | engine |
 
 ### Exits
 
@@ -79,6 +82,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `nl-segmented-code-input` | Segmented Code Input | 60ms interval | neutral-light | breakdown |
 | `bk-suggestion-chip-stagger` | Action Suggestion Chip Stack | 150ms interval | editorial, cinematic-dark | breakdown |
 | `bk-table-row-stagger` | Data Table Row Reveal | 80ms interval | editorial, neutral-light | breakdown |
+| `mo-grid-reveal` | Grid Reveal | 80ms interval | montage | engine |
+| `mo-split-screen` | Split-Screen Reveal | 200ms stagger | montage | engine |
 
 ### Continuous / Ambient
 
@@ -134,6 +139,9 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `cd-phase-transition` | Cinematic Phase Change | multi-speed | cinematic-dark | engine |
 | `ed-phase-transition` | Editorial Phase Change | multi-speed | editorial | engine |
 | `nl-phase-transition` | Neutral Phase Change | multi-speed | neutral-light | engine |
+| `mo-phase-transition` | Montage Phase Change | per-phase | montage | engine |
+| `mo-hard-cut` | Hard Cut (Instant) | 0ms | montage | engine |
+| `mo-whip-wipe` | Whip-Wipe (Directional) | 250ms | montage | engine |
 | `ct-camera-dolly` | Camera Dolly Forward | 1400ms | cinematic-dark | research |
 | `ct-camera-pan` | Camera Pan | 1200ms | cinematic-dark | research |
 | `ct-camera-tilt` | Camera Tilt Reveal | 1200ms | cinematic-dark | research |
@@ -208,6 +216,14 @@ Best content: `nl-step-progress`, `ed-count-up`, `nl-progress-dots`, `bk-ai-resp
 Best interactions: `nl-cursor-to`, `nl-card-select`, `nl-radio-card-select`, `nl-button-activate`, `nl-tag-pill-select`
 Best transitions: `nl-phase-transition`, `nl-wizard-step-crossfade`, `nl-phase-crossfade`, `nl-app-materialize`, `nl-loading-gate`, `bk-panel-content-swap`
 Best stagger: `nl-list-row-stagger`, `nl-provider-button-stagger`, `nl-segmented-code-input`, `bk-table-row-stagger`
+
+### Montage — Rapid-Scene Energy
+
+Best entrances: `mo-scale-entrance`, `mo-text-hero`, `mo-stat-reveal`
+Best reveals: `mo-grid-reveal`, `mo-split-screen`
+Best transitions: `mo-phase-transition`, `mo-hard-cut`, `mo-whip-wipe`
+Best content: `ed-count-up` (reused for stat count-ups)
+Best typography: `mo-text-hero`
 
 ---
 

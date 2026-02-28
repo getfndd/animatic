@@ -1,0 +1,609 @@
+/* ================================================================
+   MONTAGE PERSONALITY — Animation System
+
+   Rapid-scene energy: hard cuts, whip-wipes, full-screen typography,
+   stat callouts, split-screen compositions. Designed for sizzle reels,
+   brand launches, and product campaigns.
+
+   Token prefix: --mo-
+   Personality: montage
+   Mode: dark (default) — override :root tokens for light mode
+
+   Reference: reference.html
+   ================================================================ */
+
+/* ================================================================
+   LAYER 1: DESIGN TOKENS
+
+   All visual properties. Override these at :root level to adapt
+   the montage personality to your design system.
+   ================================================================ */
+:root {
+  /* ---- Surfaces ---- */
+  --mo-bg-body: #0a0a0a;
+  --mo-surface-card: #141414;
+  --mo-surface-secondary: #1c1c1c;
+  --mo-surface-glass: rgba(255,255,255,0.06);
+
+  /* ---- Text ---- */
+  --mo-text-primary: #fafafa;
+  --mo-text-secondary: #a1a1aa;              /* zinc-400 */
+  --mo-text-tertiary: #71717a;               /* zinc-500 */
+  --mo-text-quaternary: #52525b;             /* zinc-600 */
+
+  /* ---- Borders ---- */
+  --mo-border-subtle: #27272a;               /* zinc-800 */
+  --mo-border-medium: #3f3f46;               /* zinc-700 */
+  --mo-border-active: #8b5cf6;               /* violet-500 */
+
+  /* ---- Accents ---- */
+  --mo-accent: #8b5cf6;                      /* violet-500 */
+  --mo-accent-bg: rgba(139,92,246,0.12);
+  --mo-accent-text: #a78bfa;                 /* violet-400 */
+  --mo-success: #22c55e;                     /* green-500 */
+  --mo-success-bg: rgba(34,197,94,0.12);
+
+  /* ---- Shadows ---- */
+  --mo-shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --mo-shadow-elevated: 0 4px 12px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
+
+  /* ---- Typography ---- */
+  --mo-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mo-font-mono: 'SF Mono', 'Fira Code', monospace;
+
+  /* ---- Radius ---- */
+  --mo-radius-sm: 4px;
+  --mo-radius-md: 8px;
+  --mo-radius-lg: 12px;
+  --mo-radius-xl: 16px;
+
+  /* ---- Timing ---- */
+  --mo-fast: 150ms;
+  --mo-medium: 400ms;
+  --mo-slow: 800ms;
+
+  /* ---- Easing ---- */
+  --mo-ease-out: cubic-bezier(0.16, 1, 0.3, 1);        /* expo-out */
+  --mo-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --mo-ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+
+/* ================================================================
+   LAYER 2: BASE STYLES
+   ================================================================ */
+body {
+  background: var(--mo-bg-body);
+  color: var(--mo-text-primary);
+  font-family: var(--mo-font);
+  margin: 0;
+  padding: 40px 20px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+}
+
+
+/* ================================================================
+   LAYER 3: SCENE — Flat, no 3D perspective
+   ================================================================ */
+.scene {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  /* No perspective — montage is flat, full-screen scene cuts */
+}
+
+
+/* ================================================================
+   LAYER 4: CARD — Dark, minimal
+   ================================================================ */
+.card {
+  background: var(--mo-surface-card);
+  border-radius: var(--mo-radius-xl);
+  border: 1px solid var(--mo-border-subtle);
+  box-shadow: var(--mo-shadow-card);
+  overflow: hidden;
+  position: relative;
+}
+
+
+/* ================================================================
+   LAYER 5: CARD HEADER
+   ================================================================ */
+.card-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--mo-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header .title-block {
+  opacity: 1;
+  transition: opacity var(--mo-fast) var(--mo-ease-out);
+}
+
+.card-header .title-block.transitioning {
+  opacity: 0;
+}
+
+.card-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--mo-text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.card-header .subtitle {
+  font-size: 13px;
+  color: var(--mo-text-tertiary);
+  margin: 4px 0 0;
+}
+
+
+/* ================================================================
+   LAYER 6: PHASE CONTAINER — Supports hard cut + whip-wipe
+   ================================================================ */
+.phase-container {
+  position: relative;
+  overflow: hidden;
+  transition: height var(--mo-slow) var(--mo-ease-smooth);
+}
+
+.phase {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px 24px;
+  box-sizing: border-box;
+
+  /* Default hidden — hard cut baseline */
+  opacity: 0;
+  pointer-events: none;
+}
+
+.phase.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.phase.exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Whip-wipe exit animations (applied via JS) */
+.phase.whip-exit-left {
+  opacity: 1;
+  animation: mo-whip-exit-left 250ms var(--mo-ease-in) forwards;
+}
+
+.phase.whip-exit-right {
+  opacity: 1;
+  animation: mo-whip-exit-right 250ms var(--mo-ease-in) forwards;
+}
+
+.phase.whip-exit-up {
+  opacity: 1;
+  animation: mo-whip-exit-up 250ms var(--mo-ease-in) forwards;
+}
+
+.phase.whip-exit-down {
+  opacity: 1;
+  animation: mo-whip-exit-down 250ms var(--mo-ease-in) forwards;
+}
+
+/* Measuring mode — used by engine to calculate heights */
+.phase.measuring {
+  position: relative;
+  opacity: 1;
+  pointer-events: none;
+}
+
+
+/* ================================================================
+   LAYER 7: SCALE ENTRANCE — The montage stagger
+   ================================================================ */
+.scale-enter {
+  opacity: 0;
+  transform: scale(1.15);
+  transition: opacity var(--mo-medium) var(--mo-ease-out),
+              transform var(--mo-medium) var(--mo-ease-out);
+}
+
+.scale-enter.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+
+/* ================================================================
+   LAYER 8: SLIDE+FADE ENTRANCE — Reused for grid items
+   ================================================================ */
+.slide-enter {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity var(--mo-medium) var(--mo-ease-out),
+              transform var(--mo-medium) var(--mo-ease-out);
+}
+
+.slide-enter.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+/* ================================================================
+   LAYER 9: STAT POP — Stat card entrance with overshoot
+   ================================================================ */
+.stat-pop {
+  opacity: 0;
+  transform: scale(0.8);
+  transition: none;
+}
+
+.stat-pop.visible {
+  opacity: 1;
+  transform: scale(1);
+  animation: mo-stat-pop 300ms var(--mo-ease-out) forwards;
+}
+
+
+/* ================================================================
+   LAYER 10: TITLE CARD — Full-screen typography
+   ================================================================ */
+.title-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 280px;
+  padding: 40px 24px;
+}
+
+.title-card h1 {
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--mo-text-primary);
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.title-card .tagline {
+  font-size: 16px;
+  color: var(--mo-text-secondary);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Text hero entrance — scale 1.5 → 1.0 */
+.text-hero {
+  opacity: 0;
+  transform: scale(1.5);
+  transition: opacity var(--mo-medium) var(--mo-ease-out),
+              transform var(--mo-medium) var(--mo-ease-out);
+}
+
+.text-hero.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+
+/* ================================================================
+   LAYER 11: SPLIT PANEL — Half-width side-by-side
+   ================================================================ */
+.split-container {
+  display: flex;
+  gap: 16px;
+}
+
+.split-panel {
+  flex: 1;
+  background: var(--mo-surface-secondary);
+  border-radius: var(--mo-radius-md);
+  border: 1px solid var(--mo-border-subtle);
+  padding: 20px;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity var(--mo-medium) var(--mo-ease-out),
+              transform var(--mo-medium) var(--mo-ease-out);
+}
+
+.split-panel:nth-child(2) {
+  transform: translateX(20px);
+}
+
+.split-panel.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+
+/* ================================================================
+   LAYER 12: COUNT-UP NUMBERS
+   ================================================================ */
+.count-up {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+
+/* ================================================================
+   LAYER 13: TYPEWRITER
+   ================================================================ */
+.typewriter-text {
+  border-right: 2px solid var(--mo-text-primary);
+  padding-right: 2px;
+  animation: mo-cursor-blink 600ms step-end infinite;
+}
+
+.typewriter-text.done {
+  border-right-color: transparent;
+  animation: none;
+}
+
+@keyframes mo-cursor-blink {
+  0%, 100% { border-right-color: var(--mo-text-primary); }
+  50% { border-right-color: transparent; }
+}
+
+
+/* ================================================================
+   LAYER 14: UI ELEMENT STYLES — Montage product UI
+   ================================================================ */
+
+/* Metric card (for stat phases) */
+.metric-card {
+  padding: 20px 24px;
+  background: var(--mo-surface-secondary);
+  border: 1px solid var(--mo-border-subtle);
+  border-radius: var(--mo-radius-md);
+  text-align: center;
+}
+
+.metric-card .metric-value {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--mo-text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.metric-card .metric-label {
+  font-size: 13px;
+  color: var(--mo-text-tertiary);
+  margin-top: 4px;
+}
+
+/* Feature tile (for grid phases) */
+.feature-tile {
+  padding: 16px;
+  background: var(--mo-surface-secondary);
+  border-radius: var(--mo-radius-md);
+  border: 1px solid var(--mo-border-subtle);
+}
+
+.feature-tile .tile-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--mo-radius-sm);
+  background: var(--mo-accent-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.feature-tile .tile-icon svg {
+  width: 16px;
+  height: 16px;
+  color: var(--mo-accent);
+}
+
+.feature-tile h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mo-text-primary);
+  margin: 0 0 4px;
+}
+
+.feature-tile p {
+  font-size: 12px;
+  color: var(--mo-text-tertiary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badge--accent {
+  background: var(--mo-accent-bg);
+  color: var(--mo-accent-text);
+}
+
+.badge--success {
+  background: var(--mo-success-bg);
+  color: var(--mo-success);
+}
+
+/* Dashboard row */
+.dashboard-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--mo-radius-sm);
+}
+
+.dashboard-row .row-label {
+  font-size: 13px;
+  color: var(--mo-text-secondary);
+  flex: 1;
+}
+
+.dashboard-row .row-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mo-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mini bar chart */
+.mini-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--mo-accent);
+  transition: width var(--mo-medium) var(--mo-ease-out);
+}
+
+.mini-bar-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--mo-surface-glass);
+  flex: 1;
+}
+
+
+/* ================================================================
+   LAYER 15: FOOTER / ACTION BAR
+   ================================================================ */
+.card-footer {
+  padding: 12px 24px 16px;
+  border-top: 1px solid var(--mo-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--mo-text-tertiary);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  transition: opacity var(--mo-fast) var(--mo-ease-out);
+}
+
+.card-footer.active {
+  opacity: 1;
+}
+
+
+/* ================================================================
+   LAYER 16: PLAYBACK CONTROLS
+   ================================================================ */
+.playback-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 0 0;
+}
+
+.play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--mo-border-medium);
+  background: var(--mo-surface-card);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mo-text-secondary);
+  transition: border-color var(--mo-fast) var(--mo-ease-out),
+              color var(--mo-fast) var(--mo-ease-out);
+}
+
+.play-btn:hover {
+  border-color: var(--mo-accent);
+  color: var(--mo-accent);
+}
+
+.phase-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.phase-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mo-border-medium);
+  cursor: pointer;
+  transition: background var(--mo-fast) var(--mo-ease-out),
+              transform var(--mo-fast) var(--mo-ease-out);
+}
+
+.phase-dot.active {
+  background: var(--mo-accent);
+  transform: scale(1.25);
+}
+
+.phase-dot.completed {
+  background: var(--mo-accent);
+  opacity: 0.5;
+}
+
+.phase-label {
+  font-size: 12px;
+  color: var(--mo-text-tertiary);
+  min-width: 60px;
+}
+
+
+/* ================================================================
+   KEYFRAMES
+   ================================================================ */
+
+/* Whip-wipe exit: outgoing phase slides away via clip-path */
+@keyframes mo-whip-exit-left {
+  from { clip-path: inset(0 0 0 0); }
+  to   { clip-path: inset(0 0 0 100%); }
+}
+
+@keyframes mo-whip-exit-right {
+  from { clip-path: inset(0 0 0 0); }
+  to   { clip-path: inset(0 100% 0 0); }
+}
+
+@keyframes mo-whip-exit-up {
+  from { clip-path: inset(0 0 0 0); }
+  to   { clip-path: inset(0 0 100% 0); }
+}
+
+@keyframes mo-whip-exit-down {
+  from { clip-path: inset(0 0 0 0); }
+  to   { clip-path: inset(100% 0 0 0); }
+}
+
+/* Stat pop: scale overshoot entrance */
+@keyframes mo-stat-pop {
+  0%   { opacity: 0; transform: scale(0.8); }
+  60%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Phosphor icon helpers */
+svg.ph {
+  display: inline-block;
+  vertical-align: middle;
+}

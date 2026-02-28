@@ -146,6 +146,7 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ct-camera-pull-out` | Camera Pull-Out Reveal | 2000ms | cinematic-dark | research |
 | `ct-camera-rack-focus` | Rack Focus Shift | 800ms | cinematic-dark | research |
 | `ct-camera-handheld` | Handheld Drift | 6000ms loop | cinematic-dark | research |
+| `ct-camera-shake` | Camera Shake | 800ms | cinematic-dark | research |
 | `ed-camera-push-in` | Editorial Slow Push-In | 6000ms | editorial | research |
 | `ed-camera-drift` | Editorial Ambient Drift | 12000ms loop | editorial | research |
 | `bk-bars-scatter` | Horizontal Scatter & Reconverge | 3400ms cycle | cinematic-dark | breakdown |
@@ -183,7 +184,7 @@ Master lookup table of named animation effects. Consult this when generating pro
 Best entrances: `cd-focus-stagger`, `ct-focus-pull`, `ct-zoom-from-space`, `as-zoomIn`, `bk-chat-typewriter-submit`, `bk-report-card-materialize`
 Best reveals: `ct-iris-open`, `ct-wipe-reveal`, `ct-bars-reveal`, `bk-arc-cascade`, `bk-content-line-stagger`, `bk-suggestion-chip-stagger`
 Best ambient: `ct-float`, `ct-glow-pulse`, `cd-progress-animation`, `bk-flow-field`, `ct-scene-breathe`, `ct-ambient-drift`, `ct-element-float`, `ct-slow-push`
-Best camera: `ct-camera-dolly`, `ct-camera-orbit`, `ct-camera-crane`, `ct-camera-push-in`, `ct-camera-rack-focus`, `ct-camera-handheld`
+Best camera: `ct-camera-dolly`, `ct-camera-orbit`, `ct-camera-crane`, `ct-camera-push-in`, `ct-camera-rack-focus`, `ct-camera-handheld`, `ct-camera-shake`
 Best transitions: `cd-phase-transition`, `ct-camera-dolly`, `ct-camera-orbit`, `bk-bars-scatter`, `bk-icon-to-layout`
 Best typography: `ct-text-hero`, `ct-char-stagger`, `cd-typewriter`
 
@@ -548,6 +549,31 @@ Full CSS implementations for effects extracted from cinematic-techniques-researc
 .scene.handheld {
   animation: handheld-drift 6000ms ease-in-out infinite;
 }
+```
+
+### `ct-camera-shake` — Camera Shake (Tension Enhancer)
+
+```css
+/* Camera shake: randomized micro-transforms with exponential decay.
+   Max amplitude 3px, frequency 0.5-2Hz. Cinematic Dark only. */
+@keyframes camera-shake {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  10%  { transform: translate(2px, -1.5px) rotate(0.3deg); }
+  20%  { transform: translate(-2.5px, 1px) rotate(-0.2deg); }
+  30%  { transform: translate(1.5px, 2px) rotate(0.15deg); }
+  40%  { transform: translate(-1px, -1.5px) rotate(-0.25deg); }
+  50%  { transform: translate(1.8px, 0.5px) rotate(0.1deg); }
+  60%  { transform: translate(-0.8px, 1.2px) rotate(-0.1deg); }
+  70%  { transform: translate(0.5px, -0.8px) rotate(0.05deg); }
+  80%  { transform: translate(-0.3px, 0.3px) rotate(-0.03deg); }
+  90%  { transform: translate(0.1px, -0.1px) rotate(0.01deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+.scene.camera-shake {
+  animation: camera-shake 800ms linear forwards;
+}
+/* Exponential decay baked into keyframe amplitudes.
+   Combine with ct-camera-push-in for tension build. */
 ```
 
 ### `ed-camera-push-in` — Editorial Slow Push-In (2D)

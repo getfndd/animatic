@@ -25,6 +25,7 @@ import {
   loadPrimitivesCatalog,
   loadPersonalitiesCatalog,
   loadIntentMappings,
+  loadCameraGuardrails,
   parseRegistry,
   parseBreakdownIndex,
   readBreakdown,
@@ -40,10 +41,11 @@ const ROOT = resolve(__dirname, '..');
 const primitivesCatalog = loadPrimitivesCatalog();
 const personalitiesCatalog = loadPersonalitiesCatalog();
 const intentMappings = loadIntentMappings();
+const cameraGuardrails = loadCameraGuardrails();
 const registry = parseRegistry();
 const breakdownIndex = parseBreakdownIndex();
 
-console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intent mappings, ${breakdownIndex.length} breakdowns`);
+console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intent mappings, ${Object.keys(cameraGuardrails.primitive_amplitudes).length} guardrail amplitudes, ${breakdownIndex.length} breakdowns`);
 
 // ── Server setup ────────────────────────────────────────────────────────────
 
@@ -65,8 +67,9 @@ WORKFLOW FOR CHOOSING ANIMATIONS:
 3. Use get_primitive for full CSS implementation details
 4. Use get_personality for timing tiers, easing curves, camera behavior rules, and recommended primitives
 5. Use recommend_choreography to get a complete camera choreography plan for a given intent (e.g., "dramatic-reveal") with concrete primitive IDs, timing, parallax, and DOF settings
-6. Consult breakdowns (search_breakdowns → get_breakdown) for real-world choreography examples
-7. Reference animation-principles, spring-physics, or camera-rig docs for foundational guidance
+6. Use validate_choreography to check a set of primitives against personality guardrails before implementing — catches forbidden features, speed violations, and missing expected primitives
+7. Consult breakdowns (search_breakdowns → get_breakdown) for real-world choreography examples
+8. Reference animation-principles, spring-physics, or camera-rig docs for foundational guidance
 
 PRIMITIVE SOURCES:
 - "engine" = Built into the Animatic animation engine (15 primitives with full JSON catalog data)
@@ -322,6 +325,41 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['intent'],
       },
     },
+    {
+      name: 'validate_choreography',
+      description:
+        'Validate a set of primitives against personality guardrails. Checks primitive existence, personality compatibility, forbidden features (3D in editorial, camera in neutral-light), speed limits, lens bounds, and intent cross-references. Returns PASS/WARN/BLOCK verdict with detailed diagnostics. Use after recommend_choreography to verify a plan before implementing.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          primitive_ids: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Array of primitive IDs in the choreography plan',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light'],
+            description: 'Target personality to validate against',
+          },
+          intent: {
+            type: 'string',
+            enum: intentMappings.array.map(i => i.intent),
+            description: 'Optional intent for cross-reference validation',
+          },
+          overrides: {
+            type: 'object',
+            properties: {
+              perspective: { type: 'number', description: 'Custom perspective value in px' },
+              max_blur: { type: 'number', description: 'Custom max blur value in px' },
+              duration_multiplier: { type: 'number', description: 'Multiplier applied to default durations (e.g., 0.5 for half speed)' },
+            },
+            description: 'Optional overrides for lens bounds and timing validation',
+          },
+        },
+        required: ['primitive_ids', 'personality'],
+      },
+    },
   ],
 }));
 
@@ -345,6 +383,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleGetReferenceDoc(args);
     case 'recommend_choreography':
       return handleRecommendChoreography(args);
+    case 'validate_choreography':
+      return handleValidateChoreography(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -526,6 +566,9 @@ function handleGetPersonality(args) {
     if (cam.perspective !== 'none') {
       out += `- **Perspective:** ${cam.perspective}\n`;
     }
+    if (cam.perspective_origin) {
+      out += `- **Perspective Origin:** ${cam.perspective_origin}\n`;
+    }
     if (cam.allowed_movements?.length > 0) {
       out += `- **Allowed Movements:** ${cam.allowed_movements.join(', ')}\n`;
     }
@@ -559,9 +602,23 @@ function handleGetPersonality(args) {
         if (typeof val === 'object' && val.enabled === false) {
           out += `- **${key.replace(/_/g, ' ')}:** disabled\n`;
         } else if (typeof val === 'object') {
-          const props = Object.entries(val).map(([k, v]) => `${k}: ${v}`).join(', ');
+          const props = Object.entries(val)
+            .filter(([k]) => k !== 'condition')
+            .map(([k, v]) => `${k}: ${v}`).join(', ');
           out += `- **${key.replace(/_/g, ' ')}:** ${props}\n`;
+          if (val.condition) {
+            out += `  - *Condition:* ${val.condition}\n`;
+          }
         }
+      }
+    }
+    if (cam.shake) {
+      out += `\n### Camera Shake\n`;
+      out += `- **Enabled:** ${cam.shake.enabled}\n`;
+      if (cam.shake.enabled) {
+        out += `- **Max Amplitude:** ${cam.shake.max_amplitude}\n`;
+        out += `- **Frequency Range:** ${cam.shake.frequency_range}\n`;
+        out += `- **Decay:** ${cam.shake.decay}\n`;
       }
     }
     if (cam.camera_speed_tiers) {
@@ -821,6 +878,13 @@ function handleRecommendChoreography(args) {
         }
       }
       out += '\n';
+      if (personality.camera_behavior?.ambient_motion) {
+        for (const [key, val] of Object.entries(personality.camera_behavior.ambient_motion)) {
+          if (typeof val === 'object' && val.condition) {
+            out += `> *${key.replace(/_/g, ' ')}:* ${val.condition}\n`;
+          }
+        }
+      }
     }
 
     // Companion entrance primitives
@@ -851,6 +915,9 @@ function handleRecommendChoreography(args) {
     // Framing
     out += `### Framing\n\n`;
     out += `- **Composition:** ${mapping.framing}\n`;
+    if (mapping.perspective_origin) {
+      out += `- **Perspective Origin:** \`${mapping.perspective_origin}\`\n`;
+    }
     if (subject_count && subject_count > 1) {
       out += `- **Multi-subject (${subject_count}):** Consider stagger offsets between subjects. `;
       if (personality.default_stagger) {
@@ -864,6 +931,181 @@ function handleRecommendChoreography(args) {
       out += `### Personality Constraints\n\n`;
       out += `${personality.camera_behavior.constraints}\n\n`;
     }
+  }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── validate_choreography ────────────────────────────────────────────────────
+
+/** Parse duration string like "1400ms", "6000ms loop", "800ms" → numeric ms */
+function parseDurationMs(str) {
+  if (!str) return null;
+  const match = str.match(/(\d+)\s*ms/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+function handleValidateChoreography(args) {
+  const { primitive_ids, personality: targetPersonality, intent: intentSlug, overrides } = args;
+
+  if (!primitive_ids || primitive_ids.length === 0) {
+    return {
+      content: [{ type: 'text', text: 'No primitive IDs provided. Supply at least one primitive to validate.' }],
+      isError: true,
+    };
+  }
+
+  const blocks = [];
+  const warnings = [];
+  const notes = [];
+
+  const boundaries = cameraGuardrails.personality_boundaries[targetPersonality];
+  const forbiddenFeatures = boundaries?.forbidden_features || [];
+
+  // ── Tier 1: BLOCK — Primitive existence ──────────────────────────────────
+  for (const id of primitive_ids) {
+    if (!registry.byId.has(id)) {
+      blocks.push(`**Unknown primitive:** \`${id}\` is not in the registry.`);
+    }
+  }
+
+  // ── Tier 2: BLOCK — Personality compatibility ────────────────────────────
+  for (const id of primitive_ids) {
+    const entry = registry.byId.get(id);
+    if (!entry) continue; // already caught above
+    const compatible = entry.personality.some(
+      p => p === targetPersonality || p === 'universal'
+    );
+    if (!compatible) {
+      blocks.push(`**Personality mismatch:** \`${id}\` supports [${entry.personality.join(', ')}], not ${targetPersonality}.`);
+    }
+  }
+
+  // ── Tier 3: BLOCK — Personality boundary enforcement ─────────────────────
+  for (const id of primitive_ids) {
+    const entry = registry.byId.get(id);
+    if (!entry) continue;
+    const amplitude = cameraGuardrails.primitive_amplitudes[id];
+
+    // 3D transforms check
+    if (forbiddenFeatures.includes('3d_transforms') && amplitude) {
+      if (amplitude.property === 'translateZ' || amplitude.property === 'rotateX' || amplitude.property === 'rotateY') {
+        blocks.push(`**Forbidden feature (3D):** \`${id}\` uses ${amplitude.property}, which is forbidden in ${targetPersonality}.`);
+      }
+    }
+
+    // Blur check
+    if (forbiddenFeatures.includes('blur') && amplitude) {
+      if (amplitude.property === 'blur') {
+        blocks.push(`**Forbidden feature (blur):** \`${id}\` uses blur, which is forbidden in ${targetPersonality}.`);
+      }
+    }
+    if (forbiddenFeatures.includes('blur_entrance') && amplitude) {
+      if (amplitude.property === 'blur') {
+        blocks.push(`**Forbidden feature (blur entrance):** \`${id}\` uses blur, which is forbidden in ${targetPersonality}.`);
+      }
+    }
+
+    // Camera movement check
+    if (forbiddenFeatures.includes('camera_movement') && amplitude) {
+      if (['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY'].includes(amplitude.property)) {
+        blocks.push(`**Forbidden feature (camera movement):** \`${id}\` uses ${amplitude.property}, which is forbidden in ${targetPersonality}.`);
+      }
+    }
+
+    // Camera shake check
+    if (forbiddenFeatures.includes('camera_shake') && id === 'ct-camera-shake') {
+      blocks.push(`**Forbidden feature (camera shake):** \`${id}\` is forbidden in ${targetPersonality}.`);
+    }
+  }
+
+  // ── Tier 4: WARN — Speed limits ──────────────────────────────────────────
+  const durationMultiplier = overrides?.duration_multiplier || 1;
+  for (const id of primitive_ids) {
+    const entry = registry.byId.get(id);
+    if (!entry) continue;
+    const amplitude = cameraGuardrails.primitive_amplitudes[id];
+    if (!amplitude) continue;
+
+    const durationMs = parseDurationMs(entry.duration);
+    if (!durationMs) continue;
+
+    const effectiveDurationMs = durationMs * durationMultiplier;
+    const effectiveDurationS = effectiveDurationMs / 1000;
+    const velocity = amplitude.max_displacement / effectiveDurationS;
+
+    // Map property to speed limit category
+    let limitKey = amplitude.property;
+    if (amplitude.property === 'scale' && amplitude.unit === 'percent') {
+      limitKey = 'scale_ambient';
+    }
+    const limit = cameraGuardrails.speed_limits[limitKey];
+    if (limit && velocity > limit.max_velocity) {
+      warnings.push(`**Speed exceeded:** \`${id}\` — ${amplitude.property} velocity ${velocity.toFixed(1)} ${amplitude.unit}/s exceeds limit of ${limit.max_velocity} ${limit.unit}.`);
+    }
+  }
+
+  // ── Tier 5: WARN — Lens bounds ───────────────────────────────────────────
+  if (overrides?.perspective != null) {
+    const bounds = cameraGuardrails.lens_bounds.perspective;
+    if (overrides.perspective < bounds.min || overrides.perspective > bounds.max) {
+      warnings.push(`**Perspective out of bounds:** ${overrides.perspective}px is outside [${bounds.min}–${bounds.max}]px range.`);
+    }
+  }
+  if (overrides?.max_blur != null) {
+    const bounds = cameraGuardrails.lens_bounds.blur;
+    if (overrides.max_blur < bounds.min || overrides.max_blur > bounds.max) {
+      warnings.push(`**Blur out of bounds:** ${overrides.max_blur}px is outside [${bounds.min}–${bounds.max}]px range.`);
+    }
+  }
+
+  // ── Tier 6: INFO — Intent cross-reference ────────────────────────────────
+  if (intentSlug) {
+    const mapping = intentMappings.byIntent.get(intentSlug);
+    if (mapping) {
+      if (!mapping.personality_support.includes(targetPersonality)) {
+        notes.push(`Intent \`${intentSlug}\` does not support ${targetPersonality}. Supported: ${mapping.personality_support.join(', ')}.`);
+      }
+      const expectedPrimitives = mapping.camera_primitives;
+      const missing = expectedPrimitives.filter(id => !primitive_ids.includes(id));
+      if (missing.length > 0) {
+        notes.push(`Intent \`${intentSlug}\` expects these camera primitives not in your plan: ${missing.map(id => `\`${id}\``).join(', ')}.`);
+      }
+    } else {
+      notes.push(`Intent \`${intentSlug}\` not found in intent mappings.`);
+    }
+  }
+
+  // ── Build output ─────────────────────────────────────────────────────────
+  const verdict = blocks.length > 0 ? 'BLOCK' : warnings.length > 0 ? 'WARN' : 'PASS';
+
+  let out = `# Choreography Validation: **${verdict}**\n\n`;
+  out += `**Personality:** ${targetPersonality}\n`;
+  out += `**Primitives:** ${primitive_ids.map(id => `\`${id}\``).join(', ')}\n`;
+  if (intentSlug) out += `**Intent:** ${intentSlug}\n`;
+  if (overrides) out += `**Overrides:** ${JSON.stringify(overrides)}\n`;
+  out += '\n';
+
+  if (blocks.length > 0) {
+    out += `## Blocking Violations (${blocks.length})\n\n`;
+    for (const b of blocks) out += `- ${b}\n`;
+    out += '\n';
+  }
+
+  if (warnings.length > 0) {
+    out += `## Warnings (${warnings.length})\n\n`;
+    for (const w of warnings) out += `- ${w}\n`;
+    out += '\n';
+  }
+
+  if (notes.length > 0) {
+    out += `## Notes (${notes.length})\n\n`;
+    for (const n of notes) out += `- ${n}\n`;
+    out += '\n';
+  }
+
+  if (verdict === 'PASS' && notes.length === 0) {
+    out += `All ${primitive_ids.length} primitives are compatible with ${targetPersonality}. No guardrail violations detected.\n`;
   }
 
   return { content: [{ type: 'text', text: out }] };

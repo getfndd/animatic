@@ -46,6 +46,11 @@ export function loadIntentMappings() {
   return { array: arr, byIntent };
 }
 
+/** Load catalog/camera-guardrails.json */
+export function loadCameraGuardrails() {
+  return loadJSON(resolve(CATALOG_DIR, 'camera-guardrails.json'));
+}
+
 // ── REGISTRY.md parser ──────────────────────────────────────────────────────
 
 /**

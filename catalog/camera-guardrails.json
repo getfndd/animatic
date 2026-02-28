@@ -1,0 +1,55 @@
+{
+  "speed_limits": {
+    "translateX": { "max_velocity": 400, "unit": "px/s" },
+    "translateY": { "max_velocity": 400, "unit": "px/s" },
+    "translateZ": { "max_velocity": 600, "unit": "px/s" },
+    "rotateX": { "max_velocity": 15, "unit": "deg/s" },
+    "rotateY": { "max_velocity": 15, "unit": "deg/s" },
+    "scale_ambient": { "max_velocity": 0.5, "unit": "percent/s" }
+  },
+  "acceleration": {
+    "deceleration_phase_minimum": 0.3,
+    "description": "Deceleration phase must be >= 30% of total duration"
+  },
+  "jerk": {
+    "settling_on_reversal_ms": 200,
+    "recommended_easing": "spring",
+    "description": "200ms settling period required on direction reversal"
+  },
+  "lens_bounds": {
+    "perspective": { "min": 400, "max": 2400, "default": 1200, "unit": "px" },
+    "scale": { "min": 0.95, "max": 1.05, "default": 1.0 },
+    "blur": { "min": 0, "max": 8, "default": 0, "unit": "px" },
+    "rotation": { "min": -20, "max": 20, "default": 0, "unit": "deg" }
+  },
+  "personality_boundaries": {
+    "editorial": {
+      "forbidden_features": ["3d_transforms", "blur_entrance", "camera_shake"],
+      "max_translateXY": 30,
+      "max_scale_change_percent": 1
+    },
+    "neutral-light": {
+      "forbidden_features": ["3d_transforms", "blur", "camera_movement", "parallax", "camera_shake"],
+      "max_ambient_scale_percent": 0.1,
+      "ambient_condition": "only for scenes >10s"
+    }
+  },
+  "primitive_amplitudes": {
+    "ct-camera-dolly":      { "property": "translateZ", "max_displacement": 200, "unit": "px" },
+    "ct-camera-pan":        { "property": "translateX", "max_displacement": 300, "unit": "px" },
+    "ct-camera-tilt":       { "property": "rotateX",    "max_displacement": 8,   "unit": "deg" },
+    "ct-camera-orbit":      { "property": "rotateY",    "max_displacement": 15,  "unit": "deg" },
+    "ct-camera-truck":      { "property": "translateX", "max_displacement": 250, "unit": "px" },
+    "ct-camera-pedestal":   { "property": "translateY", "max_displacement": 150, "unit": "px" },
+    "ct-camera-crane":      { "property": "translateY", "max_displacement": 180, "unit": "px" },
+    "ct-camera-arc":        { "property": "rotateY",    "max_displacement": 20,  "unit": "deg" },
+    "ct-camera-push-in":    { "property": "translateZ", "max_displacement": 120, "unit": "px" },
+    "ct-camera-pull-out":   { "property": "translateZ", "max_displacement": 150, "unit": "px" },
+    "ct-camera-rack-focus": { "property": "blur",       "max_displacement": 4,   "unit": "px" },
+    "ct-camera-handheld":   { "property": "translateX", "max_displacement": 1.2, "unit": "px" },
+    "ct-camera-shake":      { "property": "translateX", "max_displacement": 3,   "unit": "px" },
+    "ct-dolly-zoom":        { "property": "scale",      "max_displacement": 0.3, "unit": "ratio" },
+    "ed-camera-push-in":    { "property": "scale",      "max_displacement": 1,   "unit": "percent" },
+    "ed-camera-drift":      { "property": "translateX", "max_displacement": 0.5, "unit": "px" }
+  }
+}

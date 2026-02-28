@@ -8,10 +8,11 @@
     "parallax_layers": 3,
     "dof": "background-blur",
     "personality_support": ["cinematic-dark"],
-    "camera_primitives": ["ct-camera-dolly", "ct-camera-crane"],
+    "camera_primitives": ["ct-camera-dolly", "ct-camera-crane", "ct-dolly-zoom"],
     "ambient_primitives": ["ct-scene-breathe", "ct-element-float"],
     "companion_entrance": ["cd-focus-stagger"],
-    "framing": "rule-of-thirds-center"
+    "framing": "rule-of-thirds-center",
+    "perspective_origin": "50% 40%"
   },
   {
     "intent": "build-tension",
@@ -22,10 +23,11 @@
     "parallax_layers": 2,
     "dof": "rack-to-subject",
     "personality_support": ["cinematic-dark"],
-    "camera_primitives": ["ct-camera-push-in", "ct-camera-handheld"],
+    "camera_primitives": ["ct-camera-push-in", "ct-camera-handheld", "ct-camera-shake"],
     "ambient_primitives": ["ct-scene-breathe"],
     "companion_entrance": ["cd-focus-stagger"],
-    "framing": "center-weighted"
+    "framing": "center-weighted",
+    "perspective_origin": "50% 50%"
   },
   {
     "intent": "power-authority",
@@ -39,7 +41,8 @@
     "camera_primitives": ["ct-camera-push-in", "ct-camera-tilt"],
     "ambient_primitives": ["ct-element-float"],
     "companion_entrance": ["cd-focus-stagger"],
-    "framing": "low-angle-center"
+    "framing": "low-angle-center",
+    "perspective_origin": "50% 70%"
   },
   {
     "intent": "intimacy",
@@ -53,7 +56,8 @@
     "camera_primitives": ["ct-camera-push-in"],
     "ambient_primitives": ["ct-scene-breathe"],
     "companion_entrance": ["cd-focus-stagger", "ed-slide-stagger"],
-    "framing": "tight-center"
+    "framing": "tight-center",
+    "perspective_origin": "50% 50%"
   },
   {
     "intent": "calm-overview",
@@ -67,7 +71,8 @@
     "camera_primitives": ["ct-ambient-drift"],
     "ambient_primitives": ["ct-scene-breathe", "ed-scene-breathe"],
     "companion_entrance": ["cd-focus-stagger", "ed-slide-stagger"],
-    "framing": "centered-balanced"
+    "framing": "centered-balanced",
+    "perspective_origin": "50% 50%"
   },
   {
     "intent": "energetic-fast",
@@ -81,7 +86,8 @@
     "camera_primitives": ["ct-camera-truck", "ct-camera-pan"],
     "ambient_primitives": ["ct-element-float"],
     "companion_entrance": ["cd-focus-stagger"],
-    "framing": "dynamic-offset"
+    "framing": "dynamic-offset",
+    "perspective_origin": "30% 40%"
   },
   {
     "intent": "content-focus",
@@ -95,7 +101,8 @@
     "camera_primitives": ["ed-camera-push-in"],
     "ambient_primitives": ["ed-scene-breathe"],
     "companion_entrance": ["ed-slide-stagger"],
-    "framing": "content-centered"
+    "framing": "content-centered",
+    "perspective_origin": "50% 50%"
   },
   {
     "intent": "tutorial-guidance",
@@ -109,7 +116,8 @@
     "camera_primitives": [],
     "ambient_primitives": [],
     "companion_entrance": ["nl-spotlight", "nl-cursor-to", "nl-step-progress"],
-    "framing": "attention-directed"
+    "framing": "attention-directed",
+    "perspective_origin": "50% 50%"
   },
   {
     "intent": "product-showcase",
@@ -123,7 +131,8 @@
     "camera_primitives": ["ct-camera-orbit", "ct-camera-dolly"],
     "ambient_primitives": ["ct-scene-breathe", "ct-element-float"],
     "companion_entrance": ["cd-focus-stagger"],
-    "framing": "showcase-center"
+    "framing": "showcase-center",
+    "perspective_origin": "50% 40%"
   },
   {
     "intent": "editorial-reveal",
@@ -137,7 +146,8 @@
     "camera_primitives": ["ed-camera-push-in", "ed-camera-drift"],
     "ambient_primitives": ["ed-scene-breathe"],
     "companion_entrance": ["ed-slide-stagger", "ed-blur-reveal"],
-    "framing": "editorial-grid"
+    "framing": "editorial-grid",
+    "perspective_origin": "50% 50%"
   },
   {
     "intent": "resolution",
@@ -151,6 +161,7 @@
     "camera_primitives": ["ct-camera-pull-out"],
     "ambient_primitives": ["ct-scene-breathe"],
     "companion_entrance": [],
-    "framing": "wide-pull-back"
+    "framing": "wide-pull-back",
+    "perspective_origin": "50% 50%"
   }
 ]

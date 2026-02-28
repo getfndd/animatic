@@ -380,6 +380,9 @@ class NeutralLightEngine {
       el.classList.remove('connected');
     });
 
+    // Action area highlights
+    this.$$('.action-area').forEach(el => el.classList.remove('highlighted'));
+
     // CTA glow
     this.$$('.btn').forEach(el => el.classList.remove('cta-glow'));
 
@@ -548,6 +551,9 @@ class NeutralLightEngine {
     // Small delay for fonts to load
     setTimeout(() => {
       this.measurePhases();
+      // Trigger phase 0 callback (initial entrance animations)
+      const callback = this.phaseCallbacks[0];
+      if (callback) callback(this);
       setTimeout(() => this.scheduleNext(), 400);
     }, 150);
   }

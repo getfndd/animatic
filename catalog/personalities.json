@@ -32,8 +32,49 @@
     "default_stagger": "180ms",
     "default_entrance": "cd-focus-stagger",
     "default_exit": "fade-out",
+    "camera_behavior": {
+      "enabled": true,
+      "mode": "full-3d",
+      "perspective": "1200px",
+      "perspective_origin": "50% 40%",
+      "allowed_movements": ["dolly", "truck", "pedestal", "pan", "tilt", "orbit", "arc", "crane", "push-in", "pull-out", "rack-focus", "handheld"],
+      "parallax": {
+        "enabled": true,
+        "mode": "3d-translateZ",
+        "max_layers": 4,
+        "intensity": "full",
+        "depth_range": "-800px to 0"
+      },
+      "depth_of_field": {
+        "enabled": true,
+        "max_blur": "12px",
+        "entrance_blur": true,
+        "rack_focus": true,
+        "ambient_blur": "4px"
+      },
+      "ambient_motion": {
+        "scene_breathe": { "scale": "0.4%", "duration": "8000ms" },
+        "drift": { "amplitude": "1.5px", "duration": "12000ms" },
+        "element_float": { "amplitude": "5px", "duration": "6000ms" },
+        "push_in": { "scale": "1.5%", "duration": "6000ms" }
+      },
+      "shake": {
+        "enabled": true,
+        "max_amplitude": "3px",
+        "frequency_range": "0.5-2Hz",
+        "decay": "exponential"
+      },
+      "camera_speed_tiers": {
+        "fast": "400-600ms",
+        "medium": "800-1200ms",
+        "slow": "1400-2000ms",
+        "spring": "1200ms"
+      },
+      "camera_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "recommended_primitives": ["ct-camera-dolly", "ct-camera-orbit", "ct-camera-crane", "ct-camera-push-in", "ct-camera-rack-focus", "ct-camera-handheld", "ct-scene-breathe", "ct-ambient-drift", "ct-element-float", "ct-slow-push"]
+    },
     "is_active": true,
-    "ai_guidance": "Use for dramatic product demos, landing page embeds, and marketing films. Features 3D camera perspective (1200px), clip-path wipe transitions, focus-pull blur entrances, and 4-tier speed hierarchy (fast/medium/slow/spring). Inky dark palette with Tailwind 100-shade pastel accents. Never use for tutorials or micro-interactions."
+    "ai_guidance": "Use for dramatic product demos, landing page embeds, and marketing films. Features 3D camera perspective (1200px), clip-path wipe transitions, focus-pull blur entrances, and 4-tier speed hierarchy (fast/medium/slow/spring). Full camera system: dolly, orbit, crane, rack focus, handheld drift, parallax (3+ layers), DOF blur, ambient breathing/drift. Inky dark palette with Tailwind 100-shade pastel accents. Never use for tutorials or micro-interactions."
   },
   {
     "name": "Editorial",
@@ -67,8 +108,40 @@
     "default_stagger": "120ms",
     "default_entrance": "ed-slide-stagger",
     "default_exit": "fade-out",
+    "camera_behavior": {
+      "enabled": true,
+      "mode": "2d-only",
+      "perspective": "none",
+      "allowed_movements": ["push-in", "drift"],
+      "forbidden_movements": ["dolly", "orbit", "pan", "tilt", "crane", "arc", "handheld", "rack-focus"],
+      "parallax": {
+        "enabled": true,
+        "mode": "2d-speed-differential",
+        "max_layers": 3,
+        "intensity": "subtle",
+        "offset_range": "20-60px"
+      },
+      "depth_of_field": {
+        "enabled": false,
+        "alternative": "opacity-and-contrast reduction on background layers"
+      },
+      "ambient_motion": {
+        "scene_breathe": { "scale": "0.2%", "duration": "10000ms" },
+        "drift": { "amplitude": "0.5px", "duration": "12000ms" },
+        "push_in": { "scale": "0.5-1%", "duration": "6000-8000ms" }
+      },
+      "shake": { "enabled": false },
+      "camera_speed_tiers": {
+        "fast": "300-400ms",
+        "medium": "500-700ms",
+        "slow": "800-1200ms"
+      },
+      "camera_easing": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+      "recommended_primitives": ["ed-camera-push-in", "ed-camera-drift", "ed-scene-breathe", "ct-slow-push"],
+      "constraints": "2D translate and scale ONLY. No rotateX, rotateY, translateZ, perspective, filter:blur() on entrances. Max translateX/Y: 30px. Max scale change: 1%."
+    },
     "is_active": true,
-    "ai_guidance": "Use for content-forward product showcases, feature pages, and data visualization reveals. Animation serves the content rather than framing it. No 3D perspective, no clip-path wipes, no spring physics. Uses opacity crossfade for phase transitions, slide+fade (translateY) for entrances. Content cycling is the signature effect. Stone palette with blue/green accents."
+    "ai_guidance": "Use for content-forward product showcases, feature pages, and data visualization reveals. Animation serves the content rather than framing it. No 3D perspective, no clip-path wipes, no spring physics. Uses opacity crossfade for phase transitions, slide+fade (translateY) for entrances. Content cycling is the signature effect. Camera: 2D only — subtle push-in (max 1% scale), ambient drift (max 0.5px), speed-differential parallax (no Z-depth). Depth via opacity/contrast, never blur. Stone palette with blue/green accents."
   },
   {
     "name": "Neutral Light",
@@ -102,7 +175,25 @@
     "default_stagger": "150ms",
     "default_entrance": "nl-slide-stagger",
     "default_exit": "fade-out",
+    "camera_behavior": {
+      "enabled": false,
+      "mode": "attention-direction",
+      "perspective": "none",
+      "allowed_movements": [],
+      "forbidden_movements": ["dolly", "truck", "pedestal", "pan", "tilt", "orbit", "arc", "crane", "push-in", "pull-out", "rack-focus", "handheld"],
+      "parallax": { "enabled": false },
+      "depth_of_field": { "enabled": false },
+      "ambient_motion": {
+        "scene_breathe": { "scale": "0.1%", "duration": "12000ms", "condition": "only for scenes >10s" },
+        "drift": { "enabled": false },
+        "push_in": { "enabled": false }
+      },
+      "shake": { "enabled": false },
+      "attention_primitives": ["nl-spotlight", "nl-cursor-to", "nl-step-progress", "nl-tooltip"],
+      "recommended_primitives": ["nl-scene-breathe"],
+      "constraints": "No camera movement of any kind. Use attention-direction primitives (spotlight, cursor, step indicators) to guide viewer focus. Near-zero ambient breathing only for long-running scenes. Stillness equals clarity."
+    },
     "is_active": true,
-    "ai_guidance": "Use for onboarding tutorials, help documentation, changelog introductions, and internal reviews. Features spotlight highlights, cursor simulation, step indicators, and positioned tooltips. No blur effects — tutorials should feel sharp and clear from frame 1. No 3D perspective, no spring physics. Light stone palette. Architecturally: editorial choreography + tutorial primitives + light mode colors."
+    "ai_guidance": "Use for onboarding tutorials, help documentation, changelog introductions, and internal reviews. Features spotlight highlights, cursor simulation, step indicators, and positioned tooltips. No blur effects — tutorials should feel sharp and clear from frame 1. No 3D perspective, no spring physics, no camera movement. Camera replaced by attention-direction: spotlight, cursor, step indicators. Near-zero ambient breathing only for scenes >10s. Light stone palette. Architecturally: editorial choreography + tutorial primitives + light mode colors."
   }
 ]

@@ -1,63 +1,20 @@
 /* ================================================================
-   CINEMATIC DARK THEME — Animatic
+   CINEMATIC PERSONALITY — Animation Classes, Keyframes, Timing
 
-   Dark mode tokens + cinematic animation CSS.
-   Import this into any autoplay prototype to get the cinematic-dark
-   visual treatment: 3D perspective, clip-path wipes, focus-pull
-   entrances, spring interactions, and self-drawing SVG checkmarks.
+   Mode-independent motion layer. Load a mode file for colors:
+     modes/dark.css  — inky palette for landing pages
+     modes/light.css — light palette for in-app embeds (future)
 
    Reference: autoplay-v4.html (Data Room Upload prototype)
    ================================================================ */
 
 /* ================================================================
-   LAYER 1: DESIGN TOKENS
+   LAYER 1: MOTION TOKENS
 
-   ITO inky palette + Tailwind 100-shade pastels.
-   These tokens are the ONLY colors allowed in this theme.
-   No arbitrary hex values outside this block.
+   Easing curves and timing hierarchy — same across light/dark.
+   Color tokens live in modes/dark.css or modes/light.css.
    ================================================================ */
 :root {
-  /* ---- Surfaces (Inky Palette) ---- */
-  --cd-bg-body: #1a1a1a;                 /* inky-900 */
-  --cd-surface-card: #262626;             /* inky-800 */
-  --cd-surface-glass: rgba(64,64,64,0.5); /* inky-700 at 50% */
-  --cd-surface-glass-hover: #4d4d4d;      /* inky-600 */
-
-  /* ---- Text (Stone) ---- */
-  --cd-text-primary: #ffffff;
-  --cd-text-secondary: #e7e5e4;           /* stone-200 */
-  --cd-text-tertiary: #c7c4c0;            /* stone-300 */
-  --cd-text-quaternary: #a8a29e;           /* stone-400 */
-
-  /* ---- Borders (Inky) ---- */
-  --cd-border-subtle: #404040;             /* inky-700 */
-  --cd-border-medium: #666666;             /* inky-500 */
-  --cd-border-dashed: #404040;             /* inky-700 */
-  --cd-border-active: #bfdbfe;             /* blue-200 */
-
-  /* ---- Accent Pastels (Tailwind 100-shade) ---- */
-  --cd-success: #d1fae5;                  /* emerald-100 */
-  --cd-success-dim: rgba(209,250,229,0.12);
-  --cd-accent: #dbeafe;                   /* blue-100 */
-  --cd-accent-dim: rgba(219,234,254,0.10);
-  --cd-processing: #fef3c7;               /* amber-100 */
-  --cd-processing-glow: rgba(254,243,199,0.08);
-  --cd-intelligence: #dbeafe;              /* blue-100 */
-
-  /* ---- Category Pastels (100-shade + 800-shade text) ---- */
-  --cd-cat-financials-bg: #fef3c7;         /* amber-100 */
-  --cd-cat-financials-text: #92400e;       /* amber-800 */
-  --cd-cat-fundraising-bg: #ede9fe;        /* violet-100 */
-  --cd-cat-fundraising-text: #5b21b6;      /* violet-800 */
-  --cd-cat-legal-bg: #dbeafe;             /* blue-100 */
-  --cd-cat-legal-text: #1e40af;           /* blue-800 */
-  --cd-cat-operations-bg: #d1fae5;         /* emerald-100 */
-  --cd-cat-operations-text: #065f46;       /* emerald-800 */
-  --cd-cat-governance-bg: #fce7f3;         /* pink-100 */
-  --cd-cat-governance-text: #9d174d;       /* pink-800 */
-  --cd-cat-team-bg: #ccfbf1;              /* teal-100 */
-  --cd-cat-team-text: #115e59;            /* teal-800 */
-
   /* ---- Easing ---- */
   --cd-spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50%, 1.015 55%, 1.017 63.9%, 1.001 85.6%, 1);
   --cd-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -71,10 +28,6 @@
   --cd-slow: 700ms;       /* container height, staggers */
   --cd-spring-dur: 1100ms; /* button spring interactions */
   --cd-spring-dur-gentle: 1350ms; /* drop zone interactions */
-
-  /* ---- Shadows ---- */
-  --cd-shadow-card: 0 4px 16px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.15);
-  --cd-shadow-playback: 0 8px 32px rgba(0,0,0,0.3);
 }
 
 

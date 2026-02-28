@@ -1,0 +1,233 @@
+/* ================================================================
+   TUTORIAL PRIMITIVES — CSS
+
+   Styles for tutorial animation primitives: spotlight overlay,
+   cursor simulation, step indicators, and positioned tooltips.
+
+   Composable with any personality. Import alongside the personality's
+   motion.css file:
+
+     <link rel="stylesheet" href="personalities/editorial/motion.css">
+     <link rel="stylesheet" href="primitives/tutorial/tutorial.css">
+
+   These styles reference CSS custom properties from the host
+   personality (e.g. --nl-accent, --nl-medium). Override as needed.
+   ================================================================ */
+
+
+/* ================================================================
+   SPOTLIGHT OVERLAY
+
+   Semi-transparent overlay with a cutout around the target element.
+   The cutout is positioned via inline styles set by JS.
+   ================================================================ */
+.spotlight-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  opacity: 0;
+  transition: opacity var(--nl-medium, 350ms) var(--nl-ease-out, ease-out);
+  pointer-events: none;
+  border-radius: 16px;
+}
+.spotlight-overlay.active {
+  opacity: 1;
+}
+
+/* Spotlight cutout — uses box-shadow to create the dimming effect
+   with a transparent center. Position via inline styles on the child. */
+.spotlight-cutout {
+  position: absolute;
+  border-radius: 12px;
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.06);
+  border: 2px solid var(--nl-accent, #3b82f6);
+  transition: all var(--nl-medium, 350ms) var(--nl-ease-out, ease-out);
+}
+
+
+/* ================================================================
+   TUTORIAL CURSOR
+
+   SVG arrow cursor that animates to target positions.
+   Simulates a user clicking on highlighted elements.
+   ================================================================ */
+.tutorial-cursor {
+  position: absolute;
+  z-index: 20;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  transition: left var(--nl-slow, 550ms) var(--nl-ease-out, ease-out),
+              top var(--nl-slow, 550ms) var(--nl-ease-out, ease-out),
+              opacity var(--nl-fast, 180ms) ease;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+.tutorial-cursor.visible {
+  opacity: 1;
+}
+
+/* Cursor click pulse */
+@keyframes cursor-click {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.85); }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.tutorial-cursor.clicking {
+  animation: cursor-click 400ms var(--nl-ease-out, ease-out) forwards;
+}
+
+
+/* ================================================================
+   STEP INDICATORS
+
+   Numbered horizontal dots with connector lines.
+   Shows progress through a multi-step tutorial.
+   ================================================================ */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 4px;
+  margin-bottom: 20px;
+}
+
+.step-indicator-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.step-indicator-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--nl-surface-secondary, #f5f5f4);
+  border: 2px solid var(--nl-border-medium, #d6d3d1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--nl-text-quaternary, #a8a29e);
+  transition: all var(--nl-medium, 350ms) var(--nl-ease-out, ease-out);
+}
+
+.step-indicator-dot.active {
+  background: var(--nl-accent-bg, #eff6ff);
+  border-color: var(--nl-accent, #3b82f6);
+  color: var(--nl-accent, #3b82f6);
+}
+
+.step-indicator-dot.done {
+  background: var(--nl-success, #16a34a);
+  border-color: var(--nl-success, #16a34a);
+  color: white;
+}
+
+/* Scale pop when transitioning to done */
+@keyframes step-done-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.step-indicator-dot.pop {
+  animation: step-done-pop 400ms var(--nl-ease-out, ease-out) forwards;
+}
+
+.step-indicator-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--nl-text-quaternary, #a8a29e);
+  white-space: nowrap;
+  transition: color var(--nl-medium, 350ms) ease;
+}
+
+.step-indicator-label.active {
+  color: var(--nl-accent-text, #1d4ed8);
+}
+
+.step-indicator-label.done {
+  color: var(--nl-text-tertiary, #78716c);
+}
+
+.step-indicator-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--nl-border-medium, #d6d3d1);
+  margin: 0 8px;
+  position: relative;
+  overflow: hidden;
+  align-self: flex-start;
+  margin-top: 11px; /* center with 24px dot */
+}
+
+.step-indicator-connector-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0%;
+  background: var(--nl-success, #16a34a);
+  transition: width var(--nl-medium, 350ms) var(--nl-ease-out, ease-out);
+}
+
+.step-indicator-connector.connected .step-indicator-connector-fill {
+  width: 100%;
+}
+
+
+/* ================================================================
+   TOOLTIP CALLOUT
+
+   Positioned tooltip box with arrow.
+   Used to explain what a UI element does.
+   ================================================================ */
+.tutorial-tooltip {
+  position: absolute;
+  z-index: 15;
+  background: var(--nl-surface-card, #ffffff);
+  border: 1px solid var(--nl-border-medium, #d6d3d1);
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: var(--nl-shadow-tooltip, 0 2px 8px rgba(0,0,0,0.1));
+  max-width: 220px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--nl-medium, 350ms) var(--nl-ease-out, ease-out),
+              transform var(--nl-medium, 350ms) var(--nl-ease-out, ease-out);
+  pointer-events: none;
+}
+.tutorial-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tutorial-tooltip-text {
+  font-size: 0.75rem;
+  color: var(--nl-text-secondary, #44403c);
+  line-height: 1.5;
+}
+
+/* Arrow pointing up */
+.tutorial-tooltip-arrow {
+  position: absolute;
+  top: -6px;
+  left: 20px;
+  width: 10px;
+  height: 10px;
+  background: var(--nl-surface-card, #ffffff);
+  border-left: 1px solid var(--nl-border-medium, #d6d3d1);
+  border-top: 1px solid var(--nl-border-medium, #d6d3d1);
+  transform: rotate(45deg);
+}
+
+/* Arrow pointing down (for tooltips above target) */
+.tutorial-tooltip.above .tutorial-tooltip-arrow {
+  top: auto;
+  bottom: -6px;
+  transform: rotate(225deg);
+}

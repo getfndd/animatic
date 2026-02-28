@@ -1,6 +1,6 @@
-# Cinematic Dark Theme
+# Cinematic Personality
 
-Immersive, inky-palette dark environment with 3D perspective, clip-path wipes, focus-pull entrances, and spring physics interactions. Designed for high-impact feature demos, landing page embeds, and product marketing.
+Immersive 3D perspective with clip-path wipes, focus-pull entrances, and spring physics interactions. Designed for high-impact feature demos, landing page embeds, and product marketing. Supports dark mode (inky palette) and light mode (future).
 
 ## When to Use
 
@@ -9,18 +9,19 @@ Immersive, inky-palette dark environment with 3D perspective, clip-path wipes, f
 | Feature highlight demos (landing page embeds) | **Perfect** |
 | Product walkthrough / marketing films | **Perfect** |
 | Investor presentation demos | **Good** |
-| Internal prototype reviews | Acceptable (prefer light theme for speed) |
-| Onboarding / tutorial | Not ideal (too cinematic, use neutral theme) |
+| Internal prototype reviews | Acceptable (prefer light mode for speed) |
+| Onboarding / tutorial | Not ideal (too cinematic, use editorial + tutorial primitives) |
 | Status indicators / micro-interactions | Wrong tool |
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `theme.css` | All tokens, component classes, keyframes, and layout |
+| `motion.css` | Animation classes, keyframes, easing, timing (mode-independent) |
+| `modes/dark.css` | Dark mode color tokens (surfaces, text, borders, accents, shadows) |
 | `engine.js` | Reusable `CinematicDarkEngine` class (playback, transitions, animation primitives) |
 | `reference.html` | Canonical reference prototype (Data Room Upload v4) |
-| `THEME.md` | This document |
+| `PERSONALITY.md` | This document |
 
 ## Color Rules
 
@@ -136,7 +137,7 @@ Use `data-focus-group` attribute and `engine.runFocusStagger()` for staggered re
 
 ### Do
 
-- Use only tokens from `theme.css` — all colors are prefixed `--cd-`
+- Use only tokens from `motion.css` + `modes/dark.css` — all colors are prefixed `--cd-`
 - Maintain 4-tier speed hierarchy in every transition
 - Use clip-path wipes for phase transitions (not opacity fades)
 - Use focus-pull for row/card entrances (not slide-up)
@@ -152,19 +153,19 @@ Use `data-focus-group` attribute and `engine.runFocusStagger()` for staggered re
 - Use arbitrary hex colors — everything comes from the token system
 - Use opacity fades for phase body transitions (use clip-path)
 - Make all elements transition at the same speed (breaks hierarchy)
-- Skip the camera motion (3D perspective is core to the theme identity)
-- Use the theme for micro-interactions or status badges (wrong scope)
+- Skip the camera motion (3D perspective is core to the personality identity)
+- Use this personality for micro-interactions or status badges (wrong scope)
 
 ## Decision Tree
 
 ```
 Is this a multi-phase product demo?
-├── YES → Use cinematic-dark
+├── YES → Use cinematic
 │   ├── Does it have 3+ phases? → Full engine with playback controls
 │   ├── Does it have 1-2 phases? → Simplified engine (no progress dots)
 │   └── Is it for landing page? → Add ?embed mode, hide controls
 └── NO
-    ├── Is it a tutorial/onboarding? → Use neutral theme (TBD)
+    ├── Is it a tutorial/onboarding? → Use neutral-light personality
     ├── Is it a status/loading indicator? → Use micro-interaction (TBD)
     └── Is it a brand/marketing animation? → Evaluate case-by-case
 ```
@@ -173,7 +174,7 @@ Is this a multi-phase product demo?
 
 To add new folder/badge categories:
 
-1. Add CSS variables to `theme.css` `:root`:
+1. Add CSS variables to `modes/dark.css` `:root`:
    ```css
    --cd-cat-newcat-bg: #Tailwind-100;
    --cd-cat-newcat-text: #Tailwind-800;

@@ -29,7 +29,7 @@ Each skill is independent — you can enter the pipeline at any point. `/prototy
 1. BUILD         /prototype "feature description"
                  → prototypes/{date}-{name}/concept-v1.html
 
-2. THEME         /animate <path> --theme cinematic-dark
+2. ANIMATE       /animate <path> --personality cinematic
                  → prototypes/{date}-{name}/autoplay-v1.html
 
 3. REVIEW        @maya animate review prototypes/{date}-{name}/autoplay-v1.html
@@ -44,42 +44,42 @@ Each skill is independent — you can enter the pipeline at any point. `/prototy
                  social/ for social media, email/ for campaigns
 ```
 
-## Theme Selection Guide
+## Personality Selection Guide
 
-Choose a theme based on the animation's purpose and audience:
+Choose a personality based on the animation's purpose and audience:
 
 ```
 What are you building?
 ├── Marketing demo / landing page hero
-│   └── cinematic-dark (3D perspective, clip-path wipes, spring physics)
+│   └── cinematic (3D perspective, clip-path wipes, spring physics)
+├── Product showcase / content tool demo
+│   └── editorial (content-forward, crossfade, content cycling)
 ├── Onboarding tutorial / help documentation
 │   └── neutral-light (spotlight, cursor sim, step indicators, gentle transitions)
 ├── Internal review / quick iteration
-│   └── default (light UI, fade+translate, no theme files)
-├── Data visualization / dashboard
-│   └── dashboard (planned)
+│   └── default (light UI, fade+translate, no personality files)
 └── Brand campaign / launch event
-    └── brand-campaign (planned)
+    └── montage (planned)
 ```
 
-| Theme | Best For | Transitions | Entrances | Camera |
-|-------|----------|-------------|-----------|--------|
-| `cinematic-dark` | Marketing, investor decks | Clip-path wipes | Focus-pull (blur→sharp) | 3D perspective |
+| Personality | Best For | Transitions | Entrances | Camera |
+|-------------|----------|-------------|-----------|--------|
+| `cinematic` | Marketing, investor decks | Clip-path wipes | Focus-pull (blur→sharp) | 3D perspective |
+| `editorial` | Product showcases, content tools | Opacity crossfade | Slide+fade (translateY) | None (flat) |
 | `neutral-light` | Tutorials, onboarding, docs | Opacity crossfade | Slide+fade (translateY) | None (flat) |
 | `default` | Internal reviews | Opacity fade | Translate | None |
 
 ## Three-Layer Architecture
 
-Every themed animation separates concerns into three independent layers:
+Every personality-driven animation separates concerns into three independent layers:
 
 ```
 ┌─────────────────────────────────────┐
-│  THEME                               │
-│  Visual identity: colors, shadows,   │
-│  radii, typography, camera angles    │
-│                                      │
-│  THEME.md — rules & decision tree    │
-│  theme.css — design tokens + classes │
+│  PERSONALITY + MODE                  │
+│  Animation behavior + colors:        │
+│  motion.css — animation classes      │
+│  modes/dark.css — color tokens       │
+│  PERSONALITY.md — rules & decisions  │
 ├─────────────────────────────────────┤
 │  ENGINE                              │
 │  Mechanics: phase transitions,       │
@@ -96,7 +96,7 @@ Every themed animation separates concerns into three independent layers:
 └─────────────────────────────────────┘
 ```
 
-**Theme** changes when the visual identity evolves. **Engine** changes when new animation capabilities are needed. **Content** changes for every new prototype.
+**Personality** changes when animation behavior evolves. **Mode** changes when color context changes (light/dark). **Engine** changes when new capabilities are needed. **Content** changes for every new prototype.
 
 ## File Structure
 
@@ -108,23 +108,33 @@ Every themed animation separates concerns into three independent layers:
 │   ├── spring-physics.md             # Spring recipes + icon wiggle
 │   ├── industry-references.md        # Gold-standard products
 │   └── cinematic-techniques-research.md
-└── themes/
-    ├── cinematic-dark/
-    │   ├── THEME.md                  # Rules, do/don't, decision tree
-    │   ├── theme.css                 # Tokens + component classes
-    │   ├── engine.js                 # CinematicDarkEngine class
-    │   └── reference.html            # Canonical example
-    └── neutral-light/
-        ├── THEME.md                  # Rules, do/don't, decision tree
-        ├── theme.css                 # Tokens + component classes
-        ├── engine.js                 # NeutralLightEngine class
-        └── reference.html            # Canonical example
+├── personalities/
+│   ├── cinematic/
+│   │   ├── PERSONALITY.md            # Rules, do/don't, decision tree
+│   │   ├── motion.css                # Animation classes, keyframes, timing
+│   │   ├── modes/dark.css            # Dark mode color tokens
+│   │   ├── engine.js                 # CinematicDarkEngine class
+│   │   └── reference.html            # Canonical example
+│   ├── editorial/
+│   │   ├── PERSONALITY.md            # Rules, choreography, do/don't
+│   │   ├── motion.css                # Tokens + animation classes
+│   │   ├── engine.js                 # EditorialEngine class
+│   │   └── reference.html            # Canonical example
+│   └── neutral-light/
+│       ├── PERSONALITY.md            # Rules, do/don't, decision tree
+│       ├── motion.css                # Tokens + component classes
+│       └── engine.js                 # NeutralLightEngine class
+└── primitives/
+    └── tutorial/                     # Composable tutorial primitives
+        ├── tutorial-primitives.js
+        ├── tutorial.css
+        └── README.md
 
 scripts/
 └── capture-prototype.mjs             # Puppeteer + ffmpeg capture pipeline
 
 docs/design-patterns/
-└── motion-design-system.md           # Taxonomy, principles, theme roadmap
+└── motion-design-system.md           # Taxonomy, principles, personality roadmap
 ```
 
 ## Common Workflows
@@ -137,8 +147,8 @@ Quick path for a landing page hero animation:
 # 1. Prototype the feature
 /prototype "data room upload with AI rename" --fidelity concept
 
-# 2. Animate with cinematic theme
-/animate prototypes/2026-02-19-dataroom-upload/concept-v1.html --theme cinematic-dark
+# 2. Animate with cinematic personality
+/animate prototypes/2026-02-19-dataroom-upload/concept-v1.html --personality cinematic
 
 # 3. Review quality
 @maya animate review prototypes/2026-02-19-dataroom-upload/autoplay-v1.html
@@ -155,8 +165,8 @@ Step-by-step guide with spotlight and cursor simulation:
 # 1. Prototype the flow
 /prototype "data room setup onboarding" --fidelity concept
 
-# 2. Animate with neutral-light theme
-/animate prototypes/2026-02-21-dataroom-onboarding/concept-v1.html --theme neutral-light
+# 2. Animate with neutral-light personality
+/animate prototypes/2026-02-21-dataroom-onboarding/concept-v1.html --personality neutral-light
 
 # 3. Review
 @maya animate review prototypes/2026-02-21-dataroom-onboarding/autoplay-v1.html
@@ -170,7 +180,7 @@ Step-by-step guide with spotlight and cursor simulation:
 Fast iteration without theme overhead:
 
 ```bash
-# Animate with default theme (no --theme flag)
+# Animate with default personality (no --personality flag)
 /animate prototypes/2026-02-21-settings-page/concept-v1.html
 
 # Preview in browser — no capture needed

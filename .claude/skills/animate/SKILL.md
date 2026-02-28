@@ -15,7 +15,8 @@ Transform interactive prototypes into polished, self-running animated demos that
 ```
 /animate <prototype-path> [options]
   --mode autoplay|capture|all (default: autoplay)
-  --theme default|cinematic-dark (default: default)
+  --personality default|cinematic|editorial (default: default)
+  --color-mode light|dark (default: inferred from personality)
   --format webm|mp4|av1|hevc|prores|gif|all (default: webm)
   --width 800 (viewport width)
   --fps 30 (frames per second)
@@ -39,25 +40,28 @@ Transform interactive prototypes into polished, self-running animated demos that
 | `capture` | Record an existing autoplay prototype to video (WebM/MP4/GIF) |
 | `all` | Generate autoplay + capture all formats |
 
-### Themes (Personality + Mode)
+### Personalities
 
-> **Architecture direction:** Themes are evolving to separate *personality* (animation behavior) from *mode* (light/dark colors). Current `--theme cinematic-dark` combines both. Future: `--personality cinematic --mode dark`. See `docs/design-patterns/motion-design-system.md` for the full personality roadmap.
+Personalities define *how things move* (animation behavior), independent of color mode (light/dark). Use `--personality` to select, `--color-mode` to override the default color scheme. See `docs/design-patterns/motion-design-system.md` for the full personality roadmap.
 
-| Theme | Visual | Best For |
-|-------|--------|----------|
+> **Deprecated:** `--theme cinematic-dark` still works as an alias for `--personality cinematic --color-mode dark`. Prefer the new flags.
+
+| Personality | Visual | Best For |
+|-------------|--------|----------|
 | `default` | Light UI, ITO design system colors, fade+translate transitions | Internal reviews, quick iteration |
-| `cinematic-dark` | Inky palette, 3D perspective, clip-path wipes, focus-pull entrances | Landing pages, marketing demos, investor presentations |
+| `cinematic` | 3D perspective, clip-path wipes, focus-pull entrances, spring physics | Landing pages, marketing demos, investor presentations |
 | `editorial` | Content-forward, crossfade transitions, slide+fade staggers, content cycling | Product showcases, content tools, visual search demos |
 
-When `--theme cinematic-dark` is specified:
+When `--personality cinematic` is specified:
 
-1. **Load theme files** from `.claude/skills/animate/themes/cinematic-dark/`:
-   - `theme.css` — all tokens (prefixed `--cd-`), component classes, keyframes
+1. **Load personality files** from `.claude/skills/animate/personalities/cinematic/`:
+   - `motion.css` — easing, timing, component classes, keyframes (mode-independent)
+   - `modes/dark.css` — dark mode color tokens (prefixed `--cd-`)
    - `engine.js` — `CinematicDarkEngine` class with playback, transitions, animation primitives
-   - `THEME.md` — rules, do/don't, decision tree, timing guide
+   - `PERSONALITY.md` — rules, do/don't, decision tree, timing guide
    - `reference.html` — canonical reference prototype
 
-2. **Follow the theme rules** in `THEME.md`:
+2. **Follow the personality rules** in `PERSONALITY.md`:
    - Use only `--cd-` prefixed tokens for all colors
    - Maintain 4-tier speed hierarchy (FAST/MEDIUM/SLOW/SPRING)
    - Use clip-path wipes for phase transitions (not opacity fades)
@@ -78,9 +82,9 @@ When `--theme cinematic-dark` is specified:
    window.addEventListener('DOMContentLoaded', () => engine.boot());
    ```
 
-When `--theme editorial` is specified:
+When `--personality editorial` is specified:
 
-1. **Load theme files** from `.claude/skills/animate/themes/editorial/`:
+1. **Load personality files** from `.claude/skills/animate/personalities/editorial/`:
    - `motion.css` — all tokens (prefixed `--ed-`), animation classes, keyframes
    - `engine.js` — `EditorialEngine` class with playback, transitions, content cycling
    - `PERSONALITY.md` — rules, do/don't, decision tree, timing guide
@@ -118,8 +122,8 @@ When `--theme editorial` is specified:
 
 ```
 /animate prototypes/2026-02-21-file-upload/concept-v1.html
-/animate prototypes/2026-02-21-file-upload/concept-v1.html --theme cinematic-dark
-/animate prototype.html --theme editorial
+/animate prototypes/2026-02-21-file-upload/concept-v1.html --personality cinematic
+/animate prototype.html --personality editorial
 /animate prototypes/2026-02-21-file-upload/autoplay-v1.html --mode capture --format all
 /animate prototypes/2026-02-21-file-upload/concept-v1.html --mode all
 ```
@@ -438,12 +442,16 @@ The skill produces:
 - `.claude/skills/maya/reference/motion-design.md` — Duration/easing/performance reference
 - `.claude/skills/prototype/SKILL.md` — Prototype generation skill (upstream)
 
-### Theme Files
+### Personality Files
 
-- `.claude/skills/animate/themes/cinematic-dark/theme.css` — Tokens, component classes, keyframes
-- `.claude/skills/animate/themes/cinematic-dark/engine.js` — `CinematicDarkEngine` reusable class
-- `.claude/skills/animate/themes/cinematic-dark/THEME.md` — Rules, decision tree, timing guide
-- `.claude/skills/animate/themes/cinematic-dark/reference.html` — Canonical reference demo
+- `.claude/skills/animate/personalities/cinematic/motion.css` — Animation classes, keyframes, timing
+- `.claude/skills/animate/personalities/cinematic/modes/dark.css` — Dark mode color tokens
+- `.claude/skills/animate/personalities/cinematic/engine.js` — `CinematicDarkEngine` reusable class
+- `.claude/skills/animate/personalities/cinematic/PERSONALITY.md` — Rules, decision tree, timing guide
+- `.claude/skills/animate/personalities/cinematic/reference.html` — Canonical reference demo
+- `.claude/skills/animate/personalities/editorial/` — Editorial personality (same structure)
+- `.claude/skills/animate/personalities/neutral-light/` — Neutral light personality (tutorial-focused)
+- `.claude/skills/animate/primitives/tutorial/` — Tutorial primitives (spotlight, cursor, tooltip, step progress)
 - `docs/design-patterns/motion-design-system.md` — Motion design taxonomy and approach document
 
 ---

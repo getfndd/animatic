@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import {
   loadPrimitivesCatalog,
   loadPersonalitiesCatalog,
+  loadIntentMappings,
   parseRegistry,
   parseBreakdownIndex,
   readBreakdown,
@@ -38,10 +39,11 @@ const ROOT = resolve(__dirname, '..');
 
 const primitivesCatalog = loadPrimitivesCatalog();
 const personalitiesCatalog = loadPersonalitiesCatalog();
+const intentMappings = loadIntentMappings();
 const registry = parseRegistry();
 const breakdownIndex = parseBreakdownIndex();
 
-console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${breakdownIndex.length} breakdowns`);
+console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intent mappings, ${breakdownIndex.length} breakdowns`);
 
 // ── Server setup ────────────────────────────────────────────────────────────
 
@@ -55,15 +57,16 @@ const server = new Server(
       resources: {},
       tools: {},
     },
-    instructions: `This MCP server provides access to Animatic's animation reference system — 120+ named primitives, 3 animation personalities, 15 reference breakdowns, spring physics, animation principles, and a cinematic camera system.
+    instructions: `This MCP server provides access to Animatic's animation reference system — ~120 named primitives, 3 animation personalities, 15 reference breakdowns, spring physics, animation principles, and a cinematic camera system.
 
 WORKFLOW FOR CHOOSING ANIMATIONS:
 1. Start with the personality: cinematic-dark (dramatic demos), editorial (content-forward), or neutral-light (tutorials/onboarding)
 2. Use search_primitives to find candidates filtered by personality and category
 3. Use get_primitive for full CSS implementation details
 4. Use get_personality for timing tiers, easing curves, camera behavior rules, and recommended primitives
-5. Consult breakdowns (search_breakdowns → get_breakdown) for real-world choreography examples
-6. Reference animation-principles, spring-physics, or camera-rig docs for foundational guidance
+5. Use recommend_choreography to get a complete camera choreography plan for a given intent (e.g., "dramatic-reveal") with concrete primitive IDs, timing, parallax, and DOF settings
+6. Consult breakdowns (search_breakdowns → get_breakdown) for real-world choreography examples
+7. Reference animation-principles, spring-physics, or camera-rig docs for foundational guidance
 
 PRIMITIVE SOURCES:
 - "engine" = Built into the Animatic animation engine (15 primitives with full JSON catalog data)
@@ -293,6 +296,32 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['name'],
       },
     },
+    {
+      name: 'recommend_choreography',
+      description:
+        'Get a complete camera choreography plan for a given intent and personality. Returns concrete primitive IDs, timing, parallax/DOF settings, ambient motion, and companion primitives. Use this to automate the emotion-to-camera mapping instead of manually cross-referencing personality rules and primitive registries.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          intent: {
+            type: 'string',
+            enum: intentMappings.array.map(i => i.intent),
+            description: 'The choreographic intent (e.g., dramatic-reveal, build-tension, content-focus)',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light'],
+            description: 'Target personality. If omitted, returns plans for all supported personalities.',
+          },
+          subject_count: {
+            type: 'integer',
+            minimum: 1,
+            description: 'Number of subjects in the scene. Affects framing and stagger hints.',
+          },
+        },
+        required: ['intent'],
+      },
+    },
   ],
 }));
 
@@ -314,6 +343,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleGetBreakdown(args);
     case 'get_reference_doc':
       return handleGetReferenceDoc(args);
+    case 'recommend_choreography':
+      return handleRecommendChoreography(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -670,6 +701,172 @@ function handleGetReferenceDoc(args) {
       isError: true,
     };
   }
+}
+
+// ── recommend_choreography ───────────────────────────────────────────────────
+
+function handleRecommendChoreography(args) {
+  const { intent: intentSlug, personality: requestedPersonality, subject_count } = args;
+
+  const mapping = intentMappings.byIntent.get(intentSlug);
+  if (!mapping) {
+    const available = intentMappings.array.map(i => i.intent).join(', ');
+    return {
+      content: [{
+        type: 'text',
+        text: `Intent "${intentSlug}" not found. Available intents: ${available}`,
+      }],
+      isError: true,
+    };
+  }
+
+  // If a specific personality was requested, validate it's supported
+  if (requestedPersonality && !mapping.personality_support.includes(requestedPersonality)) {
+    const supported = mapping.personality_support.join(', ');
+    return {
+      content: [{
+        type: 'text',
+        text: `Intent "${intentSlug}" is not supported by the "${requestedPersonality}" personality.\n\nSupported personalities for this intent: ${supported}\n\nTip: Use a different intent for ${requestedPersonality}, or try one of the supported personalities.`,
+      }],
+      isError: true,
+    };
+  }
+
+  // Determine which personalities to generate plans for
+  const personalities = requestedPersonality
+    ? [requestedPersonality]
+    : mapping.personality_support;
+
+  let out = `# Choreography: ${mapping.label}\n\n`;
+  out += `> ${mapping.camera_description}\n\n`;
+
+  for (const pSlug of personalities) {
+    const personality = personalitiesCatalog.bySlug.get(pSlug);
+    if (!personality) continue;
+
+    if (personalities.length > 1) {
+      out += `---\n\n## ${personality.name}\n\n`;
+    }
+
+    // Camera move
+    out += `### Camera Move\n\n`;
+    if (mapping.camera_primitives.length === 0) {
+      out += `No camera movement — use attention-direction primitives instead.\n\n`;
+    } else {
+      out += `| Primitive | Name | Duration |\n`;
+      out += `|-----------|------|----------|\n`;
+      for (const primId of mapping.camera_primitives) {
+        const entry = registry.byId.get(primId);
+        if (entry) {
+          out += `| \`${primId}\` | ${entry.name} | ${entry.duration} |\n`;
+        } else {
+          out += `| \`${primId}\` | *(not in registry)* | — |\n`;
+        }
+      }
+      out += '\n';
+    }
+
+    // Speed & easing
+    out += `### Speed & Easing\n\n`;
+    out += `- **Speed tier:** ${mapping.speed}\n`;
+    if (mapping.speed !== 'none' && personality.camera_behavior?.camera_speed_tiers) {
+      const speedDuration = personality.camera_behavior.camera_speed_tiers[mapping.speed];
+      if (speedDuration) {
+        out += `- **Duration (${pSlug}):** ${speedDuration}\n`;
+      }
+    }
+    if (personality.camera_behavior?.camera_easing) {
+      out += `- **Camera easing:** \`${personality.camera_behavior.camera_easing}\`\n`;
+    } else if (personality.easing_overrides?.smooth) {
+      out += `- **Easing:** \`${personality.easing_overrides.smooth}\`\n`;
+    }
+    out += '\n';
+
+    // Parallax
+    out += `### Parallax\n\n`;
+    out += `- **Strength:** ${mapping.parallax}\n`;
+    out += `- **Layers:** ${mapping.parallax_layers}\n`;
+    if (personality.camera_behavior?.parallax) {
+      const px = personality.camera_behavior.parallax;
+      out += `- **Mode (${pSlug}):** ${px.mode}\n`;
+      out += `- **Max layers allowed:** ${px.max_layers}\n`;
+      out += `- **Intensity:** ${px.intensity}\n`;
+    }
+    out += '\n';
+
+    // Depth of field
+    out += `### Depth of Field\n\n`;
+    out += `- **DOF:** ${mapping.dof}\n`;
+    if (personality.camera_behavior?.depth_of_field) {
+      const dof = personality.camera_behavior.depth_of_field;
+      out += `- **Enabled (${pSlug}):** ${dof.enabled}\n`;
+      if (dof.enabled) {
+        out += `- **Max blur:** ${dof.max_blur}\n`;
+      }
+      if (dof.alternative) {
+        out += `- **Alternative:** ${dof.alternative}\n`;
+      }
+    }
+    out += '\n';
+
+    // Ambient motion
+    if (mapping.ambient_primitives.length > 0) {
+      out += `### Ambient Motion\n\n`;
+      out += `| Primitive | Name | Duration |\n`;
+      out += `|-----------|------|----------|\n`;
+      for (const primId of mapping.ambient_primitives) {
+        const entry = registry.byId.get(primId);
+        if (entry) {
+          out += `| \`${primId}\` | ${entry.name} | ${entry.duration} |\n`;
+        }
+      }
+      out += '\n';
+    }
+
+    // Companion entrance primitives
+    if (mapping.companion_entrance.length > 0) {
+      // Filter companions relevant to this personality
+      const relevantCompanions = mapping.companion_entrance.filter(primId => {
+        const entry = registry.byId.get(primId);
+        if (!entry) return true; // keep unknowns
+        return entry.personality.some(p => p === pSlug || p === 'universal');
+      });
+
+      if (relevantCompanions.length > 0) {
+        out += `### Companion Entrances\n\n`;
+        out += `| Primitive | Name | Duration |\n`;
+        out += `|-----------|------|----------|\n`;
+        for (const primId of relevantCompanions) {
+          const entry = registry.byId.get(primId);
+          if (entry) {
+            out += `| \`${primId}\` | ${entry.name} | ${entry.duration} |\n`;
+          } else {
+            out += `| \`${primId}\` | *(not in registry)* | — |\n`;
+          }
+        }
+        out += '\n';
+      }
+    }
+
+    // Framing
+    out += `### Framing\n\n`;
+    out += `- **Composition:** ${mapping.framing}\n`;
+    if (subject_count && subject_count > 1) {
+      out += `- **Multi-subject (${subject_count}):** Consider stagger offsets between subjects. `;
+      if (personality.default_stagger) {
+        out += `Default stagger for ${pSlug}: ${personality.default_stagger}.\n`;
+      }
+    }
+    out += '\n';
+
+    // Personality notes
+    if (personality.camera_behavior?.constraints) {
+      out += `### Personality Constraints\n\n`;
+      out += `${personality.camera_behavior.constraints}\n\n`;
+    }
+  }
+
+  return { content: [{ type: 'text', text: out }] };
 }
 
 // ── Start server ────────────────────────────────────────────────────────────

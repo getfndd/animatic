@@ -39,6 +39,13 @@ export function loadPersonalitiesCatalog() {
   return { array: arr, bySlug };
 }
 
+/** Load catalog/intent-mappings.json → array + intent map */
+export function loadIntentMappings() {
+  const arr = loadJSON(resolve(CATALOG_DIR, 'intent-mappings.json'));
+  const byIntent = new Map(arr.map(i => [i.intent, i]));
+  return { array: arr, byIntent };
+}
+
 // ── REGISTRY.md parser ──────────────────────────────────────────────────────
 
 /**

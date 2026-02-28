@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-21
 **Linear:** ISSUE-1458
-**Status:** Research complete
+**Status:** POC validated (ANI-7, 2026-02-28)
 
 ## Summary
 
@@ -14,7 +14,7 @@ Evaluated 6 Figma MCP servers for use as input to the animation pipeline. The re
 
 ### 1. Official Figma MCP Server
 
-- **Transport:** Remote SSE at `https://mcp.figma.com/mcp` or Desktop Protocol
+- **Transport:** Remote HTTP at `https://mcp.figma.com/mcp` or Desktop Protocol
 - **Auth:** OAuth (remote) or personal access token (Desktop)
 - **Tools (13):**
   - `get_design_context` — structured design data from a Figma URL
@@ -134,20 +134,13 @@ The `get_variable_defs` tool extracts Figma's variable collections, which can be
 
 ### Official Figma MCP (recommended starting point)
 
-Add to `.claude/settings.json`:
+See `docs/process/figma-mcp-setup.md` for full installation and authentication guide.
 
-```json
-{
-  "mcpServers": {
-    "figma": {
-      "type": "sse",
-      "url": "https://mcp.figma.com/mcp"
-    }
-  }
-}
+```bash
+claude mcp add --transport http figma --scope user https://mcp.figma.com/mcp
 ```
 
-Uses OAuth — will prompt for Figma login on first use.
+Uses OAuth at user scope — will prompt for Figma login on first use.
 
 ### Framelink (optional, for faster local reads)
 
@@ -170,7 +163,7 @@ When ready to build a proof of concept:
 2. Read a real Figma frame (e.g., a simple card UI with 2-3 states)
 3. Extract design context + variables
 4. Transform to semantic HTML with phase markers
-5. Apply editorial personality via `/animate --theme editorial`
+5. Apply editorial personality via `/animate --personality editorial`
 6. Verify: animation plays correctly with Figma's colors preserved via token overrides
 7. Capture: produce working WebM/MP4
 
@@ -180,3 +173,58 @@ When ready to build a proof of concept:
 2. **Frame naming convention**: Need to define the standard naming convention designers should use for animation phases
 3. **Variable mapping**: How closely do Figma variable names need to match personality tokens? Auto-mapping heuristics vs explicit mapping file?
 4. **Multi-personality**: Can a single Figma file contain frames for different personalities (cinematic hero + editorial content section)?
+
+---
+
+## POC Results (ANI-7 — 2026-02-28)
+
+**Prototype:** `prototypes/2026-02-28-figma-mcp-poc/`
+**Scenario:** Data Room Upload card with 3 states (Upload → Processing → Ready)
+**Personality:** Editorial with indigo accent overrides
+**Auth:** Simulated — live Figma MCP installed but OAuth skipped; design context hand-crafted
+
+### What Worked End-to-End
+
+1. **Pipeline architecture validated.** The flow Figma context → semantic HTML → `/animate` editorial → autoplay works cleanly. Each step is well-separated.
+2. **Token override system.** Figma variables mapped to `tokenOverrides` in the EditorialEngine constructor. Indigo accent (`#6366f1`) applied correctly through `--ed-accent`, `--ed-accent-bg`, `--ed-accent-text` overrides. No hardcoded colors leaked.
+3. **Phase detection from frame naming.** The `Phase N: Label` convention maps directly to `{ id, label, dwell }` phase configs. Reliable when designers follow it.
+4. **Animation primitive composition.** Mixed blur-reveal (upload zone), slide-stagger (files, categories), count-up (stats), typewriter (scanning status), and progress bar across 3 phases. All reset cleanly on loop.
+5. **Embed mode.** `?embed` strips controls and background as expected.
+6. **meta.json captures the full provenance.** Simulated Figma context, variable mapping, and phase detection all documented in metadata.
+
+### What Required Manual Intervention
+
+1. **HTML structure.** Claude generates the semantic HTML — no Figma MCP tool produces animation-ready markup. The transform from design context to phased HTML is inherently a creative step.
+2. **Phase choreography.** Choosing which animation primitives to use per phase (blur-reveal for hero moments, stagger for lists, typewriter for status) is a design decision, not extractable from Figma.
+3. **Dwell timing.** Phase durations (3.5s, 4.0s, 3.5s) require judgment about content density and animation playback time. Not in Figma data.
+4. **Footer reservation.** Card needed `padding-bottom: 44px` for the absolutely-positioned footer — layout concern specific to the editorial engine's footer pattern.
+
+### Token Mapping Accuracy
+
+| Figma Variable | Editorial Token | Result |
+|---------------|----------------|--------|
+| Colors/Accent/Default → `--ed-accent` | `#6366f1` | Correct — all interactive elements indigo |
+| Colors/Accent/Background → `--ed-accent-bg` | `#eef2ff` | Correct — badge and share section backgrounds |
+| Colors/Accent/Text → `--ed-accent-text` | `#4338ca` | Correct — accent text on light backgrounds |
+| Colors/Surface/* | `--ed-surface-*` | No override needed — Figma matched editorial defaults |
+| Colors/Text/* | `--ed-text-*` | No override needed — Figma matched editorial defaults |
+
+**Finding:** When the Figma file uses a stone/neutral palette matching editorial defaults, only accent tokens need overriding. The token system is efficient — you only override what diverges.
+
+### Phase Detection Reliability
+
+The `Phase N: Label` naming convention works well for sequential flows (upload → process → ready). Less clear for:
+- Non-linear flows (branching states)
+- Variant components (need a different detection heuristic)
+- Single-frame designs (require content decomposition)
+
+### Recommendations for Designer Workflow
+
+1. **Use frame naming convention** `Phase N: Label` for animation-targeted designs
+2. **Define color variables** in Figma using `Colors/Category/Name` format
+3. **One flow per page** — keeps phase detection simple
+4. **Include state annotations** — even if Figma doesn't encode transitions, naming frames after states helps Claude infer the animation story
+
+### Setup Documentation
+
+Created `docs/process/figma-mcp-setup.md` with installation, authentication, tool reference, workflow guide, and troubleshooting.

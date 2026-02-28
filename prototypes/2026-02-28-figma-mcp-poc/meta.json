@@ -1,0 +1,113 @@
+{
+  "id": "2026-02-28-figma-mcp-poc",
+  "name": "Figma MCP POC — Data Room Upload",
+  "description": "Proof-of-concept: Figma MCP → HTML → Editorial animation pipeline. Simulates extracting a 3-state Data Room Upload card from Figma (Upload → Processing → Ready) and transforming it to an animated editorial prototype with token overrides.",
+  "prompt": "ANI-7: Validate Figma → HTML → Animate pipeline with simulated design context",
+  "fidelity": "concept",
+  "chrome": "none",
+  "source": {
+    "type": "figma-mcp-simulated",
+    "note": "Live Figma MCP auth skipped for POC. Design context simulated based on Official Figma MCP get_design_context output format.",
+    "simulatedFigmaContext": {
+      "fileKey": "abc123XYZsimulated",
+      "fileName": "Data Room — Upload Flow",
+      "frames": [
+        {
+          "nodeId": "1:100",
+          "name": "Phase 1: Upload",
+          "type": "FRAME",
+          "width": 480,
+          "height": 360
+        },
+        {
+          "nodeId": "1:200",
+          "name": "Phase 2: Processing",
+          "type": "FRAME",
+          "width": 480,
+          "height": 360
+        },
+        {
+          "nodeId": "1:300",
+          "name": "Phase 3: Ready",
+          "type": "FRAME",
+          "width": 480,
+          "height": 360
+        }
+      ],
+      "variables": {
+        "Colors/Surface/Primary": "#fafaf9",
+        "Colors/Surface/Card": "#ffffff",
+        "Colors/Surface/Secondary": "#f5f5f4",
+        "Colors/Text/Primary": "#1c1917",
+        "Colors/Text/Secondary": "#44403c",
+        "Colors/Text/Tertiary": "#78716c",
+        "Colors/Accent/Default": "#6366f1",
+        "Colors/Accent/Background": "#eef2ff",
+        "Colors/Accent/Text": "#4338ca",
+        "Colors/Success/Default": "#16a34a",
+        "Colors/Success/Background": "#f0fdf4",
+        "Colors/Border/Subtle": "#e7e5e4",
+        "Spacing/sm": "8",
+        "Spacing/md": "16",
+        "Spacing/lg": "24",
+        "Radius/sm": "6",
+        "Radius/md": "10",
+        "Radius/lg": "16"
+      },
+      "tokenMapping": {
+        "Colors/Surface/Primary": "--ed-bg-body",
+        "Colors/Surface/Card": "--ed-surface-card",
+        "Colors/Surface/Secondary": "--ed-surface-secondary",
+        "Colors/Text/Primary": "--ed-text-primary",
+        "Colors/Text/Secondary": "--ed-text-secondary",
+        "Colors/Text/Tertiary": "--ed-text-tertiary",
+        "Colors/Accent/Default": "--ed-accent",
+        "Colors/Accent/Background": "--ed-accent-bg",
+        "Colors/Accent/Text": "--ed-accent-text",
+        "Colors/Success/Default": "--ed-success",
+        "Colors/Success/Background": "--ed-success-bg",
+        "Colors/Border/Subtle": "--ed-border-subtle"
+      }
+    },
+    "phaseDetection": {
+      "method": "frame-naming-convention",
+      "pattern": "Phase N: Label",
+      "detected": [
+        { "id": 0, "label": "Upload", "sourceFrame": "1:100" },
+        { "id": 1, "label": "Processing", "sourceFrame": "1:200" },
+        { "id": 2, "label": "Ready", "sourceFrame": "1:300" }
+      ]
+    }
+  },
+  "versions": [
+    {
+      "file": "concept-v1.html",
+      "notes": "Semantic HTML generated from simulated Figma design context. 3 phases: Upload (drag zone + stats), Processing (scanning animation + progress), Ready (organized files + share link). Uses editorial personality with indigo accent overrides from Figma variables."
+    },
+    {
+      "file": "autoplay-v1.html",
+      "notes": "Editorial personality autoplay. Phase 0: blur-reveal upload zone + count-up stats (3.5s). Phase 1: slide-stagger files + progress bar + typewriter scanning + checkmarks (4.0s). Phase 2: blur-reveal success + stagger categories + count-up file counts (3.5s). Figma indigo accent via tokenOverrides. Supports ?embed mode.",
+      "personality": "editorial",
+      "tokenOverrides": {
+        "--ed-accent": "#6366f1",
+        "--ed-accent-bg": "#eef2ff",
+        "--ed-accent-text": "#4338ca"
+      }
+    }
+  ],
+  "designSystemUsage": {
+    "tokens": [
+      "--ed-bg-body", "--ed-surface-card", "--ed-surface-secondary",
+      "--ed-text-primary", "--ed-text-secondary", "--ed-text-tertiary",
+      "--ed-accent", "--ed-accent-bg", "--ed-accent-text",
+      "--ed-success", "--ed-success-bg", "--ed-border-subtle"
+    ],
+    "personalityOverrides": {
+      "--ed-accent": "#6366f1",
+      "--ed-accent-bg": "#eef2ff",
+      "--ed-accent-text": "#4338ca"
+    },
+    "patterns": ["stagger-reveal", "count-up", "blur-reveal", "typewriter"]
+  },
+  "createdAt": "2026-02-28T10:00:00Z"
+}

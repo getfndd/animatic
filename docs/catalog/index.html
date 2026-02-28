@@ -372,6 +372,7 @@ body {
   transform-style: preserve-3d; transition: transform 1.2s var(--cat-ease-out);
 }
 .dark-bg .demo-camera-scene { background: #404040; border: 1px solid #525252; }
+.light-bg .demo-camera-scene { background: #e7e5e4; border: 1px solid #d6d3d1; }
 
 /* ============================================================
    KEYFRAMES — animate.style
@@ -572,6 +573,7 @@ var PRIMITIVES = [
   { id: 'as-pulse', name: 'Pulse', category: 'attention', duration: '1000ms', easing: 'ease-in-out', personality: ['universal'], source: 'animate.style', preview: 'box' },
   { id: 'as-headShake', name: 'Head Shake', category: 'attention', duration: '1000ms', easing: 'ease-in-out', personality: ['neutral-light'], source: 'animate.style', preview: 'box' },
   { id: 'as-tada', name: 'Tada', category: 'attention', duration: '1000ms', easing: 'ease-in-out', personality: ['neutral-light'], source: 'animate.style', preview: 'box' },
+  { id: 'ct-camera-shake', name: 'Camera Shake', category: 'attention', duration: '600ms', easing: 'ease-out', personality: ['cinematic-dark'], source: 'research', preview: 'camera' },
   // REVEALS / STAGGERS
   { id: 'cd-folder-reveal', name: 'Folder Badge Stagger', category: 'reveals', duration: 'configurable', easing: 'expo-out', personality: ['cinematic-dark'], source: 'engine', preview: 'multi' },
   { id: 'cd-draw-checks', name: 'Self-Drawing Checkmarks', category: 'reveals', duration: '200ms stagger', easing: 'ease-out', personality: ['cinematic-dark'], source: 'engine', preview: 'multi' },
@@ -603,6 +605,8 @@ var PRIMITIVES = [
   { id: 'bk-sparse-breathe', name: 'Sparse Grid Breathing', category: 'continuous', duration: '4000ms', easing: 'ease-in-out', personality: ['universal'], source: 'breakdown', preview: 'grid' },
   { id: 'bk-nl-dot-breathe', name: 'Light Dot Grid Breathing', category: 'continuous', duration: '4500ms', easing: 'ease-in-out', personality: ['neutral-light'], source: 'breakdown', preview: 'grid' },
   { id: 'bk-flow-field', name: 'Flow Field Vortex', category: 'continuous', duration: 'continuous', easing: 'linear', personality: ['cinematic-dark'], source: 'breakdown', preview: 'grid' },
+  { id: 'ct-camera-handheld', name: 'Handheld Drift', category: 'continuous', duration: 'continuous', easing: 'linear', personality: ['cinematic-dark'], source: 'research', preview: 'camera' },
+  { id: 'ed-camera-drift', name: 'Camera Drift', category: 'continuous', duration: 'continuous', easing: 'ease-in-out', personality: ['editorial'], source: 'research', preview: 'camera' },
   // CONTENT EFFECTS
   { id: 'ed-count-up', name: 'Animated Number Count', category: 'content', duration: '800ms', easing: 'ease-out', personality: ['editorial', 'neutral-light'], source: 'engine', preview: 'text' },
   { id: 'nl-step-progress', name: 'Step Indicator Update', category: 'content', duration: '450ms', easing: 'ease-out', personality: ['neutral-light'], source: 'engine', preview: 'wizard' },
@@ -633,6 +637,14 @@ var PRIMITIVES = [
   { id: 'nl-phase-crossfade', name: 'Phase Content Crossfade', category: 'transitions', duration: '300ms', easing: 'ease-out', personality: ['neutral-light'], source: 'breakdown', preview: 'wizard' },
   { id: 'nl-loading-gate', name: 'Loading Gate', category: 'transitions', duration: '500-650ms', easing: 'ease-out', personality: ['neutral-light'], source: 'breakdown', preview: 'wizard' },
   { id: 'nl-app-materialize', name: 'App Dissolve', category: 'transitions', duration: '600ms', easing: 'ease-out', personality: ['neutral-light'], source: 'breakdown', preview: 'wizard' },
+  { id: 'ct-camera-truck', name: 'Camera Truck', category: 'transitions', duration: '1200ms', easing: 'expo-out', personality: ['cinematic-dark'], source: 'research', preview: 'camera' },
+  { id: 'ct-camera-pedestal', name: 'Camera Pedestal', category: 'transitions', duration: '1200ms', easing: 'expo-out', personality: ['cinematic-dark'], source: 'research', preview: 'camera' },
+  { id: 'ct-camera-crane', name: 'Camera Crane', category: 'transitions', duration: '1400ms', easing: 'expo-out', personality: ['cinematic-dark'], source: 'research', preview: 'camera' },
+  { id: 'ct-camera-arc', name: 'Camera Arc', category: 'transitions', duration: '1200ms', easing: 'expo-out', personality: ['cinematic-dark'], source: 'research', preview: 'camera' },
+  { id: 'ct-camera-push-in', name: 'Camera Push-In', category: 'transitions', duration: '1200ms', easing: 'expo-out', personality: ['cinematic-dark'], source: 'research', preview: 'camera' },
+  { id: 'ct-camera-pull-out', name: 'Camera Pull-Out', category: 'transitions', duration: '1200ms', easing: 'expo-out', personality: ['cinematic-dark'], source: 'research', preview: 'camera' },
+  { id: 'ct-camera-rack-focus', name: 'Rack Focus', category: 'transitions', duration: '800ms', easing: 'expo-out', personality: ['cinematic-dark'], source: 'research', preview: 'camera' },
+  { id: 'ed-camera-push-in', name: 'Subtle Push-In', category: 'transitions', duration: '2000ms', easing: 'ease-out', personality: ['editorial'], source: 'research', preview: 'camera' },
 ];
 
 var CATEGORIES = [
@@ -914,6 +926,12 @@ var RENDERERS = {
       'ct-camera-pan': 'translateX(-60px) translateZ(30px)',
       'ct-camera-tilt': 'rotateX(12deg) translateY(-20px)',
       'ct-camera-orbit': 'rotateY(20deg) rotateX(8deg)',
+      'ct-camera-truck': 'translateX(-60px)',
+      'ct-camera-pedestal': 'translateY(-40px)',
+      'ct-camera-crane': 'translateY(-50px) rotateX(4deg)',
+      'ct-camera-arc': 'rotateY(20deg)',
+      'ct-camera-push-in': 'translateZ(80px)',
+      'ct-camera-pull-out': 'translateZ(-80px) scale(0.95)',
     };
     var target = transforms[p.id] || 'translateZ(50px)';
     var active = false;
@@ -1200,6 +1218,11 @@ var JS_ANIMS = {
   'mo-stat-reveal': moStatRevealAnim,
   'mo-grid-reveal': moGridRevealAnim,
   'mo-split-screen': moSplitScreenAnim,
+  'ct-camera-rack-focus': rackFocusAnim,
+  'ct-camera-handheld': handheldAnim,
+  'ct-camera-shake': cameraShakeAnim,
+  'ed-camera-push-in': edPushInAnim,
+  'ed-camera-drift': edDriftAnim,
 };
 
 function staggerAnim(area, interval, style, bidi) {
@@ -1627,6 +1650,76 @@ function moSplitScreenAnim(area) {
 }
 
 // ============================================================
+// CAMERA ANIMATION FUNCTIONS
+// ============================================================
+function rackFocusAnim(area) {
+  var scene = area.querySelector('.demo-camera-scene');
+  if (!scene) return;
+  scene.style.transition = 'filter 800ms cubic-bezier(0.16,1,0.3,1)';
+  var blurred = false;
+  area._cameraInterval = setInterval(function() {
+    blurred = !blurred;
+    scene.style.filter = blurred ? 'blur(3px)' : 'blur(0)';
+  }, 2000);
+}
+
+function handheldAnim(area) {
+  var scene = area.querySelector('.demo-camera-scene');
+  if (!scene) return;
+  function jitter() {
+    var dx = (Math.random() - 0.5) * 2.4;
+    var dy = (Math.random() - 0.5) * 2.4;
+    scene.style.transform = 'translateX(' + dx.toFixed(2) + 'px) translateY(' + dy.toFixed(2) + 'px)';
+    area._handheldRaf = requestAnimationFrame(jitter);
+  }
+  jitter();
+}
+
+function cameraShakeAnim(area) {
+  var scene = area.querySelector('.demo-camera-scene');
+  if (!scene) return;
+  function burst() {
+    var steps = 10;
+    var i = 0;
+    function step() {
+      if (i >= steps) { scene.style.transform = 'none'; return; }
+      var dx = (Math.random() - 0.5) * 6;
+      var dy = (Math.random() - 0.5) * 6;
+      scene.style.transform = 'translateX(' + dx.toFixed(1) + 'px) translateY(' + dy.toFixed(1) + 'px)';
+      i++;
+      setTimeout(step, 60);
+    }
+    step();
+  }
+  burst();
+  area._cameraInterval = setInterval(burst, 2000);
+}
+
+function edPushInAnim(area) {
+  var scene = area.querySelector('.demo-camera-scene');
+  if (!scene) return;
+  scene.style.transition = 'transform 2000ms ease-out';
+  var pushed = false;
+  area._cameraInterval = setInterval(function() {
+    pushed = !pushed;
+    scene.style.transform = pushed ? 'scale(1.01)' : 'scale(1)';
+  }, 2000);
+}
+
+function edDriftAnim(area) {
+  var scene = area.querySelector('.demo-camera-scene');
+  if (!scene) return;
+  var t = 0;
+  function drift() {
+    t += 0.015;
+    var dx = Math.sin(t) * 0.5;
+    scene.style.transform = 'translateX(' + dx.toFixed(3) + 'px)';
+    area._driftRaf = requestAnimationFrame(drift);
+  }
+  drift();
+}
+
+// ============================================================
 // PLAY / PAUSE / REPLAY
 // ============================================================
 function playAnim(card) {
@@ -1680,7 +1773,7 @@ function replayAnim(card) {
 function clearTimers(area) {
   ['_waveInterval', '_cycleInterval', '_scatterInterval', '_wizardInterval', '_cameraInterval', '_spotlightInterval', '_tooltipInterval', '_cursorInterval', '_morphInterval'].forEach(function(k) { if (area[k]) clearInterval(area[k]); });
   ['_typeTimeout', '_biTimeout'].forEach(function(k) { if (area[k]) clearTimeout(area[k]); });
-  if (area._flowRaf) cancelAnimationFrame(area._flowRaf);
+  ['_flowRaf', '_handheldRaf', '_driftRaf'].forEach(function(k) { if (area[k]) cancelAnimationFrame(area[k]); });
 }
 
 function isLoop(id) {

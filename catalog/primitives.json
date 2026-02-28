@@ -582,5 +582,282 @@
     "ai_guidance": "Montage comparison primitive. Two panels slide in from opposite sides with 200ms stagger. Use engine.runSplitScreen('#left', '#right', 200). Apply .split-panel class. Great for showing two complementary features.",
     "personality_affinity": ["montage"],
     "source": "engine"
+  },
+  {
+    "name": "Camera Truck",
+    "slug": "ct-camera-truck",
+    "category": "transition",
+    "description": "Horizontal camera slide left or right, simulating a truck move on a dolly track. Translates scene on X axis up to 250px.",
+    "default_duration": "1200ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ct-camera-truck",
+    "keyframes": {
+      "camera-truck": {
+        "0%": { "transform": "translateX(0)" },
+        "100%": { "transform": "translateX(-60px)" }
+      }
+    },
+    "css_properties": {
+      "rig": "perspective: 600px; perspective-origin: 50% 40%",
+      "scene": "transform-style: preserve-3d; transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)"
+    },
+    "when_to_use": ["Horizontal scene reveals", "Panel-to-panel transitions", "Lateral content sliding"],
+    "when_to_avoid": ["Editorial personality", "Vertical content", "Subtle transitions"],
+    "ai_guidance": "Cinematic lateral slide. Max displacement 250px per camera-guardrails.json. Use with perspective rig container. Pairs well with phase transitions to reveal adjacent content panels.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "research"
+  },
+  {
+    "name": "Camera Pedestal",
+    "slug": "ct-camera-pedestal",
+    "category": "transition",
+    "description": "Vertical camera rise or lower, simulating a pedestal move. Translates scene on Y axis up to 150px.",
+    "default_duration": "1200ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ct-camera-pedestal",
+    "keyframes": {
+      "camera-pedestal": {
+        "0%": { "transform": "translateY(0)" },
+        "100%": { "transform": "translateY(-40px)" }
+      }
+    },
+    "css_properties": {
+      "rig": "perspective: 600px; perspective-origin: 50% 40%",
+      "scene": "transform-style: preserve-3d; transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)"
+    },
+    "when_to_use": ["Vertical reveals", "Rising hero moments", "Elevating content"],
+    "when_to_avoid": ["Editorial personality", "Horizontal layouts", "Quick transitions"],
+    "ai_guidance": "Cinematic vertical camera move. Max displacement 150px per camera-guardrails.json. Simulates physical camera rising on a pedestal mount. Good for dramatic vertical reveals.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "research"
+  },
+  {
+    "name": "Camera Crane",
+    "slug": "ct-camera-crane",
+    "category": "transition",
+    "description": "Combined vertical rise with slight tilt, simulating a crane shot. Translates Y up to 180px with subtle rotateX for parallax depth.",
+    "default_duration": "1400ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ct-camera-crane",
+    "keyframes": {
+      "camera-crane": {
+        "0%": { "transform": "translateY(0) rotateX(0)" },
+        "100%": { "transform": "translateY(-50px) rotateX(4deg)" }
+      }
+    },
+    "css_properties": {
+      "rig": "perspective: 600px; perspective-origin: 50% 40%",
+      "scene": "transform-style: preserve-3d; transition: transform 1.4s cubic-bezier(0.16, 1, 0.3, 1)"
+    },
+    "when_to_use": ["Dramatic overhead reveals", "Establishing shots", "Bird's eye transitions"],
+    "when_to_avoid": ["Editorial personality", "Quick UI transitions", "Mobile-first layouts"],
+    "ai_guidance": "Most dramatic vertical camera move. Combines translateY with slight rotateX tilt for crane parallax. Max Y displacement 180px per camera-guardrails.json. Reserve for high-impact phase transitions.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "research"
+  },
+  {
+    "name": "Camera Arc",
+    "slug": "ct-camera-arc",
+    "category": "transition",
+    "description": "Orbital rotation around the scene on the Y axis, simulating a camera arc. Rotates up to 20 degrees.",
+    "default_duration": "1200ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ct-camera-arc",
+    "keyframes": {
+      "camera-arc": {
+        "0%": { "transform": "rotateY(0)" },
+        "100%": { "transform": "rotateY(20deg)" }
+      }
+    },
+    "css_properties": {
+      "rig": "perspective: 600px; perspective-origin: 50% 40%",
+      "scene": "transform-style: preserve-3d; transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)"
+    },
+    "when_to_use": ["3D product reveals", "Perspective shifts", "Cinematic phase changes"],
+    "when_to_avoid": ["Editorial personality", "Flat content", "Text-heavy layouts"],
+    "ai_guidance": "Rotational camera move around the Y axis. Max rotation 20deg per camera-guardrails.json. Creates dramatic 3D perspective shift. Requires perspective rig container for proper depth rendering.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "research"
+  },
+  {
+    "name": "Camera Push-In",
+    "slug": "ct-camera-push-in",
+    "category": "transition",
+    "description": "Forward camera movement toward the scene, simulating a push-in. Translates on Z axis up to 120px for an approaching feel.",
+    "default_duration": "1200ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ct-camera-push-in",
+    "keyframes": {
+      "camera-push-in": {
+        "0%": { "transform": "translateZ(0)" },
+        "100%": { "transform": "translateZ(80px)" }
+      }
+    },
+    "css_properties": {
+      "rig": "perspective: 600px; perspective-origin: 50% 40%",
+      "scene": "transform-style: preserve-3d; transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)"
+    },
+    "when_to_use": ["Focus on detail", "Zoom-to-feature transitions", "Emphasis moments"],
+    "when_to_avoid": ["Editorial personality", "Pulling away from content", "Quick micro-interactions"],
+    "ai_guidance": "Forward Z-axis camera move. Max displacement 120px per camera-guardrails.json. Creates sense of approaching and focusing on subject. Lighter alternative to ct-camera-dolly.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "research"
+  },
+  {
+    "name": "Camera Pull-Out",
+    "slug": "ct-camera-pull-out",
+    "category": "transition",
+    "description": "Backward camera movement away from the scene, simulating a pull-out. Translates on negative Z axis up to 150px with slight scale reduction.",
+    "default_duration": "1200ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ct-camera-pull-out",
+    "keyframes": {
+      "camera-pull-out": {
+        "0%": { "transform": "translateZ(0) scale(1)" },
+        "100%": { "transform": "translateZ(-80px) scale(0.95)" }
+      }
+    },
+    "css_properties": {
+      "rig": "perspective: 600px; perspective-origin: 50% 40%",
+      "scene": "transform-style: preserve-3d; transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)"
+    },
+    "when_to_use": ["Reveal wider context", "Transition from detail to overview", "Ending sequences"],
+    "when_to_avoid": ["Editorial personality", "Opening sequences", "Content that needs emphasis"],
+    "ai_guidance": "Reverse Z-axis camera move with slight scale reduction. Max displacement 150px per camera-guardrails.json. Creates sense of pulling back to see the bigger picture. Good for context-expanding transitions.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "research"
+  },
+  {
+    "name": "Rack Focus",
+    "slug": "ct-camera-rack-focus",
+    "category": "transition",
+    "description": "Simulated rack focus effect alternating between sharp and blurred states. Toggles blur filter up to 4px to shift visual attention between foreground and background.",
+    "default_duration": "800ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ct-camera-rack-focus",
+    "keyframes": {
+      "rack-focus": {
+        "0%": { "filter": "blur(0)" },
+        "100%": { "filter": "blur(3px)" }
+      }
+    },
+    "css_properties": {
+      "scene": "transition: filter 800ms cubic-bezier(0.16, 1, 0.3, 1)"
+    },
+    "when_to_use": ["Shifting attention between elements", "Before/after comparisons", "Depth-of-field simulation"],
+    "when_to_avoid": ["Editorial personality", "Neutral-light personality", "Accessibility-critical content"],
+    "ai_guidance": "Cinematic focus shift effect. Max blur 4px per camera-guardrails.json. Alternates between blur(0) and blur(3px). Use sparingly — excessive blur is disorienting. Listed in blur_primitives array for guardrail enforcement.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "research"
+  },
+  {
+    "name": "Handheld Drift",
+    "slug": "ct-camera-handheld",
+    "category": "continuous",
+    "description": "Continuous subtle random jitter simulating a handheld camera. Applies tiny random translateX/Y offsets up to 1.2px via requestAnimationFrame.",
+    "default_duration": "continuous",
+    "default_easing": "linear",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ct-camera-handheld",
+    "keyframes": null,
+    "css_properties": {
+      "scene": "transform: translateX(±1.2px) translateY(±1.2px) — applied per frame via rAF"
+    },
+    "when_to_use": ["Adding organic feel to static scenes", "Documentary-style moments", "Long dwell phases"],
+    "when_to_avoid": ["Editorial personality", "Neutral-light personality", "Short scenes under 3s", "Text-heavy content"],
+    "ai_guidance": "Continuous rAF-based jitter. Max displacement 1.2px per camera-guardrails.json. Extremely subtle — adds organic camera feel without distracting. Use on long-dwell cinematic phases (>5s). Clean up with cancelAnimationFrame.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "research"
+  },
+  {
+    "name": "Camera Shake",
+    "slug": "ct-camera-shake",
+    "category": "attention",
+    "description": "Short burst of rapid random translation simulating a camera shake. Applies ±3px random offsets over 600ms then settles to rest.",
+    "default_duration": "600ms",
+    "default_easing": "ease-out",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ct-camera-shake",
+    "keyframes": null,
+    "css_properties": {
+      "scene": "transform: translateX(±3px) translateY(±3px) — burst applied via setTimeout steps"
+    },
+    "when_to_use": ["Error/impact emphasis", "Dramatic rejection feedback", "Collision moments"],
+    "when_to_avoid": ["Editorial personality", "Neutral-light personality", "Frequent repetition", "Accessibility-sensitive contexts"],
+    "ai_guidance": "Attention-seeking shake burst. Max displacement 3px per camera-guardrails.json. Forbidden in editorial and neutral-light personalities. Use once per demo maximum — overuse is disorienting. Settles to transform: none after burst.",
+    "personality_affinity": ["cinematic-dark"],
+    "source": "research"
+  },
+  {
+    "name": "Subtle Push-In",
+    "slug": "ed-camera-push-in",
+    "category": "transition",
+    "description": "Extremely subtle scale increase from 1.0 to 1.01 over 2 seconds, simulating a barely-perceptible camera push-in for editorial contexts.",
+    "default_duration": "2000ms",
+    "default_easing": "ease-out",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ed-camera-push-in",
+    "keyframes": {
+      "ed-push-in": {
+        "0%": { "transform": "scale(1)" },
+        "100%": { "transform": "scale(1.01)" }
+      }
+    },
+    "css_properties": {
+      "scene": "transition: transform 2000ms ease-out"
+    },
+    "when_to_use": ["Subtle hero emphasis", "Editorial phase transitions", "Content focus moments"],
+    "when_to_avoid": ["Cinematic contexts (too subtle)", "Quick interactions", "Elements already at scale"],
+    "ai_guidance": "Editorial-safe camera move. Max scale change 1% per camera-guardrails.json. No 3D transforms, no blur — just a tiny scale shift. The most restrained camera primitive. Use for editorial hero moments where any movement helps.",
+    "personality_affinity": ["editorial"],
+    "source": "research"
+  },
+  {
+    "name": "Camera Drift",
+    "slug": "ed-camera-drift",
+    "category": "continuous",
+    "description": "Continuous extremely subtle horizontal oscillation of ±0.5px, simulating barely-perceptible camera drift for editorial scenes.",
+    "default_duration": "continuous",
+    "default_easing": "ease-in-out",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-ed-camera-drift",
+    "keyframes": null,
+    "css_properties": {
+      "scene": "transform: translateX(±0.5px) — sinusoidal oscillation via rAF"
+    },
+    "when_to_use": ["Adding life to static editorial scenes", "Long dwell phases in editorial demos", "Background ambient motion"],
+    "when_to_avoid": ["Cinematic contexts (too subtle)", "Neutral-light personality", "Short scenes", "Text being read"],
+    "ai_guidance": "Editorial-safe continuous ambient motion. Max displacement 0.5px per camera-guardrails.json. Sinusoidal oscillation via rAF. Almost imperceptible but adds organic feel. Only use on scenes >10s per editorial personality boundaries.",
+    "personality_affinity": ["editorial"],
+    "source": "research"
   }
 ]

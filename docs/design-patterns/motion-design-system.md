@@ -220,9 +220,9 @@ Not all animation serves the same purpose. Different contexts need different app
 
 ## Personality Roadmap
 
-Based on research across ~20 products and industry patterns (see `reference/personality-research.md`), the animation system uses **3 true personalities + 2 shared primitive libraries**.
+Based on research across ~20 products and industry patterns (see `reference/personality-research.md`), the animation system uses **4 personalities + 2 shared primitive libraries**.
 
-### 3 Personalities
+### 4 Personalities
 
 Animation personalities define *how things move*, independent of color mode (light/dark).
 
@@ -230,7 +230,7 @@ Animation personalities define *how things move*, independent of color mode (lig
 |-------------|--------|-------------------|----------|
 | **`cinematic`** | **Built** (as `cinematic-dark`) | 3D camera, clip-path wipes, spring physics, focus-pull entrances | Feature highlights, marketing demos, investor decks |
 | **`editorial`** | **Built** (as `editorial`) | Content-forward staggers, crossfades, scroll-bound pacing, interface-as-demo | Product showcases, content tools, visual search demos |
-| **`montage`** | Research complete (HTML layer) | Rapid scene cuts, full-screen typography, stat callouts, split-screen | Brand campaigns, product reels, sizzle content |
+| **`montage`** | **Built** (as `montage`) | Hard cuts + whip-wipes, scale entrances, stat pops, split-screen, grid reveals | Brand campaigns, product reels, sizzle content |
 | `default` | Built (no personality file, inline in SKILL.md) | Simple fade+translate transitions | Internal reviews, quick iteration |
 
 ### 2 Shared Primitive Libraries

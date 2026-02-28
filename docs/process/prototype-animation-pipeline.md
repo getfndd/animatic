@@ -59,13 +59,14 @@ What are you building?
 ├── Internal review / quick iteration
 │   └── default (light UI, fade+translate, no personality files)
 └── Brand campaign / launch event
-    └── montage (planned)
+    └── montage (hard cuts, whip-wipes, scale entrances, stat pops)
 ```
 
 | Personality | Best For | Transitions | Entrances | Camera |
 |-------------|----------|-------------|-----------|--------|
 | `cinematic` | Marketing, investor decks | Clip-path wipes | Focus-pull (blur→sharp) | 3D perspective |
 | `editorial` | Product showcases, content tools | Opacity crossfade | Slide+fade (translateY) | None (flat) |
+| `montage` | Brand campaigns, sizzle reels | Hard cut / whip-wipe (per-phase) | Scale hero / grid reveal | None (flat) |
 | `neutral-light` | Tutorials, onboarding, docs | Opacity crossfade | Slide+fade (translateY) | None (flat) |
 | `default` | Internal reviews | Opacity fade | Translate | None |
 
@@ -120,10 +121,16 @@ Every personality-driven animation separates concerns into three independent lay
 │   │   ├── motion.css                # Tokens + animation classes
 │   │   ├── engine.js                 # EditorialEngine class
 │   │   └── reference.html            # Canonical example
+│   ├── montage/
+│   │   ├── PERSONALITY.md            # Rules, timing, do/don't
+│   │   ├── motion.css                # --mo-* tokens + keyframes
+│   │   ├── engine.js                 # MontageEngine class
+│   │   └── reference.html            # "Introducing Velocity" sizzle reel
 │   └── neutral-light/
 │       ├── PERSONALITY.md            # Rules, do/don't, decision tree
 │       ├── motion.css                # Tokens + component classes
-│       └── engine.js                 # NeutralLightEngine class
+│       ├── engine.js                 # NeutralLightEngine class
+│       └── reference.html            # Canonical example
 └── primitives/
     └── tutorial/                     # Composable tutorial primitives
         ├── tutorial-primitives.js

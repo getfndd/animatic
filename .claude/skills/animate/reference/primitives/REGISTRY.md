@@ -93,6 +93,12 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `bk-sparse-breathe` | Sparse Grid Breathing | 4000ms loop | universal | breakdown |
 | `bk-nl-dot-breathe` | Light Palette Dot Grid Breathing | 4500ms loop | neutral-light | breakdown |
 | `bk-flow-field` | Flow Field Vortex | continuous | cinematic-dark | breakdown |
+| `ct-scene-breathe` | Scene Breathing | 8000ms loop | cinematic-dark, editorial | research |
+| `ct-ambient-drift` | Ambient Camera Drift | 12000ms loop | cinematic-dark, editorial | research |
+| `ct-element-float` | Element Float | 6000ms loop | cinematic-dark | research |
+| `ct-slow-push` | Slow Push-In (Ambient) | 6000ms | cinematic-dark, editorial | research |
+| `ed-scene-breathe` | Editorial Scene Breathing | 10000ms loop | editorial | research |
+| `nl-scene-breathe` | Neutral Scene Breathing | 12000ms loop | neutral-light | research |
 
 ### Content Effects
 
@@ -132,6 +138,16 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ct-camera-pan` | Camera Pan | 1200ms | cinematic-dark | research |
 | `ct-camera-tilt` | Camera Tilt Reveal | 1200ms | cinematic-dark | research |
 | `ct-camera-orbit` | Camera Orbit | 1200ms | cinematic-dark | research |
+| `ct-camera-truck` | Camera Truck (Lateral) | 1200ms | cinematic-dark | research |
+| `ct-camera-pedestal` | Camera Pedestal (Vertical) | 1200ms | cinematic-dark | research |
+| `ct-camera-crane` | Camera Crane Shot | 1800ms | cinematic-dark | research |
+| `ct-camera-arc` | Camera Arc Move | 1600ms | cinematic-dark | research |
+| `ct-camera-push-in` | Slow Camera Push-In | 3000ms | cinematic-dark, editorial | research |
+| `ct-camera-pull-out` | Camera Pull-Out Reveal | 2000ms | cinematic-dark | research |
+| `ct-camera-rack-focus` | Rack Focus Shift | 800ms | cinematic-dark | research |
+| `ct-camera-handheld` | Handheld Drift | 6000ms loop | cinematic-dark | research |
+| `ed-camera-push-in` | Editorial Slow Push-In | 6000ms | editorial | research |
+| `ed-camera-drift` | Editorial Ambient Drift | 12000ms loop | editorial | research |
 | `bk-bars-scatter` | Horizontal Scatter & Reconverge | 3400ms cycle | cinematic-dark | breakdown |
 | `bk-icon-to-layout` | Icon-to-Layout Morph | ~1000ms build | cinematic-dark | breakdown |
 | `nl-wizard-step-crossfade` | Wizard Step Crossfade | 300-400ms | neutral-light | breakdown |
@@ -166,7 +182,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 
 Best entrances: `cd-focus-stagger`, `ct-focus-pull`, `ct-zoom-from-space`, `as-zoomIn`, `bk-chat-typewriter-submit`, `bk-report-card-materialize`
 Best reveals: `ct-iris-open`, `ct-wipe-reveal`, `ct-bars-reveal`, `bk-arc-cascade`, `bk-content-line-stagger`, `bk-suggestion-chip-stagger`
-Best ambient: `ct-float`, `ct-glow-pulse`, `cd-progress-animation`, `bk-flow-field`
+Best ambient: `ct-float`, `ct-glow-pulse`, `cd-progress-animation`, `bk-flow-field`, `ct-scene-breathe`, `ct-ambient-drift`, `ct-element-float`, `ct-slow-push`
+Best camera: `ct-camera-dolly`, `ct-camera-orbit`, `ct-camera-crane`, `ct-camera-push-in`, `ct-camera-rack-focus`, `ct-camera-handheld`
 Best transitions: `cd-phase-transition`, `ct-camera-dolly`, `ct-camera-orbit`, `bk-bars-scatter`, `bk-icon-to-layout`
 Best typography: `ct-text-hero`, `ct-char-stagger`, `cd-typewriter`
 
@@ -174,7 +191,8 @@ Best typography: `ct-text-hero`, `ct-char-stagger`, `cd-typewriter`
 
 Best entrances: `ed-slide-stagger`, `ed-blur-reveal`, `as-fadeInUp`, `as-fadeInLeft`, `bk-report-card-materialize`
 Best reveals: `ct-text-sweep`, `ed-all-typewriters`, `bk-suggestion-chip-stagger`, `bk-table-row-stagger`
-Best ambient: `ed-content-cycle`
+Best ambient: `ed-content-cycle`, `ed-scene-breathe`, `ed-camera-push-in`, `ed-camera-drift`, `ct-slow-push`
+Best camera: `ed-camera-push-in`, `ed-camera-drift`, `ct-camera-push-in`
 Best content: `ed-count-up`, `ct-word-carousel`, `bk-text-image-split`, `bk-ai-response-stream`, `bk-stat-card-count-up`
 Best transitions: `ed-phase-transition`, `ed-tab-switch`, `bk-chat-to-split-pane`, `bk-panel-content-swap`
 Best typography: `cd-typewriter`, `ct-text-sweep`, `bk-text-image-split`, `bk-chat-typewriter-submit`, `bk-scroll-trigger-typewriter`
@@ -183,7 +201,8 @@ Best typography: `cd-typewriter`, `ct-text-sweep`, `bk-text-image-split`, `bk-ch
 
 Best entrances: `nl-slide-stagger`, `as-fadeInUp`, `nl-field-reveal`, `nl-staggered-card-entrance`, `nl-completion-stagger`
 Best attention: `nl-spotlight`, `nl-tooltip`, `nl-progress-dots`
-Best ambient: `bk-sparse-breathe`, `bk-nl-dot-breathe`
+Best ambient: `bk-sparse-breathe`, `bk-nl-dot-breathe`, `nl-scene-breathe`
+Best camera: `nl-spotlight`, `nl-cursor-to`
 Best content: `nl-step-progress`, `ed-count-up`, `nl-progress-dots`, `bk-ai-response-stream`, `bk-stat-card-count-up`
 Best interactions: `nl-cursor-to`, `nl-card-select`, `nl-radio-card-select`, `nl-button-activate`, `nl-tag-pill-select`
 Best transitions: `nl-phase-transition`, `nl-wizard-step-crossfade`, `nl-phase-crossfade`, `nl-app-materialize`, `nl-loading-gate`, `bk-panel-content-swap`
@@ -401,6 +420,253 @@ Full CSS implementations for effects extracted from cinematic-techniques-researc
 .scene.orbit { transform: rotateY(15deg) rotateX(5deg); }
 ```
 
+### `ct-camera-truck` — Camera Truck (Lateral Movement)
+
+```css
+/* Truck right — lateral movement revealing adjacent content */
+@keyframes camera-truck-right {
+  0% { transform: translateX(0) translateZ(30px); }
+  100% { transform: translateX(-250px) translateZ(30px); }
+}
+.scene.truck-right {
+  animation: camera-truck-right 1200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+/* Truck left: use translateX(250px). Slight Z push adds depth. */
+```
+
+### `ct-camera-pedestal` — Camera Pedestal (Vertical Movement)
+
+```css
+/* Pedestal up — vertical rise revealing content below */
+@keyframes camera-pedestal-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(150px); }
+}
+.scene.pedestal-up {
+  animation: camera-pedestal-up 1200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+/* Pedestal down: use negative translateY. Combine with slight scale for crane feel. */
+```
+
+### `ct-camera-crane` — Camera Crane Shot
+
+```css
+/* Crane: combined vertical rise + depth push + slight tilt */
+@keyframes camera-crane {
+  0% { transform: translateY(0) translateZ(0) rotateX(0deg); }
+  60% { transform: translateY(120px) translateZ(100px) rotateX(-2deg); }
+  100% { transform: translateY(180px) translateZ(150px) rotateX(-4deg); }
+}
+.scene.crane-up {
+  animation: camera-crane 1800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+```
+
+### `ct-camera-arc` — Camera Arc Move
+
+```css
+/* Arc: curved movement path around content */
+@keyframes camera-arc {
+  0% { transform: rotateY(-10deg) translateX(50px) translateZ(0); }
+  50% { transform: rotateY(0deg) translateX(0) translateZ(80px); }
+  100% { transform: rotateY(10deg) translateX(-50px) translateZ(0); }
+}
+.scene.arc-move {
+  animation: camera-arc 1600ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+```
+
+### `ct-camera-push-in` — Slow Camera Push-In
+
+```css
+/* Slow push-in: builds tension, focuses attention. Works for CD (3D) and ED (scale). */
+
+/* Cinematic Dark version (3D dolly) */
+@keyframes camera-push-in-3d {
+  0% { transform: translateZ(0); }
+  100% { transform: translateZ(120px); }
+}
+.camera-rig .scene.push-in {
+  animation: camera-push-in-3d 3000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Editorial version (2D scale) */
+@keyframes camera-push-in-2d {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.02); }
+}
+.ed-scene.push-in {
+  animation: camera-push-in-2d 6000ms ease-in-out forwards;
+}
+```
+
+### `ct-camera-pull-out` — Camera Pull-Out Reveal
+
+```css
+/* Pull-out: reveals full context, used for resolution/completion */
+@keyframes camera-pull-out {
+  0% { transform: translateZ(150px) scale(1.05); }
+  100% { transform: translateZ(0) scale(1); }
+}
+.scene.pull-out {
+  animation: camera-pull-out 2000ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+```
+
+### `ct-camera-rack-focus` — Rack Focus Shift
+
+```css
+/* Rack focus: shifts sharp focus between foreground and background layers */
+/* Apply to the layer LOSING focus */
+@keyframes rack-blur-out {
+  0% { filter: blur(0); opacity: 1; }
+  100% { filter: blur(4px); opacity: 0.5; }
+}
+/* Apply to the layer GAINING focus */
+@keyframes rack-blur-in {
+  0% { filter: blur(4px); opacity: 0.5; }
+  100% { filter: blur(0); opacity: 1; }
+}
+.layer.rack-out { animation: rack-blur-out 800ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
+.layer.rack-in { animation: rack-blur-in 800ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
+```
+
+### `ct-camera-handheld` — Handheld Drift
+
+```css
+/* Handheld: subtle organic movement simulating a real camera operator */
+@keyframes handheld-drift {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  15% { transform: translate(1.2px, -0.8px) rotate(0.15deg); }
+  30% { transform: translate(-0.5px, 1px) rotate(-0.1deg); }
+  45% { transform: translate(0.8px, 0.3px) rotate(0.08deg); }
+  60% { transform: translate(-1px, -0.5px) rotate(-0.12deg); }
+  75% { transform: translate(0.3px, 0.8px) rotate(0.05deg); }
+  90% { transform: translate(-0.6px, -0.3px) rotate(-0.08deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+.scene.handheld {
+  animation: handheld-drift 6000ms ease-in-out infinite;
+}
+```
+
+### `ed-camera-push-in` — Editorial Slow Push-In (2D)
+
+```css
+/* Editorial push-in: 2D scale only, very slow, barely perceptible */
+@keyframes ed-push-in {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.01); }
+}
+.ed-scene.push-in {
+  animation: ed-push-in 6000ms ease-in-out forwards;
+}
+/* Max 1% scale change. Anything more breaks editorial restraint. */
+```
+
+### `ed-camera-drift` — Editorial Ambient Drift (2D)
+
+```css
+/* Editorial drift: subtle 2D translation, no rotation, no 3D */
+@keyframes ed-drift {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(0.5px, -0.3px); }
+  50% { transform: translate(-0.3px, 0.5px); }
+  75% { transform: translate(0.2px, 0.2px); }
+}
+.ed-scene.drift {
+  animation: ed-drift 12000ms ease-in-out infinite;
+}
+/* Max 1px translation. Rotation forbidden in editorial. */
+```
+
+### Ambient Micro-Movement Primitives
+
+### `ct-scene-breathe` — Scene Breathing
+
+```css
+/* Scene-level breathing: entire composition pulses subtly */
+@keyframes scene-breathe-cd {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.004); }
+}
+.scene.breathe-cd {
+  animation: scene-breathe-cd 8000ms ease-in-out infinite;
+}
+```
+
+### `ct-ambient-drift` — Ambient Camera Drift
+
+```css
+/* Ambient drift: scene-level subtle positional shift */
+@keyframes ambient-drift-cd {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(1.5px, -1px); }
+  50% { transform: translate(-1px, 1.5px); }
+  75% { transform: translate(0.5px, 0.5px); }
+}
+.scene.ambient-drift {
+  animation: ambient-drift-cd 12000ms ease-in-out infinite;
+}
+```
+
+### `ct-element-float` — Element Float
+
+```css
+/* Individual element float: organic independent movement */
+@keyframes element-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-5px) rotate(0.3deg); }
+  75% { transform: translateY(3px) rotate(-0.2deg); }
+}
+/* Stagger children with different durations */
+.float-item:nth-child(1) { animation: element-float 6000ms ease-in-out infinite; }
+.float-item:nth-child(2) { animation: element-float 7000ms ease-in-out infinite -1500ms; }
+.float-item:nth-child(3) { animation: element-float 5500ms ease-in-out infinite -3000ms; }
+```
+
+### `ct-slow-push` — Slow Push-In (Ambient)
+
+```css
+/* Ambient push-in: imperceptible scale increase over time */
+@keyframes slow-push-ambient {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.015); }
+}
+.scene.slow-push {
+  animation: slow-push-ambient 6000ms ease-in-out forwards;
+}
+/* CD: 1.5% max. ED: 0.5-1% max. NL: not used. */
+```
+
+### `ed-scene-breathe` — Editorial Scene Breathing
+
+```css
+/* Editorial breathing: even more subtle than cinematic-dark */
+@keyframes scene-breathe-ed {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.002); }
+}
+.ed-scene.breathe {
+  animation: scene-breathe-ed 10000ms ease-in-out infinite;
+}
+/* 0.2% max scale change — barely perceptible */
+```
+
+### `nl-scene-breathe` — Neutral Light Scene Breathing
+
+```css
+/* Neutral Light breathing: near-zero, only for long-running scenes (>10s) */
+@keyframes scene-breathe-nl {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.001); }
+}
+.nl-scene.breathe {
+  animation: scene-breathe-nl 12000ms ease-in-out infinite;
+}
+/* 0.1% max. Use only when scene runs >10 seconds. Prefer stillness. */
+```
+
 ---
 
 ## Detail Blocks — Breakdown Primitives (CSS)
@@ -568,6 +834,7 @@ Full CSS implementations for effects extracted from reference breakdowns.
 | Engine builtins | `sources/engine-builtins.md` | 20 |
 | animate.style (Use tier) | `sources/animate-style.md` | 18 |
 | Cinematic techniques research | `../cinematic-techniques-research.md` | ~20 |
+| Camera & ambient primitives | `../camera-rig.md` | 20 |
 | Reference breakdowns | `sources/breakdowns.md` | 42 |
 
-**Total cataloged:** ~100 named primitives
+**Total cataloged:** ~120 named primitives

@@ -259,6 +259,7 @@ export function listReferenceDocs() {
     'animation-principles',
     'spring-physics',
     'cinematic-techniques-research',
+    'camera-rig',
     'personality-research',
     'SCHEMA',
     'industry-references',

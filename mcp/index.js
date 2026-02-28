@@ -55,15 +55,15 @@ const server = new Server(
       resources: {},
       tools: {},
     },
-    instructions: `This MCP server provides access to Animatic's animation reference system — 100+ named primitives, 3 animation personalities, 15 reference breakdowns, spring physics, and animation principles.
+    instructions: `This MCP server provides access to Animatic's animation reference system — 120+ named primitives, 3 animation personalities, 15 reference breakdowns, spring physics, animation principles, and a cinematic camera system.
 
 WORKFLOW FOR CHOOSING ANIMATIONS:
 1. Start with the personality: cinematic-dark (dramatic demos), editorial (content-forward), or neutral-light (tutorials/onboarding)
 2. Use search_primitives to find candidates filtered by personality and category
 3. Use get_primitive for full CSS implementation details
-4. Use get_personality for timing tiers, easing curves, and recommended primitives
+4. Use get_personality for timing tiers, easing curves, camera behavior rules, and recommended primitives
 5. Consult breakdowns (search_breakdowns → get_breakdown) for real-world choreography examples
-6. Reference animation-principles or spring-physics docs for foundational guidance
+6. Reference animation-principles, spring-physics, or camera-rig docs for foundational guidance
 
 PRIMITIVE SOURCES:
 - "engine" = Built into the Animatic animation engine (15 primitives with full JSON catalog data)
@@ -76,6 +76,13 @@ PERSONALITY RULES:
 - editorial: No 3D, no blur entrances, opacity crossfades, content cycling, light palette
 - neutral-light: No blur, no 3D, spotlight/cursor/step-indicators, tutorial-focused, light palette
 - Never mix personality-specific primitives across personalities
+
+CAMERA SYSTEM:
+Each personality defines camera behavior rules. Use get_personality to see allowed camera movements, parallax settings, DOF rules, and ambient motion parameters.
+- cinematic-dark: Full 3D camera — dolly, orbit, crane, rack focus, handheld drift, parallax, DOF blur
+- editorial: 2D only — subtle push-in (max 1% scale), ambient drift, speed-differential parallax, no blur
+- neutral-light: No camera movement — use attention-direction primitives (spotlight, cursor, step indicators)
+- Reference camera-rig doc for CSS rig setup, parallax math, emotion-to-camera mapping, and guardrails
 
 TIMING HIERARCHY:
 Each personality defines speed tiers (fast/medium/slow/spring). Always use the personality's timing tokens rather than arbitrary durations.`,
@@ -214,7 +221,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'get_personality',
       description:
-        'Get full personality definition including timing tiers, easing curves, characteristics, default primitives, and recommended primitives by category from the registry.',
+        'Get full personality definition including timing tiers, easing curves, characteristics, camera behavior rules (allowed movements, parallax, DOF, ambient motion), default primitives, and recommended primitives by category from the registry.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -478,6 +485,73 @@ function handleGetPersonality(args) {
   out += `- **Default Stagger:** ${personality.default_stagger}\n`;
   out += `- **Default Entrance:** ${personality.default_entrance}\n`;
   out += `- **Default Exit:** ${personality.default_exit}\n`;
+
+  // Camera behavior
+  if (personality.camera_behavior) {
+    const cam = personality.camera_behavior;
+    out += '\n## Camera Behavior\n\n';
+    out += `- **Enabled:** ${cam.enabled}\n`;
+    out += `- **Mode:** ${cam.mode}\n`;
+    if (cam.perspective !== 'none') {
+      out += `- **Perspective:** ${cam.perspective}\n`;
+    }
+    if (cam.allowed_movements?.length > 0) {
+      out += `- **Allowed Movements:** ${cam.allowed_movements.join(', ')}\n`;
+    }
+    if (cam.forbidden_movements?.length > 0) {
+      out += `- **Forbidden Movements:** ${cam.forbidden_movements.join(', ')}\n`;
+    }
+    if (cam.parallax) {
+      out += `\n### Parallax\n`;
+      out += `- **Enabled:** ${cam.parallax.enabled}\n`;
+      if (cam.parallax.enabled) {
+        out += `- **Mode:** ${cam.parallax.mode}\n`;
+        out += `- **Max Layers:** ${cam.parallax.max_layers}\n`;
+        out += `- **Intensity:** ${cam.parallax.intensity}\n`;
+      }
+    }
+    if (cam.depth_of_field) {
+      out += `\n### Depth of Field\n`;
+      out += `- **Enabled:** ${cam.depth_of_field.enabled}\n`;
+      if (cam.depth_of_field.enabled) {
+        out += `- **Max Blur:** ${cam.depth_of_field.max_blur}\n`;
+        out += `- **Entrance Blur:** ${cam.depth_of_field.entrance_blur}\n`;
+        out += `- **Rack Focus:** ${cam.depth_of_field.rack_focus}\n`;
+      }
+      if (cam.depth_of_field.alternative) {
+        out += `- **Alternative:** ${cam.depth_of_field.alternative}\n`;
+      }
+    }
+    if (cam.ambient_motion) {
+      out += `\n### Ambient Motion\n`;
+      for (const [key, val] of Object.entries(cam.ambient_motion)) {
+        if (typeof val === 'object' && val.enabled === false) {
+          out += `- **${key.replace(/_/g, ' ')}:** disabled\n`;
+        } else if (typeof val === 'object') {
+          const props = Object.entries(val).map(([k, v]) => `${k}: ${v}`).join(', ');
+          out += `- **${key.replace(/_/g, ' ')}:** ${props}\n`;
+        }
+      }
+    }
+    if (cam.camera_speed_tiers) {
+      out += `\n### Camera Speed Tiers\n`;
+      for (const [tier, dur] of Object.entries(cam.camera_speed_tiers)) {
+        out += `- **${tier}:** ${dur}\n`;
+      }
+    }
+    if (cam.camera_easing) {
+      out += `\n**Camera Easing:** \`${cam.camera_easing}\`\n`;
+    }
+    if (cam.recommended_primitives?.length > 0) {
+      out += `\n**Recommended Camera Primitives:** ${cam.recommended_primitives.map(id => `\`${id}\``).join(', ')}\n`;
+    }
+    if (cam.attention_primitives?.length > 0) {
+      out += `\n**Attention Direction Primitives:** ${cam.attention_primitives.map(id => `\`${id}\``).join(', ')}\n`;
+    }
+    if (cam.constraints) {
+      out += `\n**Constraints:** ${cam.constraints}\n`;
+    }
+  }
 
   // Recommended primitives from registry quick filters
   const recs = registry.personalityRecommendations.get(slug);

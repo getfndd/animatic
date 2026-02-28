@@ -8,11 +8,13 @@
     "sync:dry": "node scripts/sync-to-preset.mjs --dry-run",
     "setup-hook": "bash scripts/setup-hook.sh",
     "start:mcp": "node mcp/index.js",
-    "test": "node --test mcp/test/"
+    "test": "node --test mcp/test/",
+    "capture": "node scripts/capture-prototype.mjs"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.49.1",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "puppeteer": "^24.37.5"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1"

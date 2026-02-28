@@ -86,24 +86,35 @@ class CinematicDarkEngine {
   /* ================================================================
      HELPERS
      ================================================================ */
+  /** @param {string} selector — CSS selector @returns {Element|null} */
   $(selector) {
     return document.querySelector(selector);
   }
 
+  /** @param {string} selector — CSS selector @returns {NodeList} */
   $$(selector) {
     return document.querySelectorAll(selector);
   }
 
+  /** @param {number} ms — milliseconds to wait @returns {Promise<void>} */
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * Schedule a callback with automatic cleanup on reset.
+   * Always use this instead of raw setTimeout.
+   * @param {Function} fn — callback to execute
+   * @param {number} ms — delay in milliseconds
+   * @returns {number} timer ID
+   */
   pushTimer(fn, ms) {
     const id = setTimeout(fn, ms);
     this._timers.push(id);
     return id;
   }
 
+  /** Cancel all timers registered via pushTimer. */
   clearAllTimers() {
     this._timers.forEach(t => clearTimeout(t));
     this._timers.length = 0;
@@ -116,6 +127,7 @@ class CinematicDarkEngine {
      to measure its natural height. Required before any
      transitions so the container can animate height smoothly.
      ================================================================ */
+  /** Pre-measure all phase heights for smooth height animation. Must run before first transition. */
   measurePhases() {
     const container = this.$(this.sel.phaseContainer);
     container.style.transition = 'none';
@@ -315,6 +327,7 @@ class CinematicDarkEngine {
     this.progressRAF = requestAnimationFrame(tick);
   }
 
+  /** Stop and reset the rAF-driven progress animation. Clears bars, dots, labels, connectors. */
   stopProgressAnimation() {
     if (this.progressRAF) {
       cancelAnimationFrame(this.progressRAF);
@@ -329,6 +342,7 @@ class CinematicDarkEngine {
   /* ================================================================
      RESET ALL ANIMATIONS
      ================================================================ */
+  /** Reset all animation state for clean loop replay. Clears timers, CSS classes, and element text. */
   resetAllAnimations() {
     this.clearAllTimers();
 
@@ -374,6 +388,12 @@ class CinematicDarkEngine {
      6. FAST — playback dot update
      7. — phase enter callback
      ================================================================ */
+  /**
+   * Orchestrate multi-speed transition to a target phase.
+   * Coordinates container height, 3D camera, title focus-pull, clip-path wipe,
+   * footer crossfade, playback dots, and phase enter callbacks.
+   * @param {number} targetPhase — phase index to transition to
+   */
   transitionTo(targetPhase) {
     if (targetPhase === this.currentPhase) return;
 
@@ -438,6 +458,7 @@ class CinematicDarkEngine {
   /* ================================================================
      PLAYBACK ENGINE
      ================================================================ */
+  /** Schedule the next phase transition based on current phase's dwell time. Runs interactions before advancing. */
   scheduleNext() {
     if (!this.playing) return;
     clearTimeout(this.phaseTimer);
@@ -461,6 +482,7 @@ class CinematicDarkEngine {
     }, dwell - leadTime);
   }
 
+  /** Toggle play/pause. Updates icon visibility and pauses or resumes scheduling. */
   togglePlay() {
     this.playing = !this.playing;
     const iconPause = this.$(this.sel.iconPause);
@@ -471,6 +493,10 @@ class CinematicDarkEngine {
     else clearTimeout(this.phaseTimer);
   }
 
+  /**
+   * Jump directly to a specific phase. Resets all animations, transitions, and resumes scheduling.
+   * @param {number} phase — target phase index
+   */
   jumpTo(phase) {
     clearTimeout(this.phaseTimer);
     this.resetAllAnimations();
@@ -479,6 +505,7 @@ class CinematicDarkEngine {
     if (this.playing) this.scheduleNext();
   }
 
+  /** Reset to phase 0 and restart playback from the beginning. */
   restart() {
     clearTimeout(this.phaseTimer);
     this.stopProgressAnimation();
@@ -495,6 +522,7 @@ class CinematicDarkEngine {
      - Transparent background
      - Full-width scene
      ================================================================ */
+  /** Apply embed mode: hide controls, transparent background, full-width scene. Activated by ?embed URL param. */
   applyEmbedMode() {
     if (!this.isEmbed) return;
     const playback = this.$(this.sel.playbackBar);
@@ -515,6 +543,7 @@ class CinematicDarkEngine {
      Call this after DOMContentLoaded. Applies embed mode,
      measures phases, and starts playback.
      ================================================================ */
+  /** Initialize engine after DOMContentLoaded. Applies embed mode, measures phase heights, starts playback. */
   boot() {
     this.applyEmbedMode();
     // Small delay for fonts to load
@@ -531,6 +560,7 @@ class CinematicDarkEngine {
      HTML (onclick="togglePlay()") work without changes.
      Also enables iframe postMessage control for compare.html.
      ================================================================ */
+  /** Wire window-level togglePlay(), jumpTo(), restart() for HTML onclick handlers and iframe control. */
   exposeGlobals() {
     window.togglePlay = () => this.togglePlay();
     window.jumpTo = (phase) => this.jumpTo(phase);

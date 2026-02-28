@@ -81,24 +81,35 @@ class NeutralLightEngine {
   /* ================================================================
      HELPERS
      ================================================================ */
+  /** @param {string} selector — CSS selector @returns {Element|null} */
   $(selector) {
     return document.querySelector(selector);
   }
 
+  /** @param {string} selector — CSS selector @returns {NodeList} */
   $$(selector) {
     return document.querySelectorAll(selector);
   }
 
+  /** @param {number} ms — milliseconds to wait @returns {Promise<void>} */
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * Schedule a callback with automatic cleanup on reset.
+   * Always use this instead of raw setTimeout.
+   * @param {Function} fn — callback to execute
+   * @param {number} ms — delay in milliseconds
+   * @returns {number} timer ID
+   */
   pushTimer(fn, ms) {
     const id = setTimeout(fn, ms);
     this._timers.push(id);
     return id;
   }
 
+  /** Cancel all timers registered via pushTimer. */
   clearAllTimers() {
     this._timers.forEach(t => clearTimeout(t));
     this._timers.length = 0;
@@ -111,6 +122,7 @@ class NeutralLightEngine {
      to measure its natural height. Required before any
      transitions so the container can animate height smoothly.
      ================================================================ */
+  /** Pre-measure all phase heights for smooth height animation. Must run before first transition. */
   measurePhases() {
     const container = this.$(this.sel.phaseContainer);
     container.style.transition = 'none';
@@ -329,6 +341,7 @@ class NeutralLightEngine {
   /* ================================================================
      RESET ALL ANIMATIONS
      ================================================================ */
+  /** Reset all animation state for clean loop replay. Clears timers, spotlight, cursor, tooltips, step indicators. */
   resetAllAnimations() {
     this.clearAllTimers();
 
@@ -380,6 +393,12 @@ class NeutralLightEngine {
      5. FAST — playback dot update
      6. — phase enter callback
      ================================================================ */
+  /**
+   * Orchestrate multi-speed transition to a target phase.
+   * Coordinates container height, title fade, opacity crossfade,
+   * footer crossfade, playback dots, and phase enter callbacks.
+   * @param {number} targetPhase — phase index to transition to
+   */
   transitionTo(targetPhase) {
     if (targetPhase === this.currentPhase) return;
 
@@ -437,6 +456,7 @@ class NeutralLightEngine {
   /* ================================================================
      PLAYBACK ENGINE
      ================================================================ */
+  /** Schedule the next phase transition based on current phase's dwell time. */
   scheduleNext() {
     if (!this.playing) return;
     clearTimeout(this.phaseTimer);
@@ -457,6 +477,7 @@ class NeutralLightEngine {
     }, dwell);
   }
 
+  /** Toggle play/pause. Updates icon visibility and pauses or resumes scheduling. */
   togglePlay() {
     this.playing = !this.playing;
     const iconPause = this.$(this.sel.iconPause);
@@ -467,6 +488,10 @@ class NeutralLightEngine {
     else clearTimeout(this.phaseTimer);
   }
 
+  /**
+   * Jump directly to a specific phase. Resets all animations, transitions, and resumes scheduling.
+   * @param {number} phase — target phase index
+   */
   jumpTo(phase) {
     clearTimeout(this.phaseTimer);
     this.resetAllAnimations();
@@ -474,6 +499,7 @@ class NeutralLightEngine {
     if (this.playing) this.scheduleNext();
   }
 
+  /** Reset to phase 0 and restart playback from the beginning. */
   restart() {
     clearTimeout(this.phaseTimer);
     this.resetAllAnimations();
@@ -489,6 +515,7 @@ class NeutralLightEngine {
      - Transparent background
      - Full-width scene
      ================================================================ */
+  /** Apply embed mode: hide controls, transparent background, full-width scene. Activated by ?embed URL param. */
   applyEmbedMode() {
     if (!this.isEmbed) return;
     const playback = this.$(this.sel.playbackBar);
@@ -509,6 +536,7 @@ class NeutralLightEngine {
      Call this after DOMContentLoaded. Applies embed mode,
      measures phases, and starts playback.
      ================================================================ */
+  /** Initialize engine after DOMContentLoaded. Applies embed mode, measures phase heights, starts playback. */
   boot() {
     this.applyEmbedMode();
     // Small delay for fonts to load
@@ -524,6 +552,7 @@ class NeutralLightEngine {
      Wires up window-level functions so onclick handlers in
      HTML (onclick="togglePlay()") work without changes.
      ================================================================ */
+  /** Wire window-level togglePlay(), jumpTo(), restart() for HTML onclick handlers. */
   exposeGlobals() {
     window.togglePlay = () => this.togglePlay();
     window.jumpTo = (phase) => this.jumpTo(phase);

@@ -82,30 +82,48 @@ class EditorialEngine {
   /* ================================================================
      HELPERS
      ================================================================ */
+  /** @param {string} selector — CSS selector @returns {Element|null} */
   $(selector) {
     return document.querySelector(selector);
   }
 
+  /** @param {string} selector — CSS selector @returns {NodeList} */
   $$(selector) {
     return document.querySelectorAll(selector);
   }
 
+  /** @param {number} ms — milliseconds to wait @returns {Promise<void>} */
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * Schedule a callback with automatic cleanup on reset.
+   * Always use this instead of raw setTimeout.
+   * @param {Function} fn — callback to execute
+   * @param {number} ms — delay in milliseconds
+   * @returns {number} timer ID
+   */
   pushTimer(fn, ms) {
     const id = setTimeout(fn, ms);
     this._timers.push(id);
     return id;
   }
 
+  /**
+   * Schedule a repeating callback with automatic cleanup on reset.
+   * Always use this instead of raw setInterval.
+   * @param {Function} fn — callback to execute
+   * @param {number} ms — interval in milliseconds
+   * @returns {number} interval ID
+   */
   pushInterval(fn, ms) {
     const id = setInterval(fn, ms);
     this._intervals.push(id);
     return id;
   }
 
+  /** Cancel all timers, intervals, and animation frames registered via push helpers. */
   clearAllTimers() {
     this._timers.forEach(t => clearTimeout(t));
     this._timers.length = 0;
@@ -121,6 +139,7 @@ class EditorialEngine {
      Apply custom CSS custom property values to the document root.
      This allows any design system to adapt the editorial personality.
      ================================================================ */
+  /** Apply tokenOverrides config to document root CSS custom properties. Enables design system adaptation. */
   applyTokenOverrides() {
     if (!this.tokenOverrides) return;
     const root = document.documentElement;
@@ -132,6 +151,7 @@ class EditorialEngine {
   /* ================================================================
      MEASURE PHASE HEIGHTS
      ================================================================ */
+  /** Pre-measure all phase heights for smooth height animation. Must run before first transition. */
   measurePhases() {
     const container = this.$(this.sel.phaseContainer);
     container.style.transition = 'none';
@@ -356,6 +376,7 @@ class EditorialEngine {
   /* ================================================================
      RESET ALL ANIMATIONS
      ================================================================ */
+  /** Reset all animation state for clean loop replay. Clears timers, CSS classes, and element text. */
   resetAllAnimations() {
     this.clearAllTimers();
 
@@ -400,6 +421,12 @@ class EditorialEngine {
      5. FAST — playback dot update
      6. — phase enter callback
      ================================================================ */
+  /**
+   * Orchestrate multi-speed transition to a target phase.
+   * Coordinates container height morph, title crossfade, phase content crossfade,
+   * footer crossfade, playback dots, and phase enter callbacks.
+   * @param {number} targetPhase — phase index to transition to
+   */
   transitionTo(targetPhase) {
     if (targetPhase === this.currentPhase) return;
 
@@ -459,6 +486,7 @@ class EditorialEngine {
   /* ================================================================
      PLAYBACK ENGINE
      ================================================================ */
+  /** Schedule the next phase transition based on current phase's dwell time. */
   scheduleNext() {
     if (!this.playing) return;
     clearTimeout(this.phaseTimer);
@@ -479,6 +507,7 @@ class EditorialEngine {
     }, dwell);
   }
 
+  /** Toggle play/pause. Updates icon visibility and pauses or resumes scheduling. */
   togglePlay() {
     this.playing = !this.playing;
     const iconPause = this.$(this.sel.iconPause);
@@ -489,6 +518,10 @@ class EditorialEngine {
     else clearTimeout(this.phaseTimer);
   }
 
+  /**
+   * Jump directly to a specific phase. Resets all animations, transitions, and resumes scheduling.
+   * @param {number} phase — target phase index
+   */
   jumpTo(phase) {
     clearTimeout(this.phaseTimer);
     this.resetAllAnimations();
@@ -496,6 +529,7 @@ class EditorialEngine {
     if (this.playing) this.scheduleNext();
   }
 
+  /** Reset to phase 0 and restart playback from the beginning. Re-triggers phase 0 callback. */
   restart() {
     clearTimeout(this.phaseTimer);
     this.resetAllAnimations();
@@ -509,6 +543,7 @@ class EditorialEngine {
   /* ================================================================
      EMBED MODE
      ================================================================ */
+  /** Apply embed mode: hide controls, transparent background, full-width scene. Activated by ?embed URL param. */
   applyEmbedMode() {
     if (!this.isEmbed) return;
     const playback = this.$(this.sel.playbackBar);
@@ -526,6 +561,7 @@ class EditorialEngine {
   /* ================================================================
      BOOT
      ================================================================ */
+  /** Initialize engine after DOMContentLoaded. Applies tokens, embed mode, measures phases, starts playback. */
   boot() {
     this.applyTokenOverrides();
     this.applyEmbedMode();
@@ -542,6 +578,7 @@ class EditorialEngine {
   /* ================================================================
      EXPOSE GLOBAL API
      ================================================================ */
+  /** Wire window-level togglePlay(), jumpTo(), restart() for HTML onclick handlers. */
   exposeGlobals() {
     window.togglePlay = () => this.togglePlay();
     window.jumpTo = (phase) => this.jumpTo(phase);

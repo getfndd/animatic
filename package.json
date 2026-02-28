@@ -7,7 +7,8 @@
     "sync": "node scripts/sync-to-preset.mjs",
     "sync:dry": "node scripts/sync-to-preset.mjs --dry-run",
     "setup-hook": "bash scripts/setup-hook.sh",
-    "start:mcp": "node mcp/index.js"
+    "start:mcp": "node mcp/index.js",
+    "test": "node --test mcp/test/"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.49.1",

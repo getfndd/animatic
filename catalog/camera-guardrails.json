@@ -51,5 +51,14 @@
     "ct-dolly-zoom":        { "property": "scale",      "max_displacement": 0.3, "unit": "ratio" },
     "ed-camera-push-in":    { "property": "scale",      "max_displacement": 1,   "unit": "percent" },
     "ed-camera-drift":      { "property": "translateX", "max_displacement": 0.5, "unit": "px" }
-  }
+  },
+  "blur_primitives": [
+    "cd-focus-stagger",
+    "ed-blur-reveal",
+    "ct-focus-pull",
+    "ct-zoom-from-space",
+    "ct-text-hero",
+    "ct-camera-rack-focus",
+    "ct-glow-pulse"
+  ]
 }

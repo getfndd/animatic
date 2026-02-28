@@ -71,14 +71,13 @@ for skill in "${SKILL_DIRS[@]}"; do
       continue  # No change, skip silently
     fi
 
-    if [ -f "$dst_file" ]; then
-      action="UPDATE"
-    else
-      action="ADD   "
-    fi
-
     cp "$file" "$dst_file"
-    echo "  $action skills/$skill/$rel"
+
+    if [ -f "$dst_file" ]; then
+      echo "  UPDATE skills/$skill/$rel"
+    else
+      echo "  ADD    skills/$skill/$rel"
+    fi
     CHANGES=$((CHANGES + 1))
   done < <(find "$SRC" -type f -print0)
 done
@@ -92,15 +91,9 @@ while IFS= read -r -d '' file; do
     continue
   fi
 
-  if [ -f "$dst_file" ]; then
-    action="UPDATE"
-  else
-    action="ADD   "
-  fi
-
   cp "$file" "$dst_file"
   chmod +x "$dst_file"
-  echo "  $action hooks/$filename"
+  echo "  UPDATE hooks/$filename"
   CHANGES=$((CHANGES + 1))
 done < <(find "$ANIMATIC_DIR/.claude/hooks" -type f -name "*.sh" -print0)
 
@@ -110,15 +103,9 @@ DST_SCRIPT="$CLAUDE_DIR/scripts/update-skill-registry.sh"
 
 if [ -f "$SRC_SCRIPT" ]; then
   if [ ! -f "$DST_SCRIPT" ] || ! diff -q "$SRC_SCRIPT" "$DST_SCRIPT" > /dev/null 2>&1; then
-    if [ -f "$DST_SCRIPT" ]; then
-      action="UPDATE"
-    else
-      action="ADD   "
-    fi
-
     cp "$SRC_SCRIPT" "$DST_SCRIPT"
     chmod +x "$DST_SCRIPT"
-    echo "  $action scripts/update-skill-registry.sh"
+    echo "  UPDATE scripts/update-skill-registry.sh"
     CHANGES=$((CHANGES + 1))
   fi
 fi

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Room Upload — Figma MCP POC</title>
+<style>
+  /* ================================================================
+     FIGMA MCP POC: Data Room Upload Flow
+
+     Source: Simulated Figma MCP get_design_context extraction
+     Figma file: "Data Room — Upload Flow"
+     Frames detected: 3 (Phase 1: Upload, Phase 2: Processing, Phase 3: Ready)
+
+     Token overrides: Figma variables mapped to --ed-* editorial tokens.
+     Accent shifted from blue-500 to indigo-500 per Figma's design system.
+     ================================================================ */
+
+  /* -- Upload zone -- */
+  .upload-zone {
+    border: 2px dashed var(--ed-border-subtle, #e7e5e4);
+    border-radius: var(--ed-radius-lg, 16px);
+    padding: 40px 24px;
+    text-align: center;
+    transition: border-color 300ms ease-out, background 300ms ease-out;
+    cursor: pointer;
+    background: var(--ed-surface-secondary, #f5f5f4);
+  }
+
+  .upload-zone:hover {
+    border-color: var(--ed-accent, #6366f1);
+    background: var(--ed-accent-bg, #eef2ff);
+  }
+
+  .upload-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    background: var(--ed-accent-bg, #eef2ff);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .upload-icon svg {
+    width: 24px;
+    height: 24px;
+    color: var(--ed-accent, #6366f1);
+  }
+
+  .upload-zone h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ed-text-primary, #1c1917);
+    margin: 0 0 4px;
+  }
+
+  .upload-zone p {
+    font-size: 13px;
+    color: var(--ed-text-tertiary, #78716c);
+    margin: 0;
+  }
+
+  .upload-formats {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .format-badge {
+    padding: 4px 10px;
+    background: var(--ed-surface-card, #ffffff);
+    border: 1px solid var(--ed-border-subtle, #e7e5e4);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ed-text-tertiary, #78716c);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* -- Stats row -- */
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .stat-card {
+    flex: 1;
+    padding: 14px 16px;
+    background: var(--ed-surface-secondary, #f5f5f4);
+    border-radius: var(--ed-radius-md, 10px);
+    text-align: center;
+  }
+
+  .stat-card .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ed-text-primary, #1c1917);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-card .stat-label {
+    font-size: 11px;
+    color: var(--ed-text-tertiary, #78716c);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* -- Processing phase -- */
+  .processing-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .processing-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--ed-surface-secondary, #f5f5f4);
+    border-radius: var(--ed-radius-md, 10px);
+    transition: background 200ms ease-out;
+  }
+
+  .processing-item .file-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* File-type semantic colors — domain-specific, not personality-scoped */
+  .processing-item .file-icon.pdf { background: #fef2f2; color: #dc2626; }
+  .processing-item .file-icon.doc { background: #eff6ff; color: #2563eb; }
+  .processing-item .file-icon.xls { background: #f0fdf4; color: #16a34a; }
+  .processing-item .file-icon.ppt { background: #fef9ee; color: #d97706; }
+
+  .processing-item .file-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .file-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .file-info .file-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ed-text-primary, #1c1917);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-info .file-status {
+    font-size: 12px;
+    color: var(--ed-text-tertiary, #78716c);
+    margin-top: 2px;
+  }
+
+  .processing-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--ed-success-bg, #f0fdf4);
+    color: var(--ed-success, #16a34a);
+  }
+
+  .processing-check svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Progress indicator */
+  .progress-section {
+    margin-top: 16px;
+    text-align: center;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--ed-surface-secondary, #f5f5f4);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--ed-accent, #6366f1);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 2000ms linear;
+  }
+
+  .progress-fill.animated {
+    width: 100%;
+  }
+
+  .progress-label {
+    font-size: 12px;
+    color: var(--ed-text-tertiary, #78716c);
+  }
+
+  /* -- Ready phase -- */
+  .ready-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .ready-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    background: var(--ed-success-bg, #f0fdf4);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ed-success, #16a34a);
+  }
+
+  .ready-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .ready-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ed-text-primary, #1c1917);
+    margin: 0 0 4px;
+  }
+
+  .ready-header p {
+    font-size: 13px;
+    color: var(--ed-text-tertiary, #78716c);
+    margin: 0;
+  }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .category-card {
+    padding: 14px;
+    background: var(--ed-surface-secondary, #f5f5f4);
+    border-radius: var(--ed-radius-md, 10px);
+    border: 1px solid transparent;
+    transition: border-color 200ms ease-out;
+  }
+
+  .category-card:hover {
+    border-color: var(--ed-border-subtle, #e7e5e4);
+  }
+
+  .category-label {
+    font-size: 12px;
+    color: var(--ed-text-tertiary, #78716c);
+    margin-bottom: 4px;
+  }
+
+  .category-count {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ed-text-primary, #1c1917);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .category-count .unit {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--ed-text-tertiary, #78716c);
+    margin-left: 2px;
+  }
+
+  /* Share link */
+  .share-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--ed-accent-bg, #eef2ff);
+    border-radius: var(--ed-radius-md, 10px);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+  }
+
+  .share-section svg {
+    width: 16px;
+    height: 16px;
+    color: var(--ed-accent, #6366f1);
+    flex-shrink: 0;
+  }
+
+  .share-link {
+    flex: 1;
+    color: var(--ed-accent-text, #4338ca);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+  }
+
+  .share-copy {
+    padding: 5px 12px;
+    background: var(--ed-accent, #6366f1);
+    color: var(--ed-surface-card, #ffffff);
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* -- SVG helpers -- */
+  svg.ph {
+    display: inline-block;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div id="scene" class="scene">
+  <div id="card" class="card">
+
+    <!-- Header -->
+    <div id="card-header" class="card-header">
+      <div id="title-block" class="title-block">
+        <h2 id="phase-title">Data Room</h2>
+        <div id="phase-subtitle" class="subtitle">Upload and organize your documents</div>
+      </div>
+      <div class="badge badge--accent">
+        <svg class="ph" width="12" height="12" viewBox="0 0 256 256"><path d="M216,112v96a16,16,0,0,1-16,16H56a16,16,0,0,1-16-16V112" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><polyline points="40 80 128 24 216 80" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path d="M128,224V152" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path d="M96,152h64" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Secure
+      </div>
+    </div>
+
+    <!-- Phase container -->
+    <div id="phase-container" class="phase-container">
+
+      <!-- Phase 0: Upload — drag zone + supported formats + stats -->
+      <div id="phase-0" class="phase active">
+        <div class="upload-zone blur-reveal" data-blur-group="upload">
+          <div class="upload-icon">
+            <svg class="ph" viewBox="0 0 256 256"><path d="M88,152V136a8,8,0,0,1,8-8h64a8,8,0,0,1,8,8v16" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><polyline points="128 96 128 24" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><polyline points="96 56 128 24 160 56" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><rect x="40" y="152" width="176" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>Drag files here to upload</h3>
+          <p>or click to browse your computer</p>
+          <div class="upload-formats">
+            <span class="format-badge">PDF</span>
+            <span class="format-badge">DOCX</span>
+            <span class="format-badge">XLSX</span>
+            <span class="format-badge">PPTX</span>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card blur-reveal" data-blur-group="upload">
+            <div class="stat-value" data-count-target="256" data-count-suffix="">0</div>
+            <div class="stat-label">Files uploaded</div>
+          </div>
+          <div class="stat-card blur-reveal" data-blur-group="upload">
+            <div class="stat-value" data-count-target="1.8" data-count-suffix=" GB" data-count-decimals="1">0</div>
+            <div class="stat-label">Storage used</div>
+          </div>
+          <div class="stat-card blur-reveal" data-blur-group="upload">
+            <div class="stat-value" data-count-target="12" data-count-suffix="">0</div>
+            <div class="stat-label">Investors</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 1: Processing — file scanning with progress -->
+      <div id="phase-1" class="phase">
+        <div class="processing-list">
+          <div class="processing-item slide-enter" data-stagger-group="files">
+            <div class="file-icon pdf">
+              <svg class="ph" viewBox="0 0 256 256"><path d="M200,224H56a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h96l56,56V216A8,8,0,0,1,200,224Z" fill="none" stroke="currentColor" stroke-width="16" stroke-linejoin="round"/><polyline points="152 32 152 88 208 88" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="file-info">
+              <div class="file-name">Series_A_Term_Sheet_v3.pdf</div>
+              <div class="file-status">Scanned &middot; 2.4 MB</div>
+            </div>
+            <div class="processing-check">
+              <svg class="ph" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <div class="processing-item slide-enter" data-stagger-group="files">
+            <div class="file-icon doc">
+              <svg class="ph" viewBox="0 0 256 256"><path d="M200,224H56a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h96l56,56V216A8,8,0,0,1,200,224Z" fill="none" stroke="currentColor" stroke-width="16" stroke-linejoin="round"/><polyline points="152 32 152 88 208 88" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="file-info">
+              <div class="file-name">Cap_Table_2026.xlsx</div>
+              <div class="file-status">Analyzing structure &middot; 856 KB</div>
+            </div>
+            <div class="processing-check">
+              <svg class="ph" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <div class="processing-item slide-enter" data-stagger-group="files">
+            <div class="file-icon xls">
+              <svg class="ph" viewBox="0 0 256 256"><path d="M200,224H56a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h96l56,56V216A8,8,0,0,1,200,224Z" fill="none" stroke="currentColor" stroke-width="16" stroke-linejoin="round"/><polyline points="152 32 152 88 208 88" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="file-info">
+              <div class="file-name">Financial_Projections_Q1-Q4.xlsx</div>
+              <div class="file-status">Extracting tables &middot; 1.1 MB</div>
+            </div>
+            <div class="processing-check">
+              <svg class="ph" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+
+          <div class="processing-item slide-enter" data-stagger-group="files">
+            <div class="file-icon ppt">
+              <svg class="ph" viewBox="0 0 256 256"><path d="M200,224H56a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h96l56,56V216A8,8,0,0,1,200,224Z" fill="none" stroke="currentColor" stroke-width="16" stroke-linejoin="round"/><polyline points="152 32 152 88 208 88" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="file-info">
+              <div class="file-name">Pitch_Deck_February_2026.pptx</div>
+              <div class="file-status">Processing slides &middot; 4.7 MB</div>
+            </div>
+            <div class="processing-check">
+              <svg class="ph" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-section">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-label">
+            <span class="typewriter-text" data-text="Scanning documents for sensitive information..."></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2: Ready — organized categories + share link -->
+      <div id="phase-2" class="phase">
+        <div class="ready-header blur-reveal" data-blur-group="ready">
+          <div class="ready-icon">
+            <svg class="ph" viewBox="0 0 256 256"><polyline points="40 144 96 200 224 72" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>Data room is ready</h3>
+          <p>All documents organized and secured</p>
+        </div>
+
+        <div class="category-grid">
+          <div class="category-card slide-enter" data-stagger-group="categories">
+            <div class="category-label">Financials</div>
+            <div class="category-count"><span data-count-target="8">0</span><span class="unit"> files</span></div>
+          </div>
+          <div class="category-card slide-enter" data-stagger-group="categories">
+            <div class="category-label">Legal</div>
+            <div class="category-count"><span data-count-target="5">0</span><span class="unit"> files</span></div>
+          </div>
+          <div class="category-card slide-enter" data-stagger-group="categories">
+            <div class="category-label">Product</div>
+            <div class="category-count"><span data-count-target="3">0</span><span class="unit"> files</span></div>
+          </div>
+          <div class="category-card slide-enter" data-stagger-group="categories">
+            <div class="category-label">Team</div>
+            <div class="category-count"><span data-count-target="2">0</span><span class="unit"> files</span></div>
+          </div>
+        </div>
+
+        <div class="share-section slide-enter" data-stagger-group="categories">
+          <svg class="ph" viewBox="0 0 256 256"><path d="M176,112a24,24,0,1,1-24-24A24,24,0,0,1,176,112Zm-72,40a24,24,0,1,0,24,24A24,24,0,0,0,104,152Zm0-48a24,24,0,1,0-24-24A24,24,0,0,0,104,104Zm54.56,19.52-33.12,20.96m-21.12,27.52,33.12,20.96" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="share-link">app.yourco.com/room/a3f8k</span>
+          <button class="share-copy">Copy</button>
+        </div>
+      </div>
+
+    </div><!-- /phase-container -->
+
+    <!-- Footers per phase -->
+    <div id="footer-0" class="card-footer active">
+      <span>256 files &middot; 1.8 GB</span>
+      <span>12 investor viewers</span>
+    </div>
+    <div id="footer-1" class="card-footer">
+      <span>AI-powered analysis</span>
+      <span>4 files processing</span>
+    </div>
+    <div id="footer-2" class="card-footer">
+      <span>18 files organized</span>
+      <span>Ready to share</span>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /scene -->
+
+<!-- Playback controls -->
+<div id="playback" class="playback-bar">
+  <button id="play-btn" class="play-btn" onclick="togglePlay()">
+    <svg id="icon-pause" width="14" height="14" viewBox="0 0 256 256"><rect x="156" y="48" width="36" height="160" rx="4" fill="currentColor"/><rect x="64" y="48" width="36" height="160" rx="4" fill="currentColor"/></svg>
+    <svg id="icon-play" width="14" height="14" viewBox="0 0 256 256" style="display:none;"><path d="M72,39.9V216.1a8,8,0,0,0,12.15,6.69l144.08-88.1a7.82,7.82,0,0,0,0-13.38L84.15,33.21A8,8,0,0,0,72,39.9Z" fill="currentColor"/></svg>
+  </button>
+  <div id="phase-dots" class="phase-dots">
+    <span class="phase-dot active" data-phase="0" onclick="jumpTo(0)"></span>
+    <span class="phase-dot" data-phase="1" onclick="jumpTo(1)"></span>
+    <span class="phase-dot" data-phase="2" onclick="jumpTo(2)"></span>
+  </div>
+  <span id="phase-label" class="phase-label">Upload</span>
+</div>
+
+</body>
+</html>

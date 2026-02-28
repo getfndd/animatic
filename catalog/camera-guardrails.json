@@ -32,6 +32,11 @@
       "forbidden_features": ["3d_transforms", "blur", "camera_movement", "parallax", "camera_shake"],
       "max_ambient_scale_percent": 0.1,
       "ambient_condition": "only for scenes >10s"
+    },
+    "montage": {
+      "forbidden_features": ["3d_transforms", "blur", "camera_movement", "parallax", "camera_shake", "ambient_motion", "spring_physics"],
+      "max_ambient_scale_percent": 0,
+      "ambient_condition": "never — scenes too short (2-4s)"
     }
   },
   "primitive_amplitudes": {

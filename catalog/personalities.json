@@ -195,5 +195,57 @@
     },
     "is_active": true,
     "ai_guidance": "Use for onboarding tutorials, help documentation, changelog introductions, and internal reviews. Features spotlight highlights, cursor simulation, step indicators, and positioned tooltips. No blur effects — tutorials should feel sharp and clear from frame 1. No 3D perspective, no spring physics, no camera movement. Camera replaced by attention-direction: spotlight, cursor, step indicators. Near-zero ambient breathing only for scenes >10s. Light stone palette. Architecturally: editorial choreography + tutorial primitives + light mode colors."
+  },
+  {
+    "name": "Montage",
+    "slug": "montage",
+    "css_prefix": "mo",
+    "duration_overrides": {
+      "fast": "150ms",
+      "medium": "400ms",
+      "slow": "800ms",
+      "feedback": "100ms",
+      "structural": "250ms",
+      "spatial": "300ms",
+      "emphasis": "400ms"
+    },
+    "easing_overrides": {
+      "enter": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "exit": "cubic-bezier(0.7, 0, 0.84, 0)",
+      "smooth": "cubic-bezier(0.25, 0.1, 0.25, 1)"
+    },
+    "speed_hierarchy": ["fast", "medium", "slow"],
+    "characteristics": {
+      "contrast": "high",
+      "motion_intensity": "rapid",
+      "entrance_style": "scale hero / grid reveal",
+      "transition_style": "hard cut / whip-wipe (per-phase)",
+      "perspective": "flat (no 3D)",
+      "color_mode": "dark",
+      "loop_time": "30-40s",
+      "signature_effect": "per-phase-transition-mixing"
+    },
+    "default_stagger": "100ms",
+    "default_entrance": "mo-scale-entrance",
+    "default_exit": "hard-cut",
+    "camera_behavior": {
+      "enabled": false,
+      "mode": "none",
+      "perspective": "none",
+      "allowed_movements": [],
+      "forbidden_movements": ["dolly", "truck", "pedestal", "pan", "tilt", "orbit", "arc", "crane", "push-in", "pull-out", "rack-focus", "handheld"],
+      "parallax": { "enabled": false },
+      "depth_of_field": { "enabled": false },
+      "ambient_motion": {
+        "scene_breathe": { "enabled": false },
+        "drift": { "enabled": false },
+        "push_in": { "enabled": false }
+      },
+      "shake": { "enabled": false },
+      "recommended_primitives": [],
+      "constraints": "No camera movement. No ambient motion. No blur. No 3D. Scenes are too short (2-4s) for any ambient effects. Use hard cuts and whip-wipes for all phase transitions."
+    },
+    "is_active": true,
+    "ai_guidance": "Use for sizzle reels, brand launches, product campaigns, and keynote-style demos. Rapid-scene energy with 5-7 phases in a 30-40s loop. Signature: per-phase transition mixing — hard cuts (0ms instant swap) and whip-wipes (250ms directional clip-path) within the same reel. Scale entrances (1.15→1.0), stat pops with overshoot, split-screen comparisons, 2×3 feature grids, full-screen typography cards. No 3D, no blur, no camera motion, no ambient effects, no spring physics. Dark palette with violet accents. Never linger on a scene >4s."
   }
 ]

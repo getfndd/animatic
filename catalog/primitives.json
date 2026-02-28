@@ -389,5 +389,198 @@
     "ai_guidance": "Universal fallback exit. Slightly faster than fade-in (300ms vs 400ms) because exits should feel snappier. Add pointer-events: none after fade completes to prevent ghost clicks.",
     "personality_affinity": ["cinematic-dark", "editorial", "neutral-light"],
     "source": "engine"
+  },
+  {
+    "name": "Scale Entrance",
+    "slug": "mo-scale-entrance",
+    "category": "entrance",
+    "description": "Elements scale from 1.15 to 1.0 while fading in, with 100ms stagger intervals. The montage signature entrance — punchy and immediate.",
+    "default_duration": "400ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "100ms",
+    "css_class": "anim-mo-scale-entrance",
+    "keyframes": {
+      "scale-in": {
+        "0%": { "opacity": "0", "transform": "scale(1.15)" },
+        "100%": { "opacity": "1", "transform": "scale(1)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0; transform: scale(1.15)",
+      "visible": "opacity: 1; transform: scale(1)"
+    },
+    "when_to_use": ["Hero entrances", "Metric card reveals", "Grid tile staggers", "CTA button appearances"],
+    "when_to_avoid": ["Subtle UI transitions", "Tutorials", "Content-forward demos"],
+    "ai_guidance": "Signature montage entrance. Use with data-stagger-group attribute and engine.runScaleEntrance(). Items scale down from 1.15 to 1.0 with expo-out easing. Stagger at 80-120ms for rapid rhythm.",
+    "personality_affinity": ["montage"],
+    "source": "engine"
+  },
+  {
+    "name": "Hard Cut",
+    "slug": "mo-hard-cut",
+    "category": "transition",
+    "description": "Instant phase swap with zero animation. The outgoing phase disappears and incoming phase appears in a single frame. Maximum impact.",
+    "default_duration": "0ms",
+    "default_easing": "linear",
+    "composable": false,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-mo-hard-cut",
+    "keyframes": null,
+    "css_properties": {
+      "old_phase": "opacity: 0; pointer-events: none",
+      "new_phase": "opacity: 1; pointer-events: auto"
+    },
+    "when_to_use": ["Maximum contrast between scenes", "Title card transitions", "Stat reveals", "CTA appearances"],
+    "when_to_avoid": ["Continuous workflows", "Tutorials", "Content that needs smooth context"],
+    "ai_guidance": "Montage phase transition. Instant swap — no animation time. Use for maximum impact between contrasting scenes. Configure per-phase in MontageEngine: { transition: 'hard-cut' }. Mix with whip-wipes for rhythm.",
+    "personality_affinity": ["montage"],
+    "source": "engine"
+  },
+  {
+    "name": "Whip-Wipe Transition",
+    "slug": "mo-whip-wipe",
+    "category": "transition",
+    "description": "250ms directional clip-path wipe in four directions (left, right, up, down). Carries momentum between scenes. Montage's directional transition.",
+    "default_duration": "250ms",
+    "default_easing": "cubic-bezier(0.7, 0, 0.84, 0)",
+    "composable": false,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-mo-whip-wipe",
+    "keyframes": {
+      "whip-exit-left": {
+        "from": { "clip-path": "inset(0 0 0 0)" },
+        "to": { "clip-path": "inset(0 0 0 100%)" }
+      },
+      "whip-exit-right": {
+        "from": { "clip-path": "inset(0 0 0 0)" },
+        "to": { "clip-path": "inset(0 100% 0 0)" }
+      },
+      "whip-exit-up": {
+        "from": { "clip-path": "inset(0 0 0 0)" },
+        "to": { "clip-path": "inset(0 0 100% 0)" }
+      },
+      "whip-exit-down": {
+        "from": { "clip-path": "inset(0 0 0 0)" },
+        "to": { "clip-path": "inset(100% 0 0 0)" }
+      }
+    },
+    "css_properties": {
+      "exit": "clip-path: inset(0 0 0 100%)",
+      "directions": "left, right, up, down"
+    },
+    "when_to_use": ["Directional scene transitions", "Carrying visual momentum", "Between related content scenes"],
+    "when_to_avoid": ["Between unrelated scenes (use hard-cut)", "Tutorials", "Content-forward demos"],
+    "ai_guidance": "Montage directional transition. 250ms clip-path inset wipe in four directions. Configure per-phase: { transition: 'whip-left' | 'whip-right' | 'whip-up' | 'whip-down' }. Mix with hard-cuts for rhythm variation.",
+    "personality_affinity": ["montage"],
+    "source": "engine"
+  },
+  {
+    "name": "Stat Reveal Pop",
+    "slug": "mo-stat-reveal",
+    "category": "entrance",
+    "description": "Stat card entrance with scale overshoot (0.8→1.05→1.0) and auto-triggered count-up animation. 150ms stagger between cards.",
+    "default_duration": "300ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "150ms",
+    "css_class": "anim-mo-stat-reveal",
+    "keyframes": {
+      "stat-pop": {
+        "0%": { "opacity": "0", "transform": "scale(0.8)" },
+        "60%": { "opacity": "1", "transform": "scale(1.05)" },
+        "100%": { "opacity": "1", "transform": "scale(1)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0; transform: scale(0.8)",
+      "visible": "opacity: 1; transform: scale(1)"
+    },
+    "when_to_use": ["Metric callouts", "KPI reveals", "Statistics showcase", "Number-heavy scenes"],
+    "when_to_avoid": ["Non-numeric content", "Subtle entrances", "Tutorials"],
+    "ai_guidance": "Montage stat primitive. Cards pop in with scale overshoot, then numbers auto-count-up. Use engine.runStatReveal() which staggers cards at 150ms and auto-triggers runCountUp() after all cards are visible.",
+    "personality_affinity": ["montage"],
+    "source": "engine"
+  },
+  {
+    "name": "Text Hero Entrance",
+    "slug": "mo-text-hero",
+    "category": "entrance",
+    "description": "Full-screen typography scale entrance from 1.5 to 1.0. Used for title cards and closing CTAs. The montage hero moment.",
+    "default_duration": "400ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-mo-text-hero",
+    "keyframes": {
+      "text-hero-in": {
+        "0%": { "opacity": "0", "transform": "scale(1.5)" },
+        "100%": { "opacity": "1", "transform": "scale(1)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0; transform: scale(1.5)",
+      "visible": "opacity: 1; transform: scale(1)"
+    },
+    "when_to_use": ["Title cards", "Product name reveals", "Closing CTAs", "Full-screen typography"],
+    "when_to_avoid": ["Body text", "UI element entrances", "Repeated use within a scene"],
+    "ai_guidance": "Montage hero typography primitive. Scale from 1.5 to 1.0 with expo-out. Use engine.runTextHero(selector). Apply .text-hero class to elements. Reserve for title cards and CTAs — max 2-3 uses per reel.",
+    "personality_affinity": ["montage"],
+    "source": "engine"
+  },
+  {
+    "name": "Grid Reveal",
+    "slug": "mo-grid-reveal",
+    "category": "reveal",
+    "description": "Fast tile stagger for 2×3 feature grids. 80ms interval between tiles, slide+fade entrance. Proves variety and feature abundance.",
+    "default_duration": "400ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "80ms",
+    "css_class": "anim-mo-grid-reveal",
+    "keyframes": {
+      "slide-fade-in": {
+        "0%": { "opacity": "0", "transform": "translateY(10px)" },
+        "100%": { "opacity": "1", "transform": "translateY(0)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0; transform: translateY(10px)",
+      "visible": "opacity: 1; transform: translateY(0)"
+    },
+    "when_to_use": ["Feature grids", "Product capability showcases", "Integration lists", "Variety proof"],
+    "when_to_avoid": ["Single feature focus", "Stats (use stat-reveal)", "Hero moments"],
+    "ai_guidance": "Montage grid primitive. Fast tile stagger at 80ms intervals using slide+fade. Use engine.runGridReveal(groupName, 80). Best with 2×3 grid layout (6 tiles). Creates rapid rhythm showing feature abundance.",
+    "personality_affinity": ["montage"],
+    "source": "engine"
+  },
+  {
+    "name": "Split-Screen Reveal",
+    "slug": "mo-split-screen",
+    "category": "reveal",
+    "description": "Side-by-side panel reveal. Left panel slides in from left, right panel follows 200ms later from right. Feature comparison layout.",
+    "default_duration": "400ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": false,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-mo-split-screen",
+    "keyframes": null,
+    "css_properties": {
+      "left_panel": "opacity: 0; transform: translateX(-20px)",
+      "right_panel": "opacity: 0; transform: translateX(20px)",
+      "visible": "opacity: 1; transform: translateX(0)"
+    },
+    "when_to_use": ["Feature comparisons", "Before/after", "Two-pillar product positioning", "Side-by-side capabilities"],
+    "when_to_avoid": ["Single feature focus", "Grids with >2 columns", "Stats"],
+    "ai_guidance": "Montage comparison primitive. Two panels slide in from opposite sides with 200ms stagger. Use engine.runSplitScreen('#left', '#right', 200). Apply .split-panel class. Great for showing two complementary features.",
+    "personality_affinity": ["montage"],
+    "source": "engine"
   }
 ]

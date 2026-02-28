@@ -33,6 +33,8 @@ import {
   listReferenceDocs,
 } from './data/loader.js';
 
+import { filterByPersonality, parseDurationMs, checkBlurViolations } from './lib.js';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
@@ -760,17 +762,6 @@ function handleGetReferenceDoc(args) {
   }
 }
 
-// ── Shared helper ────────────────────────────────────────────────────────────
-
-/** Filter primitive IDs to those compatible with the given personality (or universal). */
-function filterByPersonality(primitiveIds, personalitySlug, registry) {
-  return primitiveIds.filter(primId => {
-    const entry = registry.byId.get(primId);
-    if (!entry) return true; // keep unknowns visible
-    return entry.personality.some(p => p === personalitySlug || p === 'universal');
-  });
-}
-
 // ── recommend_choreography ───────────────────────────────────────────────────
 
 function handleRecommendChoreography(args) {
@@ -946,13 +937,6 @@ function handleRecommendChoreography(args) {
 
 // ── validate_choreography ────────────────────────────────────────────────────
 
-/** Parse duration string like "1400ms", "6000ms loop", "800ms" → numeric ms */
-function parseDurationMs(str) {
-  if (!str) return null;
-  const match = str.match(/(\d+)\s*ms/);
-  return match ? parseInt(match[1], 10) : null;
-}
-
 function handleValidateChoreography(args) {
   const { primitive_ids, personality: targetPersonality, intent: intentSlug, overrides } = args;
 
@@ -1003,14 +987,10 @@ function handleValidateChoreography(args) {
     }
 
     // Blur check — use blur_primitives list (covers non-camera blur primitives too)
-    const isBlurPrimitive = cameraGuardrails.blur_primitives?.includes(id);
-
-    if (forbiddenFeatures.includes('blur') && (isBlurPrimitive || (amplitude && amplitude.property === 'blur'))) {
-      blocks.push(`**Forbidden feature (blur):** \`${id}\` uses blur, forbidden in ${targetPersonality}.`);
-    }
-    if (forbiddenFeatures.includes('blur_entrance') && isBlurPrimitive) {
-      const isEntrance = entry.category === 'Entrances';
-      if (isEntrance) {
+    for (const v of checkBlurViolations(id, entry, cameraGuardrails, forbiddenFeatures)) {
+      if (v.type === 'blur') {
+        blocks.push(`**Forbidden feature (blur):** \`${id}\` uses blur, forbidden in ${targetPersonality}.`);
+      } else if (v.type === 'blur_entrance') {
         blocks.push(`**Forbidden feature (blur entrance):** \`${id}\` uses blur entrance, forbidden in ${targetPersonality}.`);
       }
     }

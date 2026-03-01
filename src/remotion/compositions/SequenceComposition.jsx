@@ -33,6 +33,9 @@ export const SequenceComposition = ({ manifest, sceneDefs = {} }) => {
           ...(entry.camera_override
             ? { camera: { ...sceneDef.camera, ...entry.camera_override } }
             : {}),
+          ...(entry.shot_grammar
+            ? { shot_grammar: entry.shot_grammar }
+            : {}),
         };
 
         const transition = entry.transition_in || { type: 'hard_cut' };

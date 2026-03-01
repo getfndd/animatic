@@ -37,6 +37,7 @@ import {
 import { filterByPersonality, parseDurationMs, checkBlurViolations } from './lib.js';
 import { analyzeScene } from './lib/analyze.js';
 import { planSequence, STYLE_PACKS } from './lib/planner.js';
+import { evaluateSequence } from './lib/evaluate.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -414,6 +415,31 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['name'],
       },
     },
+    {
+      name: 'evaluate_sequence',
+      description:
+        'Score a planned sequence manifest against style rules and cinematography principles. Returns pacing, variety, flow, and adherence scores (0-100) plus findings.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: {
+            type: 'object',
+            description: 'Sequence manifest from plan_sequence (must have a scenes array)',
+          },
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Analyzed scene objects with metadata (same scenes used for plan_sequence)',
+          },
+          style: {
+            type: 'string',
+            enum: STYLE_PACKS,
+            description: 'Style pack to evaluate against: "prestige", "energy", or "dramatic"',
+          },
+        },
+        required: ['manifest', 'scenes', 'style'],
+      },
+    },
   ],
 }));
 
@@ -445,6 +471,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handlePlanSequence(args);
     case 'get_style_pack':
       return handleGetStylePack(args);
+    case 'evaluate_sequence':
+      return handleEvaluateSequence(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1382,6 +1410,107 @@ function handlePlanSequence(args) {
       content: [{
         type: 'text',
         text: `Error planning sequence: ${err.message}`,
+      }],
+      isError: true,
+    };
+  }
+}
+
+// ── evaluate_sequence ───────────────────────────────────────────────────────
+
+function handleEvaluateSequence(args) {
+  const { manifest, scenes, style } = args;
+
+  if (!manifest || !manifest.scenes || !Array.isArray(manifest.scenes)) {
+    return {
+      content: [{
+        type: 'text',
+        text: 'Invalid input: `manifest` must be an object with a `scenes` array.',
+      }],
+      isError: true,
+    };
+  }
+
+  if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
+    return {
+      content: [{
+        type: 'text',
+        text: 'Invalid input: `scenes` must be a non-empty array of scene objects with metadata.',
+      }],
+      isError: true,
+    };
+  }
+
+  if (!STYLE_PACKS.includes(style)) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Invalid style "${style}". Valid styles: ${STYLE_PACKS.join(', ')}`,
+      }],
+      isError: true,
+    };
+  }
+
+  try {
+    const result = evaluateSequence({ manifest, scenes, style });
+
+    let out = `# Sequence Evaluation\n\n`;
+    out += `**Overall Score:** ${result.score}/100\n\n`;
+
+    // Dimension scores table
+    out += '## Dimension Scores\n\n';
+    out += '| Dimension | Score |\n';
+    out += '|-----------|-------|\n';
+    for (const [dim, data] of Object.entries(result.dimensions)) {
+      out += `| ${dim} | ${data.score}/100 |\n`;
+    }
+
+    // Findings grouped by severity
+    if (result.findings.length > 0) {
+      out += '\n## Findings\n\n';
+
+      const warnings = result.findings.filter(f => f.severity === 'warning');
+      const infos = result.findings.filter(f => f.severity === 'info');
+      const suggestions = result.findings.filter(f => f.severity === 'suggestion');
+
+      if (warnings.length > 0) {
+        out += '### Warnings\n\n';
+        for (const f of warnings) {
+          out += `- **[${f.dimension}]** ${f.message}${f.scene_index != null ? ` (scene ${f.scene_index + 1})` : ''}\n`;
+        }
+        out += '\n';
+      }
+
+      if (infos.length > 0) {
+        out += '### Info\n\n';
+        for (const f of infos) {
+          out += `- **[${f.dimension}]** ${f.message}${f.scene_index != null ? ` (scene ${f.scene_index + 1})` : ''}\n`;
+        }
+        out += '\n';
+      }
+
+      if (suggestions.length > 0) {
+        out += '### Suggestions\n\n';
+        for (const f of suggestions) {
+          out += `- **[${f.dimension}]** ${f.message}${f.scene_index != null ? ` (scene ${f.scene_index + 1})` : ''}\n`;
+        }
+        out += '\n';
+      }
+    } else {
+      out += '\nNo findings — sequence looks good!\n';
+    }
+
+    // Raw JSON
+    out += '\n## Raw Result\n\n```json\n';
+    out += JSON.stringify(result, null, 2);
+    out += '\n```\n';
+
+    return { content: [{ type: 'text', text: out }] };
+  } catch (err) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Error evaluating sequence: ${err.message}`,
       }],
       isError: true,
     };

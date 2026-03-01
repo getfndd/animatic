@@ -13,7 +13,8 @@
     "remotion:studio": "npx remotion studio",
     "remotion:render": "npx remotion render",
     "remotion:render:scene": "npx remotion render Scene --output renders/scene.mp4",
-    "remotion:render:sequence": "npx remotion render Sequence --output renders/sequence.mp4"
+    "remotion:render:sequence": "npx remotion render Sequence --output renders/sequence.mp4",
+    "sizzle": "node scripts/sizzle.mjs"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.49.1",

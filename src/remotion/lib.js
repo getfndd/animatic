@@ -220,9 +220,22 @@ export function validateScene(scene) {
           layerIds.add(layer.id);
         }
 
-        const validTypes = ['html', 'video', 'image'];
+        const validTypes = ['html', 'video', 'image', 'text'];
         if (!validTypes.includes(layer.type)) {
           errors.push(`layer "${layer.id || '?'}".type "${layer.type}" is not valid`);
+        }
+
+        // Text layer validation
+        if (layer.type === 'text') {
+          if (!layer.content || typeof layer.content !== 'string') {
+            errors.push(`layer "${layer.id || '?'}".content is required for text layers and must be a non-empty string`);
+          }
+          if (layer.animation) {
+            const validAnimations = ['word-reveal', 'scale-cascade', 'weight-morph'];
+            if (!validAnimations.includes(layer.animation)) {
+              errors.push(`layer "${layer.id || '?'}".animation "${layer.animation}" is not valid (must be one of: ${validAnimations.join(', ')})`);
+            }
+          }
         }
 
         if (layer.asset && !assetIds.has(layer.asset)) {
@@ -394,4 +407,101 @@ export function calculateOverscanDimensions(viewportW, viewportH, camera) {
   const offsetY = (canvasH - viewportH) / 2;
 
   return { canvasW, canvasH, offsetX, offsetY };
+}
+
+// ── Text Animation Math ─────────────────────────────────────────────────────
+
+export const TEXT_ANIMATION_DEFAULTS = {
+  WORD_REVEAL_STAGGER: 0.15,
+  WORD_REVEAL_TRANSLATE_Y: 20,
+  SCALE_CASCADE_SCALES: [3.0, 2.0, 1.0],
+  SCALE_CASCADE_SPEEDS: [0.6, 1.0, 1.5],
+  WEIGHT_MORPH_MIN: 300,
+  WEIGHT_MORPH_MAX: 900,
+  WEIGHT_MORPH_CHAR_STAGGER: 0.04,
+};
+
+/**
+ * Compute word reveal state for a single word.
+ *
+ * Each word occupies a staggered window within 0..1 progress.
+ * Windows overlap by WORD_REVEAL_STAGGER to create a cascade effect.
+ *
+ * @param {number} wordIndex   - 0-based index of the word
+ * @param {number} totalWords  - total number of words
+ * @param {number} progress    - 0..1 overall animation progress
+ * @returns {{ opacity: number, translateY: number }}
+ */
+export function getWordRevealState(wordIndex, totalWords, progress) {
+  if (totalWords <= 0) return { opacity: 0, translateY: TEXT_ANIMATION_DEFAULTS.WORD_REVEAL_TRANSLATE_Y };
+  if (totalWords === 1) {
+    const opacity = Math.min(1, Math.max(0, progress));
+    const translateY = (1 - opacity) * TEXT_ANIMATION_DEFAULTS.WORD_REVEAL_TRANSLATE_Y;
+    return { opacity, translateY };
+  }
+
+  const stagger = TEXT_ANIMATION_DEFAULTS.WORD_REVEAL_STAGGER;
+  // Each word's window: starts at wordStart, ends at wordEnd
+  // Total span divided across words with overlap
+  const windowDuration = 1 / (totalWords - stagger * (totalWords - 1));
+  const wordStart = wordIndex * windowDuration * (1 - stagger);
+  const wordEnd = wordStart + windowDuration;
+
+  const localProgress = Math.min(1, Math.max(0, (progress - wordStart) / (wordEnd - wordStart)));
+  const opacity = Math.min(1, Math.max(0, localProgress));
+  const translateY = (1 - localProgress) * TEXT_ANIMATION_DEFAULTS.WORD_REVEAL_TRANSLATE_Y;
+
+  return { opacity, translateY };
+}
+
+/**
+ * Compute scroll position and scale for a scale-cascade layer.
+ *
+ * Three text layers at different scales scroll vertically at different speeds.
+ * Layers start below the viewport and scroll upward past the top.
+ *
+ * @param {number} layerIndex     - 0, 1, or 2
+ * @param {number} progress       - 0..1 overall animation progress
+ * @param {number} viewportHeight - viewport height in px
+ * @returns {{ y: number, scale: number }}
+ */
+export function getScaleCascadePosition(layerIndex, progress, viewportHeight) {
+  const scales = TEXT_ANIMATION_DEFAULTS.SCALE_CASCADE_SCALES;
+  const speeds = TEXT_ANIMATION_DEFAULTS.SCALE_CASCADE_SPEEDS;
+
+  const scale = scales[layerIndex] ?? 1.0;
+  const speed = speeds[layerIndex] ?? 1.0;
+
+  // Start below viewport, scroll to above viewport
+  // At progress=0, y = viewportHeight (below). At progress=1, y moves upward.
+  const totalTravel = viewportHeight * 2 * speed;
+  const y = viewportHeight - progress * totalTravel;
+
+  return { y, scale };
+}
+
+/**
+ * Compute interpolated font-weight value.
+ *
+ * Linear interpolation between start and end weights, with optional
+ * per-character stagger that creates a wave effect.
+ *
+ * @param {number} progress    - 0..1 overall animation progress
+ * @param {number} startWeight - starting font-weight (e.g. 300)
+ * @param {number} endWeight   - ending font-weight (e.g. 900)
+ * @param {number} [charIndex] - 0-based character index (for stagger)
+ * @param {number} [totalChars] - total characters (for stagger)
+ * @returns {number} integer font-weight
+ */
+export function getWeightMorphValue(progress, startWeight, endWeight, charIndex, totalChars) {
+  let adjustedProgress = progress;
+
+  if (charIndex != null && totalChars != null && totalChars > 0) {
+    const staggerOffset = charIndex * TEXT_ANIMATION_DEFAULTS.WEIGHT_MORPH_CHAR_STAGGER;
+    adjustedProgress = progress - staggerOffset;
+  }
+
+  adjustedProgress = Math.min(1, Math.max(0, adjustedProgress));
+  const weight = startWeight + adjustedProgress * (endWeight - startWeight);
+  return Math.round(weight);
 }

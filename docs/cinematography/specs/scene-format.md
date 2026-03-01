@@ -162,7 +162,7 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
         },
         "type": {
           "type": "string",
-          "enum": ["html", "video", "image"],
+          "enum": ["html", "video", "image", "text"],
           "description": "Layer content type."
         },
         "asset": {
@@ -172,6 +172,31 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
         "src": {
           "type": "string",
           "description": "HTML file path (for html layers)."
+        },
+        "content": {
+          "type": "string",
+          "description": "Text content (required for text layers)."
+        },
+        "animation": {
+          "type": "string",
+          "enum": ["word-reveal", "scale-cascade", "weight-morph"],
+          "description": "Text animation primitive (for text layers). Omit for static text."
+        },
+        "style": {
+          "type": "object",
+          "properties": {
+            "fontFamily": { "type": "string", "default": "system-ui" },
+            "fontSize": { "type": "number", "default": 72 },
+            "fontWeight": { "type": "integer", "default": 700 },
+            "fontWeightStart": { "type": "integer", "description": "Start weight for weight-morph." },
+            "fontWeightEnd": { "type": "integer", "description": "End weight for weight-morph." },
+            "color": { "type": "string", "default": "#ffffff" },
+            "textTransform": { "type": "string", "enum": ["none", "uppercase", "lowercase", "capitalize"], "default": "none" },
+            "textAlign": { "type": "string", "enum": ["left", "center", "right"], "default": "center" },
+            "letterSpacing": { "type": "string", "default": "normal" },
+            "lineHeight": { "type": "number", "default": 1.1 }
+          },
+          "description": "Typography styles for text layers."
         },
         "depth_class": {
           "type": "string",
@@ -334,6 +359,62 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
     "motion_energy": "moderate",
     "intent_tags": ["opening", "emotional"]
   }
+}
+```
+
+### Kinetic Type Scene (text layer with word-reveal)
+
+```json
+{
+  "scene_id": "sc_word_reveal",
+  "duration_s": 3,
+  "camera": { "move": "static" },
+  "layers": [
+    {
+      "id": "title",
+      "type": "text",
+      "content": "THE FUTURE IS HERE",
+      "animation": "word-reveal",
+      "depth_class": "foreground",
+      "style": {
+        "fontFamily": "system-ui",
+        "fontSize": 72,
+        "fontWeight": 700,
+        "color": "#ffffff",
+        "textTransform": "uppercase"
+      }
+    }
+  ]
+}
+```
+
+### Type Over Media (text + video composition)
+
+```json
+{
+  "scene_id": "sc_type_over_media",
+  "duration_s": 3,
+  "assets": [
+    { "id": "bg_clip", "type": "video", "src": "assets/background.mp4", "muted": true }
+  ],
+  "camera": { "move": "push_in", "intensity": 0.3 },
+  "layers": [
+    {
+      "id": "video-bg",
+      "type": "video",
+      "asset": "bg_clip",
+      "depth_class": "background",
+      "fit": "cover"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "content": "TYPE OVER MEDIA",
+      "animation": "word-reveal",
+      "depth_class": "foreground",
+      "entrance": { "delay_ms": 500 }
+    }
+  ]
 }
 ```
 

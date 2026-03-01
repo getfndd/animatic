@@ -1,0 +1,155 @@
+{
+  "manifest": {
+    "sequence_id": "seq_kinetic_type_test",
+    "resolution": { "w": 1920, "h": 1080 },
+    "fps": 60,
+    "scenes": [
+      {
+        "scene": "sc_word_reveal",
+        "duration_s": 3
+      },
+      {
+        "scene": "sc_scale_cascade",
+        "duration_s": 4,
+        "transition_in": { "type": "crossfade", "duration_ms": 400 }
+      },
+      {
+        "scene": "sc_weight_morph",
+        "duration_s": 3,
+        "transition_in": { "type": "whip_left", "duration_ms": 250 }
+      },
+      {
+        "scene": "sc_type_over_media",
+        "duration_s": 3,
+        "transition_in": { "type": "crossfade", "duration_ms": 400 }
+      }
+    ]
+  },
+  "sceneDefs": {
+    "sc_word_reveal": {
+      "scene_id": "sc_word_reveal",
+      "duration_s": 3,
+      "camera": { "move": "static" },
+      "layers": [
+        {
+          "id": "title",
+          "type": "text",
+          "content": "THE FUTURE IS HERE",
+          "animation": "word-reveal",
+          "depth_class": "foreground",
+          "style": {
+            "fontFamily": "system-ui",
+            "fontSize": 72,
+            "fontWeight": 700,
+            "color": "#ffffff",
+            "textTransform": "uppercase",
+            "textAlign": "center"
+          }
+        }
+      ],
+      "metadata": {
+        "content_type": "typography",
+        "visual_weight": "dark",
+        "motion_energy": "moderate",
+        "intent_tags": ["opening"]
+      }
+    },
+    "sc_scale_cascade": {
+      "scene_id": "sc_scale_cascade",
+      "duration_s": 4,
+      "camera": { "move": "static" },
+      "layers": [
+        {
+          "id": "cascade",
+          "type": "text",
+          "content": "ALICIA KEYS",
+          "animation": "scale-cascade",
+          "depth_class": "foreground",
+          "style": {
+            "fontFamily": "system-ui",
+            "fontSize": 48,
+            "fontWeight": 900,
+            "color": "#ffffff",
+            "textTransform": "uppercase",
+            "textAlign": "center"
+          }
+        }
+      ],
+      "metadata": {
+        "content_type": "typography",
+        "visual_weight": "dark",
+        "motion_energy": "high",
+        "intent_tags": ["hero"]
+      }
+    },
+    "sc_weight_morph": {
+      "scene_id": "sc_weight_morph",
+      "duration_s": 3,
+      "camera": { "move": "drift", "intensity": 0.3 },
+      "layers": [
+        {
+          "id": "morph",
+          "type": "text",
+          "content": "WEIGHT MORPH",
+          "animation": "weight-morph",
+          "depth_class": "foreground",
+          "style": {
+            "fontFamily": "system-ui",
+            "fontSize": 80,
+            "fontWeight": 300,
+            "fontWeightStart": 300,
+            "fontWeightEnd": 900,
+            "color": "#ffffff",
+            "textTransform": "uppercase",
+            "textAlign": "center"
+          }
+        }
+      ],
+      "metadata": {
+        "content_type": "typography",
+        "visual_weight": "dark",
+        "motion_energy": "moderate",
+        "intent_tags": ["detail"]
+      }
+    },
+    "sc_type_over_media": {
+      "scene_id": "sc_type_over_media",
+      "duration_s": 3,
+      "camera": { "move": "push_in", "intensity": 0.3, "easing": "cinematic_scurve" },
+      "assets": [
+        { "id": "bg_video", "src": "test-gradient.mp4", "muted": true }
+      ],
+      "layers": [
+        {
+          "id": "video-bg",
+          "type": "video",
+          "depth_class": "background",
+          "asset": "bg_video",
+          "fit": "cover"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "content": "TYPE OVER MEDIA",
+          "animation": "word-reveal",
+          "depth_class": "foreground",
+          "entrance": { "delay_ms": 500 },
+          "style": {
+            "fontFamily": "system-ui",
+            "fontSize": 64,
+            "fontWeight": 700,
+            "color": "#ffffff",
+            "textTransform": "uppercase",
+            "textAlign": "center"
+          }
+        }
+      ],
+      "metadata": {
+        "content_type": "typography",
+        "visual_weight": "dark",
+        "motion_energy": "moderate",
+        "intent_tags": ["opening", "emotional"]
+      }
+    }
+  }
+}

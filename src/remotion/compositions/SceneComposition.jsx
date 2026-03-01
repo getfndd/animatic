@@ -10,6 +10,7 @@ import {
 } from 'remotion';
 import { getParallaxFactor } from '../lib.js';
 import { CameraRig } from './CameraRig.jsx';
+import { TextLayer } from './TextLayer.jsx';
 
 /**
  * SceneComposition — Renders a single scene definition to video.
@@ -144,6 +145,9 @@ const SceneLayer = ({ layer, assets, frame, fps }) => {
           fit={layer.fit || 'cover'}
         />
       );
+
+    case 'text':
+      return <TextLayer layer={layer} style={layerStyle} />;
 
     case 'html':
       if (layer.content) {

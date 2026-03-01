@@ -16,6 +16,10 @@ import {
   getDefaultTransitionDuration,
   validateManifest,
   validateScene,
+  CAMERA_CONSTANTS,
+  getParallaxFactor,
+  getCameraTransformValues,
+  calculateOverscanDimensions,
 } from '../lib.js';
 
 // ── Load test manifests ─────────────────────────────────────────────────────
@@ -431,5 +435,225 @@ describe('validateScene', () => {
       const result = validateScene({ scene_id: 'sc_test', camera: { move } });
       assert.equal(result.valid, true, `${move} should be valid`);
     }
+  });
+});
+
+// ── Camera Math ──────────────────────────────────────────────────────────────
+
+// Linear identity easing — avoids Remotion dependency in tests
+const linear = (t) => t;
+
+describe('CAMERA_CONSTANTS', () => {
+  it('exports all expected keys as numbers', () => {
+    const keys = ['SCALE_FACTOR', 'PAN_MAX_PX', 'DRIFT_AMPLITUDE', 'DRIFT_Y_RATIO', 'DEFAULT_INTENSITY', 'MIN_OVERSCAN'];
+    for (const key of keys) {
+      assert.equal(typeof CAMERA_CONSTANTS[key], 'number', `${key} should be a number`);
+    }
+  });
+
+  it('has correct spec values', () => {
+    assert.equal(CAMERA_CONSTANTS.SCALE_FACTOR, 0.08);
+    assert.equal(CAMERA_CONSTANTS.PAN_MAX_PX, 80);
+    assert.equal(CAMERA_CONSTANTS.DRIFT_AMPLITUDE, 3);
+  });
+});
+
+describe('getParallaxFactor', () => {
+  it('foreground returns 1.0', () => {
+    assert.equal(getParallaxFactor('foreground'), 1.0);
+  });
+
+  it('midground returns 0.6', () => {
+    assert.equal(getParallaxFactor('midground'), 0.6);
+  });
+
+  it('background returns 0.3', () => {
+    assert.equal(getParallaxFactor('background'), 0.3);
+  });
+
+  it('defaults to 0.6 for unknown depth class', () => {
+    assert.equal(getParallaxFactor(undefined), 0.6);
+    assert.equal(getParallaxFactor('other'), 0.6);
+  });
+});
+
+describe('getCameraTransformValues', () => {
+  it('returns none for null camera', () => {
+    assert.deepEqual(getCameraTransformValues(null, 0.5, linear), { transform: 'none' });
+  });
+
+  it('returns none for undefined camera', () => {
+    assert.deepEqual(getCameraTransformValues(undefined, 0.5, linear), { transform: 'none' });
+  });
+
+  it('returns none for static move', () => {
+    assert.deepEqual(getCameraTransformValues({ move: 'static' }, 0.5, linear), { transform: 'none' });
+  });
+
+  it('returns none for unknown move', () => {
+    assert.deepEqual(getCameraTransformValues({ move: 'zoom' }, 0.5, linear), { transform: 'none' });
+  });
+
+  it('uses DEFAULT_INTENSITY when intensity not specified', () => {
+    const result = getCameraTransformValues({ move: 'push_in' }, 1, linear);
+    const expectedScale = 1 + 1 * 0.5 * 0.08; // progress=1, default intensity=0.5
+    assert.equal(result.transform, `scale(${expectedScale})`);
+  });
+
+  // push_in
+  it('push_in at progress=0 is scale(1)', () => {
+    const result = getCameraTransformValues({ move: 'push_in', intensity: 0.3 }, 0, linear);
+    assert.equal(result.transform, 'scale(1)');
+  });
+
+  it('push_in at progress=0.5 scales partially', () => {
+    const result = getCameraTransformValues({ move: 'push_in', intensity: 0.5 }, 0.5, linear);
+    const expected = 1 + 0.5 * 0.5 * 0.08;
+    assert.equal(result.transform, `scale(${expected})`);
+  });
+
+  it('push_in at progress=1 reaches max scale', () => {
+    const result = getCameraTransformValues({ move: 'push_in', intensity: 1.0 }, 1, linear);
+    const expected = 1 + 1 * 1.0 * 0.08;
+    assert.equal(result.transform, `scale(${expected})`);
+  });
+
+  // pull_out
+  it('pull_out at progress=0 starts at max scale', () => {
+    const result = getCameraTransformValues({ move: 'pull_out', intensity: 0.5 }, 0, linear);
+    const expected = 1 + 0.5 * 0.08;
+    assert.equal(result.transform, `scale(${expected})`);
+  });
+
+  it('pull_out at progress=1 returns to scale(1)', () => {
+    const result = getCameraTransformValues({ move: 'pull_out', intensity: 0.5 }, 1, linear);
+    const startScale = 1 + 0.5 * 0.08;
+    const expected = startScale - 1 * 0.5 * 0.08;
+    assert.equal(result.transform, `scale(${expected})`);
+  });
+
+  // pan_left
+  it('pan_left at progress=0 has no translation', () => {
+    const result = getCameraTransformValues({ move: 'pan_left', intensity: 0.4 }, 0, linear);
+    assert.equal(result.transform, 'translateX(0px)');
+  });
+
+  it('pan_left at progress=1 translates full distance', () => {
+    const result = getCameraTransformValues({ move: 'pan_left', intensity: 0.4 }, 1, linear);
+    const expected = -1 * 0.4 * 80;
+    assert.equal(result.transform, `translateX(${expected}px)`);
+  });
+
+  // pan_right
+  it('pan_right at progress=1 translates positive', () => {
+    const result = getCameraTransformValues({ move: 'pan_right', intensity: 0.5 }, 1, linear);
+    const expected = 1 * 0.5 * 80;
+    assert.equal(result.transform, `translateX(${expected}px)`);
+  });
+
+  // drift
+  it('drift at progress=0 starts at translate(0px, ...)', () => {
+    const result = getCameraTransformValues({ move: 'drift', intensity: 0.5 }, 0, linear);
+    // sin(0) = 0, cos(0) = 1
+    const amplitude = 0.5 * 3;
+    const ty = 1 * amplitude * 0.6;
+    assert.equal(result.transform, `translate(0px, ${ty}px)`);
+  });
+
+  it('drift uses raw progress, not eased', () => {
+    // Pass a doubling easing — drift should ignore it and use raw progress
+    const doubleEasing = (t) => t * 2;
+    const result = getCameraTransformValues({ move: 'drift', intensity: 1.0 }, 0.25, doubleEasing);
+    const amplitude = 1.0 * 3;
+    const tx = Math.sin(0.25 * Math.PI * 2) * amplitude;
+    const ty = Math.cos(0.25 * Math.PI * 1.5) * amplitude * 0.6;
+    assert.equal(result.transform, `translate(${tx}px, ${ty}px)`);
+  });
+
+  it('works without easing function (falls back to raw progress)', () => {
+    const result = getCameraTransformValues({ move: 'push_in', intensity: 0.5 }, 1, null);
+    const expected = 1 + 1 * 0.5 * 0.08;
+    assert.equal(result.transform, `scale(${expected})`);
+  });
+});
+
+describe('calculateOverscanDimensions', () => {
+  const W = 1920;
+  const H = 1080;
+
+  it('static returns viewport dims with no offset', () => {
+    const result = calculateOverscanDimensions(W, H, { move: 'static' });
+    assert.equal(result.canvasW, W);
+    assert.equal(result.canvasH, H);
+    assert.equal(result.offsetX, 0);
+    assert.equal(result.offsetY, 0);
+  });
+
+  it('null camera returns viewport dims', () => {
+    const result = calculateOverscanDimensions(W, H, null);
+    assert.equal(result.canvasW, W);
+    assert.equal(result.canvasH, H);
+  });
+
+  it('pan_right adds horizontal overscan', () => {
+    const result = calculateOverscanDimensions(W, H, { move: 'pan_right', intensity: 0.5 });
+    assert.ok(result.canvasW > W, 'canvas should be wider than viewport');
+    assert.ok(result.canvasH > H, 'canvas should be taller than viewport');
+  });
+
+  it('pan_left uses same overscan as pan_right', () => {
+    const left = calculateOverscanDimensions(W, H, { move: 'pan_left', intensity: 0.4 });
+    const right = calculateOverscanDimensions(W, H, { move: 'pan_right', intensity: 0.4 });
+    assert.equal(left.canvasW, right.canvasW);
+    assert.equal(left.canvasH, right.canvasH);
+  });
+
+  it('push_in adds scale-based overscan', () => {
+    const result = calculateOverscanDimensions(W, H, { move: 'push_in', intensity: 0.5 });
+    assert.ok(result.canvasW > W);
+    assert.ok(result.canvasH > H);
+  });
+
+  it('pull_out uses same overscan as push_in', () => {
+    const pushIn = calculateOverscanDimensions(W, H, { move: 'push_in', intensity: 0.6 });
+    const pullOut = calculateOverscanDimensions(W, H, { move: 'pull_out', intensity: 0.6 });
+    assert.equal(pushIn.canvasW, pullOut.canvasW);
+    assert.equal(pushIn.canvasH, pullOut.canvasH);
+  });
+
+  it('drift has minimal overscan (near MIN_OVERSCAN floor)', () => {
+    const result = calculateOverscanDimensions(W, H, { move: 'drift', intensity: 0.5 });
+    assert.ok(result.canvasW > W);
+    // Drift overscan should be smaller than pan overscan
+    const pan = calculateOverscanDimensions(W, H, { move: 'pan_right', intensity: 0.5 });
+    assert.ok(result.canvasW <= pan.canvasW, 'drift overscan should be <= pan overscan');
+  });
+
+  it('offsets center the canvas within the viewport', () => {
+    const result = calculateOverscanDimensions(W, H, { move: 'pan_right', intensity: 0.5 });
+    assert.equal(result.offsetX, (result.canvasW - W) / 2);
+    assert.equal(result.offsetY, (result.canvasH - H) / 2);
+  });
+
+  it('higher intensity produces larger overscan', () => {
+    const low = calculateOverscanDimensions(W, H, { move: 'pan_right', intensity: 0.2 });
+    const high = calculateOverscanDimensions(W, H, { move: 'pan_right', intensity: 0.8 });
+    assert.ok(high.canvasW > low.canvasW, 'higher intensity should produce wider canvas');
+  });
+
+  it('defaults to DEFAULT_INTENSITY when intensity not specified', () => {
+    const result = calculateOverscanDimensions(W, H, { move: 'push_in' });
+    const explicit = calculateOverscanDimensions(W, H, { move: 'push_in', intensity: 0.5 });
+    assert.equal(result.canvasW, explicit.canvasW);
+    assert.equal(result.canvasH, explicit.canvasH);
+  });
+
+  it('unknown move gets MIN_OVERSCAN floor', () => {
+    const result = calculateOverscanDimensions(W, H, { move: 'zoom' });
+    // Unknown move hits default (0,0) then floors at MIN_OVERSCAN
+    const expectedW = Math.ceil(W * (1 + 2 * CAMERA_CONSTANTS.MIN_OVERSCAN));
+    const expectedH = Math.ceil(H * (1 + 2 * CAMERA_CONSTANTS.MIN_OVERSCAN));
+    assert.equal(result.canvasW, expectedW);
+    assert.equal(result.canvasH, expectedH);
   });
 });

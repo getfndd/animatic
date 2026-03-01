@@ -8,6 +8,8 @@ import {
   Easing,
   staticFile,
 } from 'remotion';
+import { getParallaxFactor } from '../lib.js';
+import { CameraRig } from './CameraRig.jsx';
 
 /**
  * SceneComposition — Renders a single scene definition to video.
@@ -23,11 +25,7 @@ import {
  */
 export const SceneComposition = ({ scene }) => {
   const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
-  const progress = frame / durationInFrames;
-
-  // Camera transform based on scene.camera directive
-  const cameraTransform = getCameraTransform(scene.camera, progress);
+  const { fps } = useVideoConfig();
   const layers = scene.layers || [];
 
   // Build asset lookup map from scene.assets[]
@@ -35,13 +33,7 @@ export const SceneComposition = ({ scene }) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0a0a' }}>
-      {/* Camera Rig — wraps all layers */}
-      <AbsoluteFill
-        style={{
-          transform: cameraTransform,
-          transformOrigin: 'center center',
-        }}
-      >
+      <CameraRig camera={scene.camera}>
         {layers.map((layer) => (
           <SceneLayer
             key={layer.id}
@@ -51,7 +43,7 @@ export const SceneComposition = ({ scene }) => {
             fps={fps}
           />
         ))}
-      </AbsoluteFill>
+      </CameraRig>
     </AbsoluteFill>
   );
 };
@@ -305,82 +297,3 @@ const PlaceholderLayer = ({ style, label }) => {
   );
 };
 
-/**
- * Camera transform calculations.
- * Maps scene camera directives to CSS transforms.
- *
- * Intensity mapping (from scene-format.md):
- *   push_in:   scale 1.0 → 1.0 + intensity * 0.08
- *   pull_out:  scale (1.0 + intensity * 0.08) → 1.0
- *   pan_left:  translateX 0 → -(intensity * 80)px
- *   pan_right: translateX 0 → (intensity * 80)px
- *   drift:     ±(intensity * 3)px sinusoidal
- *   static:    no transform
- */
-function getCameraTransform(camera, progress) {
-  if (!camera || camera.move === 'static') return 'none';
-
-  const intensity = camera.intensity ?? 0.5;
-  const easing = getEasingFunction(camera.easing);
-  const easedProgress = easing(progress);
-
-  switch (camera.move) {
-    case 'push_in': {
-      const scale = 1 + easedProgress * intensity * 0.08;
-      return `scale(${scale})`;
-    }
-    case 'pull_out': {
-      const startScale = 1 + intensity * 0.08;
-      const scale = startScale - easedProgress * intensity * 0.08;
-      return `scale(${scale})`;
-    }
-    case 'pan_left': {
-      const tx = -easedProgress * intensity * 80;
-      return `translateX(${tx}px)`;
-    }
-    case 'pan_right': {
-      const tx = easedProgress * intensity * 80;
-      return `translateX(${tx}px)`;
-    }
-    case 'drift': {
-      const amplitude = intensity * 3;
-      const tx = Math.sin(progress * Math.PI * 2) * amplitude;
-      const ty = Math.cos(progress * Math.PI * 1.5) * amplitude * 0.6;
-      return `translate(${tx}px, ${ty}px)`;
-    }
-    default:
-      return 'none';
-  }
-}
-
-/**
- * Maps easing names from the scene format to interpolation functions.
- */
-function getEasingFunction(easingName) {
-  switch (easingName) {
-    case 'linear':
-      return (t) => t;
-    case 'ease_out':
-      return Easing.out(Easing.cubic);
-    case 'cinematic_scurve':
-      return Easing.bezier(0.33, 0, 0.2, 1);
-    default:
-      return Easing.bezier(0.33, 0, 0.2, 1);
-  }
-}
-
-/**
- * Parallax factor based on depth class.
- */
-function getParallaxFactor(depthClass) {
-  switch (depthClass) {
-    case 'foreground':
-      return 1.0;
-    case 'midground':
-      return 0.6;
-    case 'background':
-      return 0.3;
-    default:
-      return 0.6;
-  }
-}

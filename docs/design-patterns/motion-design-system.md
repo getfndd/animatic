@@ -266,7 +266,7 @@ Each personality supports both light and dark modes. Mode selection is a tactica
 - **Tier 1 (HTML pipeline):** Full-screen typography cards, hard cuts / whip-wipes (200-400ms), mini product demo sequences (2-3s each), stat callouts with count-up, split-screen compositions, photography backgrounds with CSS parallax. Loop: 30-45s. Achievable in current HTML animation pipeline.
 - **Tier 2 (video tools):** Live-action footage intercut with UI, beat-synced editing with audio, real 3D renders, professional color grading. Requires Remotion or After Effects. Reference: Figma Config trailers, Apple product pages.
 
-Remotion (remotion.dev) is the bridge: renders React components frame-by-frame into video. Could assemble Tier 1 HTML scenes + audio into finished sizzle reels.
+Remotion (remotion.dev) is the bridge: renders React components frame-by-frame into video. Could assemble Tier 1 HTML scenes + audio into finished sizzle reels. This is now being built as the [AI Cinematography Pipeline](../cinematography/README.md) — see that doc for the full architecture and phased delivery plan.
 
 ## Principles
 

@@ -2,6 +2,8 @@
 
 End-to-end guide for transforming interactive prototypes into polished, self-running animated demos with video capture and distribution.
 
+> **Multi-shot video production:** For producing edited multi-scene sizzle reels (not single looping demos), see the [AI Cinematography Pipeline](../cinematography/README.md).
+
 ## Overview
 
 The animation pipeline converts static or interactive HTML prototypes into cinematic product walkthroughs suitable for landing pages, marketing emails, investor decks, and documentation. It produces self-running autoplay HTML files, captured video in multiple formats, and complete distribution kits.

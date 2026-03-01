@@ -38,6 +38,7 @@ import { filterByPersonality, parseDurationMs, checkBlurViolations } from './lib
 import { analyzeScene } from './lib/analyze.js';
 import { planSequence, STYLE_PACKS } from './lib/planner.js';
 import { evaluateSequence } from './lib/evaluate.js';
+import { validateFullManifest } from './lib/guardrails.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -440,6 +441,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['manifest', 'scenes', 'style'],
       },
     },
+    {
+      name: 'validate_manifest',
+      description:
+        'Validate a sequence manifest against camera guardrails. Checks speed limits, acceleration easing, jerk/settling, lens bounds, and personality boundaries for each scene. Returns PASS/WARN/BLOCK verdict with per-scene diagnostics. Use after plan_sequence to verify a manifest before rendering.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: {
+            type: 'object',
+            description: 'Sequence manifest from plan_sequence (must have a scenes array)',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Personality to validate against',
+          },
+        },
+        required: ['manifest', 'personality'],
+      },
+    },
   ],
 }));
 
@@ -473,6 +494,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleGetStylePack(args);
     case 'evaluate_sequence':
       return handleEvaluateSequence(args);
+    case 'validate_manifest':
+      return handleValidateManifest(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1515,6 +1538,88 @@ function handleEvaluateSequence(args) {
       isError: true,
     };
   }
+}
+
+// ── validate_manifest ───────────────────────────────────────────────────────
+
+function handleValidateManifest(args) {
+  const { manifest, personality } = args;
+
+  if (!manifest || !manifest.scenes || !Array.isArray(manifest.scenes)) {
+    return {
+      content: [{
+        type: 'text',
+        text: 'Invalid input: `manifest` must be an object with a `scenes` array.',
+      }],
+      isError: true,
+    };
+  }
+
+  const validPersonalities = ['cinematic-dark', 'editorial', 'neutral-light', 'montage'];
+  if (!validPersonalities.includes(personality)) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Invalid personality "${personality}". Valid: ${validPersonalities.join(', ')}`,
+      }],
+      isError: true,
+    };
+  }
+
+  const result = validateFullManifest(manifest, personality);
+
+  let out = `# Manifest Validation: **${result.verdict}**\n\n`;
+  out += `**Personality:** ${personality}\n`;
+  out += `**Scenes:** ${manifest.scenes.length}\n\n`;
+
+  // Per-scene results table
+  out += '## Per-Scene Results\n\n';
+  out += '| # | Scene | Verdict | Blocks | Warnings |\n';
+  out += '|---|-------|---------|--------|----------|\n';
+  for (const sr of result.sceneResults) {
+    const scene = manifest.scenes[sr.sceneIndex];
+    const sceneId = scene?.scene || `(scene ${sr.sceneIndex + 1})`;
+    out += `| ${sr.sceneIndex + 1} | ${sceneId} | ${sr.verdict} | ${sr.blocks.length} | ${sr.warnings.length} |\n`;
+  }
+  out += '\n';
+
+  // Grouped findings
+  const allBlocks = result.sceneResults.flatMap(sr =>
+    sr.blocks.map(b => ({ ...b, sceneIndex: sr.sceneIndex }))
+  );
+  const allWarnings = result.sceneResults.flatMap(sr =>
+    sr.warnings.map(w => ({ ...w, sceneIndex: sr.sceneIndex }))
+  );
+
+  if (allBlocks.length > 0) {
+    out += `## Blocking Violations (${allBlocks.length})\n\n`;
+    for (const b of allBlocks) {
+      out += `- **Scene ${b.sceneIndex + 1}:** ${b.message}\n`;
+    }
+    out += '\n';
+  }
+
+  if (allWarnings.length > 0) {
+    out += `## Warnings (${allWarnings.length})\n\n`;
+    for (const w of allWarnings) {
+      out += `- **Scene ${w.sceneIndex + 1}:** ${w.message}\n`;
+    }
+    out += '\n';
+  }
+
+  if (result.cumulativeFindings.length > 0) {
+    out += `## Cumulative Findings (${result.cumulativeFindings.length})\n\n`;
+    for (const f of result.cumulativeFindings) {
+      out += `- ${f.message}\n`;
+    }
+    out += '\n';
+  }
+
+  if (result.verdict === 'PASS' && result.cumulativeFindings.length === 0) {
+    out += `All ${manifest.scenes.length} scenes pass guardrail validation for ${personality}.\n`;
+  }
+
+  return { content: [{ type: 'text', text: out }] };
 }
 
 // ── Start server ────────────────────────────────────────────────────────────

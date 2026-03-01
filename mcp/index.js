@@ -34,6 +34,7 @@ import {
 } from './data/loader.js';
 
 import { filterByPersonality, parseDurationMs, checkBlurViolations } from './lib.js';
+import { analyzeScene } from './lib/analyze.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -356,6 +357,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['primitive_ids', 'personality'],
       },
     },
+    {
+      name: 'analyze_scene',
+      description:
+        'Analyze a scene JSON to classify content type, visual weight, motion energy, and intent tags. Returns structured metadata with confidence scores. Use this to auto-populate the metadata field for AI-planned sequences.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scene: {
+            type: 'object',
+            description: 'A scene object conforming to the scene-format spec (must include scene_id, layers, and optionally camera, layout, assets, duration_s)',
+          },
+        },
+        required: ['scene'],
+      },
+    },
   ],
 }));
 
@@ -381,6 +397,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleRecommendChoreography(args);
     case 'validate_choreography':
       return handleValidateChoreography(args);
+    case 'analyze_scene':
+      return handleAnalyzeScene(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1089,6 +1107,66 @@ function handleValidateChoreography(args) {
 
   if (verdict === 'PASS' && notes.length === 0) {
     out += `All ${primitive_ids.length} primitives are compatible with ${targetPersonality}. No guardrail violations detected.\n`;
+  }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── analyze_scene ────────────────────────────────────────────────────────────
+
+function handleAnalyzeScene(args) {
+  const { scene } = args;
+
+  if (!scene || typeof scene !== 'object') {
+    return {
+      content: [{
+        type: 'text',
+        text: 'Invalid input: `scene` must be a JSON object conforming to the scene-format spec.',
+      }],
+      isError: true,
+    };
+  }
+
+  const result = analyzeScene(scene);
+  const { metadata, _confidence } = result;
+  const sceneId = scene.scene_id || '(unnamed)';
+
+  let out = `# Scene Analysis: ${sceneId}\n\n`;
+
+  // Classification table
+  out += '| Field | Value | Confidence |\n';
+  out += '|-------|-------|------------|\n';
+  out += `| content_type | \`${metadata.content_type}\` | ${(_confidence.content_type * 100).toFixed(0)}% |\n`;
+  out += `| visual_weight | \`${metadata.visual_weight}\` | ${(_confidence.visual_weight * 100).toFixed(0)}% |\n`;
+  out += `| motion_energy | \`${metadata.motion_energy}\` | ${(_confidence.motion_energy * 100).toFixed(0)}% |\n`;
+  out += `| intent_tags | ${metadata.intent_tags.map(t => `\`${t}\``).join(', ') || '*(none)*'} | ${(_confidence.intent_tags * 100).toFixed(0)}% |\n`;
+  out += '\n';
+
+  // Metadata JSON block
+  out += '## Metadata\n\n```json\n';
+  out += JSON.stringify(metadata, null, 2);
+  out += '\n```\n\n';
+
+  // Confidence JSON block
+  out += '## Confidence Scores\n\n```json\n';
+  out += JSON.stringify(_confidence, null, 2);
+  out += '\n```\n\n';
+
+  // Diagnostic notes
+  out += '## Diagnostics\n\n';
+  const layers = scene.layers || [];
+  out += `- **Layers:** ${layers.length} (${layers.map(l => l.type).join(', ') || 'none'})\n`;
+  if (scene.layout) out += `- **Layout:** ${scene.layout.template}\n`;
+  if (scene.camera) out += `- **Camera:** ${scene.camera.move || 'static'} (intensity: ${scene.camera.intensity ?? 'default'})\n`;
+  out += `- **Duration:** ${scene.duration_s ?? 'unset'}s\n`;
+
+  // Low confidence warnings
+  const lowConfidence = Object.entries(_confidence).filter(([, v]) => v < 0.50);
+  if (lowConfidence.length > 0) {
+    out += '\n**Low confidence warnings:**\n';
+    for (const [field, conf] of lowConfidence) {
+      out += `- \`${field}\` at ${(conf * 100).toFixed(0)}% — consider manual override or LLM-assisted reclassification\n`;
+    }
   }
 
   return { content: [{ type: 'text', text: out }] };

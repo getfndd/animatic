@@ -1,0 +1,106 @@
+{
+  "manifest": {
+    "sequence_id": "seq_asset_test",
+    "resolution": { "w": 1920, "h": 1080 },
+    "fps": 60,
+    "scenes": [
+      {
+        "scene": "sc_video_layer",
+        "duration_s": 3
+      },
+      {
+        "scene": "sc_image_layer",
+        "duration_s": 3,
+        "transition_in": { "type": "crossfade", "duration_ms": 400 }
+      },
+      {
+        "scene": "sc_mixed",
+        "duration_s": 3,
+        "transition_in": { "type": "whip_left", "duration_ms": 250 }
+      }
+    ]
+  },
+  "sceneDefs": {
+    "sc_video_layer": {
+      "scene_id": "sc_video_layer",
+      "duration_s": 3,
+      "camera": { "move": "push_in", "intensity": 0.3, "easing": "cinematic_scurve" },
+      "assets": [
+        { "id": "bg_video", "src": "test-gradient.mp4", "muted": true }
+      ],
+      "layers": [
+        {
+          "id": "video-bg",
+          "type": "video",
+          "depth_class": "background",
+          "asset": "bg_video",
+          "fit": "cover"
+        },
+        {
+          "id": "title",
+          "type": "html",
+          "depth_class": "foreground",
+          "content": "<div style=\"display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:sans-serif;color:white;font-size:64px;font-weight:700;text-shadow:0 2px 20px rgba(0,0,0,0.5)\">Video Layer Test</div>"
+        }
+      ]
+    },
+    "sc_image_layer": {
+      "scene_id": "sc_image_layer",
+      "duration_s": 3,
+      "camera": { "move": "drift", "intensity": 0.5 },
+      "assets": [
+        { "id": "bg_image", "src": "test-image.png" }
+      ],
+      "layers": [
+        {
+          "id": "image-bg",
+          "type": "image",
+          "depth_class": "background",
+          "asset": "bg_image",
+          "fit": "cover"
+        },
+        {
+          "id": "label",
+          "type": "html",
+          "depth_class": "foreground",
+          "content": "<div style=\"display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:sans-serif;color:white;font-size:64px;font-weight:700\">Image Layer Test</div>"
+        }
+      ]
+    },
+    "sc_mixed": {
+      "scene_id": "sc_mixed",
+      "duration_s": 3,
+      "camera": { "move": "pan_right", "intensity": 0.4, "easing": "ease_out" },
+      "assets": [
+        { "id": "bg_video_2", "src": "test-gradient.mp4", "muted": true, "trim": { "start_s": 1, "end_s": 4 } },
+        { "id": "overlay_img", "src": "test-image.png" }
+      ],
+      "layers": [
+        {
+          "id": "video-bg",
+          "type": "video",
+          "depth_class": "background",
+          "asset": "bg_video_2",
+          "fit": "cover"
+        },
+        {
+          "id": "image-overlay",
+          "type": "image",
+          "depth_class": "midground",
+          "asset": "overlay_img",
+          "fit": "contain",
+          "opacity": 0.3,
+          "blend_mode": "screen",
+          "position": { "x": "10%", "y": "10%", "w": "30%", "h": "30%" }
+        },
+        {
+          "id": "title",
+          "type": "html",
+          "depth_class": "foreground",
+          "entrance": { "delay_ms": 500 },
+          "content": "<div style=\"display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:sans-serif;color:white;font-size:48px;font-weight:700\">Mixed Media</div>"
+        }
+      ]
+    }
+  }
+}

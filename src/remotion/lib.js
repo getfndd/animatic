@@ -147,6 +147,24 @@ export function validateManifest(manifest) {
           }
         }
       }
+
+      // ANI-26: Optional shot_grammar field
+      if (scene.shot_grammar) {
+        const sg = scene.shot_grammar;
+        const validSizes = ['wide', 'medium', 'close_up', 'extreme_close_up'];
+        const validAngles = ['eye_level', 'high', 'low', 'dutch'];
+        const validFramings = ['center', 'rule_of_thirds_left', 'rule_of_thirds_right', 'dynamic_offset'];
+
+        if (sg.shot_size && !validSizes.includes(sg.shot_size)) {
+          errors.push(`${prefix}.shot_grammar.shot_size "${sg.shot_size}" is not valid`);
+        }
+        if (sg.angle && !validAngles.includes(sg.angle)) {
+          errors.push(`${prefix}.shot_grammar.angle "${sg.angle}" is not valid`);
+        }
+        if (sg.framing && !validFramings.includes(sg.framing)) {
+          errors.push(`${prefix}.shot_grammar.framing "${sg.framing}" is not valid`);
+        }
+      }
     }
   }
 

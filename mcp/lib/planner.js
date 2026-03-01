@@ -11,7 +11,8 @@
  */
 
 import { validateManifest } from '../../src/remotion/lib.js';
-import { loadStylePacks, loadPersonalitiesCatalog } from '../data/loader.js';
+import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar } from '../data/loader.js';
+import { validateShotGrammar } from './shot-grammar.js';
 
 // ── Load catalog data at module level ────────────────────────────────────────
 
@@ -19,6 +20,7 @@ const personalitiesCatalog = loadPersonalitiesCatalog();
 const stylePacksCatalog = loadStylePacks(
   personalitiesCatalog.array.map(p => p.slug)
 );
+const shotGrammarCatalog = loadShotGrammar();
 
 // ── Derived constants (backward-compatible exports) ──────────────────────────
 
@@ -221,6 +223,28 @@ function applyVarietyRules(scenes) {
       for (let j = i + 3; j < Math.min(i + 6, scenes.length); j++) {
         if (scenes[j].metadata?.visual_weight !== w0) {
           [scenes[i + 2], scenes[j]] = [scenes[j], scenes[i + 2]];
+          break;
+        }
+      }
+    }
+  }
+
+  // Rule 4: No 3+ consecutive same shot_size — swap to break run (ANI-26)
+  const maxConsecutive = shotGrammarCatalog.variety_rules.max_consecutive_same_size;
+  for (let i = 0; i < scenes.length - maxConsecutive; i++) {
+    const sizes = [];
+    let allSame = true;
+    for (let k = 0; k <= maxConsecutive; k++) {
+      sizes.push(scenes[i + k].metadata?.shot_grammar?.shot_size);
+    }
+    for (let k = 1; k < sizes.length; k++) {
+      if (sizes[k] !== sizes[0]) { allSame = false; break; }
+    }
+
+    if (sizes[0] && allSame) {
+      for (let j = i + maxConsecutive + 1; j < Math.min(i + maxConsecutive + 4, scenes.length); j++) {
+        if (scenes[j].metadata?.shot_grammar?.shot_size !== sizes[0]) {
+          [scenes[i + maxConsecutive], scenes[j]] = [scenes[j], scenes[i + maxConsecutive]];
           break;
         }
       }
@@ -436,6 +460,7 @@ export function planSequence({ scenes, style, sequence_id }) {
 
   // Assemble manifest
   const seqId = sequence_id || `seq_planned_${Date.now()}`;
+  const personalitySlug = STYLE_TO_PERSONALITY[style];
   const manifestScenes = ordered.map((scene, i) => {
     const entry = {
       scene: scene.scene_id || scene.id || `scene_${i}`,
@@ -448,6 +473,13 @@ export function planSequence({ scenes, style, sequence_id }) {
 
     if (cameraOverrides[i]) {
       entry.camera_override = cameraOverrides[i];
+    }
+
+    // ANI-26: Add validated shot grammar
+    const rawGrammar = scene.metadata?.shot_grammar;
+    if (rawGrammar) {
+      const validation = validateShotGrammar(rawGrammar, personalitySlug);
+      entry.shot_grammar = validation.result;
     }
 
     return entry;

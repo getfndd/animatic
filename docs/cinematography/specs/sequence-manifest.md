@@ -85,6 +85,15 @@ A sequence manifest is an ordered list of scenes with timing, transitions, and g
             "easing": { "type": "string", "enum": ["linear", "ease_out", "cinematic_scurve"] }
           },
           "description": "Override the scene's camera directive for this sequence context."
+        },
+        "shot_grammar": {
+          "type": "object",
+          "properties": {
+            "shot_size": { "type": "string", "enum": ["wide", "medium", "close_up", "extreme_close_up"] },
+            "angle": { "type": "string", "enum": ["eye_level", "high", "low", "dutch"] },
+            "framing": { "type": "string", "enum": ["center", "rule_of_thirds_left", "rule_of_thirds_right", "dynamic_offset"] }
+          },
+          "description": "Shot grammar classification. Added by the AI planner (ANI-26). Validated against personality restrictions. Optional — not present in hand-authored manifests unless explicitly set."
         }
       }
     }

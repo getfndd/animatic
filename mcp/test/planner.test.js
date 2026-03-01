@@ -641,6 +641,81 @@ describe('planSequence — layout ground truth', () => {
   });
 });
 
+// ── ANI-26: Shot grammar in planner ──────────────────────────────────────────
+
+describe('shot grammar variety rule (ANI-26)', () => {
+  it('breaks 3+ consecutive same shot_size', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['detail'], content_type: 'typography', shot_grammar: { shot_size: 'close_up', angle: 'eye_level', framing: 'center' } }),
+      makeScene('sc_b', { intent_tags: ['detail'], content_type: 'brand_mark', shot_grammar: { shot_size: 'close_up', angle: 'eye_level', framing: 'center' } }),
+      makeScene('sc_c', { intent_tags: ['detail'], content_type: 'portrait', shot_grammar: { shot_size: 'close_up', angle: 'eye_level', framing: 'center' } }),
+      makeScene('sc_d', { intent_tags: ['detail'], content_type: 'ui_screenshot', shot_grammar: { shot_size: 'medium', angle: 'eye_level', framing: 'center' } }),
+    ];
+    const result = orderScenes(scenes);
+    // Check no 3+ consecutive same shot_size
+    for (let i = 0; i < result.length - 2; i++) {
+      const s0 = result[i].metadata?.shot_grammar?.shot_size;
+      const s1 = result[i + 1].metadata?.shot_grammar?.shot_size;
+      const s2 = result[i + 2].metadata?.shot_grammar?.shot_size;
+      if (s0 === s1 && s1 === s2) {
+        assert.fail(`Three consecutive ${s0} shot_size at index ${i}`);
+      }
+    }
+  });
+});
+
+describe('shot grammar on manifest entries (ANI-26)', () => {
+  it('manifest entries include shot_grammar when metadata has it', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'], shot_grammar: { shot_size: 'close_up', angle: 'low', framing: 'center' } }),
+      makeScene('sc_b', { intent_tags: ['detail'], content_type: 'ui_screenshot', shot_grammar: { shot_size: 'medium', angle: 'high', framing: 'center' } }),
+    ];
+    const { manifest } = planSequence({
+      scenes,
+      style: 'prestige',
+      sequence_id: 'seq_test_sg',
+    });
+
+    for (const entry of manifest.scenes) {
+      assert.ok(entry.shot_grammar, `${entry.scene} should have shot_grammar`);
+      assert.ok(entry.shot_grammar.shot_size);
+      assert.ok(entry.shot_grammar.angle);
+      assert.ok(entry.shot_grammar.framing);
+    }
+  });
+
+  it('shot_grammar is validated against personality restrictions', () => {
+    // Energy uses montage personality which restricts angles to eye_level
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['detail'], shot_grammar: { shot_size: 'medium', angle: 'dutch', framing: 'dynamic_offset' } }),
+    ];
+    const { manifest } = planSequence({
+      scenes,
+      style: 'energy',
+      sequence_id: 'seq_test_sg_val',
+    });
+
+    // Montage should correct dutch → eye_level and dynamic_offset → center
+    assert.equal(manifest.scenes[0].shot_grammar.angle, 'eye_level');
+    assert.equal(manifest.scenes[0].shot_grammar.framing, 'center');
+  });
+
+  it('manifest with shot_grammar passes validation', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'], shot_grammar: { shot_size: 'wide', angle: 'eye_level', framing: 'center' } }),
+      makeScene('sc_b', { intent_tags: ['detail'], content_type: 'ui_screenshot', shot_grammar: { shot_size: 'medium', angle: 'eye_level', framing: 'center' } }),
+    ];
+    const { manifest } = planSequence({
+      scenes,
+      style: 'prestige',
+      sequence_id: 'seq_test_sg_valid',
+    });
+
+    const validation = validateManifest(manifest);
+    assert.ok(validation.valid, `Validation failed: ${validation.errors.join('; ')}`);
+  });
+});
+
 // ── Constants ───────────────────────────────────────────────────────────────
 
 describe('constants', () => {

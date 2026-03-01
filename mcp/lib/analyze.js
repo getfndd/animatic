@@ -8,6 +8,8 @@
  * Used by the analyze_scene MCP tool and consumed by ANI-23 (sequence planner).
  */
 
+import { classifyShotGrammar } from './shot-grammar.js';
+
 // ── Enum constants ──────────────────────────────────────────────────────────
 
 export const CONTENT_TYPES = [
@@ -351,18 +353,30 @@ export function analyzeScene(scene) {
   const motionEnergy = classifyMotionEnergy(scene);
   const intentTags = inferIntentTags(scene, contentType.value, motionEnergy.value);
 
+  // Shot grammar classification runs after content type and intent tags (uses them as signals)
+  const sceneWithMeta = {
+    ...scene,
+    metadata: {
+      content_type: contentType.value,
+      intent_tags: intentTags.value,
+    },
+  };
+  const shotGrammar = classifyShotGrammar(sceneWithMeta);
+
   return {
     metadata: {
       content_type: contentType.value,
       visual_weight: visualWeight.value,
       motion_energy: motionEnergy.value,
       intent_tags: intentTags.value,
+      shot_grammar: shotGrammar.grammar,
     },
     _confidence: {
       content_type: contentType.confidence,
       visual_weight: visualWeight.confidence,
       motion_energy: motionEnergy.confidence,
       intent_tags: intentTags.confidence,
+      shot_grammar: shotGrammar.confidence,
     },
   };
 }

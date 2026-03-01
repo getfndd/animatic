@@ -1,0 +1,27 @@
+{
+  "shot_sizes": [
+    { "slug": "wide", "css": { "scale": 1.0 }, "content_type_affinity": ["collage", "moodboard", "split_panel"] },
+    { "slug": "medium", "css": { "scale": 1.08 }, "content_type_affinity": ["ui_screenshot", "device_mockup", "product_shot"] },
+    { "slug": "close_up", "css": { "scale": 1.2 }, "content_type_affinity": ["typography", "brand_mark", "portrait"] },
+    { "slug": "extreme_close_up", "css": { "scale": 1.4 }, "content_type_affinity": ["notification", "data_visualization"] }
+  ],
+  "angles": [
+    { "slug": "eye_level", "css": { "perspectiveOrigin": "50% 50%", "rotateX": 0 }, "personality_support": ["cinematic-dark", "editorial", "neutral-light", "montage"] },
+    { "slug": "high", "css": { "perspectiveOrigin": "50% 30%", "rotateX": 3 }, "personality_support": ["cinematic-dark", "editorial"] },
+    { "slug": "low", "css": { "perspectiveOrigin": "50% 70%", "rotateX": -2 }, "personality_support": ["cinematic-dark"] },
+    { "slug": "dutch", "css": { "rotateZ": 3 }, "personality_support": ["cinematic-dark"] }
+  ],
+  "framings": [
+    { "slug": "center", "css": { "transformOrigin": "50% 50%" }, "personality_support": ["cinematic-dark", "editorial", "neutral-light", "montage"] },
+    { "slug": "rule_of_thirds_left", "css": { "transformOrigin": "33% 50%" }, "personality_support": ["cinematic-dark", "editorial"] },
+    { "slug": "rule_of_thirds_right", "css": { "transformOrigin": "67% 50%" }, "personality_support": ["cinematic-dark", "editorial"] },
+    { "slug": "dynamic_offset", "css": { "transformOrigin": "30% 40%" }, "personality_support": ["cinematic-dark"] }
+  ],
+  "personality_restrictions": {
+    "cinematic-dark": { "allowed_sizes": ["wide", "medium", "close_up", "extreme_close_up"], "allowed_angles": ["eye_level", "high", "low", "dutch"], "allowed_framings": ["center", "rule_of_thirds_left", "rule_of_thirds_right", "dynamic_offset"], "use_3d_rotation": true },
+    "editorial": { "allowed_sizes": ["wide", "medium", "close_up"], "allowed_angles": ["eye_level", "high"], "allowed_framings": ["center", "rule_of_thirds_left", "rule_of_thirds_right"], "use_3d_rotation": false, "max_scale": 1.2 },
+    "neutral-light": { "allowed_sizes": ["wide", "medium"], "allowed_angles": ["eye_level"], "allowed_framings": ["center"], "use_3d_rotation": false, "max_scale": 1.08 },
+    "montage": { "allowed_sizes": ["wide", "medium", "close_up", "extreme_close_up"], "allowed_angles": ["eye_level"], "allowed_framings": ["center"], "use_3d_rotation": false }
+  },
+  "variety_rules": { "max_consecutive_same_size": 2 }
+}

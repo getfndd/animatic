@@ -51,6 +51,27 @@ export function loadCameraGuardrails() {
   return loadJSON(resolve(CATALOG_DIR, 'camera-guardrails.json'));
 }
 
+/** Load catalog/shot-grammar.json → structured grammar data with lookup maps */
+export function loadShotGrammar() {
+  const data = loadJSON(resolve(CATALOG_DIR, 'shot-grammar.json'));
+  const sizeBySlug = new Map(data.shot_sizes.map(s => [s.slug, s]));
+  const angleBySlug = new Map(data.angles.map(a => [a.slug, a]));
+  const framingBySlug = new Map(data.framings.map(f => [f.slug, f]));
+  const affinityMap = new Map();
+  for (const size of data.shot_sizes) {
+    for (const ct of size.content_type_affinity) {
+      affinityMap.set(ct, size.slug);
+    }
+  }
+  return {
+    ...data,
+    sizeBySlug,
+    angleBySlug,
+    framingBySlug,
+    affinityMap,
+  };
+}
+
 /** Load catalog/style-packs.json → array + name map, validates personality refs */
 export function loadStylePacks(personalitySlugs) {
   const arr = loadJSON(resolve(CATALOG_DIR, 'style-packs.json'));

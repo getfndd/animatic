@@ -542,6 +542,12 @@ describe('analyzeScene', () => {
     assert.ok(VISUAL_WEIGHTS.includes(result.metadata.visual_weight));
     assert.ok(MOTION_ENERGIES.includes(result.metadata.motion_energy));
     assert.ok(Array.isArray(result.metadata.intent_tags));
+    // ANI-26: shot_grammar
+    assert.ok(result.metadata.shot_grammar, 'shot_grammar should be present');
+    assert.ok(result.metadata.shot_grammar.shot_size, 'shot_grammar.shot_size required');
+    assert.ok(result.metadata.shot_grammar.angle, 'shot_grammar.angle required');
+    assert.ok(result.metadata.shot_grammar.framing, 'shot_grammar.framing required');
+    assert.ok(result._confidence.shot_grammar, 'shot_grammar confidence required');
   });
 });
 
@@ -623,6 +629,11 @@ describe('analyzeScene — layout template scenes', () => {
       for (const tag of result.metadata.intent_tags) {
         assert.ok(INTENT_TAGS.includes(tag), `${id}: invalid intent_tag "${tag}"`);
       }
+      // ANI-26: shot_grammar
+      assert.ok(result.metadata.shot_grammar, `${id}: missing shot_grammar`);
+      assert.ok(result.metadata.shot_grammar.shot_size, `${id}: missing shot_grammar.shot_size`);
+      assert.ok(result.metadata.shot_grammar.angle, `${id}: missing shot_grammar.angle`);
+      assert.ok(result.metadata.shot_grammar.framing, `${id}: missing shot_grammar.framing`);
     }
   });
 
@@ -630,7 +641,14 @@ describe('analyzeScene — layout template scenes', () => {
     for (const scene of Object.values(layoutScenes)) {
       const result = analyzeScene(scene);
       for (const [field, conf] of Object.entries(result._confidence)) {
-        assert.ok(conf >= 0 && conf <= 1, `${field} confidence ${conf} out of range`);
+        if (typeof conf === 'object') {
+          // ANI-26: shot_grammar confidence is { shot_size, angle, framing }
+          for (const [subField, subConf] of Object.entries(conf)) {
+            assert.ok(subConf >= 0 && subConf <= 1, `${field}.${subField} confidence ${subConf} out of range`);
+          }
+        } else {
+          assert.ok(conf >= 0 && conf <= 1, `${field} confidence ${conf} out of range`);
+        }
       }
     }
   });

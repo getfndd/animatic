@@ -252,3 +252,146 @@ export function validateScene(scene) {
 
   return { valid: errors.length === 0, errors };
 }
+
+// ── Camera Math ──────────────────────────────────────────────────────────────
+
+/**
+ * Camera constants extracted from the scene-format spec.
+ *
+ * Intensity mapping:
+ *   push_in/pull_out: scale ±(intensity * SCALE_FACTOR)
+ *   pan_left/right:   translateX ±(intensity * PAN_MAX_PX)px
+ *   drift:            ±(intensity * DRIFT_AMPLITUDE)px sinusoidal
+ */
+export const CAMERA_CONSTANTS = {
+  SCALE_FACTOR: 0.08,
+  PAN_MAX_PX: 80,
+  DRIFT_AMPLITUDE: 3,
+  DRIFT_Y_RATIO: 0.6,
+  DEFAULT_INTENSITY: 0.5,
+  MIN_OVERSCAN: 0.02,
+};
+
+/**
+ * Parallax factor based on depth class.
+ * Foreground moves 1:1, midground 0.6, background 0.3.
+ */
+export function getParallaxFactor(depthClass) {
+  switch (depthClass) {
+    case 'foreground':
+      return 1.0;
+    case 'midground':
+      return 0.6;
+    case 'background':
+      return 0.3;
+    default:
+      return 0.6;
+  }
+}
+
+/**
+ * Compute camera transform CSS values for a given move, progress, and easing.
+ *
+ * Pure function — easing function is passed in so this stays free of
+ * Remotion Easing dependency.
+ *
+ * @param {object|null} camera  - { move, intensity, easing }
+ * @param {number} progress     - 0..1 linear progress through the scene
+ * @param {function} easingFn   - (t: number) => number
+ * @returns {{ transform: string }}
+ */
+export function getCameraTransformValues(camera, progress, easingFn) {
+  if (!camera || camera.move === 'static') {
+    return { transform: 'none' };
+  }
+
+  const intensity = camera.intensity ?? CAMERA_CONSTANTS.DEFAULT_INTENSITY;
+  const eased = easingFn ? easingFn(progress) : progress;
+
+  switch (camera.move) {
+    case 'push_in': {
+      const scale = 1 + eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+      return { transform: `scale(${scale})` };
+    }
+    case 'pull_out': {
+      const startScale = 1 + intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+      const scale = startScale - eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+      return { transform: `scale(${scale})` };
+    }
+    case 'pan_left': {
+      const tx = -eased * intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
+      return { transform: `translateX(${tx}px)` };
+    }
+    case 'pan_right': {
+      const tx = eased * intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
+      return { transform: `translateX(${tx}px)` };
+    }
+    case 'drift': {
+      // Drift uses raw progress (not eased) — sinusoidal motion
+      const amplitude = intensity * CAMERA_CONSTANTS.DRIFT_AMPLITUDE;
+      const tx = Math.sin(progress * Math.PI * 2) * amplitude;
+      const ty = Math.cos(progress * Math.PI * 1.5) * amplitude * CAMERA_CONSTANTS.DRIFT_Y_RATIO;
+      return { transform: `translate(${tx}px, ${ty}px)` };
+    }
+    default:
+      return { transform: 'none' };
+  }
+}
+
+/**
+ * Calculate overscan canvas dimensions for a camera move.
+ *
+ * The oversized canvas prevents content edges from revealing during
+ * pan/scale moves. The outer clip div stays at viewport size with
+ * overflow: hidden; the inner canvas is larger and offset to center.
+ *
+ * @param {number} viewportW - viewport width (e.g. 1920)
+ * @param {number} viewportH - viewport height (e.g. 1080)
+ * @param {object|null} camera - { move, intensity }
+ * @returns {{ canvasW: number, canvasH: number, offsetX: number, offsetY: number }}
+ */
+export function calculateOverscanDimensions(viewportW, viewportH, camera) {
+  if (!camera || camera.move === 'static') {
+    return { canvasW: viewportW, canvasH: viewportH, offsetX: 0, offsetY: 0 };
+  }
+
+  const intensity = camera.intensity ?? CAMERA_CONSTANTS.DEFAULT_INTENSITY;
+  let overscanX = 0;
+  let overscanY = 0;
+
+  switch (camera.move) {
+    case 'pan_left':
+    case 'pan_right': {
+      const maxDisplacement = intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
+      overscanX = maxDisplacement / viewportW;
+      overscanY = maxDisplacement / viewportH;
+      break;
+    }
+    case 'push_in':
+    case 'pull_out': {
+      const scaleFactor = intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+      overscanX = scaleFactor;
+      overscanY = scaleFactor;
+      break;
+    }
+    case 'drift': {
+      const driftPx = intensity * CAMERA_CONSTANTS.DRIFT_AMPLITUDE;
+      overscanX = driftPx / viewportW;
+      overscanY = driftPx / viewportH;
+      break;
+    }
+    default:
+      break;
+  }
+
+  // Floor at MIN_OVERSCAN for any non-static move
+  overscanX = Math.max(overscanX, CAMERA_CONSTANTS.MIN_OVERSCAN);
+  overscanY = Math.max(overscanY, CAMERA_CONSTANTS.MIN_OVERSCAN);
+
+  const canvasW = Math.ceil(viewportW * (1 + 2 * overscanX));
+  const canvasH = Math.ceil(viewportH * (1 + 2 * overscanY));
+  const offsetX = (canvasW - viewportW) / 2;
+  const offsetY = (canvasH - viewportH) / 2;
+
+  return { canvasW, canvasH, offsetX, offsetY };
+}

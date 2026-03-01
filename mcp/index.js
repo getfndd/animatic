@@ -26,6 +26,7 @@ import {
   loadPersonalitiesCatalog,
   loadIntentMappings,
   loadCameraGuardrails,
+  loadStylePacks,
   parseRegistry,
   parseBreakdownIndex,
   readBreakdown,
@@ -46,10 +47,13 @@ const primitivesCatalog = loadPrimitivesCatalog();
 const personalitiesCatalog = loadPersonalitiesCatalog();
 const intentMappings = loadIntentMappings();
 const cameraGuardrails = loadCameraGuardrails();
+const stylePacksCatalog = loadStylePacks(
+  personalitiesCatalog.array.map(p => p.slug)
+);
 const registry = parseRegistry();
 const breakdownIndex = parseBreakdownIndex();
 
-console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intent mappings, ${Object.keys(cameraGuardrails.primitive_amplitudes).length} guardrail amplitudes, ${breakdownIndex.length} breakdowns`);
+console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intent mappings, ${Object.keys(cameraGuardrails.primitive_amplitudes).length} guardrail amplitudes, ${breakdownIndex.length} breakdowns, ${stylePacksCatalog.array.length} style packs`);
 
 // ── Server setup ────────────────────────────────────────────────────────────
 
@@ -394,6 +398,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['scenes', 'style'],
       },
     },
+    {
+      name: 'get_style_pack',
+      description:
+        'Get a style pack definition by name. Returns hold durations, transition rules, camera override rules, and the mapped personality. Use this to understand how a style pack drives sequence planning decisions.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            enum: STYLE_PACKS,
+            description: 'Style pack name',
+          },
+        },
+        required: ['name'],
+      },
+    },
   ],
 }));
 
@@ -423,6 +443,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleAnalyzeScene(args);
     case 'plan_sequence':
       return handlePlanSequence(args);
+    case 'get_style_pack':
+      return handleGetStylePack(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1192,6 +1214,102 @@ function handleAnalyzeScene(args) {
       out += `- \`${field}\` at ${(conf * 100).toFixed(0)}% — consider manual override or LLM-assisted reclassification\n`;
     }
   }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── get_style_pack ──────────────────────────────────────────────────────────
+
+function handleGetStylePack(args) {
+  const { name } = args;
+  const pack = stylePacksCatalog.byName.get(name);
+
+  if (!pack) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Unknown style pack "${name}". Available: ${STYLE_PACKS.join(', ')}`,
+      }],
+      isError: true,
+    };
+  }
+
+  const personality = personalitiesCatalog.bySlug.get(pack.personality);
+
+  let out = `# Style Pack: ${pack.name}\n\n`;
+  out += `**Personality:** ${pack.personality}${personality ? ` (${personality.name})` : ''}\n`;
+  out += `**Description:** ${pack.description}\n\n`;
+
+  // Hold durations
+  out += '## Hold Durations\n\n';
+  out += '| Motion Energy | Duration |\n';
+  out += '|--------------|----------|\n';
+  for (const [energy, dur] of Object.entries(pack.hold_durations)) {
+    out += `| ${energy} | ${dur}s |\n`;
+  }
+  if (pack.max_hold_duration != null) {
+    out += `\n**Max hold duration:** ${pack.max_hold_duration}s\n`;
+  }
+
+  // Transition rules
+  out += '\n## Transition Rules\n\n';
+  out += 'Evaluated in priority order:\n\n';
+  const ruleOrder = ['pattern', 'on_same_weight', 'on_weight_change', 'on_intent', 'default'];
+  let ruleNum = 1;
+  for (const key of ruleOrder) {
+    if (pack.transitions[key]) {
+      out += `${ruleNum}. **${key}:** `;
+      const rule = pack.transitions[key];
+      if (key === 'pattern') {
+        out += `Every ${rule.every_n}rd transition → cycle [${rule.cycle.join(', ')}] (${rule.duration_ms}ms)\n`;
+      } else if (key === 'on_intent') {
+        out += `Tags [${rule.tags.join(', ')}] → ${rule.transition.type}${rule.transition.duration_ms ? ` (${rule.transition.duration_ms}ms)` : ''}\n`;
+      } else {
+        out += `${rule.type}${rule.duration_ms ? ` (${rule.duration_ms}ms)` : ''}\n`;
+      }
+      ruleNum++;
+    }
+  }
+
+  // Camera override rules
+  out += '\n## Camera Override Rules\n\n';
+  if (pack.camera_overrides.force_static) {
+    out += 'All scenes: `{ move: "static" }` (personality forbids camera movement)\n';
+  }
+  if (pack.camera_overrides.by_content_type) {
+    out += '**By content type:**\n\n';
+    out += '| Content Type | Move | Intensity |\n';
+    out += '|-------------|------|----------|\n';
+    for (const [ct, cam] of Object.entries(pack.camera_overrides.by_content_type)) {
+      out += `| ${ct} | ${cam.move} | ${cam.intensity} |\n`;
+    }
+    out += '\nUnmatched content types: no override\n';
+  }
+  if (pack.camera_overrides.by_intent) {
+    out += '**By intent tag:**\n\n';
+    out += '| Intent Tag | Move | Intensity |\n';
+    out += '|-----------|------|----------|\n';
+    for (const [tag, cam] of Object.entries(pack.camera_overrides.by_intent)) {
+      out += `| ${tag} | ${cam.move} | ${cam.intensity} |\n`;
+    }
+    out += '\nUnmatched intents: no override\n';
+  }
+
+  // Personality camera constraints
+  if (personality?.camera_behavior) {
+    out += '\n## Personality Camera Constraints\n\n';
+    const cam = personality.camera_behavior;
+    out += `**Mode:** ${cam.mode}\n`;
+    out += `**Allowed movements:** ${cam.allowed_movements.length > 0 ? cam.allowed_movements.join(', ') : 'none'}\n`;
+    if (cam.constraints) {
+      out += `**Constraints:** ${cam.constraints}\n`;
+    }
+  }
+
+  // Raw JSON
+  out += '\n## Raw Definition\n\n```json\n';
+  out += JSON.stringify(pack, null, 2);
+  out += '\n```\n';
 
   return { content: [{ type: 'text', text: out }] };
 }

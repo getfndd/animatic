@@ -51,6 +51,23 @@ export function loadCameraGuardrails() {
   return loadJSON(resolve(CATALOG_DIR, 'camera-guardrails.json'));
 }
 
+/** Load catalog/style-packs.json → array + name map, validates personality refs */
+export function loadStylePacks(personalitySlugs) {
+  const arr = loadJSON(resolve(CATALOG_DIR, 'style-packs.json'));
+  const byName = new Map();
+
+  for (const pack of arr) {
+    if (personalitySlugs && !personalitySlugs.includes(pack.personality)) {
+      throw new Error(
+        `Style pack "${pack.name}" references unknown personality "${pack.personality}"`
+      );
+    }
+    byName.set(pack.name, pack);
+  }
+
+  return { array: arr, byName };
+}
+
 // ── REGISTRY.md parser ──────────────────────────────────────────────────────
 
 /**

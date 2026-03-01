@@ -1,0 +1,81 @@
+[
+  {
+    "name": "prestige",
+    "personality": "editorial",
+    "description": "Content-forward editorial style. Longer holds, selective crossfades on weight changes and emotional moments, push_in/drift camera for visual content.",
+    "hold_durations": {
+      "static": 3.5,
+      "subtle": 3.0,
+      "moderate": 3.0,
+      "high": 2.5
+    },
+    "max_hold_duration": null,
+    "transitions": {
+      "on_weight_change": { "type": "crossfade", "duration_ms": 400 },
+      "on_intent": {
+        "tags": ["emotional", "hero"],
+        "transition": { "type": "crossfade", "duration_ms": 400 }
+      },
+      "default": { "type": "hard_cut" }
+    },
+    "camera_overrides": {
+      "by_content_type": {
+        "portrait":           { "move": "push_in", "intensity": 0.2 },
+        "product_shot":       { "move": "push_in", "intensity": 0.2 },
+        "ui_screenshot":      { "move": "drift",   "intensity": 0.2 },
+        "device_mockup":      { "move": "drift",   "intensity": 0.2 },
+        "data_visualization": { "move": "drift",   "intensity": 0.2 }
+      }
+    }
+  },
+  {
+    "name": "energy",
+    "personality": "montage",
+    "description": "Rapid sizzle-reel style. Short holds, hard cuts with every-3rd whip-wipe, all cameras static (montage forbids camera movement).",
+    "hold_durations": {
+      "static": 2.0,
+      "subtle": 2.0,
+      "moderate": 1.5,
+      "high": 1.5
+    },
+    "max_hold_duration": 4.0,
+    "transitions": {
+      "pattern": {
+        "every_n": 3,
+        "cycle": ["whip_left", "whip_right", "whip_up", "whip_down"],
+        "duration_ms": 250
+      },
+      "default": { "type": "hard_cut" }
+    },
+    "camera_overrides": {
+      "force_static": true
+    }
+  },
+  {
+    "name": "dramatic",
+    "personality": "cinematic-dark",
+    "description": "Cinematic drama. Variable holds with high-energy lingering, crossfade default, hard cuts between same-weight scenes, push_in for emotional/hero moments.",
+    "hold_durations": {
+      "static": 3.0,
+      "subtle": 2.5,
+      "moderate": 3.0,
+      "high": 3.5
+    },
+    "max_hold_duration": null,
+    "transitions": {
+      "on_same_weight": { "type": "hard_cut" },
+      "on_intent": {
+        "tags": ["emotional"],
+        "transition": { "type": "crossfade", "duration_ms": 600 }
+      },
+      "default": { "type": "crossfade", "duration_ms": 400 }
+    },
+    "camera_overrides": {
+      "by_intent": {
+        "emotional": { "move": "push_in", "intensity": 0.3 },
+        "hero":      { "move": "push_in", "intensity": 0.3 },
+        "detail":    { "move": "drift",   "intensity": 0.3 }
+      }
+    }
+  }
+]

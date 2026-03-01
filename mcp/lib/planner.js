@@ -1,41 +1,32 @@
 /**
- * Sequence Planner — ANI-23
+ * Sequence Planner — ANI-23 / ANI-24
  *
  * Pure planning functions that consume scene analysis metadata and produce
  * a sequence manifest. Decides shot order, hold durations, transitions,
  * and camera overrides based on style pack rules.
  *
  * Rule-based v1 — deterministic, testable, no LLM calls.
- * Style pack definitions are inlined (ANI-24 handles full personality integration).
+ * ANI-24: Style pack definitions loaded from catalog/style-packs.json.
+ * Camera overrides validated against personality catalog.
  */
 
 import { validateManifest } from '../../src/remotion/lib.js';
+import { loadStylePacks, loadPersonalitiesCatalog } from '../data/loader.js';
 
-// ── Style pack constants ────────────────────────────────────────────────────
+// ── Load catalog data at module level ────────────────────────────────────────
 
-export const STYLE_PACKS = ['prestige', 'energy', 'dramatic'];
+const personalitiesCatalog = loadPersonalitiesCatalog();
+const stylePacksCatalog = loadStylePacks(
+  personalitiesCatalog.array.map(p => p.slug)
+);
 
-export const STYLE_TO_PERSONALITY = {
-  prestige: 'editorial',
-  energy: 'montage',
-  dramatic: 'cinematic-dark',
-};
+// ── Derived constants (backward-compatible exports) ──────────────────────────
 
-/**
- * Duration lookup tables: motion_energy × style → seconds.
- */
-const DURATION_TABLE = {
-  prestige: { static: 3.5, subtle: 3.0, moderate: 3.0, high: 2.5 },
-  energy:   { static: 2.0, subtle: 2.0, moderate: 1.5, high: 1.5 },
-  dramatic: { static: 3.0, subtle: 2.5, moderate: 3.0, high: 3.5 },
-};
+export const STYLE_PACKS = stylePacksCatalog.array.map(p => p.name);
 
-const ENERGY_MAX_DURATION = 4.0;
-
-/**
- * Whip-wipe cycle for energy style.
- */
-const WHIP_DIRECTIONS = ['whip_left', 'whip_right', 'whip_up', 'whip_down'];
+export const STYLE_TO_PERSONALITY = Object.fromEntries(
+  stylePacksCatalog.array.map(p => [p.name, p.personality])
+);
 
 /**
  * Intent tag priority for bucketing (highest first).
@@ -44,6 +35,47 @@ const INTENT_PRIORITY = [
   'closing', 'opening', 'hero', 'emotional',
   'detail', 'informational', 'transition',
 ];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Get a loaded style pack by name. Throws if not found.
+ */
+function getStylePack(style) {
+  const pack = stylePacksCatalog.byName.get(style);
+  if (!pack) throw new Error(`Unknown style: ${style}`);
+  return pack;
+}
+
+/**
+ * Normalize snake_case camera move to kebab-case for personality lookup.
+ * e.g., "push_in" → "push-in"
+ */
+function toKebab(move) {
+  return move.replace(/_/g, '-');
+}
+
+/**
+ * Validate a camera move against the personality's allowed_movements.
+ * Returns the override as-is if valid, or null if the move isn't allowed.
+ * Skips validation for 'static' (no-op) and 'drift' (ambient motion, not a
+ * camera rig movement — all personalities support it via ambient_motion config).
+ */
+function validateCameraMove(override, personalitySlug) {
+  if (!override || !override.move || override.move === 'static' || override.move === 'drift') return override;
+
+  const personality = personalitiesCatalog.bySlug.get(personalitySlug);
+  if (!personality) return override;
+
+  const allowed = personality.camera_behavior?.allowed_movements || [];
+  if (allowed.length === 0) return override;
+
+  const kebab = toKebab(override.move);
+  if (allowed.includes(kebab)) return override;
+
+  // Move not allowed by personality — downgrade to null
+  return null;
+}
 
 // ── Shot order ──────────────────────────────────────────────────────────────
 
@@ -223,16 +255,15 @@ function applyVarietyRules(scenes) {
  * @returns {number[]} — Array of duration_s values.
  */
 export function assignDurations(orderedScenes, style) {
-  const table = DURATION_TABLE[style];
-  if (!table) throw new Error(`Unknown style: ${style}`);
+  const pack = getStylePack(style);
+  const table = pack.hold_durations;
 
   return orderedScenes.map(scene => {
     const energy = scene.metadata?.motion_energy || 'moderate';
     let duration = table[energy] ?? table.moderate;
 
-    // Energy style enforces a hard cap
-    if (style === 'energy') {
-      duration = Math.min(duration, ENERGY_MAX_DURATION);
+    if (pack.max_hold_duration != null) {
+      duration = Math.min(duration, pack.max_hold_duration);
     }
 
     return duration;
@@ -250,82 +281,67 @@ export function assignDurations(orderedScenes, style) {
  * @returns {(object|null)[]} — Array of transition_in objects (or null for first).
  */
 export function selectTransitions(orderedScenes, style) {
+  const pack = getStylePack(style);
+  const rules = pack.transitions;
   const transitions = [null]; // First scene: no transition
 
   for (let i = 1; i < orderedScenes.length; i++) {
     const prevScene = orderedScenes[i - 1];
     const currScene = orderedScenes[i];
-
-    switch (style) {
-      case 'prestige':
-        transitions.push(selectPrestigeTransition(prevScene, currScene));
-        break;
-      case 'energy':
-        transitions.push(selectEnergyTransition(i));
-        break;
-      case 'dramatic':
-        transitions.push(selectDramaticTransition(prevScene, currScene));
-        break;
-      default:
-        transitions.push({ type: 'hard_cut' });
-    }
+    transitions.push(interpretTransitionRules(rules, prevScene, currScene, i));
   }
 
   return transitions;
 }
 
 /**
- * Prestige: Hard cut default. Crossfade when weight changes or incoming is emotional/hero.
+ * Interpret transition rules from a style pack definition.
+ * Evaluates rules in priority order:
+ *   1. pattern — positional (e.g., every-3rd whip-wipe)
+ *   2. on_same_weight — consecutive same visual_weight
+ *   3. on_weight_change — visual_weight differs
+ *   4. on_intent — intent tag match on incoming scene
+ *   5. default — fallback
  */
-function selectPrestigeTransition(prevScene, currScene) {
+function interpretTransitionRules(rules, prevScene, currScene, sceneIndex) {
   const prevWeight = prevScene.metadata?.visual_weight;
   const currWeight = currScene.metadata?.visual_weight;
   const currTags = currScene.metadata?.intent_tags || [];
 
-  const weightChanged = prevWeight && currWeight && prevWeight !== currWeight;
-  const isEmotionalOrHero = currTags.includes('emotional') || currTags.includes('hero');
-
-  if (weightChanged || isEmotionalOrHero) {
-    return { type: 'crossfade', duration_ms: 400 };
-  }
-  return { type: 'hard_cut' };
-}
-
-/**
- * Energy: Deterministic mix — every 3rd transition is a whip-wipe, rest are hard cuts.
- * Cycles through whip_left/right/up/down.
- */
-function selectEnergyTransition(sceneIndex) {
-  // sceneIndex is 1-based (first transition is at index 1)
-  if (sceneIndex % 3 === 0) {
-    const whipIdx = Math.floor(sceneIndex / 3) - 1;
-    const direction = WHIP_DIRECTIONS[whipIdx % WHIP_DIRECTIONS.length];
-    return { type: direction, duration_ms: 250 };
-  }
-  return { type: 'hard_cut' };
-}
-
-/**
- * Dramatic: Crossfade default. Hard cut between consecutive same-weight.
- * 600ms crossfade for emotional intent.
- */
-function selectDramaticTransition(prevScene, currScene) {
-  const prevWeight = prevScene.metadata?.visual_weight;
-  const currWeight = currScene.metadata?.visual_weight;
-  const currTags = currScene.metadata?.intent_tags || [];
-
-  // Hard cut between consecutive same-weight scenes
-  if (prevWeight && currWeight && prevWeight === currWeight) {
-    return { type: 'hard_cut' };
+  // 1. Pattern rule (positional)
+  if (rules.pattern) {
+    const { every_n, cycle, duration_ms } = rules.pattern;
+    if (sceneIndex % every_n === 0) {
+      const cycleIdx = Math.floor(sceneIndex / every_n) - 1;
+      const type = cycle[cycleIdx % cycle.length];
+      return { type, duration_ms };
+    }
   }
 
-  // 600ms crossfade for emotional intent
-  if (currTags.includes('emotional')) {
-    return { type: 'crossfade', duration_ms: 600 };
+  // 2. on_same_weight
+  if (rules.on_same_weight) {
+    if (prevWeight && currWeight && prevWeight === currWeight) {
+      return { ...rules.on_same_weight };
+    }
   }
 
-  // Default crossfade
-  return { type: 'crossfade', duration_ms: 400 };
+  // 3. on_weight_change
+  if (rules.on_weight_change) {
+    if (prevWeight && currWeight && prevWeight !== currWeight) {
+      return { ...rules.on_weight_change };
+    }
+  }
+
+  // 4. on_intent
+  if (rules.on_intent) {
+    const { tags, transition } = rules.on_intent;
+    if (tags.some(tag => currTags.includes(tag))) {
+      return { ...transition };
+    }
+  }
+
+  // 5. default
+  return { ...rules.default };
 }
 
 // ── Camera overrides ────────────────────────────────────────────────────────
@@ -338,58 +354,47 @@ function selectDramaticTransition(prevScene, currScene) {
  * @returns {(object|null)[]} — Array of camera_override objects (or null for no override).
  */
 export function assignCameraOverrides(orderedScenes, style) {
+  const pack = getStylePack(style);
+  const rules = pack.camera_overrides;
+  const personalitySlug = pack.personality;
+
   return orderedScenes.map(scene => {
-    switch (style) {
-      case 'prestige':
-        return selectPrestigeCameraOverride(scene);
-      case 'energy':
-        // Montage forbids camera movement — explicitly set static
-        return { move: 'static' };
-      case 'dramatic':
-        return selectDramaticCameraOverride(scene);
-      default:
-        return null;
-    }
+    const override = interpretCameraRules(rules, scene);
+    return validateCameraMove(override, personalitySlug);
   });
 }
 
 /**
- * Prestige camera: push_in for visual content, drift for UI, nothing for type.
+ * Interpret camera override rules from a style pack definition.
+ * Evaluates rules in priority order:
+ *   1. force_static — all scenes get { move: 'static' }
+ *   2. by_content_type — content_type → camera move
+ *   3. by_intent — intent tag → camera move
  */
-function selectPrestigeCameraOverride(scene) {
-  const contentType = scene.metadata?.content_type;
+function interpretCameraRules(rules, scene) {
+  // 1. force_static
+  if (rules.force_static) {
+    return { move: 'static' };
+  }
 
-  switch (contentType) {
-    case 'portrait':
-    case 'product_shot':
-      return { move: 'push_in', intensity: 0.2 };
-    case 'ui_screenshot':
-    case 'device_mockup':
-    case 'data_visualization':
-      return { move: 'drift', intensity: 0.2 };
-    case 'typography':
-    case 'brand_mark':
-    default:
-      return null;
+  // 2. by_content_type
+  if (rules.by_content_type) {
+    const contentType = scene.metadata?.content_type;
+    if (contentType && rules.by_content_type[contentType]) {
+      return { ...rules.by_content_type[contentType] };
+    }
   }
-}
 
-/**
- * Dramatic camera: push_in for emotional/hero, drift for detail.
- */
-function selectDramaticCameraOverride(scene) {
-  const tags = scene.metadata?.intent_tags || [];
-  const contentType = scene.metadata?.content_type;
+  // 3. by_intent
+  if (rules.by_intent) {
+    const tags = scene.metadata?.intent_tags || [];
+    for (const tag of tags) {
+      if (rules.by_intent[tag]) {
+        return { ...rules.by_intent[tag] };
+      }
+    }
+  }
 
-  if (tags.includes('emotional') || tags.includes('hero')) {
-    return { move: 'push_in', intensity: 0.3 };
-  }
-  if (tags.includes('detail')) {
-    return { move: 'drift', intensity: 0.3 };
-  }
-  if (contentType === 'brand_mark' || contentType === 'typography') {
-    return null;
-  }
   return null;
 }
 

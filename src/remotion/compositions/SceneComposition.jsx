@@ -42,7 +42,7 @@ export const SceneComposition = ({ scene }) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0a0a' }}>
-      <CameraRig camera={scene.camera}>
+      <CameraRig camera={scene.camera} shotGrammar={scene.shot_grammar}>
         {layers.map((layer) => (
           <SceneLayer
             key={layer.id}

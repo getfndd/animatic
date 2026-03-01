@@ -99,6 +99,43 @@ Source: `catalog/shot-grammar.json`
 
 Contains shot sizes with CSS values and content type affinities, angles with perspective/rotation CSS, framings with transform-origin CSS, personality restrictions, and variety rules.
 
+## Rendering (ANI-27)
+
+Shot grammar values flow through the pipeline and are rendered by `CameraRig.jsx` as static CSS framing that composes with dynamic camera moves.
+
+### Composition Model
+
+Shot grammar is **static framing** (applied once). Camera moves are **dynamic motion** (animated over time). They layer via CSS transform concatenation.
+
+| Property | Shot Grammar (static) | Camera Move (dynamic) | Composition |
+|----------|----------------------|----------------------|-------------|
+| **Scale** | 1.0–1.4 (shot size) | ±0.08 (push_in/pull_out) | Multiplicative: `sgScale * cameraScale` |
+| **RotateX** | -2° to 3° (angle) | — | Shot grammar only |
+| **RotateZ** | 3° (dutch) | — | Shot grammar only |
+| **TransformOrigin** | 33%–67% (framing) | `center center` | Shot grammar overrides default |
+| **PerspectiveOrigin** | 50% 30%–70% (angle) | — | Shot grammar only |
+| **Translate** | — | pan/drift px | Camera move only |
+
+Transform order: `scale(compound) rotateX(sg) rotateZ(sg) translate(camera)`
+
+### Functions
+
+**`getShotGrammarCSS(grammar)`** — Pure lookup from static tables. Returns `{ scale, rotateX, rotateZ, transformOrigin, perspectiveOrigin }` with safe defaults for missing/unknown slugs.
+
+**`composeCameraTransform(sgCSS, camera, progress, easingFn)`** — Combines static shot grammar with dynamic camera move. Returns `{ transform, transformOrigin, perspectiveOrigin }`.
+
+### Data Flow
+
+1. **Scene analysis** (`mcp/lib/analyze.js`) classifies `shot_grammar` per scene
+2. **Sequence planner** (`mcp/lib/planner.js`) validates and adds `shot_grammar` to manifest entries
+3. **SequenceComposition** merges `entry.shot_grammar` from manifest into scene definition
+4. **SceneComposition** passes `scene.shot_grammar` to CameraRig
+5. **CameraRig** resolves CSS via `getShotGrammarCSS()`, composes with camera via `composeCameraTransform()`
+
+### 3D Perspective
+
+When shot grammar includes rotation (high/low/dutch angle), CameraRig adds `perspective: 1200px` to the clip div for realistic 3D depth.
+
 ## Files
 
 | File | Role |
@@ -108,10 +145,9 @@ Contains shot sizes with CSS values and content type affinities, angles with per
 | `mcp/data/loader.js` | `loadShotGrammar()` function |
 | `mcp/lib/analyze.js` | Integration — adds `shot_grammar` to analysis |
 | `mcp/lib/planner.js` | Integration — variety rule + manifest field |
-| `src/remotion/lib.js` | Manifest validation |
-| `mcp/test/shot-grammar.test.js` | 39 unit tests |
-
-## Not In Scope (Deferred)
-
-- **CameraRig.jsx rendering** — Compound transforms from shot grammar CSS values (ANI-27 territory)
-- **MCP tool additions** — No new tools; shot grammar is consumed by existing `analyze_scene` and planner tools
+| `src/remotion/lib.js` | `getShotGrammarCSS()`, `composeCameraTransform()`, manifest validation |
+| `src/remotion/compositions/CameraRig.jsx` | Renders shot grammar + camera compound transforms |
+| `src/remotion/compositions/SceneComposition.jsx` | Passes `shot_grammar` to CameraRig |
+| `src/remotion/compositions/SequenceComposition.jsx` | Merges manifest `shot_grammar` into scene |
+| `mcp/test/shot-grammar.test.js` | 39 unit tests (classification + validation) |
+| `src/remotion/test/remotion.test.js` | 16 unit tests (CSS resolution + composition) |

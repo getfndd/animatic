@@ -20,6 +20,8 @@ import {
   getParallaxFactor,
   getCameraTransformValues,
   calculateOverscanDimensions,
+  getShotGrammarCSS,
+  composeCameraTransform,
   TEXT_ANIMATION_DEFAULTS,
   getWordRevealState,
   getScaleCascadePosition,
@@ -1182,5 +1184,122 @@ describe('validateScene: layout', () => {
   it('validates test-layouts manifest', () => {
     const result = validateManifest(testLayouts.manifest);
     assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+});
+
+// ── getShotGrammarCSS ────────────────────────────────────────────────────────
+
+describe('getShotGrammarCSS', () => {
+  it('wide shot returns scale 1.0', () => {
+    const css = getShotGrammarCSS({ shot_size: 'wide' });
+    assert.equal(css.scale, 1.0);
+  });
+
+  it('close_up returns scale 1.2', () => {
+    const css = getShotGrammarCSS({ shot_size: 'close_up' });
+    assert.equal(css.scale, 1.2);
+  });
+
+  it('extreme_close_up returns scale 1.4', () => {
+    const css = getShotGrammarCSS({ shot_size: 'extreme_close_up' });
+    assert.equal(css.scale, 1.4);
+  });
+
+  it('high angle returns rotateX 3 and perspectiveOrigin 50% 30%', () => {
+    const css = getShotGrammarCSS({ angle: 'high' });
+    assert.equal(css.rotateX, 3);
+    assert.equal(css.perspectiveOrigin, '50% 30%');
+  });
+
+  it('dutch angle returns rotateZ 3', () => {
+    const css = getShotGrammarCSS({ angle: 'dutch' });
+    assert.equal(css.rotateZ, 3);
+    assert.equal(css.rotateX, 0);
+  });
+
+  it('rule_of_thirds_left framing returns transformOrigin 33% 50%', () => {
+    const css = getShotGrammarCSS({ framing: 'rule_of_thirds_left' });
+    assert.equal(css.transformOrigin, '33% 50%');
+  });
+
+  it('missing/unknown slugs return safe defaults', () => {
+    const css = getShotGrammarCSS({ shot_size: 'unknown', angle: 'fake', framing: 'nope' });
+    assert.equal(css.scale, 1.0);
+    assert.equal(css.rotateX, 0);
+    assert.equal(css.rotateZ, 0);
+    assert.equal(css.transformOrigin, '50% 50%');
+    assert.equal(css.perspectiveOrigin, '50% 50%');
+  });
+
+  it('null grammar returns safe defaults', () => {
+    const css = getShotGrammarCSS(null);
+    assert.equal(css.scale, 1.0);
+    assert.equal(css.rotateX, 0);
+  });
+});
+
+// ── composeCameraTransform ──────────────────────────────────────────────────
+
+describe('composeCameraTransform', () => {
+  const identity = (t) => t;
+
+  it('shot grammar only (no camera) applies scale + rotation', () => {
+    const sgCSS = getShotGrammarCSS({ shot_size: 'close_up', angle: 'high' });
+    const result = composeCameraTransform(sgCSS, null, 0.5, identity);
+    assert.ok(result.transform.includes('scale(1.2)'));
+    assert.ok(result.transform.includes('rotateX(3deg)'));
+    assert.ok(!result.transform.includes('translate'));
+  });
+
+  it('camera only (no shot grammar) produces same values as getCameraTransformValues', () => {
+    const camera = { move: 'push_in', intensity: 0.5 };
+    const result = composeCameraTransform(null, camera, 0.5, identity);
+    const legacy = getCameraTransformValues(camera, 0.5, identity);
+    assert.equal(result.transform, legacy.transform);
+  });
+
+  it('close_up + push_in produces compound scale', () => {
+    const sgCSS = getShotGrammarCSS({ shot_size: 'close_up' });
+    const camera = { move: 'push_in', intensity: 0.5 };
+    const result = composeCameraTransform(sgCSS, camera, 1.0, identity);
+    // 1.2 * (1 + 1.0 * 0.5 * 0.08) = 1.2 * 1.04 = 1.248
+    const expected = 1.2 * (1 + 1.0 * 0.5 * CAMERA_CONSTANTS.SCALE_FACTOR);
+    assert.ok(result.transform.includes(`scale(${expected})`));
+  });
+
+  it('framing sets transformOrigin', () => {
+    const sgCSS = getShotGrammarCSS({ framing: 'rule_of_thirds_left' });
+    const result = composeCameraTransform(sgCSS, null, 0, identity);
+    assert.equal(result.transformOrigin, '33% 50%');
+  });
+
+  it('dutch angle sets rotateZ in transform', () => {
+    const sgCSS = getShotGrammarCSS({ angle: 'dutch' });
+    const result = composeCameraTransform(sgCSS, null, 0, identity);
+    assert.ok(result.transform.includes('rotateZ(3deg)'));
+  });
+
+  it('static camera + shot grammar applies shot grammar only', () => {
+    const sgCSS = getShotGrammarCSS({ shot_size: 'medium', angle: 'low' });
+    const camera = { move: 'static' };
+    const result = composeCameraTransform(sgCSS, camera, 0.5, identity);
+    assert.ok(result.transform.includes('scale(1.08)'));
+    assert.ok(result.transform.includes('rotateX(-2deg)'));
+    assert.ok(!result.transform.includes('translate'));
+  });
+
+  it('no shot grammar + no camera returns none', () => {
+    const result = composeCameraTransform(null, null, 0.5, identity);
+    assert.equal(result.transform, 'none');
+    assert.equal(result.transformOrigin, 'center center');
+    assert.equal(result.perspectiveOrigin, '50% 50%');
+  });
+
+  it('drift + shot grammar produces translate and scale', () => {
+    const sgCSS = getShotGrammarCSS({ shot_size: 'medium' });
+    const camera = { move: 'drift', intensity: 0.5 };
+    const result = composeCameraTransform(sgCSS, camera, 0.25, identity);
+    assert.ok(result.transform.includes('scale('));
+    assert.ok(result.transform.includes('translate('));
   });
 });

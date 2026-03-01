@@ -8,6 +8,8 @@ import {
 import {
   getCameraTransformValues,
   calculateOverscanDimensions,
+  getShotGrammarCSS,
+  composeCameraTransform,
 } from '../lib.js';
 
 /**
@@ -31,22 +33,29 @@ function getEasingFunction(easingName) {
  * CameraRig — Full-frame camera wrapper with overscan.
  *
  * Two-div structure prevents content edges from revealing during pan moves:
- *   div.clip  (viewport-sized, overflow: hidden)
+ *   div.clip  (viewport-sized, overflow: hidden, optional 3D perspective)
  *     div.canvas  (oversized, centered, camera transform applied)
  *       {children}
  *
- * Static moves render a plain AbsoluteFill (no overscan, no extra divs).
+ * Static moves with no shot grammar render a plain AbsoluteFill (no extra divs).
+ *
+ * Shot grammar provides static framing (scale, rotation, transform-origin) that
+ * composes with dynamic camera moves via composeCameraTransform().
  *
  * @param {object} props
  * @param {object} props.camera - { move, intensity, easing }
+ * @param {object} [props.shotGrammar] - { shot_size, angle, framing }
  * @param {React.ReactNode} props.children
  */
-export const CameraRig = ({ camera, children }) => {
+export const CameraRig = ({ camera, shotGrammar, children }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, width, height } = useVideoConfig();
 
-  // Static or missing camera — no rig needed
-  if (!camera || camera.move === 'static') {
+  const hasCamera = camera && camera.move !== 'static';
+  const hasShotGrammar = shotGrammar && (shotGrammar.shot_size || shotGrammar.angle || shotGrammar.framing);
+
+  // No camera and no shot grammar — no rig needed
+  if (!hasCamera && !hasShotGrammar) {
     return <AbsoluteFill>{children}</AbsoluteFill>;
   }
 
@@ -56,13 +65,31 @@ export const CameraRig = ({ camera, children }) => {
     extrapolateLeft: 'clamp',
   });
 
-  const easingFn = getEasingFunction(camera.easing);
-  const { transform } = getCameraTransformValues(camera, progress, easingFn);
+  const easingFn = getEasingFunction(camera?.easing);
+
+  // Resolve shot grammar to CSS values
+  const sgCSS = hasShotGrammar ? getShotGrammarCSS(shotGrammar) : null;
+
+  // Compute transform: compound when shot grammar present, legacy path otherwise
+  let transform, transformOrigin, perspectiveOrigin;
+  if (hasShotGrammar) {
+    ({ transform, transformOrigin, perspectiveOrigin } = composeCameraTransform(
+      sgCSS, camera, progress, easingFn
+    ));
+  } else {
+    ({ transform } = getCameraTransformValues(camera, progress, easingFn));
+    transformOrigin = 'center center';
+    perspectiveOrigin = undefined;
+  }
+
   const { canvasW, canvasH, offsetX, offsetY } = calculateOverscanDimensions(
     width,
     height,
     camera,
   );
+
+  // 3D perspective needed when shot grammar applies rotation
+  const needs3D = sgCSS && (sgCSS.rotateX !== 0 || sgCSS.rotateZ !== 0);
 
   return (
     <div
@@ -71,6 +98,8 @@ export const CameraRig = ({ camera, children }) => {
         height,
         overflow: 'hidden',
         position: 'relative',
+        perspective: needs3D ? 1200 : undefined,
+        perspectiveOrigin,
       }}
     >
       <div
@@ -81,7 +110,7 @@ export const CameraRig = ({ camera, children }) => {
           left: -offsetX,
           top: -offsetY,
           transform,
-          transformOrigin: 'center center',
+          transformOrigin,
         }}
       >
         {children}

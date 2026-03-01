@@ -626,6 +626,110 @@ export function calculateOverscanDimensions(viewportW, viewportH, camera) {
   return { canvasW, canvasH, offsetX, offsetY };
 }
 
+// ── Shot Grammar CSS ─────────────────────────────────────────────────────────
+
+const SHOT_SIZE_CSS = {
+  wide:              { scale: 1.0 },
+  medium:            { scale: 1.08 },
+  close_up:          { scale: 1.2 },
+  extreme_close_up:  { scale: 1.4 },
+};
+
+const ANGLE_CSS = {
+  eye_level: { perspectiveOrigin: '50% 50%', rotateX: 0 },
+  high:      { perspectiveOrigin: '50% 30%', rotateX: 3 },
+  low:       { perspectiveOrigin: '50% 70%', rotateX: -2 },
+  dutch:     { perspectiveOrigin: '50% 50%', rotateX: 0, rotateZ: 3 },
+};
+
+const FRAMING_CSS = {
+  center:               { transformOrigin: '50% 50%' },
+  rule_of_thirds_left:  { transformOrigin: '33% 50%' },
+  rule_of_thirds_right: { transformOrigin: '67% 50%' },
+  dynamic_offset:       { transformOrigin: '30% 40%' },
+};
+
+/**
+ * Resolve shot grammar axes to CSS-ready values.
+ *
+ * Pure lookup — no catalog file dependency.
+ *
+ * @param {{ shot_size?: string, angle?: string, framing?: string }} grammar
+ * @returns {{ scale: number, rotateX: number, rotateZ: number, transformOrigin: string, perspectiveOrigin: string }}
+ */
+export function getShotGrammarCSS(grammar) {
+  const size = SHOT_SIZE_CSS[grammar?.shot_size] ?? SHOT_SIZE_CSS.wide;
+  const angle = ANGLE_CSS[grammar?.angle] ?? ANGLE_CSS.eye_level;
+  const framing = FRAMING_CSS[grammar?.framing] ?? FRAMING_CSS.center;
+
+  return {
+    scale: size.scale,
+    rotateX: angle.rotateX,
+    rotateZ: angle.rotateZ ?? 0,
+    transformOrigin: framing.transformOrigin,
+    perspectiveOrigin: angle.perspectiveOrigin,
+  };
+}
+
+/**
+ * Compose shot grammar (static framing) with camera move (dynamic motion).
+ *
+ * Shot grammar defines the baseline framing — scale, rotation, origin.
+ * Camera moves layer on top — additional scale, translation.
+ * They compose via multiplicative scale and additive translation.
+ *
+ * @param {object|null} sgCSS - Output of getShotGrammarCSS()
+ * @param {object|null} camera - { move, intensity, easing }
+ * @param {number} progress - 0..1 linear progress through the scene
+ * @param {function} easingFn - (t: number) => number
+ * @returns {{ transform: string, transformOrigin: string, perspectiveOrigin: string }}
+ */
+export function composeCameraTransform(sgCSS, camera, progress, easingFn) {
+  let scale = sgCSS?.scale ?? 1;
+  let rotateX = sgCSS?.rotateX ?? 0;
+  let rotateZ = sgCSS?.rotateZ ?? 0;
+  let translateX = 0;
+  let translateY = 0;
+
+  if (camera && camera.move !== 'static') {
+    const intensity = camera.intensity ?? CAMERA_CONSTANTS.DEFAULT_INTENSITY;
+    const eased = easingFn ? easingFn(progress) : progress;
+
+    switch (camera.move) {
+      case 'push_in':
+        scale *= 1 + eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+        break;
+      case 'pull_out':
+        scale *= (1 + intensity * CAMERA_CONSTANTS.SCALE_FACTOR) - eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+        break;
+      case 'pan_left':
+        translateX = -eased * intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
+        break;
+      case 'pan_right':
+        translateX = eased * intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
+        break;
+      case 'drift': {
+        const amp = intensity * CAMERA_CONSTANTS.DRIFT_AMPLITUDE;
+        translateX = Math.sin(progress * Math.PI * 2) * amp;
+        translateY = Math.cos(progress * Math.PI * 1.5) * amp * CAMERA_CONSTANTS.DRIFT_Y_RATIO;
+        break;
+      }
+    }
+  }
+
+  const parts = [];
+  if (scale !== 1) parts.push(`scale(${scale})`);
+  if (rotateX !== 0) parts.push(`rotateX(${rotateX}deg)`);
+  if (rotateZ !== 0) parts.push(`rotateZ(${rotateZ}deg)`);
+  if (translateX !== 0 || translateY !== 0) parts.push(`translate(${translateX}px, ${translateY}px)`);
+
+  return {
+    transform: parts.length > 0 ? parts.join(' ') : 'none',
+    transformOrigin: sgCSS?.transformOrigin ?? 'center center',
+    perspectiveOrigin: sgCSS?.perspectiveOrigin ?? '50% 50%',
+  };
+}
+
 // ── Text Animation Math ─────────────────────────────────────────────────────
 
 export const TEXT_ANIMATION_DEFAULTS = {

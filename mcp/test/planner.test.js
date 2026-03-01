@@ -656,4 +656,135 @@ describe('constants', () => {
       assert.ok(STYLE_TO_PERSONALITY[style], `Missing personality for ${style}`);
     }
   });
+
+  it('STYLE_TO_PERSONALITY values match personality catalog slugs', () => {
+    const personalities = JSON.parse(
+      readFileSync(resolve(ROOT, 'catalog/personalities.json'), 'utf-8')
+    );
+    const slugs = personalities.map(p => p.slug);
+    for (const [style, personality] of Object.entries(STYLE_TO_PERSONALITY)) {
+      assert.ok(slugs.includes(personality),
+        `${style} maps to "${personality}" which is not in personalities catalog`);
+    }
+  });
+});
+
+// ── ANI-24: Catalog-driven architecture ─────────────────────────────────────
+
+describe('catalog-driven style packs (ANI-24)', () => {
+  const stylePacks = JSON.parse(
+    readFileSync(resolve(ROOT, 'catalog/style-packs.json'), 'utf-8')
+  );
+
+  it('style-packs.json defines all 3 styles', () => {
+    const names = stylePacks.map(p => p.name);
+    assert.deepEqual(names.sort(), ['dramatic', 'energy', 'prestige']);
+  });
+
+  it('each pack has required fields', () => {
+    for (const pack of stylePacks) {
+      assert.ok(pack.name, 'name required');
+      assert.ok(pack.personality, 'personality required');
+      assert.ok(pack.hold_durations, 'hold_durations required');
+      assert.ok(pack.transitions, 'transitions required');
+      assert.ok(pack.camera_overrides, 'camera_overrides required');
+      // hold_durations must have all 4 energy levels
+      for (const energy of ['static', 'subtle', 'moderate', 'high']) {
+        assert.ok(typeof pack.hold_durations[energy] === 'number',
+          `${pack.name}: hold_durations.${energy} must be a number`);
+      }
+    }
+  });
+
+  it('STYLE_PACKS and STYLE_TO_PERSONALITY are derived from catalog', () => {
+    // Verify the exported constants match the catalog data
+    for (const pack of stylePacks) {
+      assert.ok(STYLE_PACKS.includes(pack.name),
+        `STYLE_PACKS should include "${pack.name}"`);
+      assert.equal(STYLE_TO_PERSONALITY[pack.name], pack.personality,
+        `STYLE_TO_PERSONALITY["${pack.name}"] should be "${pack.personality}"`);
+    }
+  });
+});
+
+// ── ANI-24: Transition rule priority edge cases ─────────────────────────────
+
+describe('transition rule priority (ANI-24)', () => {
+  it('dramatic: same-weight + emotional → hard_cut (on_same_weight beats on_intent)', () => {
+    // Critical edge case from plan: dramatic's on_same_weight fires before on_intent
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'dark', intent_tags: ['emotional'] }),
+    ];
+    const transitions = selectTransitions(scenes, 'dramatic');
+    assert.equal(transitions[1].type, 'hard_cut',
+      'on_same_weight should beat on_intent for dramatic');
+  });
+
+  it('prestige: same-weight + emotional → crossfade (no on_same_weight rule)', () => {
+    // Critical edge case: prestige has no on_same_weight, so on_intent fires
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'dark', intent_tags: ['emotional'] }),
+    ];
+    const transitions = selectTransitions(scenes, 'prestige');
+    assert.equal(transitions[1].type, 'crossfade',
+      'prestige should crossfade for emotional even with same weight');
+  });
+
+  it('energy: pattern rule fires at position 3 regardless of metadata', () => {
+    const scenes = [
+      makeScene('sc_0', { visual_weight: 'dark' }),
+      makeScene('sc_1', { visual_weight: 'light', intent_tags: ['emotional'] }),
+      makeScene('sc_2', { visual_weight: 'dark' }),
+      makeScene('sc_3', { visual_weight: 'dark', intent_tags: ['hero'] }),
+    ];
+    const transitions = selectTransitions(scenes, 'energy');
+    // Position 3 should be a whip regardless of weight/intent
+    assert.ok(transitions[3].type.startsWith('whip_'),
+      'Pattern rule should override any metadata-based rules');
+  });
+
+  it('dramatic: different-weight + non-emotional → crossfade default', () => {
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'light', intent_tags: ['detail'] }),
+    ];
+    const transitions = selectTransitions(scenes, 'dramatic');
+    assert.equal(transitions[1].type, 'crossfade');
+    assert.equal(transitions[1].duration_ms, 400,
+      'Default crossfade should be 400ms, not 600ms (no emotional tag)');
+  });
+});
+
+// ── ANI-24: Camera personality validation ───────────────────────────────────
+
+describe('camera personality validation (ANI-24)', () => {
+  it('prestige push_in is allowed by editorial personality', () => {
+    const scenes = [makeScene('sc_a', { content_type: 'portrait' })];
+    const overrides = assignCameraOverrides(scenes, 'prestige');
+    // editorial allows push-in
+    assert.deepEqual(overrides[0], { move: 'push_in', intensity: 0.2 });
+  });
+
+  it('prestige drift is allowed (ambient motion bypass)', () => {
+    const scenes = [makeScene('sc_a', { content_type: 'ui_screenshot' })];
+    const overrides = assignCameraOverrides(scenes, 'prestige');
+    assert.deepEqual(overrides[0], { move: 'drift', intensity: 0.2 });
+  });
+
+  it('dramatic push_in is allowed by cinematic-dark personality', () => {
+    const scenes = [makeScene('sc_a', { intent_tags: ['emotional'] })];
+    const overrides = assignCameraOverrides(scenes, 'dramatic');
+    assert.deepEqual(overrides[0], { move: 'push_in', intensity: 0.3 });
+  });
+
+  it('energy force_static overrides all content types', () => {
+    for (const contentType of ['portrait', 'ui_screenshot', 'typography']) {
+      const scenes = [makeScene('sc_a', { content_type: contentType, intent_tags: ['hero'] })];
+      const overrides = assignCameraOverrides(scenes, 'energy');
+      assert.deepEqual(overrides[0], { move: 'static' },
+        `Energy should force static for ${contentType}`);
+    }
+  });
 });

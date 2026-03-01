@@ -35,6 +35,7 @@ import {
 
 import { filterByPersonality, parseDurationMs, checkBlurViolations } from './lib.js';
 import { analyzeScene } from './lib/analyze.js';
+import { planSequence, STYLE_PACKS } from './lib/planner.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -372,6 +373,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['scene'],
       },
     },
+    {
+      name: 'plan_sequence',
+      description:
+        'Plan a sequence from analyzed scenes and a style pack. Decides shot order, hold durations, transitions, and camera overrides. Returns a valid sequence manifest with editorial notes. Scenes must have metadata (use analyze_scene first).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Array of scene objects with metadata (content_type, visual_weight, motion_energy, intent_tags). Use analyze_scene to generate metadata for each scene first.',
+          },
+          style: {
+            type: 'string',
+            enum: STYLE_PACKS,
+            description: 'Style pack: "prestige" (editorial, longer holds, hard cuts), "energy" (montage, short holds, whip-wipes), or "dramatic" (cinematic-dark, crossfades, push-in camera)',
+          },
+        },
+        required: ['scenes', 'style'],
+      },
+    },
   ],
 }));
 
@@ -399,6 +421,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleValidateChoreography(args);
     case 'analyze_scene':
       return handleAnalyzeScene(args);
+    case 'plan_sequence':
+      return handlePlanSequence(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1170,6 +1194,80 @@ function handleAnalyzeScene(args) {
   }
 
   return { content: [{ type: 'text', text: out }] };
+}
+
+// ── plan_sequence ───────────────────────────────────────────────────────────
+
+function handlePlanSequence(args) {
+  const { scenes, style } = args;
+
+  if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
+    return {
+      content: [{
+        type: 'text',
+        text: 'Invalid input: `scenes` must be a non-empty array of scene objects with metadata.',
+      }],
+      isError: true,
+    };
+  }
+
+  if (!STYLE_PACKS.includes(style)) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Invalid style "${style}". Valid styles: ${STYLE_PACKS.join(', ')}`,
+      }],
+      isError: true,
+    };
+  }
+
+  try {
+    const { manifest, notes } = planSequence({ scenes, style });
+
+    let out = `# Sequence Plan: ${manifest.sequence_id}\n\n`;
+    out += `**Style:** ${style} (${notes.style_personality})\n`;
+    out += `**Scenes:** ${notes.scene_count}\n`;
+    out += `**Total Duration:** ${notes.total_duration_s}s\n\n`;
+
+    // Shot list table
+    out += '## Shot List\n\n';
+    out += '| # | Scene | Duration | Transition | Camera |\n';
+    out += '|---|-------|----------|------------|--------|\n';
+    for (let i = 0; i < manifest.scenes.length; i++) {
+      const s = manifest.scenes[i];
+      const transition = s.transition_in
+        ? `${s.transition_in.type}${s.transition_in.duration_ms ? ` (${s.transition_in.duration_ms}ms)` : ''}`
+        : '—';
+      const camera = s.camera_override
+        ? `${s.camera_override.move}${s.camera_override.intensity != null ? ` ${s.camera_override.intensity}` : ''}`
+        : '—';
+      out += `| ${i + 1} | ${s.scene} | ${s.duration_s}s | ${transition} | ${camera} |\n`;
+    }
+
+    // Transition summary
+    out += '\n## Transitions\n\n';
+    for (const [type, count] of Object.entries(notes.transition_summary)) {
+      out += `- **${type}:** ${count}\n`;
+    }
+
+    // Ordering rationale
+    out += `\n## Ordering\n\n${notes.ordering_rationale}\n`;
+
+    // Manifest JSON
+    out += '\n## Manifest\n\n```json\n';
+    out += JSON.stringify(manifest, null, 2);
+    out += '\n```\n';
+
+    return { content: [{ type: 'text', text: out }] };
+  } catch (err) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Error planning sequence: ${err.message}`,
+      }],
+      isError: true,
+    };
+  }
 }
 
 // ── Start server ────────────────────────────────────────────────────────────

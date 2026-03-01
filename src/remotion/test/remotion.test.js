@@ -20,6 +20,10 @@ import {
   getParallaxFactor,
   getCameraTransformValues,
   calculateOverscanDimensions,
+  TEXT_ANIMATION_DEFAULTS,
+  getWordRevealState,
+  getScaleCascadePosition,
+  getWeightMorphValue,
 } from '../lib.js';
 
 // ── Load test manifests ─────────────────────────────────────────────────────
@@ -28,6 +32,7 @@ const manifestDir = new URL('../manifests/', import.meta.url);
 const test3Scene = JSON.parse(readFileSync(new URL('test-3-scene.json', manifestDir), 'utf-8'));
 const testTransitions = JSON.parse(readFileSync(new URL('test-transitions.json', manifestDir), 'utf-8'));
 const testAssets = JSON.parse(readFileSync(new URL('test-assets.json', manifestDir), 'utf-8'));
+const testKineticType = JSON.parse(readFileSync(new URL('test-kinetic-type.json', manifestDir), 'utf-8'));
 
 // ── getDefaultTransitionDuration ────────────────────────────────────────────
 
@@ -655,5 +660,257 @@ describe('calculateOverscanDimensions', () => {
     const expectedH = Math.ceil(H * (1 + 2 * CAMERA_CONSTANTS.MIN_OVERSCAN));
     assert.equal(result.canvasW, expectedW);
     assert.equal(result.canvasH, expectedH);
+  });
+});
+
+// ── Text Animation Math ─────────────────────────────────────────────────────
+
+describe('TEXT_ANIMATION_DEFAULTS', () => {
+  it('exports all expected keys', () => {
+    const keys = [
+      'WORD_REVEAL_STAGGER', 'WORD_REVEAL_TRANSLATE_Y',
+      'SCALE_CASCADE_SCALES', 'SCALE_CASCADE_SPEEDS',
+      'WEIGHT_MORPH_MIN', 'WEIGHT_MORPH_MAX', 'WEIGHT_MORPH_CHAR_STAGGER',
+    ];
+    for (const key of keys) {
+      assert.ok(key in TEXT_ANIMATION_DEFAULTS, `${key} should exist`);
+    }
+  });
+
+  it('scales descend (large to small)', () => {
+    const scales = TEXT_ANIMATION_DEFAULTS.SCALE_CASCADE_SCALES;
+    for (let i = 1; i < scales.length; i++) {
+      assert.ok(scales[i] < scales[i - 1], `scale[${i}] should be less than scale[${i - 1}]`);
+    }
+  });
+
+  it('speeds ascend (slow to fast)', () => {
+    const speeds = TEXT_ANIMATION_DEFAULTS.SCALE_CASCADE_SPEEDS;
+    for (let i = 1; i < speeds.length; i++) {
+      assert.ok(speeds[i] > speeds[i - 1], `speed[${i}] should be greater than speed[${i - 1}]`);
+    }
+  });
+
+  it('scales and speeds arrays have same length', () => {
+    assert.equal(
+      TEXT_ANIMATION_DEFAULTS.SCALE_CASCADE_SCALES.length,
+      TEXT_ANIMATION_DEFAULTS.SCALE_CASCADE_SPEEDS.length,
+    );
+  });
+
+  it('weight morph min is less than max', () => {
+    assert.ok(TEXT_ANIMATION_DEFAULTS.WEIGHT_MORPH_MIN < TEXT_ANIMATION_DEFAULTS.WEIGHT_MORPH_MAX);
+  });
+});
+
+describe('getWordRevealState', () => {
+  it('at progress=0 first word is invisible', () => {
+    const state = getWordRevealState(0, 4, 0);
+    assert.equal(state.opacity, 0);
+    assert.equal(state.translateY, TEXT_ANIMATION_DEFAULTS.WORD_REVEAL_TRANSLATE_Y);
+  });
+
+  it('at progress=1 last word is fully visible', () => {
+    const state = getWordRevealState(3, 4, 1);
+    assert.equal(state.opacity, 1);
+    assert.equal(state.translateY, 0);
+  });
+
+  it('first word appears before last word', () => {
+    // At a mid-progress, the first word should be more visible than the last
+    const first = getWordRevealState(0, 4, 0.3);
+    const last = getWordRevealState(3, 4, 0.3);
+    assert.ok(first.opacity > last.opacity, 'first word should be more opaque than last at early progress');
+  });
+
+  it('single word goes from 0 to 1 across full progress', () => {
+    const atZero = getWordRevealState(0, 1, 0);
+    assert.equal(atZero.opacity, 0);
+    const atOne = getWordRevealState(0, 1, 1);
+    assert.equal(atOne.opacity, 1);
+    assert.equal(atOne.translateY, 0);
+  });
+
+  it('zero words returns invisible state', () => {
+    const state = getWordRevealState(0, 0, 0.5);
+    assert.equal(state.opacity, 0);
+    assert.equal(state.translateY, TEXT_ANIMATION_DEFAULTS.WORD_REVEAL_TRANSLATE_Y);
+  });
+
+  it('opacity is clamped between 0 and 1', () => {
+    // Progress way beyond the word's window
+    const state = getWordRevealState(0, 4, 2);
+    assert.ok(state.opacity >= 0 && state.opacity <= 1, 'opacity should be clamped');
+  });
+
+  it('opacity is 0 for negative progress', () => {
+    const state = getWordRevealState(0, 4, -1);
+    assert.equal(state.opacity, 0);
+  });
+
+  it('all words visible at progress=1', () => {
+    for (let i = 0; i < 4; i++) {
+      const state = getWordRevealState(i, 4, 1);
+      assert.equal(state.opacity, 1, `word ${i} should be fully visible at progress=1`);
+      assert.equal(state.translateY, 0, `word ${i} should have 0 translateY at progress=1`);
+    }
+  });
+});
+
+describe('getScaleCascadePosition', () => {
+  const H = 1080;
+
+  it('all layers start below viewport at progress=0', () => {
+    for (let i = 0; i < 3; i++) {
+      const { y } = getScaleCascadePosition(i, 0, H);
+      assert.ok(y >= H, `layer ${i} should start at or below viewport (y=${y})`);
+    }
+  });
+
+  it('each layer has a different scale', () => {
+    const scales = [0, 1, 2].map(i => getScaleCascadePosition(i, 0.5, H).scale);
+    assert.notEqual(scales[0], scales[1]);
+    assert.notEqual(scales[1], scales[2]);
+  });
+
+  it('faster layer moves farther than slower layer at same progress', () => {
+    const slow = getScaleCascadePosition(0, 0.5, H);
+    const fast = getScaleCascadePosition(2, 0.5, H);
+    // Fast layer should have moved farther from start (lower y value)
+    assert.ok(fast.y < slow.y, `fast layer (y=${fast.y}) should be higher than slow (y=${slow.y})`);
+  });
+
+  it('scales match SCALE_CASCADE_SCALES constant', () => {
+    for (let i = 0; i < 3; i++) {
+      const { scale } = getScaleCascadePosition(i, 0.5, H);
+      assert.equal(scale, TEXT_ANIMATION_DEFAULTS.SCALE_CASCADE_SCALES[i]);
+    }
+  });
+});
+
+describe('getWeightMorphValue', () => {
+  it('returns start weight at progress=0', () => {
+    assert.equal(getWeightMorphValue(0, 300, 900), 300);
+  });
+
+  it('returns end weight at progress=1', () => {
+    assert.equal(getWeightMorphValue(1, 300, 900), 900);
+  });
+
+  it('returns midpoint at progress=0.5', () => {
+    assert.equal(getWeightMorphValue(0.5, 300, 900), 600);
+  });
+
+  it('returns integer value', () => {
+    const result = getWeightMorphValue(0.33, 300, 900);
+    assert.equal(result, Math.round(result), 'result should be an integer');
+  });
+
+  it('per-character stagger offsets the progress', () => {
+    // Character 0 should be ahead of character 5
+    const char0 = getWeightMorphValue(0.5, 300, 900, 0, 10);
+    const char5 = getWeightMorphValue(0.5, 300, 900, 5, 10);
+    assert.ok(char0 > char5, `char 0 (${char0}) should be heavier than char 5 (${char5}) at same progress`);
+  });
+
+  it('clamps below 0 progress to start weight', () => {
+    assert.equal(getWeightMorphValue(-0.5, 300, 900), 300);
+  });
+
+  it('clamps above 1 progress to end weight', () => {
+    assert.equal(getWeightMorphValue(1.5, 300, 900), 900);
+  });
+
+  it('works with reversed weight range', () => {
+    // 900 → 300 (getting lighter)
+    assert.equal(getWeightMorphValue(0, 900, 300), 900);
+    assert.equal(getWeightMorphValue(1, 900, 300), 300);
+  });
+});
+
+// ── validateScene: text layers ──────────────────────────────────────────────
+
+describe('validateScene text layers', () => {
+  it('accepts valid text layer', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_text',
+      layers: [
+        { id: 'title', type: 'text', content: 'Hello World', animation: 'word-reveal' },
+      ],
+      assets: [],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('rejects text layer with missing content', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_text',
+      layers: [
+        { id: 'title', type: 'text', animation: 'word-reveal' },
+      ],
+      assets: [],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('content')));
+  });
+
+  it('rejects text layer with empty string content', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_text',
+      layers: [
+        { id: 'title', type: 'text', content: '', animation: 'word-reveal' },
+      ],
+      assets: [],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('content')));
+  });
+
+  it('rejects invalid animation name', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_text',
+      layers: [
+        { id: 'title', type: 'text', content: 'Hello', animation: 'bounce' },
+      ],
+      assets: [],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('animation')));
+  });
+
+  it('accepts all valid animation names', () => {
+    for (const animation of ['word-reveal', 'scale-cascade', 'weight-morph']) {
+      const result = validateScene({
+        scene_id: 'sc_test_text',
+        layers: [
+          { id: 'title', type: 'text', content: 'Hello', animation },
+        ],
+        assets: [],
+      });
+      assert.equal(result.valid, true, `animation "${animation}" should be valid: ${result.errors.join(', ')}`);
+    }
+  });
+
+  it('accepts text layer without animation (static text)', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_text',
+      layers: [
+        { id: 'title', type: 'text', content: 'Static Text' },
+      ],
+      assets: [],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('validates all scene definitions in test-kinetic-type', () => {
+    for (const [id, scene] of Object.entries(testKineticType.sceneDefs)) {
+      const result = validateScene(scene);
+      assert.equal(result.valid, true, `${id} errors: ${result.errors.join(', ')}`);
+    }
+  });
+
+  it('validates test-kinetic-type manifest', () => {
+    const result = validateManifest(testKineticType.manifest);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
   });
 });

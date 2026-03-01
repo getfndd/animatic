@@ -30,6 +30,18 @@ function getEasingFunction(easingName) {
 }
 
 /**
+ * Guardrail bounds for runtime camera clamping.
+ * Derived from catalog/camera-guardrails.json lens_bounds.
+ */
+const GUARDRAIL_BOUNDS = {
+  scaleMin: 0.95,
+  scaleMax: 1.05,
+  rotationMin: -20,
+  rotationMax: 20,
+  translateMax: 400,
+};
+
+/**
  * CameraRig — Full-frame camera wrapper with overscan.
  *
  * Two-div structure prevents content edges from revealing during pan moves:
@@ -41,6 +53,9 @@ function getEasingFunction(easingName) {
  *
  * Shot grammar provides static framing (scale, rotation, transform-origin) that
  * composes with dynamic camera moves via composeCameraTransform().
+ *
+ * Camera-only deltas are clamped to guardrail bounds before composition,
+ * preventing out-of-range values from reaching the render.
  *
  * @param {object} props
  * @param {object} props.camera - { move, intensity, easing }
@@ -74,10 +89,10 @@ export const CameraRig = ({ camera, shotGrammar, children }) => {
   let transform, transformOrigin, perspectiveOrigin;
   if (hasShotGrammar) {
     ({ transform, transformOrigin, perspectiveOrigin } = composeCameraTransform(
-      sgCSS, camera, progress, easingFn
+      sgCSS, camera, progress, easingFn, GUARDRAIL_BOUNDS
     ));
   } else {
-    ({ transform } = getCameraTransformValues(camera, progress, easingFn));
+    ({ transform } = getCameraTransformValues(camera, progress, easingFn, GUARDRAIL_BOUNDS));
     transformOrigin = 'center center';
     perspectiveOrigin = undefined;
   }

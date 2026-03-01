@@ -22,6 +22,7 @@ import {
   calculateOverscanDimensions,
   getShotGrammarCSS,
   composeCameraTransform,
+  clampCameraValues,
   TEXT_ANIMATION_DEFAULTS,
   getWordRevealState,
   getScaleCascadePosition,
@@ -1301,5 +1302,60 @@ describe('composeCameraTransform', () => {
     const result = composeCameraTransform(sgCSS, camera, 0.25, identity);
     assert.ok(result.transform.includes('scale('));
     assert.ok(result.transform.includes('translate('));
+  });
+});
+
+// ── clampCameraValues ────────────────────────────────────────────────────────
+
+describe('clampCameraValues', () => {
+  const bounds = { scaleMin: 0.95, scaleMax: 1.05, rotationMin: -20, rotationMax: 20, translateMax: 400 };
+
+  it('clamps scale above max', () => {
+    const result = clampCameraValues({ scale: 1.10 }, bounds);
+    assert.equal(result.scale, 1.05);
+  });
+
+  it('clamps scale below min', () => {
+    const result = clampCameraValues({ scale: 0.90 }, bounds);
+    assert.equal(result.scale, 0.95);
+  });
+
+  it('passes values within bounds unchanged', () => {
+    const result = clampCameraValues(
+      { scale: 1.02, rotateX: 5, rotateZ: -3, translateX: 50, translateY: -30 },
+      bounds
+    );
+    assert.equal(result.scale, 1.02);
+    assert.equal(result.rotateX, 5);
+    assert.equal(result.rotateZ, -3);
+    assert.equal(result.translateX, 50);
+    assert.equal(result.translateY, -30);
+  });
+});
+
+// ── composeCameraTransform with clampBounds ──────────────────────────────────
+
+describe('composeCameraTransform with clampBounds', () => {
+  const identity = (t) => t;
+
+  it('clamps camera scale delta before composing with SG', () => {
+    // push_in intensity=1.0 at progress=1 → camera scale = 1.08, exceeds max 1.05
+    // SG medium = 1.08 base scale
+    // Without clamp: 1.08 * 1.08 = 1.1664
+    // With clamp on camera delta: camera clamped to 1.05, then 1.08 * 1.05 = 1.134
+    const sgCSS = getShotGrammarCSS({ shot_size: 'medium' });
+    const camera = { move: 'push_in', intensity: 1.0, easing: 'linear' };
+    const bounds = { scaleMin: 0.95, scaleMax: 1.05 };
+
+    const unclamped = composeCameraTransform(sgCSS, camera, 1, identity);
+    const clamped = composeCameraTransform(sgCSS, camera, 1, identity, bounds);
+
+    // Extract scale values
+    const unclampedScale = parseFloat(unclamped.transform.match(/scale\(([^)]+)\)/)[1]);
+    const clampedScale = parseFloat(clamped.transform.match(/scale\(([^)]+)\)/)[1]);
+
+    assert.ok(unclampedScale > clampedScale, 'Clamped should be smaller');
+    // Clamped camera scale is 1.05, times SG 1.08 = 1.134
+    assert.ok(Math.abs(clampedScale - 1.08 * 1.05) < 0.001);
   });
 });

@@ -503,6 +503,31 @@ export const CAMERA_CONSTANTS = {
 };
 
 /**
+ * Clamp camera transform values to guardrail bounds.
+ *
+ * @param {{ scale?: number, rotateX?: number, rotateZ?: number, translateX?: number, translateY?: number }} values
+ * @param {{ scaleMin?: number, scaleMax?: number, rotationMin?: number, rotationMax?: number, translateMax?: number }} bounds
+ * @returns {{ scale: number, rotateX: number, rotateZ: number, translateX: number, translateY: number }}
+ */
+export function clampCameraValues(values, bounds) {
+  const {
+    scaleMin = 0.95,
+    scaleMax = 1.05,
+    rotationMin = -20,
+    rotationMax = 20,
+    translateMax = 400,
+  } = bounds || {};
+
+  return {
+    scale: Math.min(scaleMax, Math.max(scaleMin, values.scale ?? 1)),
+    rotateX: Math.min(rotationMax, Math.max(rotationMin, values.rotateX ?? 0)),
+    rotateZ: Math.min(rotationMax, Math.max(rotationMin, values.rotateZ ?? 0)),
+    translateX: Math.min(translateMax, Math.max(-translateMax, values.translateX ?? 0)),
+    translateY: Math.min(translateMax, Math.max(-translateMax, values.translateY ?? 0)),
+  };
+}
+
+/**
  * Parallax factor based on depth class.
  * Foreground moves 1:1, midground 0.6, background 0.3.
  */
@@ -528,9 +553,11 @@ export function getParallaxFactor(depthClass) {
  * @param {object|null} camera  - { move, intensity, easing }
  * @param {number} progress     - 0..1 linear progress through the scene
  * @param {function} easingFn   - (t: number) => number
+ * @param {object} [clampBounds] - Optional guardrail bounds for clamping. When provided,
+ *   camera values are clamped before composing the transform string.
  * @returns {{ transform: string }}
  */
-export function getCameraTransformValues(camera, progress, easingFn) {
+export function getCameraTransformValues(camera, progress, easingFn, clampBounds) {
   if (!camera || camera.move === 'static') {
     return { transform: 'none' };
   }
@@ -540,27 +567,36 @@ export function getCameraTransformValues(camera, progress, easingFn) {
 
   switch (camera.move) {
     case 'push_in': {
-      const scale = 1 + eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+      let scale = 1 + eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+      if (clampBounds) scale = clampCameraValues({ scale }, clampBounds).scale;
       return { transform: `scale(${scale})` };
     }
     case 'pull_out': {
       const startScale = 1 + intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
-      const scale = startScale - eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+      let scale = startScale - eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+      if (clampBounds) scale = clampCameraValues({ scale }, clampBounds).scale;
       return { transform: `scale(${scale})` };
     }
     case 'pan_left': {
-      const tx = -eased * intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
+      let tx = -eased * intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
+      if (clampBounds) tx = clampCameraValues({ translateX: tx }, clampBounds).translateX;
       return { transform: `translateX(${tx}px)` };
     }
     case 'pan_right': {
-      const tx = eased * intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
+      let tx = eased * intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
+      if (clampBounds) tx = clampCameraValues({ translateX: tx }, clampBounds).translateX;
       return { transform: `translateX(${tx}px)` };
     }
     case 'drift': {
       // Drift uses raw progress (not eased) — sinusoidal motion
       const amplitude = intensity * CAMERA_CONSTANTS.DRIFT_AMPLITUDE;
-      const tx = Math.sin(progress * Math.PI * 2) * amplitude;
-      const ty = Math.cos(progress * Math.PI * 1.5) * amplitude * CAMERA_CONSTANTS.DRIFT_Y_RATIO;
+      let tx = Math.sin(progress * Math.PI * 2) * amplitude;
+      let ty = Math.cos(progress * Math.PI * 1.5) * amplitude * CAMERA_CONSTANTS.DRIFT_Y_RATIO;
+      if (clampBounds) {
+        const clamped = clampCameraValues({ translateX: tx, translateY: ty }, clampBounds);
+        tx = clamped.translateX;
+        ty = clamped.translateY;
+      }
       return { transform: `translate(${tx}px, ${ty}px)` };
     }
     default:
@@ -682,9 +718,11 @@ export function getShotGrammarCSS(grammar) {
  * @param {object|null} camera - { move, intensity, easing }
  * @param {number} progress - 0..1 linear progress through the scene
  * @param {function} easingFn - (t: number) => number
+ * @param {object} [clampBounds] - Optional guardrail bounds for clamping camera-only delta.
+ *   When provided, camera contribution (scale, translate) is clamped before composing with SG.
  * @returns {{ transform: string, transformOrigin: string, perspectiveOrigin: string }}
  */
-export function composeCameraTransform(sgCSS, camera, progress, easingFn) {
+export function composeCameraTransform(sgCSS, camera, progress, easingFn, clampBounds) {
   let scale = sgCSS?.scale ?? 1;
   let rotateX = sgCSS?.rotateX ?? 0;
   let rotateZ = sgCSS?.rotateZ ?? 0;
@@ -695,12 +733,14 @@ export function composeCameraTransform(sgCSS, camera, progress, easingFn) {
     const intensity = camera.intensity ?? CAMERA_CONSTANTS.DEFAULT_INTENSITY;
     const eased = easingFn ? easingFn(progress) : progress;
 
+    let cameraScale = 1;
+
     switch (camera.move) {
       case 'push_in':
-        scale *= 1 + eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+        cameraScale = 1 + eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
         break;
       case 'pull_out':
-        scale *= (1 + intensity * CAMERA_CONSTANTS.SCALE_FACTOR) - eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
+        cameraScale = (1 + intensity * CAMERA_CONSTANTS.SCALE_FACTOR) - eased * intensity * CAMERA_CONSTANTS.SCALE_FACTOR;
         break;
       case 'pan_left':
         translateX = -eased * intensity * CAMERA_CONSTANTS.PAN_MAX_PX;
@@ -715,6 +755,19 @@ export function composeCameraTransform(sgCSS, camera, progress, easingFn) {
         break;
       }
     }
+
+    // Clamp camera-only delta before composing with shot grammar
+    if (clampBounds) {
+      const clamped = clampCameraValues(
+        { scale: cameraScale, translateX, translateY },
+        clampBounds
+      );
+      cameraScale = clamped.scale;
+      translateX = clamped.translateX;
+      translateY = clamped.translateY;
+    }
+
+    scale *= cameraScale;
   }
 
   const parts = [];

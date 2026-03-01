@@ -44,6 +44,10 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
       "$ref": "#/$defs/camera",
       "description": "Camera directive for this scene. Can be overridden by sequence manifest."
     },
+    "layout": {
+      "$ref": "#/$defs/layout",
+      "description": "Optional layout template. Layers reference named slots that auto-resolve to pixel positions."
+    },
     "layers": {
       "type": "array",
       "items": { "$ref": "#/$defs/layer" },
@@ -164,6 +168,10 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
           "type": "string",
           "enum": ["html", "video", "image", "text"],
           "description": "Layer content type."
+        },
+        "slot": {
+          "type": "string",
+          "description": "Layout slot name. Overrides position when a layout template is active. See layout-templates.md."
         },
         "asset": {
           "type": "string",
@@ -297,6 +305,32 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
   }
 }
 ```
+
+### Layout Definition
+
+```json
+{
+  "$defs": {
+    "layout": {
+      "type": "object",
+      "required": ["template"],
+      "properties": {
+        "template": {
+          "type": "string",
+          "enum": ["hero-center", "split-panel", "masonry-grid", "full-bleed", "device-mockup"],
+          "description": "Layout template name. See docs/cinematography/layout-templates.md for details."
+        },
+        "config": {
+          "type": "object",
+          "description": "Template-specific configuration. Each template has its own config options with sensible defaults."
+        }
+      }
+    }
+  }
+}
+```
+
+When a scene has a `layout`, layers can reference named `slot` values. The pipeline resolves each slot to a `position: { x, y, w, h }` before rendering. If both `slot` and `position` are present, the slot-resolved position wins. Layers without a `slot` are unaffected.
 
 ## Examples
 
@@ -453,6 +487,37 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
     "motion_energy": "moderate",
     "intent_tags": ["detail", "closing"]
   }
+}
+```
+
+### Layout Template Scene (split-panel with slot references)
+
+```json
+{
+  "scene_id": "sc_product_split",
+  "duration_s": 3,
+  "layout": {
+    "template": "split-panel",
+    "config": { "ratio": 0.55, "gap": 20 }
+  },
+  "camera": { "move": "static" },
+  "layers": [
+    {
+      "id": "left",
+      "type": "image",
+      "slot": "left",
+      "asset": "product_photo",
+      "depth_class": "midground"
+    },
+    {
+      "id": "right",
+      "type": "text",
+      "slot": "right",
+      "content": "REIMAGINED",
+      "animation": "word-reveal",
+      "depth_class": "foreground"
+    }
+  ]
 }
 ```
 

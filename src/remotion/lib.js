@@ -192,6 +192,15 @@ export function validateScene(scene) {
     }
   }
 
+  // layout
+  if (scene.layout) {
+    if (!scene.layout.template) {
+      errors.push('layout.template is required');
+    } else if (!VALID_TEMPLATES.includes(scene.layout.template)) {
+      errors.push(`layout.template "${scene.layout.template}" is not valid (must be one of: ${VALID_TEMPLATES.join(', ')})`);
+    }
+  }
+
   // assets — check for duplicate IDs
   if (scene.assets && Array.isArray(scene.assets)) {
     const assetIds = new Set();
@@ -259,11 +268,201 @@ export function validateScene(scene) {
         if (layer.opacity != null && (layer.opacity < 0 || layer.opacity > 1)) {
           errors.push(`layer "${layer.id || '?'}".opacity must be between 0 and 1`);
         }
+
+        // Validate slot references against layout
+        if (layer.slot && scene.layout && scene.layout.template && VALID_TEMPLATES.includes(scene.layout.template)) {
+          const validSlots = getAvailableSlots(scene.layout.template, scene.layout.config);
+          if (!validSlots.includes(layer.slot)) {
+            errors.push(`layer "${layer.id || '?'}".slot "${layer.slot}" is not valid for template "${scene.layout.template}" (valid: ${validSlots.join(', ')})`);
+          }
+        }
       }
     }
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+// ── Layout Templates ─────────────────────────────────────────────────────────
+
+const VALID_TEMPLATES = ['hero-center', 'split-panel', 'masonry-grid', 'full-bleed', 'device-mockup'];
+
+/**
+ * Resolve layout template slots to pixel positions.
+ *
+ * @param {{ template: string, config?: object }} layout
+ * @param {number} canvasW - canvas width in pixels
+ * @param {number} canvasH - canvas height in pixels
+ * @returns {{ [slotName: string]: { x: number, y: number, w: number, h: number } } | null}
+ */
+export function resolveLayoutSlots(layout, canvasW, canvasH) {
+  if (!layout || !layout.template) return null;
+  if (!VALID_TEMPLATES.includes(layout.template)) return null;
+
+  const config = layout.config || {};
+
+  switch (layout.template) {
+    case 'hero-center':
+      return resolveHeroCenterSlots(config, canvasW, canvasH);
+    case 'split-panel':
+      return resolveSplitPanelSlots(config, canvasW, canvasH);
+    case 'masonry-grid':
+      return resolveMasonryGridSlots(config, canvasW, canvasH);
+    case 'full-bleed':
+      return resolveFullBleedSlots(config, canvasW, canvasH);
+    case 'device-mockup':
+      return resolveDeviceMockupSlots(config, canvasW, canvasH);
+    default:
+      return null;
+  }
+}
+
+/**
+ * Get available slot names for a layout template.
+ *
+ * @param {string} template
+ * @param {object} [config]
+ * @returns {string[]}
+ */
+export function getAvailableSlots(template, config) {
+  switch (template) {
+    case 'hero-center':
+      return ['background', 'center'];
+    case 'split-panel':
+      return ['background', 'left', 'right'];
+    case 'masonry-grid': {
+      const cols = config?.columns || 3;
+      const rows = config?.rows || 2;
+      const cells = [];
+      for (let i = 0; i < cols * rows; i++) {
+        cells.push(`cell-${i}`);
+      }
+      return ['background', ...cells];
+    }
+    case 'full-bleed':
+      return ['media', 'overlay'];
+    case 'device-mockup':
+      return ['background', 'content', 'device'];
+    default:
+      return [];
+  }
+}
+
+// ── Internal resolvers ───────────────────────────────────────────────────────
+
+function resolveHeroCenterSlots(config, W, H) {
+  const padding = config.padding ?? 0.1;
+  const maxWidth = config.maxWidth ?? 1;
+  const maxHeight = config.maxHeight ?? 1;
+
+  let cw = W * (1 - 2 * padding);
+  let ch = H * (1 - 2 * padding);
+
+  // Constrain by maxWidth/maxHeight (as fraction of canvas)
+  if (maxWidth < 1) cw = Math.min(cw, W * maxWidth);
+  if (maxHeight < 1) ch = Math.min(ch, H * maxHeight);
+
+  const cx = Math.round((W - cw) / 2);
+  const cy = Math.round((H - ch) / 2);
+
+  return {
+    background: { x: 0, y: 0, w: W, h: H },
+    center: { x: cx, y: cy, w: Math.round(cw), h: Math.round(ch) },
+  };
+}
+
+function resolveSplitPanelSlots(config, W, H) {
+  const ratio = config.ratio ?? 0.5;
+  const gap = config.gap ?? 0;
+
+  const leftW = Math.round(W * ratio - gap / 2);
+  const rightX = Math.round(W * ratio + gap / 2);
+  const rightW = W - rightX;
+
+  return {
+    background: { x: 0, y: 0, w: W, h: H },
+    left: { x: 0, y: 0, w: leftW, h: H },
+    right: { x: rightX, y: 0, w: rightW, h: H },
+  };
+}
+
+function resolveMasonryGridSlots(config, W, H) {
+  const cols = config.columns ?? 3;
+  const rows = config.rows ?? 2;
+  const gap = config.gap ?? 10;
+
+  const cellW = Math.round((W - (cols - 1) * gap) / cols);
+  const cellH = Math.round((H - (rows - 1) * gap) / rows);
+
+  const slots = {
+    background: { x: 0, y: 0, w: W, h: H },
+  };
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      const x = Math.round(c * (cellW + gap));
+      const y = Math.round(r * (cellH + gap));
+      // Clamp last column/row to prevent rounding overflow
+      const w = (c === cols - 1) ? W - x : cellW;
+      const h = (r === rows - 1) ? H - y : cellH;
+      slots[`cell-${i}`] = { x, y, w, h };
+    }
+  }
+
+  return slots;
+}
+
+const OVERLAY_POSITIONS = {
+  'top-left':     (p, ow, oh, W, H) => ({ x: Math.round(W * p), y: Math.round(H * p) }),
+  'top-center':   (p, ow, oh, W, H) => ({ x: Math.round((W - ow) / 2), y: Math.round(H * p) }),
+  'top-right':    (p, ow, oh, W, H) => ({ x: Math.round(W - ow - W * p), y: Math.round(H * p) }),
+  'center':       (p, ow, oh, W, H) => ({ x: Math.round((W - ow) / 2), y: Math.round((H - oh) / 2) }),
+  'bottom-left':  (p, ow, oh, W, H) => ({ x: Math.round(W * p), y: Math.round(H - oh - H * p) }),
+  'bottom-center':(p, ow, oh, W, H) => ({ x: Math.round((W - ow) / 2), y: Math.round(H - oh - H * p) }),
+  'bottom-right': (p, ow, oh, W, H) => ({ x: Math.round(W - ow - W * p), y: Math.round(H - oh - H * p) }),
+};
+
+function resolveFullBleedSlots(config, W, H) {
+  const overlayPos = config.overlayPosition ?? 'bottom-left';
+  const overlayPad = config.overlayPadding ?? 0.05;
+  const overlayW = Math.round(W * (config.overlayWidth ?? 0.45));
+  const overlayH = Math.round(H * (config.overlayHeight ?? 0.3));
+
+  const positionFn = OVERLAY_POSITIONS[overlayPos] || OVERLAY_POSITIONS['bottom-left'];
+  const { x, y } = positionFn(overlayPad, overlayW, overlayH, W, H);
+
+  return {
+    media: { x: 0, y: 0, w: W, h: H },
+    overlay: { x, y, w: overlayW, h: overlayH },
+  };
+}
+
+function resolveDeviceMockupSlots(config, W, H) {
+  const ratio = config.ratio ?? 0.55;
+  const side = config.deviceSide ?? 'right';
+  const pad = config.devicePadding ?? 0.05;
+
+  const contentW = Math.round(W * ratio);
+  const deviceW = W - contentW;
+
+  const padX = Math.round(deviceW * pad);
+  const padY = Math.round(H * pad);
+
+  if (side === 'left') {
+    return {
+      background: { x: 0, y: 0, w: W, h: H },
+      device: { x: padX, y: padY, w: deviceW - 2 * padX, h: H - 2 * padY },
+      content: { x: deviceW, y: 0, w: contentW, h: H },
+    };
+  }
+
+  // default: device on right
+  return {
+    background: { x: 0, y: 0, w: W, h: H },
+    content: { x: 0, y: 0, w: contentW, h: H },
+    device: { x: contentW + padX, y: padY, w: deviceW - 2 * padX, h: H - 2 * padY },
+  };
 }
 
 // ── Camera Math ──────────────────────────────────────────────────────────────

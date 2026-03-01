@@ -1,0 +1,219 @@
+{
+  "manifest": {
+    "sequence_id": "seq_layout_test",
+    "resolution": { "w": 1920, "h": 1080 },
+    "fps": 60,
+    "scenes": [
+      {
+        "scene": "sc_hero_center",
+        "duration_s": 3
+      },
+      {
+        "scene": "sc_split_panel",
+        "duration_s": 3,
+        "transition_in": { "type": "crossfade", "duration_ms": 400 }
+      },
+      {
+        "scene": "sc_masonry_grid",
+        "duration_s": 4
+      },
+      {
+        "scene": "sc_full_bleed",
+        "duration_s": 3,
+        "transition_in": { "type": "whip_left", "duration_ms": 250 }
+      },
+      {
+        "scene": "sc_device_mockup",
+        "duration_s": 3,
+        "transition_in": { "type": "crossfade", "duration_ms": 400 }
+      }
+    ]
+  },
+  "sceneDefs": {
+    "sc_hero_center": {
+      "scene_id": "sc_hero_center",
+      "duration_s": 3,
+      "camera": { "move": "push_in", "intensity": 0.2, "easing": "ease_out" },
+      "layout": {
+        "template": "hero-center",
+        "config": { "padding": 0.12 }
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "slot": "background",
+          "depth_class": "background",
+          "content": "<div style=\"width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e)\"></div>"
+        },
+        {
+          "id": "logo",
+          "type": "text",
+          "slot": "center",
+          "depth_class": "foreground",
+          "content": "ANIMATIC",
+          "animation": "word-reveal",
+          "style": {
+            "fontSize": 96,
+            "fontWeight": 700,
+            "color": "#ffffff",
+            "textAlign": "center"
+          }
+        }
+      ]
+    },
+    "sc_split_panel": {
+      "scene_id": "sc_split_panel",
+      "duration_s": 3,
+      "camera": { "move": "static" },
+      "layout": {
+        "template": "split-panel",
+        "config": { "ratio": 0.55, "gap": 20 }
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "left-panel",
+          "type": "html",
+          "slot": "left",
+          "depth_class": "midground",
+          "content": "<div style=\"width:100%;height:100%;background:#0f172a;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#94a3b8;font-size:32px\">BEFORE</div>"
+        },
+        {
+          "id": "right-panel",
+          "type": "text",
+          "slot": "right",
+          "depth_class": "midground",
+          "content": "REIMAGINED",
+          "animation": "scale-cascade",
+          "style": {
+            "fontSize": 64,
+            "fontWeight": 800,
+            "color": "#f8fafc"
+          }
+        }
+      ]
+    },
+    "sc_masonry_grid": {
+      "scene_id": "sc_masonry_grid",
+      "duration_s": 4,
+      "camera": { "move": "static" },
+      "layout": {
+        "template": "masonry-grid",
+        "config": { "columns": 3, "rows": 2, "gap": 12 }
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "cell0",
+          "type": "html",
+          "slot": "cell-0",
+          "depth_class": "midground",
+          "content": "<div style=\"width:100%;height:100%;background:#dc2626;border-radius:8px\"></div>"
+        },
+        {
+          "id": "cell1",
+          "type": "html",
+          "slot": "cell-1",
+          "depth_class": "midground",
+          "content": "<div style=\"width:100%;height:100%;background:#ea580c;border-radius:8px\"></div>"
+        },
+        {
+          "id": "cell2",
+          "type": "html",
+          "slot": "cell-2",
+          "depth_class": "midground",
+          "content": "<div style=\"width:100%;height:100%;background:#d97706;border-radius:8px\"></div>"
+        },
+        {
+          "id": "cell3",
+          "type": "html",
+          "slot": "cell-3",
+          "depth_class": "midground",
+          "content": "<div style=\"width:100%;height:100%;background:#65a30d;border-radius:8px\"></div>"
+        },
+        {
+          "id": "cell4",
+          "type": "html",
+          "slot": "cell-4",
+          "depth_class": "midground",
+          "content": "<div style=\"width:100%;height:100%;background:#0891b2;border-radius:8px\"></div>"
+        },
+        {
+          "id": "cell5",
+          "type": "html",
+          "slot": "cell-5",
+          "depth_class": "midground",
+          "content": "<div style=\"width:100%;height:100%;background:#7c3aed;border-radius:8px\"></div>"
+        }
+      ]
+    },
+    "sc_full_bleed": {
+      "scene_id": "sc_full_bleed",
+      "duration_s": 3,
+      "camera": { "move": "drift", "intensity": 0.3, "easing": "linear" },
+      "layout": {
+        "template": "full-bleed",
+        "config": { "overlayPosition": "bottom-left", "overlayPadding": 0.05, "overlayWidth": 0.4, "overlayHeight": 0.25 }
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "media-bg",
+          "type": "html",
+          "slot": "media",
+          "depth_class": "background",
+          "content": "<div style=\"width:100%;height:100%;background:linear-gradient(180deg,#0c0a09,#1c1917)\"></div>"
+        },
+        {
+          "id": "title-card",
+          "type": "text",
+          "slot": "overlay",
+          "depth_class": "foreground",
+          "content": "FULL BLEED",
+          "animation": "word-reveal",
+          "style": {
+            "fontSize": 48,
+            "fontWeight": 600,
+            "color": "#fafaf9"
+          }
+        }
+      ]
+    },
+    "sc_device_mockup": {
+      "scene_id": "sc_device_mockup",
+      "duration_s": 3,
+      "camera": { "move": "push_in", "intensity": 0.15, "easing": "cinematic_scurve" },
+      "layout": {
+        "template": "device-mockup",
+        "config": { "ratio": 0.55, "deviceSide": "right", "devicePadding": 0.05 }
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "slot": "background",
+          "depth_class": "background",
+          "content": "<div style=\"width:100%;height:100%;background:#09090b\"></div>"
+        },
+        {
+          "id": "description",
+          "type": "html",
+          "slot": "content",
+          "depth_class": "midground",
+          "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#a1a1aa;font-size:28px;padding:60px\">Dashboard analytics with real-time data visualization</div>"
+        },
+        {
+          "id": "device-screen",
+          "type": "html",
+          "slot": "device",
+          "depth_class": "foreground",
+          "content": "<div style=\"width:100%;height:100%;background:#18181b;border-radius:12px;border:1px solid #27272a;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#71717a;font-size:20px\">Device Preview</div>",
+          "entrance": { "delay_ms": 300 }
+        }
+      ]
+    }
+  }
+}

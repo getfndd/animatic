@@ -17,6 +17,9 @@ prototypes/**/*.png
 # macOS
 .DS_Store
 
+# Remotion renders (generated video output)
+renders/
+
 # Node
 node_modules/
 package-lock.json

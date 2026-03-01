@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mixed Media PoC — Cinematography Pipeline</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0a;
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.6);
+      --accent: #3b82f6;
+      --surface: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+      font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    .scene {
+      position: relative;
+      width: 800px;
+      height: 500px;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* ─── Video Background Layer ─── */
+    .video-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .video-layer video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.4;
+    }
+
+    /* ─── Gradient Overlay ─── */
+    .gradient-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(
+        180deg,
+        rgba(10, 10, 10, 0.3) 0%,
+        rgba(10, 10, 10, 0.7) 60%,
+        rgba(10, 10, 10, 0.95) 100%
+      );
+    }
+
+    /* ─── Content Layer ─── */
+    .content-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 48px;
+    }
+
+    /* ─── Phase System ─── */
+    .phase {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .phase.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── Typography ─── */
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .headline {
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      max-width: 480px;
+    }
+
+    .subhead {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      max-width: 400px;
+    }
+
+    /* ─── Stagger Children ─── */
+    .stagger-child {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 400ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .stagger-child.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── Feature Cards ─── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      opacity: 0;
+      transform: translateY(16px) scale(0.97);
+      transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .feature-card.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .feature-card .icon {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .feature-card .label {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .feature-card .desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* ─── Camera Push-In (CSS-only simulation) ─── */
+    .camera-rig {
+      position: absolute;
+      inset: 0;
+      transform-origin: center center;
+      animation: camera-push-in 6s cubic-bezier(0.33, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes camera-push-in {
+      from { transform: scale(1); }
+      to   { transform: scale(1.04); }
+    }
+
+    /* ─── Playback Controls ─── */
+    .controls {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+    }
+
+    .controls button {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .controls button:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* ─── Embed Mode ─── */
+    body.embed .controls { display: none; }
+    body.embed { background: transparent; }
+    body.embed .scene { background: transparent; }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <div class="camera-rig">
+      <!-- Layer 1: Video Background -->
+      <div class="video-layer">
+        <video autoplay muted loop playsinline>
+          <source src="assets/test-gradient.mp4" type="video/mp4">
+        </video>
+      </div>
+
+      <!-- Layer 2: Gradient Overlay -->
+      <div class="gradient-overlay"></div>
+
+      <!-- Layer 3: Content (CSS-animated) -->
+      <div class="content-layer">
+        <!-- Phase 0: Hero text -->
+        <div class="phase active" id="phase-0">
+          <div class="eyebrow stagger-child">Introducing</div>
+          <div class="headline stagger-child">Mixed Media Compositions</div>
+          <div class="subhead stagger-child">Video backgrounds with CSS-animated overlays — the building block of the cinematography pipeline.</div>
+        </div>
+
+        <!-- Phase 1: Feature cards -->
+        <div class="phase" id="phase-1">
+          <div class="eyebrow stagger-child">Capabilities</div>
+          <div class="headline stagger-child" style="font-size: 28px;">What This Unlocks</div>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="icon">🎬</div>
+              <div class="label">Video + Text</div>
+              <div class="desc">Layer CSS-animated typography over video backgrounds</div>
+            </div>
+            <div class="feature-card">
+              <div class="icon">📷</div>
+              <div class="label">Camera Moves</div>
+              <div class="desc">Push-in, pan, drift applied to entire compositions</div>
+            </div>
+            <div class="feature-card">
+              <div class="icon">✂️</div>
+              <div class="label">Scene Cuts</div>
+              <div class="desc">Hard cuts and crossfades between sequential scenes</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 2: Closing -->
+        <div class="phase" id="phase-2">
+          <div class="eyebrow stagger-child">Next Step</div>
+          <div class="headline stagger-child">Remotion Renderer</div>
+          <div class="subhead stagger-child">Multi-scene sequencing with frame-accurate transitions — coming in Phase 2.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button onclick="replay()">Replay</button>
+    <button onclick="togglePause()">Pause</button>
+  </div>
+
+  <script>
+    // ─── Configuration ───
+    const PHASES = [
+      { id: 0, label: 'Hero',     dwell: 3000 },
+      { id: 1, label: 'Features', dwell: 3500 },
+      { id: 2, label: 'Closing',  dwell: 3000 },
+    ];
+    const LOOP_PAUSE = 1500;
+
+    // ─── State ───
+    let currentPhase = 0;
+    let timers = [];
+    let paused = false;
+
+    // ─── Embed Mode ───
+    const isEmbed = new URLSearchParams(window.location.search).has('embed');
+    if (isEmbed) document.body.classList.add('embed');
+
+    // ─── Phase Transition ───
+    function transitionTo(phaseIndex) {
+      // Deactivate all phases
+      document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.stagger-child').forEach(c => c.classList.remove('visible'));
+      document.querySelectorAll('.feature-card').forEach(c => c.classList.remove('visible'));
+
+      // Activate target phase
+      const phase = document.getElementById(`phase-${phaseIndex}`);
+      if (!phase) return;
+
+      // Slight delay then activate
+      const t1 = setTimeout(() => {
+        phase.classList.add('active');
+
+        // Stagger children
+        const children = phase.querySelectorAll('.stagger-child');
+        children.forEach((child, i) => {
+          const t = setTimeout(() => child.classList.add('visible'), 120 * (i + 1));
+          timers.push(t);
+        });
+
+        // Stagger feature cards
+        const cards = phase.querySelectorAll('.feature-card');
+        cards.forEach((card, i) => {
+          const t = setTimeout(() => card.classList.add('visible'), 300 + 150 * i);
+          timers.push(t);
+        });
+      }, 100);
+      timers.push(t1);
+
+      currentPhase = phaseIndex;
+    }
+
+    // ─── Autoplay Loop ───
+    function startAutoplay() {
+      let elapsed = 0;
+
+      PHASES.forEach((phase, i) => {
+        const t = setTimeout(() => {
+          transitionTo(i);
+        }, elapsed);
+        timers.push(t);
+        elapsed += phase.dwell;
+      });
+
+      // Loop restart
+      const loopTimer = setTimeout(() => {
+        replay();
+      }, elapsed + LOOP_PAUSE);
+      timers.push(loopTimer);
+    }
+
+    function clearTimers() {
+      timers.forEach(t => clearTimeout(t));
+      timers = [];
+    }
+
+    function replay() {
+      clearTimers();
+      currentPhase = 0;
+
+      // Reset all animations
+      document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.stagger-child').forEach(c => c.classList.remove('visible'));
+      document.querySelectorAll('.feature-card').forEach(c => c.classList.remove('visible'));
+
+      // Reset camera animation
+      const rig = document.querySelector('.camera-rig');
+      rig.style.animation = 'none';
+      rig.offsetHeight; // Force reflow
+      rig.style.animation = '';
+
+      // Reset video
+      const video = document.querySelector('video');
+      if (video) {
+        video.currentTime = 0;
+        video.play().catch(() => {});
+      }
+
+      // Small delay then restart
+      const t = setTimeout(() => startAutoplay(), 200);
+      timers.push(t);
+    }
+
+    function togglePause() {
+      paused = !paused;
+      const video = document.querySelector('video');
+      if (paused) {
+        clearTimers();
+        if (video) video.pause();
+      } else {
+        if (video) video.play().catch(() => {});
+        startAutoplay();
+      }
+    }
+
+    // ─── Boot ───
+    window.addEventListener('DOMContentLoaded', () => {
+      // Initial stagger for phase 0
+      const phase0 = document.getElementById('phase-0');
+      const children = phase0.querySelectorAll('.stagger-child');
+      children.forEach((child, i) => {
+        const t = setTimeout(() => child.classList.add('visible'), 300 + 120 * i);
+        timers.push(t);
+      });
+
+      // Start phase transitions after phase 0 dwell
+      const t = setTimeout(() => {
+        let elapsed = 0;
+        PHASES.slice(1).forEach((phase, i) => {
+          const pt = setTimeout(() => transitionTo(i + 1), elapsed);
+          timers.push(pt);
+          elapsed += phase.dwell;
+        });
+
+        // Loop
+        const loopTimer = setTimeout(() => replay(), elapsed + LOOP_PAUSE);
+        timers.push(loopTimer);
+      }, PHASES[0].dwell);
+      timers.push(t);
+    });
+  </script>
+</body>
+</html>

@@ -9,7 +9,11 @@
     "setup-hook": "bash scripts/setup-hook.sh",
     "start:mcp": "node mcp/index.js",
     "test": "node --test mcp/test/",
-    "capture": "node scripts/capture-prototype.mjs"
+    "capture": "node scripts/capture-prototype.mjs",
+    "remotion:studio": "npx remotion studio",
+    "remotion:render": "npx remotion render",
+    "remotion:render:scene": "npx remotion render Scene --output renders/scene.mp4",
+    "remotion:render:sequence": "npx remotion render Sequence --output renders/sequence.mp4"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.49.1",
@@ -17,6 +21,11 @@
     "puppeteer": "^24.37.5"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1"
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@remotion/bundler": "^4.0.431",
+    "@remotion/cli": "^4.0.431",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "remotion": "^4.0.431"
   }
 }

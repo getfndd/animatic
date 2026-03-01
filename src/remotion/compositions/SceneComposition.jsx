@@ -8,7 +8,7 @@ import {
   Easing,
   staticFile,
 } from 'remotion';
-import { getParallaxFactor } from '../lib.js';
+import { getParallaxFactor, resolveLayoutSlots } from '../lib.js';
 import { CameraRig } from './CameraRig.jsx';
 import { TextLayer } from './TextLayer.jsx';
 
@@ -27,10 +27,18 @@ import { TextLayer } from './TextLayer.jsx';
 export const SceneComposition = ({ scene }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const layers = scene.layers || [];
+  const rawLayers = scene.layers || [];
 
   // Build asset lookup map from scene.assets[]
   const assets = buildAssetMap(scene.assets);
+
+  // Resolve layout slots to pixel positions
+  const canvasW = scene.canvas?.w ?? 1920;
+  const canvasH = scene.canvas?.h ?? 1080;
+  const slotMap = scene.layout ? resolveLayoutSlots(scene.layout, canvasW, canvasH) : null;
+  const layers = rawLayers.map(layer =>
+    layer.slot && slotMap?.[layer.slot] ? { ...layer, position: slotMap[layer.slot] } : layer
+  );
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0a0a' }}>

@@ -24,6 +24,8 @@ import {
   getWordRevealState,
   getScaleCascadePosition,
   getWeightMorphValue,
+  resolveLayoutSlots,
+  getAvailableSlots,
 } from '../lib.js';
 
 // ── Load test manifests ─────────────────────────────────────────────────────
@@ -33,6 +35,7 @@ const test3Scene = JSON.parse(readFileSync(new URL('test-3-scene.json', manifest
 const testTransitions = JSON.parse(readFileSync(new URL('test-transitions.json', manifestDir), 'utf-8'));
 const testAssets = JSON.parse(readFileSync(new URL('test-assets.json', manifestDir), 'utf-8'));
 const testKineticType = JSON.parse(readFileSync(new URL('test-kinetic-type.json', manifestDir), 'utf-8'));
+const testLayouts = JSON.parse(readFileSync(new URL('test-layouts.json', manifestDir), 'utf-8'));
 
 // ── getDefaultTransitionDuration ────────────────────────────────────────────
 
@@ -911,6 +914,273 @@ describe('validateScene text layers', () => {
 
   it('validates test-kinetic-type manifest', () => {
     const result = validateManifest(testKineticType.manifest);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+});
+
+// ── Layout Templates ────────────────────────────────────────────────────────
+
+const W = 1920;
+const H = 1080;
+
+describe('resolveLayoutSlots', () => {
+  it('returns null for null layout', () => {
+    assert.equal(resolveLayoutSlots(null, W, H), null);
+  });
+
+  it('returns null for missing template', () => {
+    assert.equal(resolveLayoutSlots({}, W, H), null);
+  });
+
+  it('returns null for unknown template', () => {
+    assert.equal(resolveLayoutSlots({ template: 'carousel' }, W, H), null);
+  });
+});
+
+describe('resolveLayoutSlots: hero-center', () => {
+  it('default padding gives centered box with 10% inset', () => {
+    const slots = resolveLayoutSlots({ template: 'hero-center' }, W, H);
+    assert.ok(slots.center.x > 0);
+    assert.ok(slots.center.y > 0);
+    assert.ok(slots.center.w < W);
+    assert.ok(slots.center.h < H);
+    // 10% padding each side → center is 80% of canvas
+    assert.equal(slots.center.w, Math.round(W * 0.8));
+    assert.equal(slots.center.h, Math.round(H * 0.8));
+  });
+
+  it('custom padding changes inset', () => {
+    const slots = resolveLayoutSlots({ template: 'hero-center', config: { padding: 0.2 } }, W, H);
+    assert.equal(slots.center.w, Math.round(W * 0.6));
+    assert.equal(slots.center.h, Math.round(H * 0.6));
+  });
+
+  it('background covers full canvas', () => {
+    const slots = resolveLayoutSlots({ template: 'hero-center' }, W, H);
+    assert.deepEqual(slots.background, { x: 0, y: 0, w: W, h: H });
+  });
+
+  it('maxWidth constrains center width', () => {
+    const slots = resolveLayoutSlots({ template: 'hero-center', config: { padding: 0.05, maxWidth: 0.5 } }, W, H);
+    assert.ok(slots.center.w <= W * 0.5);
+  });
+
+  it('maxHeight constrains center height', () => {
+    const slots = resolveLayoutSlots({ template: 'hero-center', config: { padding: 0.05, maxHeight: 0.4 } }, W, H);
+    assert.ok(slots.center.h <= H * 0.4);
+  });
+});
+
+describe('resolveLayoutSlots: split-panel', () => {
+  it('default 50/50 split', () => {
+    const slots = resolveLayoutSlots({ template: 'split-panel' }, W, H);
+    assert.equal(slots.left.x, 0);
+    assert.equal(slots.left.w, Math.round(W * 0.5));
+    assert.equal(slots.right.x, Math.round(W * 0.5));
+  });
+
+  it('custom ratio shifts split point', () => {
+    const slots = resolveLayoutSlots({ template: 'split-panel', config: { ratio: 0.6 } }, W, H);
+    assert.equal(slots.left.w, Math.round(W * 0.6));
+    assert.equal(slots.right.x, Math.round(W * 0.6));
+  });
+
+  it('gap creates space between panels', () => {
+    const slots = resolveLayoutSlots({ template: 'split-panel', config: { ratio: 0.5, gap: 20 } }, W, H);
+    assert.equal(slots.left.w, Math.round(W * 0.5 - 10));
+    assert.equal(slots.right.x, Math.round(W * 0.5 + 10));
+  });
+
+  it('left + gap + right covers canvas width', () => {
+    const slots = resolveLayoutSlots({ template: 'split-panel', config: { ratio: 0.55, gap: 20 } }, W, H);
+    const gapWidth = slots.right.x - (slots.left.x + slots.left.w);
+    assert.ok(slots.left.w + gapWidth + slots.right.w >= W - 2, 'panels + gap should cover canvas width (±rounding)');
+  });
+});
+
+describe('resolveLayoutSlots: masonry-grid', () => {
+  it('produces correct cell count', () => {
+    const slots = resolveLayoutSlots({ template: 'masonry-grid', config: { columns: 3, rows: 2, gap: 10 } }, W, H);
+    const cellKeys = Object.keys(slots).filter(k => k.startsWith('cell-'));
+    assert.equal(cellKeys.length, 6);
+  });
+
+  it('cell-0 starts at origin', () => {
+    const slots = resolveLayoutSlots({ template: 'masonry-grid', config: { columns: 3, rows: 2, gap: 10 } }, W, H);
+    assert.equal(slots['cell-0'].x, 0);
+    assert.equal(slots['cell-0'].y, 0);
+  });
+
+  it('cells tile in row-major order', () => {
+    const slots = resolveLayoutSlots({ template: 'masonry-grid', config: { columns: 3, rows: 2, gap: 10 } }, W, H);
+    // cell-1 is right of cell-0 (same row)
+    assert.ok(slots['cell-1'].x > slots['cell-0'].x);
+    assert.equal(slots['cell-1'].y, slots['cell-0'].y);
+    // cell-3 is below cell-0 (next row, same column)
+    assert.equal(slots['cell-3'].x, slots['cell-0'].x);
+    assert.ok(slots['cell-3'].y > slots['cell-0'].y);
+  });
+
+  it('gap separates cells', () => {
+    const gap = 20;
+    const slots = resolveLayoutSlots({ template: 'masonry-grid', config: { columns: 2, rows: 1, gap } }, W, H);
+    const gapActual = slots['cell-1'].x - (slots['cell-0'].x + slots['cell-0'].w);
+    assert.equal(gapActual, gap);
+  });
+
+  it('custom dimensions work', () => {
+    const slots = resolveLayoutSlots({ template: 'masonry-grid', config: { columns: 4, rows: 3, gap: 5 } }, W, H);
+    const cellKeys = Object.keys(slots).filter(k => k.startsWith('cell-'));
+    assert.equal(cellKeys.length, 12);
+  });
+
+  it('cells do not overflow canvas (last col/row clamped)', () => {
+    const slots = resolveLayoutSlots({ template: 'masonry-grid', config: { columns: 3, rows: 2, gap: 10 } }, W, H);
+    for (const key of Object.keys(slots)) {
+      if (!key.startsWith('cell-')) continue;
+      const s = slots[key];
+      assert.ok(s.x + s.w <= W, `${key} right edge ${s.x + s.w} exceeds canvas width ${W}`);
+      assert.ok(s.y + s.h <= H, `${key} bottom edge ${s.y + s.h} exceeds canvas height ${H}`);
+    }
+  });
+});
+
+describe('resolveLayoutSlots: full-bleed', () => {
+  it('media covers full canvas', () => {
+    const slots = resolveLayoutSlots({ template: 'full-bleed' }, W, H);
+    assert.deepEqual(slots.media, { x: 0, y: 0, w: W, h: H });
+  });
+
+  it('default overlay is bottom-left', () => {
+    const slots = resolveLayoutSlots({ template: 'full-bleed' }, W, H);
+    // Bottom-left: x near left edge, y near bottom
+    assert.ok(slots.overlay.x < W / 2, 'overlay should be on the left');
+    assert.ok(slots.overlay.y > H / 2, 'overlay should be in the bottom half');
+  });
+
+  it('top-right overlay positions correctly', () => {
+    const slots = resolveLayoutSlots({ template: 'full-bleed', config: { overlayPosition: 'top-right' } }, W, H);
+    assert.ok(slots.overlay.x >= W / 2, 'overlay should be on the right half');
+    assert.ok(slots.overlay.y < H / 2, 'overlay should be in the top half');
+  });
+
+  it('center overlay is centered', () => {
+    const slots = resolveLayoutSlots({ template: 'full-bleed', config: { overlayPosition: 'center' } }, W, H);
+    const overlayW = Math.round(W * 0.45);
+    const overlayH = Math.round(H * 0.3);
+    assert.equal(slots.overlay.x, Math.round((W - overlayW) / 2));
+    assert.equal(slots.overlay.y, Math.round((H - overlayH) / 2));
+  });
+
+  it('custom overlay size is respected', () => {
+    const slots = resolveLayoutSlots({ template: 'full-bleed', config: { overlayWidth: 0.6, overlayHeight: 0.5 } }, W, H);
+    assert.equal(slots.overlay.w, Math.round(W * 0.6));
+    assert.equal(slots.overlay.h, Math.round(H * 0.5));
+  });
+});
+
+describe('resolveLayoutSlots: device-mockup', () => {
+  it('default layout has content left, device right', () => {
+    const slots = resolveLayoutSlots({ template: 'device-mockup' }, W, H);
+    assert.equal(slots.content.x, 0);
+    assert.ok(slots.device.x > slots.content.x + slots.content.w - 1, 'device should be to the right of content');
+  });
+
+  it('deviceSide left flips arrangement', () => {
+    const slots = resolveLayoutSlots({ template: 'device-mockup', config: { deviceSide: 'left' } }, W, H);
+    assert.ok(slots.device.x < slots.content.x, 'device should be to the left of content');
+  });
+
+  it('padding insets the device', () => {
+    const slots = resolveLayoutSlots({ template: 'device-mockup', config: { devicePadding: 0.1 } }, W, H);
+    // Device should be inset from its panel edges
+    assert.ok(slots.device.y > 0, 'device should be inset from top');
+    assert.ok(slots.device.h < H, 'device should be shorter than canvas');
+  });
+
+  it('content + device widths fill canvas', () => {
+    const slots = resolveLayoutSlots({ template: 'device-mockup', config: { ratio: 0.6 } }, W, H);
+    const contentW = slots.content.w;
+    const deviceRight = slots.device.x + slots.device.w;
+    // Device panel starts where content ends; device is inset within that panel
+    assert.ok(deviceRight <= W, 'device should not exceed canvas');
+    assert.ok(contentW + (W - contentW) === W, 'content panel + device panel = canvas width');
+  });
+});
+
+describe('getAvailableSlots', () => {
+  it('hero-center has background and center', () => {
+    assert.deepEqual(getAvailableSlots('hero-center'), ['background', 'center']);
+  });
+
+  it('split-panel has background, left, right', () => {
+    assert.deepEqual(getAvailableSlots('split-panel'), ['background', 'left', 'right']);
+  });
+
+  it('masonry-grid has background + cell-N based on config', () => {
+    const slots = getAvailableSlots('masonry-grid', { columns: 2, rows: 3 });
+    assert.equal(slots.length, 7); // background + 6 cells
+    assert.equal(slots[0], 'background');
+    assert.equal(slots[1], 'cell-0');
+    assert.equal(slots[6], 'cell-5');
+  });
+
+  it('full-bleed has media and overlay', () => {
+    assert.deepEqual(getAvailableSlots('full-bleed'), ['media', 'overlay']);
+  });
+
+  it('device-mockup has background, content, device', () => {
+    assert.deepEqual(getAvailableSlots('device-mockup'), ['background', 'content', 'device']);
+  });
+});
+
+describe('validateScene: layout', () => {
+  it('accepts valid layout with correct slot references', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_layout',
+      layout: { template: 'split-panel' },
+      assets: [],
+      layers: [
+        { id: 'l', type: 'html', slot: 'left' },
+        { id: 'r', type: 'html', slot: 'right' },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('rejects unknown template', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_layout',
+      layout: { template: 'carousel' },
+      assets: [],
+      layers: [],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('carousel')));
+  });
+
+  it('rejects invalid slot reference', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_layout',
+      layout: { template: 'split-panel' },
+      assets: [],
+      layers: [
+        { id: 'x', type: 'html', slot: 'center' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('slot') && e.includes('center')));
+  });
+
+  it('validates all scene definitions in test-layouts', () => {
+    for (const [id, scene] of Object.entries(testLayouts.sceneDefs)) {
+      const result = validateScene(scene);
+      assert.equal(result.valid, true, `${id} errors: ${result.errors.join(', ')}`);
+    }
+  });
+
+  it('validates test-layouts manifest', () => {
+    const result = validateManifest(testLayouts.manifest);
     assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
   });
 });

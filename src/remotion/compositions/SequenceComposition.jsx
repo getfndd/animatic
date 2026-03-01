@@ -1,6 +1,7 @@
 import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
 import { SceneComposition } from './SceneComposition.jsx';
-import { TransitionWrapper, TransitionOutWrapper, getDefaultTransitionDuration } from './transitions.jsx';
+import { TransitionWrapper, TransitionOutWrapper } from './transitions.jsx';
+import { getDefaultTransitionDuration, calculateLayout } from '../lib.js';
 
 /**
  * SequenceComposition — Renders a sequence manifest (multi-scene video).
@@ -65,44 +66,6 @@ export const SequenceComposition = ({ manifest, sceneDefs = {} }) => {
     </AbsoluteFill>
   );
 };
-
-/**
- * Calculate frame layout for all scenes in the sequence.
- *
- * Each scene starts at the previous scene's end minus transition overlap.
- * During transitions, both scenes' Sequences are visible simultaneously.
- */
-function calculateLayout(scenes, fps) {
-  const layout = [];
-  let currentFrame = 0;
-
-  for (let i = 0; i < scenes.length; i++) {
-    const entry = scenes[i];
-    const durationS = entry.duration_s || 3;
-    const durationFrames = Math.round(durationS * fps);
-
-    // Look ahead: what transition does the NEXT scene use?
-    // This determines how much overlap exists at the end of this scene.
-    const nextEntry = scenes[i + 1];
-    const nextTransition = nextEntry?.transition_in || { type: 'hard_cut' };
-    const nextTransitionMs = nextTransition.duration_ms ?? getDefaultTransitionDuration(nextTransition.type);
-    const nextTransitionFrames = Math.round((nextTransitionMs / 1000) * fps);
-
-    layout.push({
-      entry,
-      index: i,
-      startFrame: currentFrame,
-      durationFrames,
-      nextTransition: nextEntry ? nextTransition : { type: 'hard_cut' },
-      nextTransitionFrames: nextEntry ? nextTransitionFrames : 0,
-    });
-
-    // Next scene starts at this scene's end minus transition overlap
-    currentFrame += durationFrames - nextTransitionFrames;
-  }
-
-  return layout;
-}
 
 /**
  * Creates a placeholder scene when no scene definition file is provided.

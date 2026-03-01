@@ -8,7 +8,7 @@
     "sync:dry": "node scripts/sync-to-preset.mjs --dry-run",
     "setup-hook": "bash scripts/setup-hook.sh",
     "start:mcp": "node mcp/index.js",
-    "test": "node --test mcp/test/",
+    "test": "node --test mcp/test/ src/remotion/test/",
     "capture": "node scripts/capture-prototype.mjs",
     "remotion:studio": "npx remotion studio",
     "remotion:render": "npx remotion render",

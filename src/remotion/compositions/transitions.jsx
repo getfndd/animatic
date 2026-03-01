@@ -160,19 +160,4 @@ const WhipWipe = ({ direction, progress, children }) => {
   );
 };
 
-/**
- * Get default transition duration for a type (in ms).
- */
-export function getDefaultTransitionDuration(type) {
-  switch (type) {
-    case 'hard_cut': return 0;
-    case 'crossfade': return 400;
-    case 'whip_left':
-    case 'whip_right':
-    case 'whip_up':
-    case 'whip_down':
-      return 250;
-    default:
-      return 0;
-  }
-}
+export { getDefaultTransitionDuration } from '../lib.js';

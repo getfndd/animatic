@@ -25,7 +25,7 @@ if ! echo "$COMMAND" | grep -q "git commit"; then
 fi
 
 # Check if commit message contains feat() pattern
-if ! echo "$COMMAND" | grep -qE 'feat\('; then
+if ! echo "$COMMAND" | grep -qE 'feat[:(]'; then
     exit 0
 fi
 

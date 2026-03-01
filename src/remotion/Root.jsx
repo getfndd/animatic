@@ -1,26 +1,7 @@
 import { Composition } from 'remotion';
 import { SceneComposition } from './compositions/SceneComposition.jsx';
 import { SequenceComposition } from './compositions/SequenceComposition.jsx';
-
-/**
- * Calculate total duration in frames from a sequence manifest.
- * Accounts for transition overlaps per the sequence manifest spec.
- */
-function calculateDuration(manifest) {
-  const fps = manifest.fps || 60;
-  const scenes = manifest.scenes || [];
-
-  const totalSeconds = scenes.reduce((sum, entry) => sum + (entry.duration_s || 3), 0);
-  const transitionOverlap = scenes.reduce((sum, entry) => {
-    const t = entry.transition_in;
-    if (t && t.type !== 'hard_cut' && t.duration_ms) {
-      return sum + t.duration_ms / 1000;
-    }
-    return sum;
-  }, 0);
-
-  return Math.ceil((totalSeconds - transitionOverlap) * fps);
-}
+import { calculateDuration } from './lib.js';
 
 /**
  * Remotion Root — registers all video compositions.

@@ -1,0 +1,25 @@
+{
+  "manifest": {
+    "sequence_id": "seq_test_3scene",
+    "resolution": { "w": 1920, "h": 1080 },
+    "fps": 60,
+    "scenes": [
+      {
+        "scene": "sc_brand_mark",
+        "duration_s": 3,
+        "camera_override": { "move": "static" }
+      },
+      {
+        "scene": "sc_ui_card",
+        "duration_s": 3,
+        "camera_override": { "move": "push_in", "intensity": 0.3 }
+      },
+      {
+        "scene": "sc_typography",
+        "duration_s": 3,
+        "camera_override": { "move": "drift", "intensity": 0.5 }
+      }
+    ]
+  },
+  "sceneDefs": {}
+}

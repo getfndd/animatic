@@ -3,10 +3,31 @@ import { SceneComposition } from './compositions/SceneComposition.jsx';
 import { SequenceComposition } from './compositions/SequenceComposition.jsx';
 
 /**
+ * Calculate total duration in frames from a sequence manifest.
+ * Accounts for transition overlaps per the sequence manifest spec.
+ */
+function calculateDuration(manifest) {
+  const fps = manifest.fps || 60;
+  const scenes = manifest.scenes || [];
+
+  const totalSeconds = scenes.reduce((sum, entry) => sum + (entry.duration_s || 3), 0);
+  const transitionOverlap = scenes.reduce((sum, entry) => {
+    const t = entry.transition_in;
+    if (t && t.type !== 'hard_cut' && t.duration_ms) {
+      return sum + t.duration_ms / 1000;
+    }
+    return sum;
+  }, 0);
+
+  return Math.ceil((totalSeconds - transitionOverlap) * fps);
+}
+
+/**
  * Remotion Root — registers all video compositions.
  *
  * Compositions are video templates that can be rendered via:
  *   npx remotion render <composition-id> output.mp4
+ *   npx remotion render Sequence --props src/remotion/manifests/test-3-scene.json output.mp4
  *
  * Or previewed in the Remotion Studio:
  *   npx remotion studio
@@ -45,10 +66,28 @@ export const RemotionRoot = () => {
         }}
       />
 
-      {/* Multi-scene sequence — renders a sequence manifest to video */}
+      {/* Multi-scene sequence — renders a sequence manifest to video.
+       *
+       * Pass a manifest via --props:
+       *   npx remotion render Sequence --props src/remotion/manifests/test-3-scene.json out.mp4
+       *
+       * The calculateMetadata callback dynamically computes duration, fps,
+       * and resolution from the manifest props.
+       */}
       <Composition
         id="Sequence"
         component={SequenceComposition}
+        calculateMetadata={({ props }) => {
+          const manifest = props.manifest;
+          const fps = manifest.fps || 60;
+          const resolution = manifest.resolution || { w: 1920, h: 1080 };
+          return {
+            durationInFrames: calculateDuration(manifest),
+            fps,
+            width: resolution.w,
+            height: resolution.h,
+          };
+        }}
         durationInFrames={600}
         fps={60}
         width={1920}
@@ -64,7 +103,6 @@ export const RemotionRoot = () => {
               { scene: 'sc_test_c', duration_s: 4 },
             ],
           },
-          // Scene definitions keyed by scene_id (in production, loaded from files)
           sceneDefs: {},
         }}
       />

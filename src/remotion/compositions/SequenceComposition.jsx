@@ -1,15 +1,15 @@
-import { AbsoluteFill, Series, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
 import { SceneComposition } from './SceneComposition.jsx';
+import { TransitionWrapper, TransitionOutWrapper, getDefaultTransitionDuration } from './transitions.jsx';
 
 /**
  * SequenceComposition — Renders a sequence manifest (multi-scene video).
  *
  * Implements the sequence manifest spec (docs/cinematography/specs/sequence-manifest.md):
- * - Ordered scene playback via Remotion <Series>
- * - Hard cuts (instant scene swap)
- * - Duration per scene (converted from seconds to frames)
- *
- * Transitions (crossfade, whip) are placeholders — implemented in ANI-17.
+ * - Ordered scene playback via absolute Remotion <Sequence> components
+ * - Hard cuts, crossfade, and whip-wipe transitions
+ * - Scene overlap during transitions (both scenes render simultaneously)
+ * - Duration calculation accounting for transition overlaps
  *
  * @param {object} props
  * @param {object} props.manifest - Sequence manifest JSON
@@ -19,45 +19,93 @@ export const SequenceComposition = ({ manifest, sceneDefs = {} }) => {
   const { fps } = useVideoConfig();
   const scenes = manifest.scenes || [];
 
+  // Calculate frame layout — each scene's start frame and duration,
+  // accounting for transition overlap with the next scene.
+  const layout = calculateLayout(scenes, fps);
+
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0a0a' }}>
-      <Series>
-        {scenes.map((entry, index) => {
-          const durationS = entry.duration_s || 3;
-          const durationFrames = Math.round(durationS * fps);
+      {layout.map(({ entry, index, startFrame, durationFrames, nextTransition, nextTransitionFrames }) => {
+        const sceneDef = sceneDefs[entry.scene] || createPlaceholderScene(entry, index);
+        const sceneWithOverrides = {
+          ...sceneDef,
+          ...(entry.camera_override
+            ? { camera: { ...sceneDef.camera, ...entry.camera_override } }
+            : {}),
+        };
 
-          // Look up scene definition, or create a placeholder
-          const sceneDef = sceneDefs[entry.scene] || createPlaceholderScene(entry, index);
+        const transition = entry.transition_in || { type: 'hard_cut' };
+        const transitionDurationMs = transition.duration_ms ?? getDefaultTransitionDuration(transition.type);
+        const transitionFrames = Math.round((transitionDurationMs / 1000) * fps);
 
-          // Apply camera override from manifest if present
-          const sceneWithOverrides = {
-            ...sceneDef,
-            ...(entry.camera_override
-              ? { camera: { ...sceneDef.camera, ...entry.camera_override } }
-              : {}),
-          };
+        return (
+          <Sequence key={entry.scene + '-' + index} from={startFrame} durationInFrames={durationFrames}>
+            {/* Outgoing transition wrapper (handles exit during overlap with next scene) */}
+            <TransitionOutWrapper
+              transition={nextTransition}
+              transitionFrames={nextTransitionFrames}
+              sceneFrames={durationFrames}
+            >
+              {/* Incoming transition wrapper (handles entrance from previous scene) */}
+              <TransitionWrapper transition={transition} transitionFrames={transitionFrames}>
+                <SceneComposition scene={sceneWithOverrides} />
+              </TransitionWrapper>
+            </TransitionOutWrapper>
 
-          return (
-            <Series.Sequence key={entry.scene + '-' + index} durationInFrames={durationFrames}>
-              <SceneComposition scene={sceneWithOverrides} />
-              {/* Scene label overlay (development only) */}
-              <SceneLabel
-                sceneId={entry.scene}
-                index={index}
-                total={scenes.length}
-                durationS={durationS}
-              />
-            </Series.Sequence>
-          );
-        })}
-      </Series>
+            <SceneLabel
+              sceneId={entry.scene}
+              index={index}
+              total={scenes.length}
+              durationS={entry.duration_s || 3}
+              transitionType={transition.type}
+            />
+          </Sequence>
+        );
+      })}
     </AbsoluteFill>
   );
 };
 
 /**
+ * Calculate frame layout for all scenes in the sequence.
+ *
+ * Each scene starts at the previous scene's end minus transition overlap.
+ * During transitions, both scenes' Sequences are visible simultaneously.
+ */
+function calculateLayout(scenes, fps) {
+  const layout = [];
+  let currentFrame = 0;
+
+  for (let i = 0; i < scenes.length; i++) {
+    const entry = scenes[i];
+    const durationS = entry.duration_s || 3;
+    const durationFrames = Math.round(durationS * fps);
+
+    // Look ahead: what transition does the NEXT scene use?
+    // This determines how much overlap exists at the end of this scene.
+    const nextEntry = scenes[i + 1];
+    const nextTransition = nextEntry?.transition_in || { type: 'hard_cut' };
+    const nextTransitionMs = nextTransition.duration_ms ?? getDefaultTransitionDuration(nextTransition.type);
+    const nextTransitionFrames = Math.round((nextTransitionMs / 1000) * fps);
+
+    layout.push({
+      entry,
+      index: i,
+      startFrame: currentFrame,
+      durationFrames,
+      nextTransition: nextEntry ? nextTransition : { type: 'hard_cut' },
+      nextTransitionFrames: nextEntry ? nextTransitionFrames : 0,
+    });
+
+    // Next scene starts at this scene's end minus transition overlap
+    currentFrame += durationFrames - nextTransitionFrames;
+  }
+
+  return layout;
+}
+
+/**
  * Creates a placeholder scene when no scene definition file is provided.
- * Shows the scene_id and index for development/testing.
  */
 function createPlaceholderScene(entry, index) {
   const colors = [
@@ -96,10 +144,9 @@ function createPlaceholderScene(entry, index) {
 }
 
 /**
- * Development overlay showing scene ID and position in sequence.
- * Will be removed or made togglable in production.
+ * Development overlay showing scene metadata.
  */
-const SceneLabel = ({ sceneId, index, total, durationS }) => {
+const SceneLabel = ({ sceneId, index, total, durationS, transitionType }) => {
   const frame = useCurrentFrame();
   const fadeIn = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' });
 
@@ -119,7 +166,8 @@ const SceneLabel = ({ sceneId, index, total, durationS }) => {
         pointerEvents: 'none',
       }}
     >
-      {index + 1}/{total} &middot; {sceneId} &middot; {durationS}s
+      {index + 1}/{total} {'\u00b7'} {sceneId} {'\u00b7'} {durationS}s
+      {transitionType !== 'hard_cut' && ` {'\u00b7'} ${transitionType}`}
     </div>
   );
 };

@@ -139,6 +139,6 @@ Save as `brief.json` in the current directory (or user-specified path).
 
 | Command | Purpose |
 |---------|---------|
-| `/storyboard` | Brief → scenes (planned, ANI-31) |
+| `/storyboard` | Brief → classified assets → generated scenes |
 | `/sizzle` | Scenes → rendered video |
 | `/review` | Evaluate sequence quality |

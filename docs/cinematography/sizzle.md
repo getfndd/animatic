@@ -18,12 +18,17 @@ npm run sizzle -- scenes/ --style energy --output renders/demo.mp4
 ## Usage
 
 ```
-node scripts/sizzle.mjs <scenes-dir> [options]
+node scripts/sizzle.mjs <scenes-dir> --style <name> [options]
+node scripts/sizzle.mjs --brief <brief.json> [options]
 
 Options:
-  --style <name>   Style pack: prestige, energy, dramatic (required)
+  --brief <path>   Brief JSON file (alternative to scenes-dir)
+  --style <name>   Style pack (required with scenes-dir, inferred from brief)
   --output <path>  Output path (default: renders/sizzle-{style}-{timestamp}.mp4)
   --dry-run        Generate manifest JSON only, skip Remotion render
+  --skip-evaluate  Skip quality evaluation step
+  --skip-validate  Skip guardrails validation step
+  --sequence-id    Custom sequence ID
   --verbose        Print per-scene analysis and planning details
   --help           Show usage
 ```
@@ -35,6 +40,11 @@ Options:
 | `prestige` | editorial | Content-forward, crossfades on weight change, subtle camera |
 | `energy` | montage | Fast cuts, whip-wipes every 3rd transition, static camera |
 | `dramatic` | cinematic-dark | Long holds on high-energy, crossfades, push-in camera |
+| `minimal` | neutral-light | Clean, tutorial-like, minimal camera movement |
+| `intimate` | cinematic-dark | Close, personal, moody, slow reveals |
+| `corporate` | editorial | Professional, polished, medium pace |
+| `kinetic` | montage | Dynamic, rhythmic, motion-forward |
+| `fade` | editorial | Gentle, crossfade-heavy, contemplative |
 
 ## Input Format
 
@@ -133,6 +143,16 @@ The CLI (`scripts/sizzle.mjs`) is a thin orchestrator. It imports from existing 
 | `validateScene`, `validateManifest` | `src/remotion/lib.js` | Validation |
 
 Three functions are exported for unit testing: `loadScenes`, `analyzeAll`, `assembleProps`.
+
+### Brief Mode
+
+With `--brief <path>`, the CLI inserts a **Step 0** before loading scenes:
+
+```
+brief.json → generateScenes() → temp scenes dir → load → analyze → plan → render
+```
+
+Style is inferred from the brief template/tone if `--style` is not provided. The temp directory is cleaned up after the pipeline completes.
 
 ## Tests
 

@@ -53,20 +53,32 @@ The current pipeline is not replaced. It continues to serve its purpose (product
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Future: AI Director Layer (Phase 4-5)
+### AI Director Layer (Phase 4-5) — Shipped
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
+│                   Creative Brief + Assets                        │
+│  Template-driven brief (product-launch, brand-story, etc.)      │
+│  + classified assets → scene generation (ANI-31)                │
+└──────────────────────────────┬──────────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
 │                    Scene Analysis Engine                         │
 │  Classifies content type, visual weight, motion energy,         │
-│  complexity, emotional tone. Rule-based + LLM-assisted.         │
+│  complexity, emotional tone. Rule-based v1. (ANI-22)            │
 └──────────────────────────────┬──────────────────────────────────┘
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Sequence Planner                            │
 │  Given analyzed scenes + style pack → produces sequence         │
 │  manifest. Decides shot order, hold durations, transitions,     │
-│  camera moves. Rule-based v1, LLM-enhanced v2.                 │
+│  camera moves. Rule-based v1. (ANI-23/24)                      │
+└──────────────────────────────┬──────────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  Evaluation + Guardrails                         │
+│  Quality scoring (pacing, variety, flow, adherence) + camera    │
+│  physics validation per personality. (ANI-28/29)                │
 └──────────────────────────────┬──────────────────────────────────┘
                                ▼
                     Sequence Manifest (JSON)
@@ -90,7 +102,7 @@ Spec: [`docs/cinematography/specs/sequence-manifest.md`](specs/sequence-manifest
 
 ### Style Pack
 
-A JSON definition that biases the sequence planner's decisions — cut cadence, camera preferences, transition weights. Maps to existing animation personalities. Three v1 packs: prestige (slow, crossfades), energy (fast, hard cuts), dramatic (variable, push-ins).
+A JSON definition that biases the sequence planner's decisions — cut cadence, camera preferences, transition weights. Maps to existing animation personalities. Eight packs: prestige, energy, dramatic, minimal, intimate, corporate, kinetic, fade.
 
 ### Camera Rig
 
@@ -135,29 +147,30 @@ Full-frame camera, kinetic type, layout templates. After this phase, a human can
 
 **After Phase 3:** The system can produce videos comparable to professional sizzle reels. What's manual: scene design, shot order, timing. What's automated: animation, camera, transitions, encoding.
 
-### Phase 4: AI Editor
+### Phase 4: AI Editor — SHIPPED
 
 Automate editorial decisions. AI analyzes scenes and plans sequences.
 
-| Issue | Deliverable |
-|-------|-------------|
-| ANI-22 | Scene analysis engine (content type, visual weight, complexity) |
-| ANI-23 | Sequence planner (scenes + style pack → manifest) |
-| ANI-24 | 3 style packs: prestige, energy, dramatic |
-| ANI-25 | `/sizzle` CLI command: scenes folder + style → rendered video |
+| Issue | Deliverable | Status |
+|-------|-------------|--------|
+| ANI-22 | Scene analysis engine (content type, visual weight, complexity) | Shipped |
+| ANI-23 | Sequence planner (scenes + style pack → manifest) | Shipped |
+| ANI-24 | 3 style packs: prestige, energy, dramatic | Shipped (expanded to 8 packs) |
+| ANI-25 | `/sizzle` CLI command: scenes folder + style → rendered video | Shipped |
 
-### Phase 5: Full Vision — AI Director
+### Phase 5: Full Vision — AI Director — SHIPPED
 
-Film grammar, compound camera, evaluation, guardrails, advanced styles, scene generation.
+Film grammar, evaluation, guardrails, advanced styles, brief templates, scene generation.
 
-| Issue | Deliverable |
-|-------|-------------|
-| ANI-26 | Shot grammar engine (sizes, angles, framing patterns) |
-| ANI-27 | Compound camera moves (simultaneous multi-axis interpolation) |
-| ANI-28 | Evaluation engine (sequence quality scoring) |
-| ANI-29 | Guardrails (acceleration clamping, shake budgets, safe margins) |
-| ANI-30 | Advanced style packs (director-inspired grammars, style blending) |
-| ANI-31 | Scene generation from brief (assets + brief → scene compositions) |
+| Issue | Deliverable | Status |
+|-------|-------------|--------|
+| ANI-26 | Shot grammar engine (sizes, angles, framing patterns) | Shipped |
+| ANI-27 | Compound camera moves (simultaneous multi-axis interpolation) | Shipped |
+| ANI-28 | Evaluation engine (sequence quality scoring) | Shipped |
+| ANI-29 | Guardrails (acceleration clamping, shake budgets, safe margins) | Shipped |
+| ANI-30 | Advanced style packs (5 new packs + per-scene style blending) | Shipped |
+| ANI-31 | Scene generation from brief (brief → classified assets → scenes) | Shipped |
+| ANI-32 | Creative brief templates + MCP tools | Shipped |
 
 ## Reference Target
 
@@ -215,4 +228,4 @@ Our CSS animations, spring physics, and primitive library transfer directly — 
 
 - **Linear project:** [AI Cinematography Pipeline](https://linear.app/fnddtech/project/ai-cinematography-pipeline-563a31407a6f)
 - **Team:** animatic
-- **Issues:** ANI-12 through ANI-31
+- **Issues:** ANI-12 through ANI-32 (all shipped)

@@ -185,4 +185,4 @@ node scripts/sizzle.mjs <scenes-dir> --style <name> [--dry-run] [--verbose]
 |---------|---------|
 | `/review` | Evaluate + validate without rendering |
 | `/brief` | Author a creative brief before scene creation |
-| `/storyboard` | Brief → scenes (planned, ANI-31) |
+| `/storyboard` | Brief → classified assets → generated scenes |

@@ -1,20 +1,23 @@
 #!/usr/bin/env node
 
 /**
- * sizzle.mjs — Scenes folder + style → rendered video (ANI-25)
+ * sizzle.mjs — Scenes folder + style → evaluated, validated, rendered video (ANI-25)
  *
- * Wires the full AI cinematography pipeline into a single CLI command:
- * load scene JSONs → analyze → plan sequence → assemble props → render.
+ * Full AI cinematography pipeline:
+ * load scene JSONs → analyze → plan → evaluate → validate → render.
  *
  * Usage:
  *   node scripts/sizzle.mjs <scenes-dir> [options]
  *
  * Options:
- *   --style <name>   Style pack: prestige, energy, dramatic (required)
- *   --output <path>  Output path (default: renders/sizzle-{style}-{timestamp}.mp4)
- *   --dry-run        Generate manifest JSON only, skip Remotion render
- *   --verbose        Print per-scene analysis and planning details
- *   --help           Show usage
+ *   --style <name>         Style pack (required). See --help for full list.
+ *   --output <path>        Output path (default: renders/sizzle-{style}-{timestamp}.mp4)
+ *   --dry-run              Generate manifest JSON only, skip Remotion render
+ *   --skip-evaluate        Skip quality evaluation step
+ *   --skip-validate        Skip guardrails validation step
+ *   --sequence-id <id>     Custom sequence ID (default: auto-generated)
+ *   --verbose              Print per-scene analysis and planning details
+ *   --help                 Show usage
  */
 
 import { parseArgs } from 'node:util';
@@ -27,6 +30,8 @@ import { fileURLToPath } from 'node:url';
 
 import { analyzeScene } from '../mcp/lib/analyze.js';
 import { planSequence, STYLE_PACKS, STYLE_TO_PERSONALITY } from '../mcp/lib/planner.js';
+import { evaluateSequence } from '../mcp/lib/evaluate.js';
+import { validateFullManifest } from '../mcp/lib/guardrails.js';
 import { validateScene, validateManifest } from '../src/remotion/lib.js';
 
 const execFileAsync = promisify(execFile);
@@ -109,6 +114,30 @@ export function assembleProps(manifest, scenes) {
 }
 
 /**
+ * Evaluate a manifest for quality across 4 dimensions.
+ *
+ * @param {object} manifest — Sequence manifest from planSequence().
+ * @param {object[]} scenes — Analyzed scene objects with metadata.
+ * @param {string} style — Style pack name.
+ * @returns {{ score: number, dimensions: object, findings: object[] }}
+ */
+export function evaluateManifest(manifest, scenes, style) {
+  return evaluateSequence({ manifest, scenes, style });
+}
+
+/**
+ * Validate a manifest against personality guardrails.
+ *
+ * @param {object} manifest — Sequence manifest from planSequence().
+ * @param {string} style — Style pack name.
+ * @returns {{ verdict: string, sceneResults: object[], cumulativeFindings: object[] }}
+ */
+export function validateManifestGuardrails(manifest, style) {
+  const personality = STYLE_TO_PERSONALITY[style];
+  return validateFullManifest(manifest, personality);
+}
+
+/**
  * Render video using Remotion CLI.
  * Writes props to a temp file, spawns npx remotion render.
  *
@@ -141,11 +170,14 @@ async function main() {
   const { values: opts, positionals } = parseArgs({
     allowPositionals: true,
     options: {
-      style:     { type: 'string' },
-      output:    { type: 'string' },
-      'dry-run': { type: 'boolean', default: false },
-      verbose:   { type: 'boolean', default: false },
-      help:      { type: 'boolean', default: false },
+      style:             { type: 'string' },
+      output:            { type: 'string' },
+      'dry-run':         { type: 'boolean', default: false },
+      'skip-evaluate':   { type: 'boolean', default: false },
+      'skip-validate':   { type: 'boolean', default: false },
+      'sequence-id':     { type: 'string' },
+      verbose:           { type: 'boolean', default: false },
+      help:              { type: 'boolean', default: false },
     },
   });
 
@@ -154,11 +186,23 @@ async function main() {
   Usage: node scripts/sizzle.mjs <scenes-dir> [options]
 
   Options:
-    --style <name>   Style pack: ${STYLE_PACKS.join(', ')} (required)
-    --output <path>  Output path (default: renders/sizzle-{style}-{timestamp}.mp4)
-    --dry-run        Generate manifest JSON only, skip Remotion render
-    --verbose        Print per-scene analysis and planning details
-    --help           Show usage
+    --style <name>        Style pack (required). One of:
+                          ${STYLE_PACKS.join(', ')}
+    --output <path>       Output path (default: renders/sizzle-{style}-{timestamp}.mp4)
+    --dry-run             Generate manifest JSON only, skip Remotion render
+    --skip-evaluate       Skip quality evaluation step
+    --skip-validate       Skip guardrails validation step
+    --sequence-id <id>    Custom sequence ID (default: auto-generated)
+    --verbose             Print per-scene analysis and planning details
+    --help                Show usage
+
+  Pipeline:
+    1. Load scenes   → Read *.json from directory
+    2. Analyze       → Classify content type, weight, energy, intent
+    3. Plan          → Generate sequence manifest with style pack rules
+    4. Evaluate      → Score pacing, variety, flow, adherence (skippable)
+    5. Validate      → Check guardrails — blocks on safety violations (skippable)
+    6. Render        → Remotion video render (or dry-run JSON)
     `);
     process.exit(0);
   }
@@ -222,10 +266,11 @@ async function main() {
 
   // Step 3: Plan sequence
   console.log(`3. Planning sequence...`);
+  const seqId = opts['sequence-id'] || `seq_sizzle_${style}_${timestamp}`;
   const { manifest, notes } = planSequence({
     scenes: analyzed,
     style,
-    sequence_id: `seq_sizzle_${style}_${timestamp}`,
+    sequence_id: seqId,
   });
 
   const transitionSummary = Object.entries(notes.transition_summary)
@@ -238,14 +283,58 @@ async function main() {
     console.log(`   Rationale: ${notes.ordering_rationale}`);
   }
 
-  // Step 4: Render or dry-run
+  // Step 4: Evaluate sequence quality
+  if (!opts['skip-evaluate']) {
+    console.log(`4. Evaluating sequence...`);
+    const evaluation = evaluateManifest(manifest, analyzed, style);
+    const dims = evaluation.dimensions;
+    console.log(`   Score: ${evaluation.score}/100  (pacing: ${dims.pacing.score}, variety: ${dims.variety.score}, flow: ${dims.flow.score}, adherence: ${dims.adherence.score})`);
+    if (verbose && evaluation.findings.length > 0) {
+      for (const f of evaluation.findings) {
+        console.log(`   [${f.severity}] ${f.message}`);
+      }
+    }
+  } else {
+    console.log(`4. Evaluate — skipped`);
+  }
+
+  // Step 5: Validate guardrails
+  if (!opts['skip-validate']) {
+    console.log(`5. Validating guardrails...`);
+    const result = validateManifestGuardrails(manifest, style);
+    if (result.verdict === 'BLOCK') {
+      console.error(`   BLOCKED — guardrail violations:`);
+      for (const sr of result.sceneResults) {
+        for (const b of sr.blocks) {
+          console.error(`   Scene ${sr.sceneIndex + 1}: ${b.message}`);
+        }
+      }
+      process.exit(1);
+    } else if (result.verdict === 'WARN') {
+      console.log(`   WARN — guardrail warnings:`);
+      for (const sr of result.sceneResults) {
+        for (const w of sr.warnings) {
+          console.log(`   Scene ${sr.sceneIndex + 1}: ${w.message}`);
+        }
+      }
+      for (const cf of result.cumulativeFindings) {
+        console.log(`   ${cf.message}`);
+      }
+    } else {
+      console.log(`   PASS`);
+    }
+  } else {
+    console.log(`5. Validate — skipped`);
+  }
+
+  // Step 6: Render or dry-run
   const props = assembleProps(manifest, analyzed);
 
   if (dryRun) {
     const dryRunOutput = outputPath.replace(/\.mp4$/, '.json');
     fs.mkdirSync(path.dirname(dryRunOutput), { recursive: true });
     fs.writeFileSync(dryRunOutput, JSON.stringify(props, null, 2));
-    console.log(`4. Dry run — manifest written to ${dryRunOutput}`);
+    console.log(`6. Dry run — manifest written to ${dryRunOutput}`);
 
     // Validate the assembled manifest
     const validation = validateManifest(manifest);
@@ -254,7 +343,7 @@ async function main() {
       console.error(`   Errors: ${validation.errors.join('; ')}`);
     }
   } else {
-    console.log(`4. Rendering video...`);
+    console.log(`6. Rendering video...`);
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     await renderVideo(props, outputPath);
   }

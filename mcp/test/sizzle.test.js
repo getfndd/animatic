@@ -19,8 +19,8 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 
-import { loadScenes, analyzeAll, assembleProps } from '../../scripts/sizzle.mjs';
-import { planSequence, STYLE_PACKS } from '../lib/planner.js';
+import { loadScenes, analyzeAll, assembleProps, evaluateManifest, validateManifestGuardrails } from '../../scripts/sizzle.mjs';
+import { planSequence, STYLE_PACKS, STYLE_TO_PERSONALITY } from '../lib/planner.js';
 import { validateManifest } from '../../src/remotion/lib.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -228,13 +228,87 @@ describe('sizzle pipeline integration', () => {
   });
 });
 
+// ── Evaluate integration ─────────────────────────────────────────────────────
+
+describe('sizzle pipeline + evaluate integration', () => {
+  const analyzed = analyzeAll(kineticScenes);
+
+  for (const style of STYLE_PACKS) {
+    it(`${style} → evaluate returns score 0-100 with 4 dimensions`, () => {
+      const { manifest } = planSequence({
+        scenes: analyzed,
+        style,
+        sequence_id: `seq_eval_${style}`,
+      });
+
+      const result = evaluateManifest(manifest, analyzed, style);
+
+      assert.ok(typeof result.score === 'number', 'score is a number');
+      assert.ok(result.score >= 0 && result.score <= 100,
+        `score ${result.score} is within 0-100`);
+
+      assert.ok(result.dimensions.pacing, 'has pacing dimension');
+      assert.ok(result.dimensions.variety, 'has variety dimension');
+      assert.ok(result.dimensions.flow, 'has flow dimension');
+      assert.ok(result.dimensions.adherence, 'has adherence dimension');
+
+      for (const dim of ['pacing', 'variety', 'flow', 'adherence']) {
+        const d = result.dimensions[dim];
+        assert.ok(typeof d.score === 'number', `${dim} score is a number`);
+        assert.ok(d.score >= 0 && d.score <= 100,
+          `${dim} score ${d.score} is within 0-100`);
+      }
+
+      assert.ok(Array.isArray(result.findings), 'findings is an array');
+    });
+  }
+});
+
+// ── Guardrails validation integration ────────────────────────────────────────
+
+describe('sizzle pipeline + guardrails validation', () => {
+  const analyzed = analyzeAll(kineticScenes);
+
+  for (const style of STYLE_PACKS) {
+    it(`${style} → validate returns valid structure with no camera blocks`, () => {
+      const { manifest } = planSequence({
+        scenes: analyzed,
+        style,
+        sequence_id: `seq_guard_${style}`,
+      });
+
+      const result = validateManifestGuardrails(manifest, style);
+
+      assert.ok(['PASS', 'WARN', 'BLOCK'].includes(result.verdict),
+        `verdict "${result.verdict}" is valid`);
+      assert.ok(Array.isArray(result.sceneResults), 'sceneResults is an array');
+      assert.ok(Array.isArray(result.cumulativeFindings), 'cumulativeFindings is an array');
+
+      // Planner should never produce camera_movement blocks —
+      // shot_grammar 3D transform blocks are a known interaction
+      // (planner doesn't yet filter shot grammar by personality)
+      const cameraBlocks = result.sceneResults.flatMap(sr =>
+        sr.blocks.filter(b => b.feature === 'camera_movement' || b.feature === 'ambient_motion')
+      );
+      assert.equal(cameraBlocks.length, 0,
+        `${style} has camera blocks: ${cameraBlocks.map(b => b.message).join('; ')}`);
+    });
+  }
+});
+
 // ── CLI validation ──────────────────────────────────────────────────────────
 
 describe('CLI validation', () => {
-  it('STYLE_PACKS has expected entries', () => {
+  it('STYLE_PACKS has all 8 entries', () => {
+    assert.equal(STYLE_PACKS.length, 8);
     assert.ok(STYLE_PACKS.includes('prestige'));
     assert.ok(STYLE_PACKS.includes('energy'));
     assert.ok(STYLE_PACKS.includes('dramatic'));
+    assert.ok(STYLE_PACKS.includes('minimal'));
+    assert.ok(STYLE_PACKS.includes('intimate'));
+    assert.ok(STYLE_PACKS.includes('corporate'));
+    assert.ok(STYLE_PACKS.includes('kinetic'));
+    assert.ok(STYLE_PACKS.includes('fade'));
   });
 
   it('planSequence rejects unknown style', () => {

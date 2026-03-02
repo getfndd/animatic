@@ -271,17 +271,7 @@ Workflow:
 
 ## Animation Pipeline
 
-### Personality Selection
-
-Choose the right animation personality for your demo:
-
-| Personality | When to Use |
-|-------------|------------|
-| **Cinematic Dark** | Marketing, landing pages, presentations — maximum drama |
-| **Editorial** | Product showcases, content tools — content-forward |
-| **Neutral Light** | Internal reviews, quick iteration — minimal distraction |
-
-### Workflow
+### Prototype → Autoplay → Capture
 
 ```
 /prototype "your UI concept"          → Generate HTML prototype
@@ -289,7 +279,25 @@ Choose the right animation personality for your demo:
 /animate autoplay.html --mode capture  → Record to video
 ```
 
-See `.claude/skills/animate/SKILL.md` for full command reference and options.
+### Scenes → Sizzle Reel
+
+| Command | Purpose | Key MCP Tools |
+|---------|---------|---------------|
+| `/brief` | Guided brief authoring | list_brief_templates, get_brief_template |
+| `/storyboard` | Brief → scenes (planned) | — |
+| `/sizzle` | Scenes → rendered video | analyze_scene, plan_sequence, evaluate_sequence, validate_choreography |
+| `/review` | Quality evaluation | evaluate_sequence, validate_choreography |
+
+### Personalities & Style Packs
+
+| Personality | Style Packs | When to Use |
+|-------------|-------------|------------|
+| **cinematic-dark** | dramatic, intimate | Marketing, landing pages — maximum drama |
+| **editorial** | prestige, corporate, fade | Product showcases, content tools — content-forward |
+| **neutral-light** | minimal | Tutorials, onboarding — minimal distraction |
+| **montage** | energy, kinetic | Sizzle reels, brand launches — high energy |
+
+See `.claude/skills/animate/SKILL.md` and `.claude/skills/sizzle/SKILL.md` for full command references.
 
 ## Feature Design Process
 

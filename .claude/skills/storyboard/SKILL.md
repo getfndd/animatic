@@ -1,75 +1,101 @@
 ---
 name: storyboard
-description: "[PLANNED] Brief → classified assets → generated scenes. Depends on ANI-31."
+description: "Brief → classified assets → generated scenes. Validates, classifies, generates, writes scene JSON files."
 ---
 
-# /storyboard - Brief to Scenes (Planned)
+# /storyboard - Brief to Scenes
 
-> **Status: PLANNED** — This command is not yet functional. It depends on ANI-31 (asset classification + LLM scene generation).
+Transform a creative brief into a set of scene JSON files ready for the `/sizzle` pipeline.
 
-Transform a creative brief into a set of scene JSON files ready for the sizzle pipeline.
+## Usage
 
----
+```
+/storyboard <brief.json> [--style <name>] [--output <dir>]
+```
 
-## Planned Workflow
+| Argument | Description |
+|----------|-------------|
+| `<brief.json>` | Path to creative brief JSON file (required) |
+| `--style <name>` | Override style pack (default: inferred from brief template/tone) |
+| `--output <dir>` | Output directory for scene files (default: `scenes/`) |
 
-### 1. Load Brief
+## Workflow
 
-Read and validate `brief.json` against the schema in `docs/cinematography/specs/brief-schema.md`.
+### 1. Validate Brief
+
+Read and validate `brief.json` — checks required fields (project, content.sections), template ID, asset uniqueness, and referential integrity.
 
 ### 2. Classify Assets
 
-For each asset referenced in the brief:
-- Parse filename conventions for type hints
-- Read asset hints from the brief
-- (Future) Use vision model for content classification
-- Assign asset roles: hero, supporting, background, overlay
+For each asset in the brief, classify using 3-tier priority:
+1. **Explicit hint** (confidence 1.0) — `hint: "product"` → `product_shot`
+2. **Filename convention** (confidence 0.8) — `hero-dashboard.png` → `product_shot`
+3. **Extension fallback** (confidence 0.3) — `.svg` → `brand_mark`
 
-### 3. Generate Scenes (LLM)
+Assigns roles: hero, supporting, background, closing.
 
-Use structured output from an LLM to generate scene specifications:
-- Map brief sections to scenes
-- Assign assets to layers
-- Set duration targets from brief constraints
-- Apply template-specific scene patterns
+### 3. Resolve Template + Style
 
-### 4. Validate Scenes
+- Load named template (`product-launch`, `brand-story`, etc.) or infer virtual structure for `custom`
+- Resolve style: explicit > template default > tone inference > fallback to `prestige`
 
-Validate each generated scene against the scene format spec (`docs/cinematography/specs/scene-format.md`):
-- Required fields present
-- Layer structure valid
-- Duration within bounds
-- Asset references resolve
+### 4. Build Scene Plan
 
-### 5. Write Scene Files
+Expand template sections into concrete scenes:
+- Handle repeats (`repeat.min`/`max`) and optionals
+- Assign assets: honor explicit section refs → distribute unassigned by affinity → force `must_include`
+- 4+ assets in one section → auto-classify as collage/masonry-grid
 
-Write individual scene JSON files to a directory:
+### 5. Generate Scenes
+
+Build validated scene JSON for each plan entry:
+- Content-type-specific layer structures (typography, device-mockup, split-panel, etc.)
+- Camera always `static` (camera moves are the planner's job)
+- Weighted duration allocation (strong emphasis = 1.5×)
+- Brand colors and font applied to all text layers
+
+### 6. Write Scene Files
+
+Write individual scene JSON files:
 ```
 scenes/
-├── 00-opening.json
-├── 01-hero.json
-├── 02-features.json
-├── 03-demo.json
-└── 04-closing.json
+├── 00-sc_00_hero.json
+├── 01-sc_01_product.json
+├── 02-sc_02_features.json
+└── 03-sc_03_cta.json
 ```
 
----
+## MCP Tool
 
-## Not Yet Implemented
+Uses `generate_scenes` — pass a brief object, get validated scenes back.
 
-This skill requires:
-- Asset classification engine (ANI-31)
-- LLM structured output for scene generation (ANI-31)
-- Scene template library
+## Content Type → Layout Mapping
 
-Until ANI-31 is complete, create scene files manually following the scene format spec.
+| Content Type | Layout | Layers |
+|---|---|---|
+| typography | hero-center | bg HTML + fg text (word-reveal or scale-cascade) |
+| ui_screenshot | device-mockup | bg + device slot (image) + content slot (text) |
+| product_shot | device-mockup | bg + device slot (image) + content (text) |
+| portrait | split-panel | bg + left (image) + right (text) |
+| brand_mark | hero-center | bg + center (image/svg) + optional text |
+| collage | masonry-grid | cell-N slots (images) |
+| data_visualization | hero-center | bg + center (image) + text |
 
----
+## Templates
+
+| Template | Sections | Default Style |
+|----------|----------|---------------|
+| `product-launch` | Hero → Product → Features → Social Proof → CTA | prestige |
+| `brand-story` | Opening → Problem → People → Vision → Proof → Closing | intimate |
+| `investor-pitch` | Hook → Product → Traction → Team → Ask | corporate |
+| `photo-essay` | Title → Visual (repeat) → Grid → Closing | fade |
+| `tutorial` | Title → Step (repeat) → Result → Next Steps | minimal |
+| `custom` | Inferred from content sections | prestige |
 
 ## Related Commands
 
 | Command | Purpose |
 |---------|---------|
 | `/brief` | Author the creative brief (upstream) |
-| `/sizzle` | Scenes → rendered video (downstream) |
+| `/sizzle` | Scenes → rendered video (downstream) — also supports `--brief` flag |
 | `/review` | Evaluate sequence quality |

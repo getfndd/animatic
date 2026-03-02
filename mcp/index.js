@@ -40,6 +40,7 @@ import { analyzeScene } from './lib/analyze.js';
 import { planSequence, STYLE_PACKS } from './lib/planner.js';
 import { evaluateSequence } from './lib/evaluate.js';
 import { validateFullManifest } from './lib/guardrails.js';
+import { generateScenes } from './lib/generator.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -488,6 +489,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['template_id'],
       },
     },
+    {
+      name: 'generate_scenes',
+      description:
+        'Generate scene JSON files from a creative brief. Validates the brief, classifies assets, resolves template and style, builds a scene plan, and produces validated scene definitions. Returns scenes ready for analyze_scene → plan_sequence → render pipeline. This is the bridge between /brief and /sizzle.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          brief: {
+            type: 'object',
+            description: 'A creative brief object with project (title required), template (template_id or "custom"), content (sections array with label + text + optional assets), assets (array with id + src + optional hint), and optional brand, tone, style, constraints fields.',
+          },
+        },
+        required: ['brief'],
+      },
+    },
   ],
 }));
 
@@ -527,6 +543,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleListBriefTemplates(args);
     case 'get_brief_template':
       return handleGetBriefTemplate(args);
+    case 'generate_scenes':
+      return handleGenerateScenes(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1729,6 +1747,67 @@ function handleGetBriefTemplate(args) {
   out += '\n```\n';
 
   return { content: [{ type: 'text', text: out }] };
+}
+
+// ── generate_scenes ─────────────────────────────────────────────────────────
+
+function handleGenerateScenes(args) {
+  const { brief } = args;
+
+  if (!brief || typeof brief !== 'object') {
+    return {
+      content: [{
+        type: 'text',
+        text: 'Invalid input: `brief` must be a JSON object. See `get_brief_template` for the expected structure.',
+      }],
+      isError: true,
+    };
+  }
+
+  try {
+    const { scenes, notes } = generateScenes(brief);
+
+    let out = `# Generated Scenes\n\n`;
+    out += `**Template:** ${notes.template}\n`;
+    out += `**Style:** ${notes.style}\n`;
+    out += `**Scenes:** ${notes.scene_count}\n`;
+    out += `**Total Duration:** ${notes.total_duration_s.toFixed(1)}s\n\n`;
+
+    // Scene list table
+    out += '## Scenes\n\n';
+    out += '| # | Scene ID | Content Type | Layout | Duration | Intent |\n';
+    out += '|---|----------|-------------|--------|----------|--------|\n';
+    for (let i = 0; i < scenes.length; i++) {
+      const s = scenes[i];
+      const m = s.metadata || {};
+      out += `| ${i + 1} | \`${s.scene_id}\` | ${m.content_type || '—'} | ${s.layout?.template || '—'} | ${s.duration_s}s | ${(m.intent_tags || []).join(', ') || '—'} |\n`;
+    }
+
+    // Asset classification table
+    if (notes.asset_classification.length > 0) {
+      out += '\n## Asset Classification\n\n';
+      out += '| Asset ID | Content Type | Confidence | Role | Source |\n';
+      out += '|----------|-------------|------------|------|--------|\n';
+      for (const a of notes.asset_classification) {
+        out += `| ${a.id} | ${a.content_type} | ${(a.confidence * 100).toFixed(0)}% | ${a.role} | ${a.source} |\n`;
+      }
+    }
+
+    // Full scenes JSON
+    out += '\n## Full Scenes JSON\n\n```json\n';
+    out += JSON.stringify(scenes, null, 2);
+    out += '\n```\n';
+
+    return { content: [{ type: 'text', text: out }] };
+  } catch (err) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Scene generation failed: ${err.message}`,
+      }],
+      isError: true,
+    };
+  }
 }
 
 // ── Start server ────────────────────────────────────────────────────────────

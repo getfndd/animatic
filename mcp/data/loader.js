@@ -72,6 +72,13 @@ export function loadShotGrammar() {
   };
 }
 
+/** Load catalog/brief-templates.json → array + template_id map */
+export function loadBriefTemplates() {
+  const arr = loadJSON(resolve(CATALOG_DIR, 'brief-templates.json'));
+  const byId = new Map(arr.map(t => [t.template_id, t]));
+  return { array: arr, byId };
+}
+
 /** Load catalog/style-packs.json → array + name map, validates personality refs */
 export function loadStylePacks(personalitySlugs) {
   const arr = loadJSON(resolve(CATALOG_DIR, 'style-packs.json'));

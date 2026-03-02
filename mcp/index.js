@@ -27,6 +27,7 @@ import {
   loadIntentMappings,
   loadCameraGuardrails,
   loadStylePacks,
+  loadBriefTemplates,
   parseRegistry,
   parseBreakdownIndex,
   readBreakdown,
@@ -52,10 +53,11 @@ const cameraGuardrails = loadCameraGuardrails();
 const stylePacksCatalog = loadStylePacks(
   personalitiesCatalog.array.map(p => p.slug)
 );
+const briefTemplatesCatalog = loadBriefTemplates();
 const registry = parseRegistry();
 const breakdownIndex = parseBreakdownIndex();
 
-console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intent mappings, ${Object.keys(cameraGuardrails.primitive_amplitudes).length} guardrail amplitudes, ${breakdownIndex.length} breakdowns, ${stylePacksCatalog.array.length} style packs`);
+console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intent mappings, ${Object.keys(cameraGuardrails.primitive_amplitudes).length} guardrail amplitudes, ${breakdownIndex.length} breakdowns, ${stylePacksCatalog.array.length} style packs, ${briefTemplatesCatalog.array.length} brief templates`);
 
 // ── Server setup ────────────────────────────────────────────────────────────
 
@@ -461,6 +463,31 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['manifest', 'personality'],
       },
     },
+    {
+      name: 'list_brief_templates',
+      description:
+        'List all available creative brief templates. Returns template IDs, names, descriptions, default style packs, and suggested scene counts. Use this to help users choose a template before filling in a brief.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+    },
+    {
+      name: 'get_brief_template',
+      description:
+        'Get a creative brief template by ID. Returns the full template with section structure, suggested layouts/content types per section, defaults (style pack, tone, duration), and an example brief. Use this to understand what a brief template expects before generating scenes.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          template_id: {
+            type: 'string',
+            enum: briefTemplatesCatalog.array.map(t => t.template_id),
+            description: 'Brief template ID',
+          },
+        },
+        required: ['template_id'],
+      },
+    },
   ],
 }));
 
@@ -496,6 +523,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleEvaluateSequence(args);
     case 'validate_manifest':
       return handleValidateManifest(args);
+    case 'list_brief_templates':
+      return handleListBriefTemplates(args);
+    case 'get_brief_template':
+      return handleGetBriefTemplate(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1618,6 +1649,84 @@ function handleValidateManifest(args) {
   if (result.verdict === 'PASS' && result.cumulativeFindings.length === 0) {
     out += `All ${manifest.scenes.length} scenes pass guardrail validation for ${personality}.\n`;
   }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── list_brief_templates ─────────────────────────────────────────────────────
+
+function handleListBriefTemplates() {
+  const templates = briefTemplatesCatalog.array;
+
+  let out = '# Brief Templates\n\n';
+  out += `${templates.length} templates available for scene generation.\n\n`;
+  out += '| Template | Name | Style | Scenes | Description |\n';
+  out += '|----------|------|-------|--------|-------------|\n';
+  for (const t of templates) {
+    out += `| \`${t.template_id}\` | ${t.name} | ${t.defaults.style} | ${t.suggested_scene_count.min}-${t.suggested_scene_count.max} | ${t.description} |\n`;
+  }
+  out += '\nUse `get_brief_template` to see section structure, suggested layouts, and example content.\n';
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── get_brief_template ──────────────────────────────────────────────────────
+
+function handleGetBriefTemplate(args) {
+  const { template_id } = args;
+  const template = briefTemplatesCatalog.byId.get(template_id);
+
+  if (!template) {
+    const valid = briefTemplatesCatalog.array.map(t => t.template_id).join(', ');
+    return {
+      content: [{
+        type: 'text',
+        text: `Unknown brief template "${template_id}". Available: ${valid}`,
+      }],
+      isError: true,
+    };
+  }
+
+  let out = `# Brief Template: ${template.name}\n\n`;
+  out += `**ID:** \`${template.template_id}\`\n`;
+  out += `**Description:** ${template.description}\n\n`;
+
+  // Defaults
+  out += '## Defaults\n\n';
+  out += `| Setting | Value |\n`;
+  out += `|---------|-------|\n`;
+  out += `| Style pack | ${template.defaults.style} |\n`;
+  out += `| Duration target | ${template.defaults.duration_target_s}s |\n`;
+  out += `| Tone mood | ${template.defaults.tone.mood} |\n`;
+  out += `| Tone energy | ${template.defaults.tone.energy} |\n`;
+  out += `| Scene count | ${template.suggested_scene_count.min}-${template.suggested_scene_count.max} |\n`;
+
+  // Sections
+  out += '\n## Sections\n\n';
+  out += '| # | Label | Layout | Content Type | Intent | Repeat | Optional |\n';
+  out += '|---|-------|--------|-------------|--------|--------|----------|\n';
+  for (let i = 0; i < template.sections.length; i++) {
+    const s = template.sections[i];
+    const repeat = s.repeat ? `${s.repeat.min}-${s.repeat.max}` : '1';
+    out += `| ${i + 1} | **${s.label}** | ${s.suggested_layout} | ${s.suggested_content_type} | ${s.intent_tags.join(', ')} | ${repeat} | ${s.optional ? 'yes' : 'no'} |\n`;
+  }
+
+  out += '\n### Section Details\n\n';
+  for (const s of template.sections) {
+    out += `**${s.label}:** ${s.description}\n`;
+  }
+
+  // Example
+  if (template.example) {
+    out += '\n## Example Brief\n\n```json\n';
+    out += JSON.stringify(template.example, null, 2);
+    out += '\n```\n';
+  }
+
+  // Raw JSON
+  out += '\n## Raw Definition\n\n```json\n';
+  out += JSON.stringify(template, null, 2);
+  out += '\n```\n';
 
   return { content: [{ type: 'text', text: out }] };
 }

@@ -1,0 +1,589 @@
+[
+  {
+    "template_id": "brand-story",
+    "name": "Brand Story",
+    "description": "Narrative arc with emotional moments. Slow build, hero reveal, emotional close.",
+    "defaults": {
+      "style": "intimate",
+      "duration_target_s": 45,
+      "tone": {
+        "mood": "warm",
+        "energy": "low"
+      }
+    },
+    "suggested_scene_count": {
+      "min": 6,
+      "max": 12
+    },
+    "sections": [
+      {
+        "label": "Opening",
+        "description": "Set the mood — atmospheric shot or provocative question. No product yet.",
+        "emphasis": "normal",
+        "suggested_layout": "full-bleed",
+        "suggested_content_type": "typography",
+        "intent_tags": [
+          "opening"
+        ]
+      },
+      {
+        "label": "Problem",
+        "description": "The tension — what's broken, what's missing, what needs to change.",
+        "emphasis": "normal",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": [
+          "emotional"
+        ]
+      },
+      {
+        "label": "People",
+        "description": "The humans behind the brand. Portraits, team shots, candid moments.",
+        "emphasis": "strong",
+        "suggested_layout": "split-panel",
+        "suggested_content_type": "portrait",
+        "intent_tags": [
+          "emotional"
+        ],
+        "repeat": {
+          "min": 1,
+          "max": 3
+        }
+      },
+      {
+        "label": "Vision",
+        "description": "The answer — what the brand believes. The product as manifestation.",
+        "emphasis": "strong",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "product_shot",
+        "intent_tags": [
+          "hero"
+        ]
+      },
+      {
+        "label": "Proof",
+        "description": "Evidence — screenshots, metrics, real usage. Ground the vision.",
+        "emphasis": "normal",
+        "suggested_layout": "masonry-grid",
+        "suggested_content_type": "ui_screenshot",
+        "intent_tags": [
+          "detail"
+        ],
+        "optional": true,
+        "repeat": {
+          "min": 1,
+          "max": 2
+        }
+      },
+      {
+        "label": "Closing",
+        "description": "Brand mark + tagline. Emotional resolution.",
+        "emphasis": "normal",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "brand_mark",
+        "intent_tags": [
+          "closing"
+        ]
+      }
+    ],
+    "example": {
+      "project": {
+        "title": "Why We Built Harbor",
+        "description": "Brand story video for Harbor — a team communication platform built by remote workers, for remote workers."
+      },
+      "content": {
+        "headline": "Connection Shouldn't Be This Hard",
+        "sections": [
+          {
+            "label": "Opening",
+            "text": "Every day, 40 million people open a chat app and feel further apart."
+          },
+          {
+            "label": "Problem",
+            "text": "Messages get lost. Context disappears. Teams drift."
+          },
+          {
+            "label": "People",
+            "text": "We've been there.",
+            "assets": [
+              "team-founders"
+            ]
+          },
+          {
+            "label": "Vision",
+            "text": "Harbor — where conversations become connections",
+            "assets": [
+              "product-hero"
+            ]
+          },
+          {
+            "label": "Closing",
+            "text": "Harbor. Built remote-first.",
+            "assets": [
+              "logo"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "template_id": "investor-pitch",
+    "name": "Investor Pitch",
+    "description": "Metrics-forward, polished enterprise feel. Product + traction + team + ask.",
+    "defaults": {
+      "style": "corporate",
+      "duration_target_s": 30,
+      "tone": {
+        "mood": "authoritative",
+        "energy": "medium"
+      }
+    },
+    "suggested_scene_count": {
+      "min": 5,
+      "max": 8
+    },
+    "sections": [
+      {
+        "label": "Hook",
+        "description": "One-line problem statement or market opportunity. Grab attention.",
+        "emphasis": "strong",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": [
+          "opening",
+          "hero"
+        ]
+      },
+      {
+        "label": "Product",
+        "description": "What you've built. Product screenshot or demo clip.",
+        "emphasis": "strong",
+        "suggested_layout": "device-mockup",
+        "suggested_content_type": "product_shot",
+        "intent_tags": [
+          "hero"
+        ]
+      },
+      {
+        "label": "Traction",
+        "description": "Key metrics — revenue, users, growth rate. Numbers that prove momentum.",
+        "emphasis": "strong",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "data_visualization",
+        "intent_tags": [
+          "detail"
+        ],
+        "repeat": {
+          "min": 1,
+          "max": 2
+        }
+      },
+      {
+        "label": "Team",
+        "description": "Founders or key team. Builds credibility.",
+        "emphasis": "normal",
+        "suggested_layout": "split-panel",
+        "suggested_content_type": "portrait",
+        "intent_tags": [
+          "detail"
+        ],
+        "optional": true
+      },
+      {
+        "label": "Ask",
+        "description": "What you're raising, what it funds. Clean close with brand.",
+        "emphasis": "normal",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": [
+          "closing"
+        ]
+      }
+    ],
+    "example": {
+      "project": {
+        "title": "Acme Series A",
+        "description": "30-second pitch video for Series A fundraise. Show product, traction, and team."
+      },
+      "content": {
+        "headline": "$2B Market. 10x Growth.",
+        "sections": [
+          {
+            "label": "Hook",
+            "text": "Teams waste 5 hours a week on bad dashboards."
+          },
+          {
+            "label": "Product",
+            "text": "Acme fixes that.",
+            "assets": [
+              "product-hero"
+            ]
+          },
+          {
+            "label": "Traction",
+            "text": "500 teams. 3x revenue QoQ. 95% retention.",
+            "assets": [
+              "chart-growth"
+            ]
+          },
+          {
+            "label": "Team",
+            "text": "Built by ex-Stripe, ex-Figma engineers",
+            "assets": [
+              "team-founders"
+            ]
+          },
+          {
+            "label": "Ask",
+            "text": "Raising $8M to own the analytics layer.",
+            "assets": [
+              "logo"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "template_id": "photo-essay",
+    "name": "Photo Essay",
+    "description": "Visual-first, minimal text, atmospheric. Images do the talking. Soft transitions throughout.",
+    "defaults": {
+      "style": "fade",
+      "duration_target_s": 35,
+      "tone": {
+        "mood": "contemplative",
+        "energy": "low"
+      }
+    },
+    "suggested_scene_count": {
+      "min": 6,
+      "max": 15
+    },
+    "sections": [
+      {
+        "label": "Title",
+        "description": "Optional title card. Can be omitted for pure visual flow.",
+        "emphasis": "normal",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": [
+          "opening"
+        ],
+        "optional": true
+      },
+      {
+        "label": "Visual",
+        "description": "Each image or video as a full-frame moment. Repeat for each asset. Minimal or no text overlay.",
+        "emphasis": "normal",
+        "suggested_layout": "full-bleed",
+        "suggested_content_type": "portrait",
+        "intent_tags": [
+          "detail"
+        ],
+        "repeat": {
+          "min": 4,
+          "max": 12
+        }
+      },
+      {
+        "label": "Grid",
+        "description": "Optional mosaic — cluster related images together.",
+        "emphasis": "normal",
+        "suggested_layout": "masonry-grid",
+        "suggested_content_type": "moodboard",
+        "intent_tags": [
+          "detail"
+        ],
+        "optional": true
+      },
+      {
+        "label": "Closing",
+        "description": "Final image or subtle brand mark. No hard sell.",
+        "emphasis": "normal",
+        "suggested_layout": "full-bleed",
+        "suggested_content_type": "brand_mark",
+        "intent_tags": [
+          "closing"
+        ]
+      }
+    ],
+    "example": {
+      "project": {
+        "title": "Studio Visit — March 2026",
+        "description": "Photo essay from our studio in Portland. Atmospheric, no narration, let the images breathe."
+      },
+      "content": {
+        "sections": [
+          {
+            "label": "Title",
+            "text": "Studio Visit"
+          },
+          {
+            "label": "Visual",
+            "assets": [
+              "photo-exterior"
+            ]
+          },
+          {
+            "label": "Visual",
+            "assets": [
+              "photo-workspace"
+            ]
+          },
+          {
+            "label": "Visual",
+            "assets": [
+              "photo-detail-tools"
+            ]
+          },
+          {
+            "label": "Visual",
+            "assets": [
+              "photo-team-working"
+            ]
+          },
+          {
+            "label": "Grid",
+            "assets": [
+              "photo-detail-1",
+              "photo-detail-2",
+              "photo-detail-3",
+              "photo-detail-4"
+            ]
+          },
+          {
+            "label": "Closing",
+            "assets": [
+              "logo-mark"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "template_id": "product-launch",
+    "name": "Product Launch",
+    "description": "Hero product + features + social proof + CTA. Confident, forward-moving energy.",
+    "defaults": {
+      "style": "prestige",
+      "duration_target_s": 30,
+      "tone": {
+        "mood": "confident",
+        "energy": "medium"
+      }
+    },
+    "suggested_scene_count": {
+      "min": 4,
+      "max": 8
+    },
+    "sections": [
+      {
+        "label": "Hero",
+        "description": "Opening shot — product name or tagline. Sets the tone.",
+        "emphasis": "strong",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": [
+          "opening",
+          "hero"
+        ]
+      },
+      {
+        "label": "Product",
+        "description": "Hero product shot. Full-screen or device mockup. Show what it looks like.",
+        "emphasis": "strong",
+        "suggested_layout": "device-mockup",
+        "suggested_content_type": "product_shot",
+        "intent_tags": [
+          "hero"
+        ]
+      },
+      {
+        "label": "Features",
+        "description": "Key features or capabilities. Can split across 2-3 scenes for detail.",
+        "emphasis": "normal",
+        "suggested_layout": "split-panel",
+        "suggested_content_type": "ui_screenshot",
+        "intent_tags": [
+          "detail"
+        ],
+        "repeat": {
+          "min": 1,
+          "max": 3
+        }
+      },
+      {
+        "label": "Social Proof",
+        "description": "Testimonial, metric, or trust signal. Optional but effective.",
+        "emphasis": "normal",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": [
+          "emotional"
+        ],
+        "optional": true
+      },
+      {
+        "label": "CTA",
+        "description": "Closing — call to action + logo. Clean exit.",
+        "emphasis": "normal",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "brand_mark",
+        "intent_tags": [
+          "closing"
+        ]
+      }
+    ],
+    "example": {
+      "project": {
+        "title": "Acme Dashboard",
+        "description": "30-second product launch sizzle for our new analytics dashboard."
+      },
+      "content": {
+        "headline": "Analytics, Reimagined",
+        "sections": [
+          {
+            "label": "Hero",
+            "text": "Introducing Acme Dashboard"
+          },
+          {
+            "label": "Product",
+            "text": "Built for teams who move fast",
+            "assets": [
+              "product-hero"
+            ]
+          },
+          {
+            "label": "Features",
+            "text": "Real-time metrics. Custom reports.",
+            "assets": [
+              "ui-metrics"
+            ]
+          },
+          {
+            "label": "CTA",
+            "text": "Start free today",
+            "assets": [
+              "logo"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "template_id": "tutorial",
+    "name": "Tutorial / Walkthrough",
+    "description": "Step-by-step, UI-focused, educational. Clean cuts, no drama, content-forward.",
+    "defaults": {
+      "style": "minimal",
+      "duration_target_s": 40,
+      "tone": {
+        "mood": "clear",
+        "energy": "low"
+      }
+    },
+    "suggested_scene_count": {
+      "min": 5,
+      "max": 10
+    },
+    "sections": [
+      {
+        "label": "Title",
+        "description": "What you'll learn — clear, direct headline.",
+        "emphasis": "normal",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": [
+          "opening"
+        ]
+      },
+      {
+        "label": "Step",
+        "description": "Each step: screenshot + label. Repeat for each step in the flow.",
+        "emphasis": "normal",
+        "suggested_layout": "device-mockup",
+        "suggested_content_type": "ui_screenshot",
+        "intent_tags": [
+          "detail",
+          "informational"
+        ],
+        "repeat": {
+          "min": 3,
+          "max": 7
+        }
+      },
+      {
+        "label": "Result",
+        "description": "The outcome — what it looks like when you're done.",
+        "emphasis": "strong",
+        "suggested_layout": "full-bleed",
+        "suggested_content_type": "ui_screenshot",
+        "intent_tags": [
+          "hero"
+        ],
+        "optional": true
+      },
+      {
+        "label": "Next Steps",
+        "description": "Closing — where to go next, link, or CTA.",
+        "emphasis": "normal",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": [
+          "closing"
+        ]
+      }
+    ],
+    "example": {
+      "project": {
+        "title": "Setting Up Your First Dashboard",
+        "description": "Step-by-step tutorial showing how to create a custom dashboard in Acme Analytics."
+      },
+      "content": {
+        "headline": "Your First Dashboard in 3 Steps",
+        "sections": [
+          {
+            "label": "Title",
+            "text": "How to Build a Custom Dashboard"
+          },
+          {
+            "label": "Step",
+            "text": "1. Click 'New Dashboard' in the sidebar",
+            "assets": [
+              "screen-step1"
+            ]
+          },
+          {
+            "label": "Step",
+            "text": "2. Drag metrics from the library",
+            "assets": [
+              "screen-step2"
+            ]
+          },
+          {
+            "label": "Step",
+            "text": "3. Share with your team",
+            "assets": [
+              "screen-step3"
+            ]
+          },
+          {
+            "label": "Result",
+            "text": "Your dashboard, live",
+            "assets": [
+              "screen-final"
+            ]
+          },
+          {
+            "label": "Next Steps",
+            "text": "Learn more at docs.acme.com"
+          }
+        ]
+      }
+    }
+  }
+]

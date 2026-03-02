@@ -284,7 +284,7 @@ Workflow:
 | Command | Purpose | Key MCP Tools |
 |---------|---------|---------------|
 | `/brief` | Guided brief authoring | list_brief_templates, get_brief_template |
-| `/storyboard` | Brief → scenes (planned) | — |
+| `/storyboard` | Brief → classified assets → generated scenes | generate_scenes |
 | `/sizzle` | Scenes → rendered video | analyze_scene, plan_sequence, evaluate_sequence, validate_choreography |
 | `/review` | Quality evaluation | evaluate_sequence, validate_choreography |
 

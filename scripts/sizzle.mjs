@@ -8,9 +8,11 @@
  *
  * Usage:
  *   node scripts/sizzle.mjs <scenes-dir> [options]
+ *   node scripts/sizzle.mjs --brief <brief.json> [options]
  *
  * Options:
- *   --style <name>         Style pack (required). See --help for full list.
+ *   --brief <path>         Brief JSON file (alternative to scenes-dir)
+ *   --style <name>         Style pack (required with scenes-dir, inferred from brief)
  *   --output <path>        Output path (default: renders/sizzle-{style}-{timestamp}.mp4)
  *   --dry-run              Generate manifest JSON only, skip Remotion render
  *   --skip-evaluate        Skip quality evaluation step
@@ -33,6 +35,7 @@ import { planSequence, STYLE_PACKS, STYLE_TO_PERSONALITY } from '../mcp/lib/plan
 import { evaluateSequence } from '../mcp/lib/evaluate.js';
 import { validateFullManifest } from '../mcp/lib/guardrails.js';
 import { validateScene, validateManifest } from '../src/remotion/lib.js';
+import { generateScenes } from '../mcp/lib/generator.js';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -170,6 +173,7 @@ async function main() {
   const { values: opts, positionals } = parseArgs({
     allowPositionals: true,
     options: {
+      brief:             { type: 'string' },
       style:             { type: 'string' },
       output:            { type: 'string' },
       'dry-run':         { type: 'boolean', default: false },
@@ -184,10 +188,15 @@ async function main() {
   if (opts.help) {
     console.log(`
   Usage: node scripts/sizzle.mjs <scenes-dir> [options]
+         node scripts/sizzle.mjs --brief <brief.json> [options]
+
+  Input (one required):
+    <scenes-dir>          Directory of scene JSON files
+    --brief <path>        Brief JSON file (generates scenes automatically)
 
   Options:
-    --style <name>        Style pack (required). One of:
-                          ${STYLE_PACKS.join(', ')}
+    --style <name>        Style pack (required with scenes-dir, inferred from brief).
+                          One of: ${STYLE_PACKS.join(', ')}
     --output <path>       Output path (default: renders/sizzle-{style}-{timestamp}.mp4)
     --dry-run             Generate manifest JSON only, skip Remotion render
     --skip-evaluate       Skip quality evaluation step
@@ -196,60 +205,120 @@ async function main() {
     --verbose             Print per-scene analysis and planning details
     --help                Show usage
 
-  Pipeline:
-    1. Load scenes   → Read *.json from directory
-    2. Analyze       → Classify content type, weight, energy, intent
-    3. Plan          → Generate sequence manifest with style pack rules
-    4. Evaluate      → Score pacing, variety, flow, adherence (skippable)
-    5. Validate      → Check guardrails — blocks on safety violations (skippable)
-    6. Render        → Remotion video render (or dry-run JSON)
+  Pipeline (--brief mode):
+    0. Generate    → Brief → classified assets → scene JSON files
+    1. Analyze     → Classify content type, weight, energy, intent
+    2. Plan        → Generate sequence manifest with style pack rules
+    3. Evaluate    → Score pacing, variety, flow, adherence (skippable)
+    4. Validate    → Check guardrails — blocks on safety violations (skippable)
+    5. Render      → Remotion video render (or dry-run JSON)
+
+  Pipeline (scenes-dir mode):
+    1. Load scenes → Read *.json from directory
+    2. Analyze     → Classify content type, weight, energy, intent
+    3. Plan        → Generate sequence manifest with style pack rules
+    4. Evaluate    → Score pacing, variety, flow, adherence (skippable)
+    5. Validate    → Check guardrails — blocks on safety violations (skippable)
+    6. Render      → Remotion video render (or dry-run JSON)
     `);
     process.exit(0);
   }
 
-  // Validation
-  if (positionals.length === 0) {
-    console.error('Error: <scenes-dir> is required. Run with --help for usage.');
+  // Validation: need either scenes-dir or --brief
+  const briefMode = !!opts.brief;
+  if (!briefMode && positionals.length === 0) {
+    console.error('Error: <scenes-dir> or --brief <path> is required. Run with --help for usage.');
     process.exit(1);
   }
-
-  if (!opts.style) {
-    console.error(`Error: --style is required. Valid styles: ${STYLE_PACKS.join(', ')}`);
-    process.exit(1);
-  }
-
-  if (!STYLE_PACKS.includes(opts.style)) {
-    console.error(`Error: Unknown style "${opts.style}". Valid styles: ${STYLE_PACKS.join(', ')}`);
-    process.exit(1);
-  }
-
-  const scenesDir = path.resolve(positionals[0]);
-  if (!fs.existsSync(scenesDir) || !fs.statSync(scenesDir).isDirectory()) {
-    console.error(`Error: "${scenesDir}" is not a directory`);
+  if (briefMode && positionals.length > 0) {
+    console.error('Error: Cannot use both <scenes-dir> and --brief. Choose one.');
     process.exit(1);
   }
 
   const startTime = Date.now();
-  const style = opts.style;
   const verbose = opts.verbose;
   const dryRun = opts['dry-run'];
   const timestamp = Math.floor(Date.now() / 1000);
+  let scenes;
+  let style;
+  let scenesDir;
+  let tmpScenesDir;
+
+  if (briefMode) {
+    // ── Brief mode: generate scenes from brief ─────────────────────────────
+    const briefPath = path.resolve(opts.brief);
+    if (!fs.existsSync(briefPath)) {
+      console.error(`Error: Brief file "${briefPath}" not found`);
+      process.exit(1);
+    }
+
+    let brief;
+    try {
+      brief = JSON.parse(fs.readFileSync(briefPath, 'utf-8'));
+    } catch (err) {
+      console.error(`Error: Invalid JSON in brief file: ${err.message}`);
+      process.exit(1);
+    }
+
+    console.log(`\nSizzle Pipeline (brief mode)`);
+    console.log(`${'─'.repeat(50)}`);
+
+    // Step 0: Generate scenes
+    console.log(`0. Generating scenes from brief...`);
+    const { scenes: generatedScenes, notes } = generateScenes(brief);
+    console.log(`   ${notes.scene_count} scenes generated (template: ${notes.template}, style: ${notes.style})`);
+    if (verbose) {
+      for (const ps of notes.plan_summary) {
+        console.log(`   ${ps.label}: ${ps.content_type} (${ps.layout}), ${ps.asset_count} assets, [${ps.intent_tags.join(', ')}]`);
+      }
+    }
+
+    scenes = generatedScenes;
+
+    // Infer style from brief if not explicitly provided
+    style = opts.style || notes.style;
+
+    // Write generated scenes to temp dir for downstream compatibility
+    tmpScenesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sizzle-scenes-'));
+    for (let i = 0; i < scenes.length; i++) {
+      const filename = `${String(i).padStart(2, '0')}-${scenes[i].scene_id}.json`;
+      fs.writeFileSync(path.join(tmpScenesDir, filename), JSON.stringify(scenes[i], null, 2));
+    }
+    scenesDir = tmpScenesDir;
+  } else {
+    // ── Scenes-dir mode: load existing scenes ──────────────────────────────
+    if (!opts.style) {
+      console.error(`Error: --style is required. Valid styles: ${STYLE_PACKS.join(', ')}`);
+      process.exit(1);
+    }
+    style = opts.style;
+
+    scenesDir = path.resolve(positionals[0]);
+    if (!fs.existsSync(scenesDir) || !fs.statSync(scenesDir).isDirectory()) {
+      console.error(`Error: "${scenesDir}" is not a directory`);
+      process.exit(1);
+    }
+
+    console.log(`\nSizzle Pipeline`);
+    console.log(`${'─'.repeat(50)}`);
+
+    // Step 1: Load scenes
+    console.log(`1. Loading scenes...`);
+    scenes = loadScenes(scenesDir);
+    console.log(`   ${scenes.length} files from ${scenesDir}`);
+  }
+
+  if (!STYLE_PACKS.includes(style)) {
+    console.error(`Error: Unknown style "${style}". Valid styles: ${STYLE_PACKS.join(', ')}`);
+    process.exit(1);
+  }
 
   // Default output path
   const outputPath = opts.output
     ? path.resolve(opts.output)
     : path.resolve(PROJECT_ROOT, 'renders', `sizzle-${style}-${timestamp}.mp4`);
 
-  // Header
-  console.log(`\nSizzle Pipeline`);
-  console.log(`${'─'.repeat(50)}`);
-
-  // Step 1: Load scenes
-  console.log(`1. Loading scenes...`);
-  const scenes = loadScenes(scenesDir);
-  console.log(`   ${scenes.length} files from ${scenesDir}`);
-
-  console.log(`\n  Input:  ${scenesDir} (${scenes.length} scenes)`);
+  console.log(`\n  Input:  ${briefMode ? `brief → ${scenes.length} scenes` : `${scenesDir} (${scenes.length} scenes)`}`);
   console.log(`  Style:  ${style} (${STYLE_TO_PERSONALITY[style]})`);
   console.log(`  Output: ${dryRun ? '(dry run)' : outputPath}\n`);
 
@@ -346,6 +415,11 @@ async function main() {
     console.log(`6. Rendering video...`);
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     await renderVideo(props, outputPath);
+  }
+
+  // Cleanup temp dir
+  if (tmpScenesDir) {
+    fs.rmSync(tmpScenesDir, { recursive: true, force: true });
   }
 
   // Summary

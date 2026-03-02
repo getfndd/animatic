@@ -25,6 +25,7 @@ import {
 } from '../lib/planner.js';
 
 import { analyzeScene } from '../lib/analyze.js';
+import { evaluateSequence } from '../lib/evaluate.js';
 import { validateManifest } from '../../src/remotion/lib.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -719,11 +720,16 @@ describe('shot grammar on manifest entries (ANI-26)', () => {
 // ── Constants ───────────────────────────────────────────────────────────────
 
 describe('constants', () => {
-  it('STYLE_PACKS has 3 entries', () => {
-    assert.equal(STYLE_PACKS.length, 3);
+  it('STYLE_PACKS has 8 entries', () => {
+    assert.equal(STYLE_PACKS.length, 8);
     assert.ok(STYLE_PACKS.includes('prestige'));
     assert.ok(STYLE_PACKS.includes('energy'));
     assert.ok(STYLE_PACKS.includes('dramatic'));
+    assert.ok(STYLE_PACKS.includes('minimal'));
+    assert.ok(STYLE_PACKS.includes('intimate'));
+    assert.ok(STYLE_PACKS.includes('corporate'));
+    assert.ok(STYLE_PACKS.includes('kinetic'));
+    assert.ok(STYLE_PACKS.includes('fade'));
   });
 
   it('STYLE_TO_PERSONALITY maps all packs', () => {
@@ -751,9 +757,9 @@ describe('catalog-driven style packs (ANI-24)', () => {
     readFileSync(resolve(ROOT, 'catalog/style-packs.json'), 'utf-8')
   );
 
-  it('style-packs.json defines all 3 styles', () => {
+  it('style-packs.json defines all 8 styles', () => {
     const names = stylePacks.map(p => p.name);
-    assert.deepEqual(names.sort(), ['dramatic', 'energy', 'prestige']);
+    assert.deepEqual(names.sort(), ['corporate', 'dramatic', 'energy', 'fade', 'intimate', 'kinetic', 'minimal', 'prestige']);
   });
 
   it('each pack has required fields', () => {
@@ -861,5 +867,288 @@ describe('camera personality validation (ANI-24)', () => {
       assert.deepEqual(overrides[0], { move: 'static' },
         `Energy should force static for ${contentType}`);
     }
+  });
+});
+
+// ── ANI-30: New style packs ─────────────────────────────────────────────────
+
+describe('new style packs (ANI-30)', () => {
+  // Load ground truth for "all 8 packs produce valid manifests" tests
+  const analyzedKinetic = kineticScenes.map(scene => {
+    const analysis = analyzeScene(scene);
+    return { ...scene, metadata: analysis.metadata };
+  });
+
+  // ── minimal ──
+  it('minimal: all transitions are hard_cut', () => {
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'light', content_type: 'ui_screenshot' }),
+      makeScene('sc_c', { visual_weight: 'dark', intent_tags: ['emotional'], content_type: 'portrait' }),
+    ];
+    const transitions = selectTransitions(scenes, 'minimal');
+    for (let i = 1; i < transitions.length; i++) {
+      assert.equal(transitions[i].type, 'hard_cut',
+        `minimal scene ${i} should be hard_cut, got ${transitions[i].type}`);
+    }
+  });
+
+  it('minimal: force_static camera for all content types', () => {
+    for (const contentType of ['portrait', 'ui_screenshot', 'typography', 'product_shot']) {
+      const scenes = [makeScene('sc_a', { content_type: contentType })];
+      const overrides = assignCameraOverrides(scenes, 'minimal');
+      assert.deepEqual(overrides[0], { move: 'static' },
+        `minimal ${contentType} should be static`);
+    }
+  });
+
+  it('minimal: durations >= 3.0s for all energy levels', () => {
+    for (const energy of ['static', 'subtle', 'moderate', 'high']) {
+      const scenes = [makeScene('sc_a', { motion_energy: energy })];
+      const durations = assignDurations(scenes, 'minimal');
+      assert.ok(durations[0] >= 3.0,
+        `minimal ${energy}: expected >= 3.0s, got ${durations[0]}`);
+    }
+  });
+
+  // ── intimate ──
+  it('intimate: emotional scenes get 800ms crossfade', () => {
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'dark', intent_tags: ['emotional'] }),
+    ];
+    const transitions = selectTransitions(scenes, 'intimate');
+    assert.equal(transitions[1].type, 'crossfade');
+    assert.equal(transitions[1].duration_ms, 800);
+  });
+
+  it('intimate: default crossfade is 500ms', () => {
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'light', content_type: 'ui_screenshot' }),
+    ];
+    const transitions = selectTransitions(scenes, 'intimate');
+    assert.equal(transitions[1].type, 'crossfade');
+    assert.equal(transitions[1].duration_ms, 500);
+  });
+
+  it('intimate: push_in 0.15 for portrait', () => {
+    const scenes = [makeScene('sc_a', { content_type: 'portrait' })];
+    const overrides = assignCameraOverrides(scenes, 'intimate');
+    assert.deepEqual(overrides[0], { move: 'push_in', intensity: 0.15 });
+  });
+
+  // ── corporate ──
+  it('corporate: crossfade 300ms on weight change', () => {
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'light' }),
+    ];
+    const transitions = selectTransitions(scenes, 'corporate');
+    assert.equal(transitions[1].type, 'crossfade');
+    assert.equal(transitions[1].duration_ms, 300);
+  });
+
+  it('corporate: hard_cut default (same weight)', () => {
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'dark', content_type: 'ui_screenshot' }),
+    ];
+    const transitions = selectTransitions(scenes, 'corporate');
+    assert.equal(transitions[1].type, 'hard_cut');
+  });
+
+  it('corporate: uniform pacing (2.5-3.0s range)', () => {
+    for (const energy of ['static', 'subtle', 'moderate', 'high']) {
+      const scenes = [makeScene('sc_a', { motion_energy: energy })];
+      const durations = assignDurations(scenes, 'corporate');
+      assert.ok(durations[0] >= 2.5 && durations[0] <= 3.0,
+        `corporate ${energy}: expected 2.5-3.0s, got ${durations[0]}`);
+    }
+  });
+
+  // ── kinetic ──
+  it('kinetic: whip every 2nd transition at 200ms', () => {
+    const scenes = Array.from({ length: 5 }, (_, i) =>
+      makeScene(`sc_${i}`, { content_type: i % 2 === 0 ? 'typography' : 'ui_screenshot' })
+    );
+    const transitions = selectTransitions(scenes, 'kinetic');
+    // Position 2 and 4 should be whips (every_n=2)
+    assert.ok(transitions[2].type.startsWith('whip_'),
+      `Expected whip at index 2, got ${transitions[2].type}`);
+    assert.equal(transitions[2].duration_ms, 200);
+    assert.ok(transitions[4].type.startsWith('whip_'),
+      `Expected whip at index 4, got ${transitions[4].type}`);
+    assert.equal(transitions[4].duration_ms, 200);
+  });
+
+  it('kinetic: max_hold_duration 3.0s enforced', () => {
+    const scenes = [makeScene('sc_a', { motion_energy: 'static' })];
+    const durations = assignDurations(scenes, 'kinetic');
+    assert.ok(durations[0] <= 3.0,
+      `kinetic static: expected <= 3.0s, got ${durations[0]}`);
+  });
+
+  it('kinetic: force_static camera', () => {
+    const scenes = [makeScene('sc_a', { content_type: 'portrait', intent_tags: ['hero'] })];
+    const overrides = assignCameraOverrides(scenes, 'kinetic');
+    assert.deepEqual(overrides[0], { move: 'static' });
+  });
+
+  // ── fade ──
+  it('fade: all transitions are crossfade 500ms', () => {
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'dark', intent_tags: ['emotional'], content_type: 'ui_screenshot' }),
+      makeScene('sc_c', { visual_weight: 'light', content_type: 'portrait' }),
+    ];
+    const transitions = selectTransitions(scenes, 'fade');
+    for (let i = 1; i < transitions.length; i++) {
+      assert.equal(transitions[i].type, 'crossfade',
+        `fade scene ${i} should be crossfade`);
+      assert.equal(transitions[i].duration_ms, 500,
+        `fade scene ${i} should be 500ms`);
+    }
+  });
+
+  it('fade: push_in 0.1 for portrait/product only, null for others', () => {
+    const portrait = [makeScene('sc_a', { content_type: 'portrait' })];
+    const product = [makeScene('sc_a', { content_type: 'product_shot' })];
+    const typo = [makeScene('sc_a', { content_type: 'typography' })];
+
+    assert.deepEqual(assignCameraOverrides(portrait, 'fade')[0], { move: 'push_in', intensity: 0.1 });
+    assert.deepEqual(assignCameraOverrides(product, 'fade')[0], { move: 'push_in', intensity: 0.1 });
+    assert.equal(assignCameraOverrides(typo, 'fade')[0], null);
+  });
+
+  // ── All 8 packs: valid manifests ──
+  it('all 8 packs produce valid manifests from ground truth scenes', () => {
+    for (const style of STYLE_PACKS) {
+      const { manifest } = planSequence({
+        scenes: analyzedKinetic,
+        style,
+        sequence_id: `seq_ani30_${style}`,
+      });
+
+      const validation = validateManifest(manifest);
+      assert.ok(validation.valid,
+        `${style} validation failed: ${validation.errors.join('; ')}`);
+    }
+  });
+
+  it('all 8 packs work through plan → evaluate (score > 0)', () => {
+    for (const style of STYLE_PACKS) {
+      const { manifest } = planSequence({
+        scenes: analyzedKinetic,
+        style,
+        sequence_id: `seq_ani30_eval_${style}`,
+      });
+      const result = evaluateSequence({ manifest, scenes: analyzedKinetic, style });
+      assert.ok(result.score > 0,
+        `${style} evaluate score should be > 0, got ${result.score}`);
+      assert.ok(result.score <= 100,
+        `${style} evaluate score should be <= 100, got ${result.score}`);
+    }
+  });
+});
+
+// ── ANI-30: Per-scene style blending ────────────────────────────────────────
+
+describe('per-scene style blending (ANI-30)', () => {
+  it('style_override affects duration for that scene only', () => {
+    const scenes = [
+      makeScene('sc_a', { motion_energy: 'moderate' }),
+      makeScene('sc_b', { motion_energy: 'moderate', style_override: 'energy' }),
+      makeScene('sc_c', { motion_energy: 'moderate' }),
+    ];
+    const durations = assignDurations(scenes, 'prestige');
+    // prestige moderate = 3.0, energy moderate = 1.5
+    assert.equal(durations[0], 3.0, 'Scene 0 should use prestige duration');
+    assert.equal(durations[1], 1.5, 'Scene 1 should use energy duration (override)');
+    assert.equal(durations[2], 3.0, 'Scene 2 should use prestige duration');
+  });
+
+  it('style_override affects transition for incoming scene', () => {
+    const scenes = [
+      makeScene('sc_a', { visual_weight: 'dark' }),
+      makeScene('sc_b', { visual_weight: 'light', style_override: 'fade' }),
+    ];
+    const transitions = selectTransitions(scenes, 'prestige');
+    // fade default = crossfade 500ms (not prestige's weight-change crossfade 400ms)
+    assert.equal(transitions[1].type, 'crossfade');
+    assert.equal(transitions[1].duration_ms, 500);
+  });
+
+  it('style_override affects camera per scene', () => {
+    const scenes = [
+      makeScene('sc_a', { content_type: 'portrait' }),
+      makeScene('sc_b', { content_type: 'portrait', style_override: 'energy' }),
+    ];
+    const overrides = assignCameraOverrides(scenes, 'prestige');
+    // prestige portrait = push_in 0.2, energy = force_static
+    assert.deepEqual(overrides[0], { move: 'push_in', intensity: 0.2 });
+    assert.deepEqual(overrides[1], { move: 'static' });
+  });
+
+  it('planSequence produces valid manifest with mixed styles', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'] }),
+      makeScene('sc_b', { intent_tags: ['detail'], content_type: 'ui_screenshot', style_override: 'energy' }),
+      makeScene('sc_c', { intent_tags: ['closing'], content_type: 'brand_mark' }),
+    ];
+    const { manifest } = planSequence({
+      scenes,
+      style: 'prestige',
+      sequence_id: 'seq_blend_test',
+    });
+
+    const validation = validateManifest(manifest);
+    assert.ok(validation.valid, `Validation failed: ${validation.errors.join('; ')}`);
+  });
+
+  it('notes includes style_overrides_used', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'] }),
+      makeScene('sc_b', { intent_tags: ['detail'], content_type: 'ui_screenshot', style_override: 'dramatic' }),
+      makeScene('sc_c', { intent_tags: ['closing'], content_type: 'brand_mark', style_override: 'fade' }),
+    ];
+    const { notes } = planSequence({
+      scenes,
+      style: 'prestige',
+      sequence_id: 'seq_blend_notes',
+    });
+
+    assert.ok(notes.style_overrides_used, 'notes should include style_overrides_used');
+    assert.ok(notes.style_overrides_used.includes('dramatic'));
+    assert.ok(notes.style_overrides_used.includes('fade'));
+  });
+
+  it('unknown style_override throws', () => {
+    const scenes = [
+      makeScene('sc_a', { style_override: 'nonexistent' }),
+    ];
+    assert.throws(
+      () => assignDurations(scenes, 'prestige'),
+      /Unknown style_override "nonexistent"/
+    );
+  });
+
+  it('no style_override = backward compatible (identical output)', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'], motion_energy: 'subtle' }),
+      makeScene('sc_b', { intent_tags: ['detail'], content_type: 'ui_screenshot', motion_energy: 'moderate' }),
+      makeScene('sc_c', { intent_tags: ['closing'], content_type: 'brand_mark', motion_energy: 'static' }),
+    ];
+    const result1 = planSequence({ scenes, style: 'prestige', sequence_id: 'seq_compat_1' });
+    const result2 = planSequence({ scenes, style: 'prestige', sequence_id: 'seq_compat_2' });
+
+    // Manifests should be structurally identical (ignoring sequence_id)
+    assert.equal(result1.manifest.scenes.length, result2.manifest.scenes.length);
+    for (let i = 0; i < result1.manifest.scenes.length; i++) {
+      assert.equal(result1.manifest.scenes[i].duration_s, result2.manifest.scenes[i].duration_s);
+      assert.deepEqual(result1.manifest.scenes[i].transition_in, result2.manifest.scenes[i].transition_in);
+      assert.deepEqual(result1.manifest.scenes[i].camera_override, result2.manifest.scenes[i].camera_override);
+    }
+    assert.ok(!result1.notes.style_overrides_used, 'No overrides should mean no style_overrides_used in notes');
   });
 });

@@ -625,3 +625,58 @@ describe('evaluateSequence — layout ground truth', () => {
       `Expected > 50 for planner-generated manifest, got ${result.score}`);
   });
 });
+
+// ── ANI-30: Per-scene style blending in evaluator ────────────────────────────
+
+describe('per-scene style blending in evaluator (ANI-30)', () => {
+  it('evaluateSequence handles blended manifest (score 0-100)', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'], motion_energy: 'subtle' }),
+      makeScene('sc_b', { motion_energy: 'moderate', content_type: 'ui_screenshot', style_override: 'energy' }),
+      makeScene('sc_c', { intent_tags: ['closing'], motion_energy: 'subtle', content_type: 'brand_mark' }),
+    ];
+    const { manifest } = planSequence({
+      scenes,
+      style: 'prestige',
+      sequence_id: 'seq_eval_blend',
+    });
+    const result = evaluateSequence({ manifest, scenes, style: 'prestige' });
+    assert.ok(result.score >= 0 && result.score <= 100,
+      `Score ${result.score} out of range`);
+    assert.ok(result.dimensions.pacing);
+    assert.ok(result.dimensions.adherence);
+  });
+
+  it('pacing scorer uses per-scene pack for expected durations', () => {
+    const scenes = [
+      makeScene('sc_a', { motion_energy: 'moderate' }),
+      makeScene('sc_b', { motion_energy: 'moderate', style_override: 'energy' }),
+      makeScene('sc_c', { motion_energy: 'moderate' }),
+    ];
+    // Build manifest with correct per-scene durations
+    const manifestScenes = [
+      makeManifestScene('sc_a', 3.0),   // prestige moderate = 3.0
+      makeManifestScene('sc_b', 1.5),   // energy moderate = 1.5
+      makeManifestScene('sc_c', 3.0),   // prestige moderate = 3.0
+    ];
+    const sceneMap = buildSceneMap(scenes);
+    const { score } = scorePacing(manifestScenes, sceneMap, 'prestige');
+    // Should score high because durations match per-scene expectations
+    assert.ok(score >= 80, `Expected high pacing score for matching per-scene durations, got ${score}`);
+  });
+
+  it('no override = identical to single-style evaluation', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'], motion_energy: 'subtle' }),
+      makeScene('sc_b', { motion_energy: 'moderate', content_type: 'ui_screenshot' }),
+      makeScene('sc_c', { intent_tags: ['closing'], motion_energy: 'subtle', content_type: 'brand_mark' }),
+    ];
+    const { manifest } = planSequence({ scenes, style: 'prestige', sequence_id: 'seq_eval_nooverride' });
+
+    const result1 = evaluateSequence({ manifest, scenes, style: 'prestige' });
+    const result2 = evaluateSequence({ manifest, scenes, style: 'prestige' });
+    assert.equal(result1.score, result2.score, 'Same input should produce same score');
+    assert.equal(result1.dimensions.pacing.score, result2.dimensions.pacing.score);
+    assert.equal(result1.dimensions.adherence.score, result2.dimensions.adherence.score);
+  });
+});

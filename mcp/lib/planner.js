@@ -50,6 +50,21 @@ function getStylePack(style) {
 }
 
 /**
+ * Resolve the effective style pack for a scene.
+ * If the scene has metadata.style_override, use that pack instead.
+ * Falls back to the sequence-level default style.
+ */
+function resolveScenePack(scene, defaultStyle) {
+  const override = scene.metadata?.style_override;
+  if (override) {
+    const pack = stylePacksCatalog.byName.get(override);
+    if (!pack) throw new Error(`Unknown style_override "${override}". Valid: ${STYLE_PACKS.join(', ')}`);
+    return pack;
+  }
+  return getStylePack(defaultStyle);
+}
+
+/**
  * Normalize snake_case camera move to kebab-case for personality lookup.
  * e.g., "push_in" → "push-in"
  */
@@ -279,10 +294,9 @@ function applyVarietyRules(scenes) {
  * @returns {number[]} — Array of duration_s values.
  */
 export function assignDurations(orderedScenes, style) {
-  const pack = getStylePack(style);
-  const table = pack.hold_durations;
-
   return orderedScenes.map(scene => {
+    const pack = resolveScenePack(scene, style);
+    const table = pack.hold_durations;
     const energy = scene.metadata?.motion_energy || 'moderate';
     let duration = table[energy] ?? table.moderate;
 
@@ -305,14 +319,13 @@ export function assignDurations(orderedScenes, style) {
  * @returns {(object|null)[]} — Array of transition_in objects (or null for first).
  */
 export function selectTransitions(orderedScenes, style) {
-  const pack = getStylePack(style);
-  const rules = pack.transitions;
   const transitions = [null]; // First scene: no transition
 
   for (let i = 1; i < orderedScenes.length; i++) {
+    const pack = resolveScenePack(orderedScenes[i], style);
     const prevScene = orderedScenes[i - 1];
     const currScene = orderedScenes[i];
-    transitions.push(interpretTransitionRules(rules, prevScene, currScene, i));
+    transitions.push(interpretTransitionRules(pack.transitions, prevScene, currScene, i));
   }
 
   return transitions;
@@ -378,13 +391,10 @@ function interpretTransitionRules(rules, prevScene, currScene, sceneIndex) {
  * @returns {(object|null)[]} — Array of camera_override objects (or null for no override).
  */
 export function assignCameraOverrides(orderedScenes, style) {
-  const pack = getStylePack(style);
-  const rules = pack.camera_overrides;
-  const personalitySlug = pack.personality;
-
   return orderedScenes.map(scene => {
-    const override = interpretCameraRules(rules, scene);
-    return validateCameraMove(override, personalitySlug);
+    const pack = resolveScenePack(scene, style);
+    const override = interpretCameraRules(pack.camera_overrides, scene);
+    return validateCameraMove(override, pack.personality);
   });
 }
 
@@ -460,7 +470,7 @@ export function planSequence({ scenes, style, sequence_id }) {
 
   // Assemble manifest
   const seqId = sequence_id || `seq_planned_${Date.now()}`;
-  const personalitySlug = STYLE_TO_PERSONALITY[style];
+  const overridesUsed = new Set();
   const manifestScenes = ordered.map((scene, i) => {
     const entry = {
       scene: scene.scene_id || scene.id || `scene_${i}`,
@@ -475,11 +485,17 @@ export function planSequence({ scenes, style, sequence_id }) {
       entry.camera_override = cameraOverrides[i];
     }
 
-    // ANI-26: Add validated shot grammar
+    // ANI-26: Add validated shot grammar (use per-scene personality)
     const rawGrammar = scene.metadata?.shot_grammar;
     if (rawGrammar) {
-      const validation = validateShotGrammar(rawGrammar, personalitySlug);
+      const scenePack = resolveScenePack(scene, style);
+      const validation = validateShotGrammar(rawGrammar, scenePack.personality);
       entry.shot_grammar = validation.result;
+    }
+
+    // Track style overrides
+    if (scene.metadata?.style_override) {
+      overridesUsed.add(scene.metadata.style_override);
     }
 
     return entry;
@@ -522,6 +538,7 @@ export function planSequence({ scenes, style, sequence_id }) {
     style_personality: STYLE_TO_PERSONALITY[style],
     ordering_rationale: buildOrderingRationale(ordered),
     transition_summary: transitionCounts,
+    ...(overridesUsed.size > 0 ? { style_overrides_used: [...overridesUsed] } : {}),
   };
 
   return { manifest, notes };

@@ -77,5 +77,117 @@
         "detail":    { "move": "drift",   "intensity": 0.3 }
       }
     }
+  },
+  {
+    "name": "minimal",
+    "personality": "neutral-light",
+    "description": "Clean tutorial style. Uniform holds, hard cuts only, all cameras static. Zero visual embellishment — content speaks for itself.",
+    "hold_durations": {
+      "static": 4.0,
+      "subtle": 3.5,
+      "moderate": 3.0,
+      "high": 3.0
+    },
+    "max_hold_duration": null,
+    "transitions": {
+      "default": { "type": "hard_cut" }
+    },
+    "camera_overrides": {
+      "force_static": true
+    }
+  },
+  {
+    "name": "intimate",
+    "personality": "cinematic-dark",
+    "description": "Slow-burn brand narrative. Longer holds, crossfade-heavy (800ms for emotional, 500ms default), subtle push_in for portraits/products, drift elsewhere.",
+    "hold_durations": {
+      "static": 4.0,
+      "subtle": 3.5,
+      "moderate": 3.0,
+      "high": 3.0
+    },
+    "max_hold_duration": null,
+    "transitions": {
+      "on_intent": {
+        "tags": ["emotional"],
+        "transition": { "type": "crossfade", "duration_ms": 800 }
+      },
+      "default": { "type": "crossfade", "duration_ms": 500 }
+    },
+    "camera_overrides": {
+      "by_content_type": {
+        "portrait":      { "move": "push_in", "intensity": 0.15 },
+        "product_shot":  { "move": "push_in", "intensity": 0.15 }
+      },
+      "by_intent": {
+        "detail": { "move": "drift", "intensity": 0.15 }
+      }
+    }
+  },
+  {
+    "name": "corporate",
+    "personality": "editorial",
+    "description": "Polished enterprise demo. Uniform pacing, crossfade on weight changes, hard cut default, selective push_in for products and drift for UI.",
+    "hold_durations": {
+      "static": 3.0,
+      "subtle": 2.75,
+      "moderate": 2.5,
+      "high": 2.5
+    },
+    "max_hold_duration": null,
+    "transitions": {
+      "on_weight_change": { "type": "crossfade", "duration_ms": 300 },
+      "default": { "type": "hard_cut" }
+    },
+    "camera_overrides": {
+      "by_content_type": {
+        "product_shot":  { "move": "push_in", "intensity": 0.15 },
+        "ui_screenshot": { "move": "drift",   "intensity": 0.15 }
+      }
+    }
+  },
+  {
+    "name": "kinetic",
+    "personality": "montage",
+    "description": "Rapid keynote energy. Very short holds with hard cap, every-2nd whip-wipe, all cameras static. Maximum pace for launches and sizzle.",
+    "hold_durations": {
+      "static": 1.5,
+      "subtle": 1.5,
+      "moderate": 1.0,
+      "high": 1.0
+    },
+    "max_hold_duration": 3.0,
+    "transitions": {
+      "pattern": {
+        "every_n": 2,
+        "cycle": ["whip_left", "whip_right"],
+        "duration_ms": 200
+      },
+      "default": { "type": "hard_cut" }
+    },
+    "camera_overrides": {
+      "force_static": true
+    }
+  },
+  {
+    "name": "fade",
+    "personality": "editorial",
+    "description": "Soft gallery style. All crossfade transitions (500ms), minimal camera — push_in only for portraits/products, nothing else.",
+    "hold_durations": {
+      "static": 3.0,
+      "subtle": 2.5,
+      "moderate": 2.0,
+      "high": 2.0
+    },
+    "max_hold_duration": null,
+    "transitions": {
+      "default": { "type": "crossfade", "duration_ms": 500 }
+    },
+    "camera_overrides": {
+      "by_content_type": {
+        "portrait":     { "move": "push_in", "intensity": 0.1 },
+        "product_shot": { "move": "push_in", "intensity": 0.1 }
+      }
+    }
   }
 ]

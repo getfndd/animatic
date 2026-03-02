@@ -382,19 +382,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'plan_sequence',
       description:
-        'Plan a sequence from analyzed scenes and a style pack. Decides shot order, hold durations, transitions, and camera overrides. Returns a valid sequence manifest with editorial notes. Scenes must have metadata (use analyze_scene first).',
+        'Plan a sequence from analyzed scenes and a style pack. Decides shot order, hold durations, transitions, and camera overrides. Returns a valid sequence manifest with editorial notes. Scenes must have metadata (use analyze_scene first). Supports per-scene style blending via metadata.style_override.',
       inputSchema: {
         type: 'object',
         properties: {
           scenes: {
             type: 'array',
             items: { type: 'object' },
-            description: 'Array of scene objects with metadata (content_type, visual_weight, motion_energy, intent_tags). Use analyze_scene to generate metadata for each scene first.',
+            description: 'Array of scene objects with metadata (content_type, visual_weight, motion_energy, intent_tags). Use analyze_scene to generate metadata for each scene first. Optional: set metadata.style_override to a style pack name to blend styles per scene.',
           },
           style: {
             type: 'string',
             enum: STYLE_PACKS,
-            description: 'Style pack: "prestige" (editorial, longer holds, hard cuts), "energy" (montage, short holds, whip-wipes), or "dramatic" (cinematic-dark, crossfades, push-in camera)',
+            description: 'Default style pack for the sequence. Individual scenes can override via metadata.style_override.',
           },
         },
         required: ['scenes', 'style'],
@@ -419,7 +419,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'evaluate_sequence',
       description:
-        'Score a planned sequence manifest against style rules and cinematography principles. Returns pacing, variety, flow, and adherence scores (0-100) plus findings.',
+        'Score a planned sequence manifest against style rules and cinematography principles. Returns pacing, variety, flow, and adherence scores (0-100) plus findings. Handles per-scene style blending — scenes with metadata.style_override are scored against their override pack.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -430,12 +430,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           scenes: {
             type: 'array',
             items: { type: 'object' },
-            description: 'Analyzed scene objects with metadata (same scenes used for plan_sequence)',
+            description: 'Analyzed scene objects with metadata (same scenes used for plan_sequence). Scenes with metadata.style_override are evaluated against their per-scene style pack.',
           },
           style: {
             type: 'string',
             enum: STYLE_PACKS,
-            description: 'Style pack to evaluate against: "prestige", "energy", or "dramatic"',
+            description: 'Default style pack to evaluate against. Individual scenes with metadata.style_override use their override pack instead.',
           },
         },
         required: ['manifest', 'scenes', 'style'],

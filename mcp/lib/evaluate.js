@@ -37,6 +37,21 @@ function getStylePack(style) {
 }
 
 /**
+ * Resolve the effective style pack for a scene.
+ * Graceful fallback: if style_override is unknown, fall back to default.
+ * Evaluator should never throw on bad overrides — just score against default.
+ */
+function resolveScenePack(scene, defaultStyle) {
+  const override = scene?.metadata?.style_override;
+  if (override) {
+    const pack = stylePacksCatalog.byName.get(override);
+    if (pack) return pack;
+    // Unknown override — fall back to default
+  }
+  return getStylePack(defaultStyle);
+}
+
+/**
  * Parse a personality loop_time string like "12-16s" into { min, max }.
  */
 export function parseLoopTimeRange(str) {
@@ -153,7 +168,7 @@ export function getExpectedCamera(rules, scene, personalitySlug) {
  * Confidence weighting: low-confidence motion_energy = less penalty.
  */
 export function scorePacing(manifestScenes, sceneMap, style) {
-  const pack = getStylePack(style);
+  const defaultPack = getStylePack(style);
   const findings = [];
 
   if (manifestScenes.length === 0) {
@@ -173,6 +188,7 @@ export function scorePacing(manifestScenes, sceneMap, style) {
     const scene = sceneMap.get(ms.scene);
     if (!scene) continue;
 
+    const pack = resolveScenePack(scene, style);
     const energy = scene.metadata?.motion_energy || 'moderate';
     const expected = getExpectedDuration(energy, pack);
     const actual = ms.duration_s;
@@ -213,9 +229,8 @@ export function scorePacing(manifestScenes, sceneMap, style) {
 
   let score = Math.max(0, 100 - (totalPenalty / manifestScenes.length));
 
-  // Total duration vs personality loop_time range
-  const personalitySlug = pack.personality;
-  const personality = personalitiesCatalog.bySlug.get(personalitySlug);
+  // Total duration vs personality loop_time range (uses sequence-level pack)
+  const personality = personalitiesCatalog.bySlug.get(defaultPack.personality);
   if (personality) {
     const loopRange = parseLoopTimeRange(personality.characteristics?.loop_time);
     if (loopRange) {
@@ -361,7 +376,6 @@ export function scoreVariety(manifestScenes, sceneMap) {
  *   - Transition coherence (30%): transitions match style pack rules
  */
 export function scoreFlow(manifestScenes, sceneMap, style) {
-  const pack = getStylePack(style);
   const findings = [];
 
   if (manifestScenes.length <= 1) {
@@ -474,7 +488,8 @@ export function scoreFlow(manifestScenes, sceneMap, style) {
       if (!prev || !curr) continue;
 
       total++;
-      const expected = getExpectedTransition(pack.transitions, prev, curr, i);
+      const scenePack = resolveScenePack(curr, style);
+      const expected = getExpectedTransition(scenePack.transitions, prev, curr, i);
       const actual = manifestScenes[i].transition_in;
 
       if (actual && expected && actual.type === expected.type) {
@@ -510,9 +525,6 @@ export function scoreFlow(manifestScenes, sceneMap, style) {
  *   - Duration match (same metric as pacing, scored as adherence)
  */
 export function scoreAdherence(manifestScenes, sceneMap, style) {
-  const pack = getStylePack(style);
-  const personalitySlug = pack.personality;
-  const restrictions = shotGrammarCatalog.personality_restrictions[personalitySlug];
   const findings = [];
 
   if (manifestScenes.length === 0) {
@@ -527,6 +539,8 @@ export function scoreAdherence(manifestScenes, sceneMap, style) {
     const scene = sceneMap.get(ms.scene);
     if (!scene) continue;
 
+    const pack = resolveScenePack(scene, style);
+    const personalitySlug = pack.personality;
     cameraTotal++;
     const expected = getExpectedCamera(pack.camera_overrides, scene, personalitySlug);
     const actual = ms.camera_override;
@@ -554,6 +568,7 @@ export function scoreAdherence(manifestScenes, sceneMap, style) {
     const curr = sceneMap.get(manifestScenes[i].scene);
     if (!prev || !curr) continue;
 
+    const pack = resolveScenePack(curr, style);
     transTotal++;
     const expected = getExpectedTransition(pack.transitions, prev, curr, i);
     const actual = manifestScenes[i].transition_in;
@@ -578,7 +593,11 @@ export function scoreAdherence(manifestScenes, sceneMap, style) {
   let grammarTotal = 0;
   for (let i = 0; i < manifestScenes.length; i++) {
     const ms = manifestScenes[i];
+    const scene = sceneMap.get(ms.scene);
     const sg = ms.shot_grammar;
+    const pack = resolveScenePack(scene, style);
+    const personalitySlug = pack.personality;
+    const restrictions = shotGrammarCatalog.personality_restrictions[personalitySlug];
     if (!sg || !restrictions) {
       // No grammar to check — skip
       continue;
@@ -626,6 +645,7 @@ export function scoreAdherence(manifestScenes, sceneMap, style) {
     const scene = sceneMap.get(ms.scene);
     if (!scene) continue;
 
+    const pack = resolveScenePack(scene, style);
     const energy = scene.metadata?.motion_energy || 'moderate';
     const expected = getExpectedDuration(energy, pack);
     durationDeviation += Math.abs(ms.duration_s - expected);

@@ -1,14 +1,14 @@
 # Sequence Planning
 
 **Status:** Implemented
-**Issues:** ANI-23 (initial), ANI-24 (catalog-driven)
-**Version:** 1.1 (catalog-driven style packs)
+**Issues:** ANI-23 (initial), ANI-24 (catalog-driven), ANI-30 (advanced packs + per-scene blending)
+**Version:** 1.2 (8 style packs, per-scene style blending)
 
 ## Overview
 
 The sequence planner automates editorial decisions for assembling a sequence manifest. Given analyzed scenes (with metadata from ANI-22) and a style pack, it determines shot order, hold durations, transitions, and camera overrides.
 
-Rule-based v1 — deterministic, testable, no LLM calls. Style pack definitions are loaded from `catalog/style-packs.json` and interpreted by generic rule engines. Camera overrides are validated against the personality catalog.
+Rule-based v1 — deterministic, testable, no LLM calls. Style pack definitions are loaded from `catalog/style-packs.json` and interpreted by generic rule engines. Camera overrides are validated against the personality catalog. Per-scene style blending allows individual scenes to override the sequence-level style via `metadata.style_override`.
 
 ## Architecture
 
@@ -43,11 +43,16 @@ scenes[] + style ──▶ planSequence()
 
 Style packs are defined in `catalog/style-packs.json`. Each pack maps to an animation personality and defines hold durations, transition rules, and camera override rules as data.
 
-| Style | Personality | Tempo | Transitions | Camera |
-|-------|------------|-------|-------------|--------|
-| prestige | editorial | Longer holds (2.5–3.5s) | Hard cuts default, crossfade on weight change or emotional/hero | Selective push_in/drift by content_type |
-| energy | montage | Short holds (1.5–2.0s), 4s cap | Hard cuts (70%) + whip-wipes (30%) | Always static (montage forbids camera) |
-| dramatic | cinematic-dark | Variable holds (2.5–3.5s) | Crossfade default, hard cut for same-weight consecutive | push_in for emotional/hero, drift for detail (by intent) |
+| Style | Personality | Tempo | Transitions | Camera | Use Case |
+|-------|------------|-------|-------------|--------|----------|
+| prestige | editorial | Longer holds (2.5–3.5s) | Hard cuts default, crossfade on weight change or emotional/hero | Selective push_in/drift by content_type | Product showcases |
+| energy | montage | Short holds (1.5–2.0s), 4s cap | Hard cuts (70%) + whip-wipes every 3rd (30%) | Always static | Sizzle reels |
+| dramatic | cinematic-dark | Variable holds (2.5–3.5s) | Crossfade default, hard cut for same-weight | push_in for emotional/hero, drift for detail | Marketing, drama |
+| minimal | neutral-light | Uniform holds (3.0–4.0s) | Hard cuts only | Always static | Tutorials, docs |
+| intimate | cinematic-dark | Longer holds (3.0–4.0s) | Crossfade 800ms emotional, 500ms default | push_in 0.15 portrait/product, drift detail | Brand narratives |
+| corporate | editorial | Uniform holds (2.5–3.0s) | Crossfade 300ms on weight change, hard cut default | push_in product, drift UI | Enterprise demos |
+| kinetic | montage | Very short (1.0–1.5s), 3s cap | Whip every 2nd (200ms), hard cut default | Always static | Keynotes, launches |
+| fade | editorial | Medium holds (2.0–3.0s) | All crossfade 500ms | push_in 0.1 portrait/product only | Photo essays |
 
 ### Style Pack Schema
 
@@ -109,20 +114,20 @@ Intent-bucket approach with variety post-processing.
 
 ### 2. Durations (`assignDurations`)
 
-Reads `hold_durations` from the style pack. If `max_hold_duration` is set, enforces it as a hard cap.
+Reads `hold_durations` from the style pack (resolved per scene when using style blending). If `max_hold_duration` is set, enforces it as a hard cap.
 
-| motion_energy | prestige | energy | dramatic |
-|--------------|----------|--------|----------|
-| static | 3.5s | 2.0s | 3.0s |
-| subtle | 3.0s | 2.0s | 2.5s |
-| moderate | 3.0s | 1.5s | 3.0s |
-| high | 2.5s | 1.5s | 3.5s |
+| motion_energy | prestige | energy | dramatic | minimal | intimate | corporate | kinetic | fade |
+|--------------|----------|--------|----------|---------|----------|-----------|---------|------|
+| static | 3.5s | 2.0s | 3.0s | 4.0s | 4.0s | 3.0s | 1.5s | 3.0s |
+| subtle | 3.0s | 2.0s | 2.5s | 3.5s | 3.5s | 2.75s | 1.5s | 2.5s |
+| moderate | 3.0s | 1.5s | 3.0s | 3.0s | 3.0s | 2.5s | 1.0s | 2.0s |
+| high | 2.5s | 1.5s | 3.5s | 3.0s | 3.0s | 2.5s | 1.0s | 2.0s |
 
-Energy style enforces a 4.0s hard cap via `max_hold_duration`.
+Hard caps: energy 4.0s, kinetic 3.0s.
 
 ### 3. Transitions (`selectTransitions`)
 
-First scene always gets `null` (no `transition_in` per spec). Subsequent scenes evaluated through `interpretTransitionRules()` using the style pack's `transitions` object.
+First scene always gets `null` (no `transition_in` per spec). Subsequent scenes evaluated through `interpretTransitionRules()` using the style pack's `transitions` object (resolved per scene when using style blending).
 
 **Prestige:** Hard cut default. Crossfade (400ms) when `visual_weight` changes between scenes OR incoming scene has `emotional`/`hero` intent.
 
@@ -130,15 +135,35 @@ First scene always gets `null` (no `transition_in` per spec). Subsequent scenes 
 
 **Dramatic:** Crossfade (400ms) default. Hard cut between consecutive same-weight scenes. 600ms crossfade when incoming scene has `emotional` intent.
 
+**Minimal:** Hard cuts only. Zero embellishment.
+
+**Intimate:** Crossfade 500ms default. 800ms crossfade for `emotional` intent. Slow, deliberate.
+
+**Corporate:** Hard cut default. Crossfade 300ms on weight change. Clean transitions.
+
+**Kinetic:** Every 2nd transition is a whip-wipe (cycling `whip_left/right`, 200ms), rest are hard cuts. 50% whip rate.
+
+**Fade:** All crossfade 500ms. Every transition blends softly.
+
 ### 4. Camera Overrides (`assignCameraOverrides`)
 
-Evaluated through `interpretCameraRules()` using the style pack's `camera_overrides` object, then validated against personality.
+Evaluated through `interpretCameraRules()` using the style pack's `camera_overrides` object (resolved per scene), then validated against personality.
 
 **Prestige:** `portrait`/`product_shot` -> push_in 0.2. `ui_screenshot`/`device_mockup`/`data_visualization` -> drift 0.2. `typography`/`brand_mark` -> no override.
 
 **Energy:** Every scene gets `{ move: 'static' }` (montage forbids camera movement).
 
 **Dramatic:** `emotional`/`hero` intent -> push_in 0.3. `detail` intent -> drift 0.3. `brand_mark`/`typography` -> no override.
+
+**Minimal:** Every scene gets `{ move: 'static' }`.
+
+**Intimate:** `portrait`/`product_shot` -> push_in 0.15. `detail` intent -> drift 0.15. Others -> no override.
+
+**Corporate:** `product_shot` -> push_in 0.15. `ui_screenshot` -> drift 0.15. Others -> no override.
+
+**Kinetic:** Every scene gets `{ move: 'static' }` (montage forbids camera movement).
+
+**Fade:** `portrait`/`product_shot` -> push_in 0.1. Others -> no override.
 
 ## MCP Tool Usage
 
@@ -179,8 +204,8 @@ Evaluated through `interpretCameraRules()` using the style pack's `camera_overri
 ### `planSequence({ scenes, style, sequence_id? })`
 
 **Parameters:**
-- `scenes` — Array of scene objects with `metadata` containing `content_type`, `visual_weight`, `motion_energy`, `intent_tags`
-- `style` — One of `'prestige'`, `'energy'`, `'dramatic'`
+- `scenes` — Array of scene objects with `metadata` containing `content_type`, `visual_weight`, `motion_energy`, `intent_tags`. Optional: `metadata.style_override` for per-scene style blending.
+- `style` — Default style pack. One of: `'prestige'`, `'energy'`, `'dramatic'`, `'minimal'`, `'intimate'`, `'corporate'`, `'kinetic'`, `'fade'`
 - `sequence_id` — Optional. Defaults to `seq_planned_{timestamp}`
 
 **Returns:**
@@ -203,7 +228,8 @@ Evaluated through `interpretCameraRules()` using the style pack's `camera_overri
     scene_count: number,
     style_personality: string,
     ordering_rationale: string,
-    transition_summary: { [type: string]: number }
+    transition_summary: { [type: string]: number },
+    style_overrides_used?: string[]  // only present when scenes use style_override
   }
 }
 ```
@@ -212,7 +238,7 @@ Evaluated through `interpretCameraRules()` using the style pack's `camera_overri
 
 Derived from `catalog/style-packs.json` at module load:
 
-- `STYLE_PACKS` — `['prestige', 'energy', 'dramatic']`
+- `STYLE_PACKS` — `['prestige', 'energy', 'dramatic', 'minimal', 'intimate', 'corporate', 'kinetic', 'fade']`
 - `STYLE_TO_PERSONALITY` — Maps style names to personality slugs
 
 ### Individual Stage Functions
@@ -235,9 +261,49 @@ Same 4 kinetic-type scenes, 3 styles produce measurably different manifests:
 | Camera overrides | selective | all static | selective |
 | Total duration | ~11s | ~6s | ~10s |
 
+## Per-Scene Style Blending (ANI-30)
+
+A single sequence can mix styles by setting `metadata.style_override` on individual scenes. The override affects that scene's durations, transitions, and camera — while the rest of the sequence uses the default style.
+
+### How It Works
+
+Each scene is resolved via `resolveScenePack(scene, defaultStyle)`:
+1. If `scene.metadata.style_override` is set and valid, use that pack
+2. Otherwise, use the sequence-level default
+
+The incoming scene's style pack governs its `transition_in`. Camera overrides are validated against the per-scene personality.
+
+### Example
+
+```json
+{
+  "scenes": [
+    { "scene_id": "sc_intro", "metadata": { "content_type": "typography", "style_override": "minimal" } },
+    { "scene_id": "sc_hero", "metadata": { "content_type": "product_shot" } },
+    { "scene_id": "sc_closing", "metadata": { "content_type": "brand_mark", "style_override": "fade" } }
+  ],
+  "style": "prestige"
+}
+```
+
+- `sc_intro` uses **minimal** (hard cut, static camera, longer hold)
+- `sc_hero` uses **prestige** (sequence default)
+- `sc_closing` uses **fade** (crossfade 500ms, minimal camera)
+
+### Behavior
+
+- `style_override` travels with the scene through `orderScenes()` reordering
+- Unknown `style_override` throws in planner, falls back silently in evaluator
+- When overrides are used, `notes.style_overrides_used` lists the unique override names
+- No `style_override` = identical behavior to single-style planning (fully backward-compatible)
+
+### Evaluator
+
+The evaluator also resolves per-scene packs. Each scene is scored against its effective style pack for expected durations, transitions, and camera. The loop_time check uses the sequence-level personality.
+
 ## Adding New Style Packs
 
-To add a new style pack (e.g., for ANI-30):
+To add a new style pack:
 
 1. Add a new entry to `catalog/style-packs.json` with the required fields
 2. Set `personality` to a valid slug from `catalog/personalities.json`

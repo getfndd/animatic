@@ -13,6 +13,7 @@
 import { validateManifest } from '../../src/remotion/lib.js';
 import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar } from '../data/loader.js';
 import { validateShotGrammar } from './shot-grammar.js';
+import { syncToBeats, matchEnergyToScenes } from './beats.js';
 
 // ── Load catalog data at module level ────────────────────────────────────────
 
@@ -503,10 +504,11 @@ export function preFilterShotGrammar(orderedScenes, style) {
  *
  * Returns a manifest conforming to the sequence-manifest spec, plus editorial notes.
  *
- * @param {{ scenes: object[], style: string, sequence_id?: string, audio?: object }} params
+ * @param {{ scenes: object[], style: string, sequence_id?: string, audio?: object, beats?: object }} params
+ * @param {object} [params.beats] — beat analysis from analyzeBeats(). If provided, snaps transitions to beats.
  * @returns {{ manifest: object, notes: object }}
  */
-export function planSequence({ scenes, style, sequence_id, audio }) {
+export function planSequence({ scenes, style, sequence_id, audio, beats }) {
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     throw new Error('planSequence requires a non-empty scenes array');
   }
@@ -518,7 +520,29 @@ export function planSequence({ scenes, style, sequence_id, audio }) {
   const ordered = orderScenes(scenes);
 
   // Stage 2: Durations
-  const durations = assignDurations(ordered, style);
+  let durations = assignDurations(ordered, style);
+
+  // Stage 2b: Beat sync — snap durations to beat boundaries (ANI-37)
+  let beatSyncNotes = null;
+  if (beats && beats.beats && beats.beats.length > 0) {
+    const { synced, adjustments } = syncToBeats(durations, beats.beats);
+    durations = synced;
+    if (adjustments.length > 0) {
+      beatSyncNotes = {
+        adjustments_count: adjustments.length,
+        adjustments,
+        bpm: beats.bpm || null,
+      };
+    }
+  }
+
+  // Stage 2c: Energy matching — adjust camera intensity to audio energy (ANI-37)
+  let energyIntensities = null;
+  if (beats && beats.energy && beats.energy.length > 0) {
+    const hopSize = beats.hopSize || 512;
+    const sampleRate = beats.sampleRate || 44100;
+    energyIntensities = matchEnergyToScenes(durations, beats.energy, sampleRate, hopSize);
+  }
 
   // Stage 3: Transitions
   const transitions = selectTransitions(ordered, style);
@@ -546,7 +570,13 @@ export function planSequence({ scenes, style, sequence_id, audio }) {
     }
 
     if (cameraOverrides[i]) {
-      entry.camera_override = cameraOverrides[i];
+      const cam = { ...cameraOverrides[i] };
+      // ANI-37: Blend energy-matched intensity with style pack intensity
+      if (energyIntensities && energyIntensities[i] != null) {
+        const styleIntensity = cam.intensity ?? 0.3;
+        cam.intensity = parseFloat(((styleIntensity + energyIntensities[i]) / 2).toFixed(2));
+      }
+      entry.camera_override = cam;
     }
 
     // ANI-26/ANI-34: Add pre-filtered shot grammar
@@ -606,6 +636,7 @@ export function planSequence({ scenes, style, sequence_id, audio }) {
     reasoning: sceneReasoning,
     ...(overridesUsed.size > 0 ? { style_overrides_used: [...overridesUsed] } : {}),
     ...(shotGrammarCorrections.length > 0 ? { shot_grammar_corrections: shotGrammarCorrections } : {}),
+    ...(beatSyncNotes ? { beat_sync: beatSyncNotes } : {}),
   };
 
   return { manifest, notes };
@@ -730,10 +761,10 @@ function buildOrderingRationale(ordered) {
  * share the same scene content and ordering but differ in timing, transitions,
  * and camera choreography.
  *
- * @param {{ scenes: object[], styles: string[], sequence_id?: string, audio?: object }} params
+ * @param {{ scenes: object[], styles: string[], sequence_id?: string, audio?: object, beats?: object }} params
  * @returns {{ variants: Array<{ variant_id: string, style: string, manifest: object, notes: object }> }}
  */
-export function planVariants({ scenes, styles, sequence_id, audio }) {
+export function planVariants({ scenes, styles, sequence_id, audio, beats }) {
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     throw new Error('planVariants requires a non-empty scenes array');
   }
@@ -751,6 +782,7 @@ export function planVariants({ scenes, styles, sequence_id, audio }) {
       style,
       sequence_id: seqId,
       audio,
+      beats,
     });
 
     return {

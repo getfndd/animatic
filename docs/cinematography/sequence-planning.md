@@ -1,14 +1,23 @@
 # Sequence Planning
 
 **Status:** Implemented
-**Issues:** ANI-23 (initial), ANI-24 (catalog-driven), ANI-30 (advanced packs + per-scene blending)
-**Version:** 1.2 (8 style packs, per-scene style blending)
+**Issues:** ANI-23 (initial), ANI-24 (catalog-driven), ANI-30 (advanced packs + per-scene blending), ANI-37 (beat-synced editing)
+**Version:** 1.3 (10 style packs, per-scene style blending, beat sync)
 
 ## Overview
 
 The sequence planner automates editorial decisions for assembling a sequence manifest. Given analyzed scenes (with metadata from ANI-22) and a style pack, it determines shot order, hold durations, transitions, and camera overrides.
 
 Rule-based v1 — deterministic, testable, no LLM calls. Style pack definitions are loaded from `catalog/style-packs.json` and interpreted by generic rule engines. Camera overrides are validated against the personality catalog. Per-scene style blending allows individual scenes to override the sequence-level style via `metadata.style_override`.
+
+### Beat-Synced Editing (ANI-37)
+
+When `beats` data is passed to `planSequence()`, two additional stages activate:
+
+1. **Beat sync** — Scene durations are adjusted so transition boundaries snap to the nearest beat. Stretches up to 0.4s, compresses up to 0.3s, never below 1.0s minimum duration.
+2. **Energy matching** — Audio energy per scene time range maps to camera intensity (0.1–0.8), blended 50/50 with the style pack's camera intensity.
+
+Beat data comes from `analyze_beats` MCP tool, which decodes WAV files and runs energy-based onset detection. The beat analysis module (`mcp/lib/beats.js`) is pure functions with no I/O — audio decoding happens upstream.
 
 ## Architecture
 

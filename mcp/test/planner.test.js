@@ -19,6 +19,7 @@ import {
   assignDurations,
   selectTransitions,
   assignCameraOverrides,
+  preFilterShotGrammar,
   planSequence,
   STYLE_PACKS,
   STYLE_TO_PERSONALITY,
@@ -714,6 +715,127 @@ describe('shot grammar on manifest entries (ANI-26)', () => {
 
     const validation = validateManifest(manifest);
     assert.ok(validation.valid, `Validation failed: ${validation.errors.join('; ')}`);
+  });
+});
+
+// ── ANI-34: Pre-filter shot grammar by personality ──────────────────────────
+
+describe('preFilterShotGrammar (ANI-34)', () => {
+  it('returns null for scenes without shot_grammar', () => {
+    const scenes = [makeScene('sc_a', { intent_tags: ['detail'] })];
+    const { filtered, corrections } = preFilterShotGrammar(scenes, 'prestige');
+    assert.equal(filtered[0], null);
+    assert.equal(corrections.length, 0);
+  });
+
+  it('passes through allowed values unchanged', () => {
+    const scenes = [
+      makeScene('sc_a', {
+        intent_tags: ['detail'],
+        shot_grammar: { shot_size: 'medium', angle: 'eye_level', framing: 'center' },
+      }),
+    ];
+    const { filtered, corrections } = preFilterShotGrammar(scenes, 'minimal');
+    assert.deepEqual(filtered[0], { shot_size: 'medium', angle: 'eye_level', framing: 'center' });
+    assert.equal(corrections.length, 0);
+  });
+
+  it('editorial: corrects dutch angle to eye_level', () => {
+    const scenes = [
+      makeScene('sc_a', {
+        intent_tags: ['detail'],
+        shot_grammar: { shot_size: 'medium', angle: 'dutch', framing: 'center' },
+      }),
+    ];
+    // prestige maps to editorial personality
+    const { filtered, corrections } = preFilterShotGrammar(scenes, 'prestige');
+    assert.equal(filtered[0].angle, 'eye_level');
+    assert.equal(corrections.length, 1);
+    assert.ok(corrections[0].includes('sc_a'));
+    assert.ok(corrections[0].includes('dutch'));
+  });
+
+  it('neutral-light: corrects extreme_close_up and dutch angle', () => {
+    const scenes = [
+      makeScene('sc_a', {
+        intent_tags: ['detail'],
+        shot_grammar: { shot_size: 'extreme_close_up', angle: 'high', framing: 'center' },
+      }),
+    ];
+    // minimal maps to neutral-light personality
+    const { filtered, corrections } = preFilterShotGrammar(scenes, 'minimal');
+    assert.equal(filtered[0].shot_size, 'medium');
+    assert.equal(filtered[0].angle, 'eye_level');
+    assert.equal(corrections.length, 2);
+  });
+
+  it('cinematic-dark: allows all values without corrections', () => {
+    const scenes = [
+      makeScene('sc_a', {
+        intent_tags: ['hero'],
+        shot_grammar: { shot_size: 'extreme_close_up', angle: 'dutch', framing: 'dynamic_offset' },
+      }),
+    ];
+    // dramatic maps to cinematic-dark personality
+    const { filtered, corrections } = preFilterShotGrammar(scenes, 'dramatic');
+    assert.deepEqual(filtered[0], { shot_size: 'extreme_close_up', angle: 'dutch', framing: 'dynamic_offset' });
+    assert.equal(corrections.length, 0);
+  });
+
+  it('collects corrections from multiple scenes', () => {
+    const scenes = [
+      makeScene('sc_a', {
+        intent_tags: ['detail'],
+        shot_grammar: { shot_size: 'medium', angle: 'dutch', framing: 'center' },
+      }),
+      makeScene('sc_b', {
+        intent_tags: ['detail'],
+        shot_grammar: { shot_size: 'extreme_close_up', angle: 'eye_level', framing: 'dynamic_offset' },
+      }),
+    ];
+    // prestige maps to editorial personality
+    const { filtered, corrections } = preFilterShotGrammar(scenes, 'prestige');
+    // sc_a: dutch → eye_level (1 correction)
+    assert.equal(filtered[0].angle, 'eye_level');
+    // sc_b: extreme_close_up → medium, dynamic_offset → center (2 corrections)
+    assert.equal(filtered[1].shot_size, 'medium');
+    assert.equal(filtered[1].framing, 'center');
+    assert.equal(corrections.length, 3);
+  });
+});
+
+describe('planSequence surfaces shot_grammar_corrections in notes (ANI-34)', () => {
+  it('notes include shot_grammar_corrections when filtering occurs', () => {
+    const scenes = [
+      makeScene('sc_a', {
+        intent_tags: ['opening'],
+        shot_grammar: { shot_size: 'medium', angle: 'dutch', framing: 'center' },
+      }),
+    ];
+    // prestige maps to editorial, which disallows dutch
+    const { notes } = planSequence({
+      scenes,
+      style: 'prestige',
+      sequence_id: 'seq_test_ani34',
+    });
+    assert.ok(notes.shot_grammar_corrections);
+    assert.equal(notes.shot_grammar_corrections.length, 1);
+    assert.ok(notes.shot_grammar_corrections[0].includes('dutch'));
+  });
+
+  it('notes omit shot_grammar_corrections when no filtering needed', () => {
+    const scenes = [
+      makeScene('sc_a', {
+        intent_tags: ['opening'],
+        shot_grammar: { shot_size: 'medium', angle: 'eye_level', framing: 'center' },
+      }),
+    ];
+    const { notes } = planSequence({
+      scenes,
+      style: 'prestige',
+      sequence_id: 'seq_test_ani34_clean',
+    });
+    assert.equal(notes.shot_grammar_corrections, undefined);
   });
 });
 

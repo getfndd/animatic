@@ -306,6 +306,107 @@ describe('validateManifest', () => {
     });
     assert.equal(result.valid, false);
   });
+
+  // ── Audio validation ──────────────────────────────────────────────────────
+
+  it('accepts valid global audio', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_test',
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+      audio: { src: 'music/bg.mp3', volume: 0.7, fade_in_ms: 500, fade_out_ms: 1000, offset_s: 2 },
+    });
+    assert.equal(result.valid, true, `Errors: ${result.errors.join('; ')}`);
+  });
+
+  it('rejects audio without src', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_test',
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+      audio: { volume: 0.5 },
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('audio.src')));
+  });
+
+  it('rejects audio volume out of range', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_test',
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+      audio: { src: 'x.mp3', volume: 1.5 },
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('audio.volume')));
+  });
+
+  it('rejects negative audio fade_in_ms', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_test',
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+      audio: { src: 'x.mp3', fade_in_ms: -100 },
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('fade_in_ms')));
+  });
+
+  it('rejects negative audio offset_s', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_test',
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+      audio: { src: 'x.mp3', offset_s: -1 },
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('offset_s')));
+  });
+
+  it('accepts valid per-scene audio', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_test',
+      scenes: [
+        { scene: 'sc_a', duration_s: 3, audio: { src: 'narration/intro.mp3', volume: 1.0 } },
+        { scene: 'sc_b', duration_s: 3 },
+      ],
+    });
+    assert.equal(result.valid, true, `Errors: ${result.errors.join('; ')}`);
+  });
+
+  it('rejects per-scene audio without src', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_test',
+      scenes: [{ scene: 'sc_a', duration_s: 3, audio: { volume: 0.5 } }],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('scenes[0].audio.src')));
+  });
+
+  it('rejects per-scene audio volume out of range', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_test',
+      scenes: [{ scene: 'sc_a', duration_s: 3, audio: { src: 'x.mp3', volume: -0.1 } }],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('scenes[0].audio.volume')));
+  });
+
+  it('audio does not affect calculateDuration', () => {
+    const withAudio = {
+      sequence_id: 'seq_test',
+      fps: 60,
+      scenes: [
+        { scene: 'sc_a', duration_s: 3 },
+        { scene: 'sc_b', duration_s: 3 },
+      ],
+      audio: { src: 'music.mp3', volume: 0.8 },
+    };
+    const withoutAudio = {
+      sequence_id: 'seq_test',
+      fps: 60,
+      scenes: [
+        { scene: 'sc_a', duration_s: 3 },
+        { scene: 'sc_b', duration_s: 3 },
+      ],
+    };
+    assert.equal(calculateDuration(withAudio), calculateDuration(withoutAudio));
+  });
 });
 
 // ── validateScene ───────────────────────────────────────────────────────────

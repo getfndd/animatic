@@ -279,6 +279,74 @@ describe('classifyAssets', () => {
     const result = classifyAssets(brief);
     assert.equal(result[0].content_type, 'portrait');
   });
+
+  // ── Audio classification ────────────────────────────────────────────────
+
+  it('classifies .mp3 extension as audio', () => {
+    const brief = { assets: [{ id: 'a', src: 'track.mp3' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+    assert.equal(result[0].confidence, 0.3);
+    assert.equal(result[0].classification_source, 'extension');
+  });
+
+  it('classifies .wav extension as audio', () => {
+    const brief = { assets: [{ id: 'a', src: 'recording.wav' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+  });
+
+  it('classifies .m4a extension as audio', () => {
+    const brief = { assets: [{ id: 'a', src: 'podcast.m4a' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+  });
+
+  it('classifies .aac extension as audio', () => {
+    const brief = { assets: [{ id: 'a', src: 'clip.aac' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+  });
+
+  it('classifies .ogg extension as audio', () => {
+    const brief = { assets: [{ id: 'a', src: 'sound.ogg' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+  });
+
+  it('classifies music-* filename as audio', () => {
+    const brief = { assets: [{ id: 'a', src: 'music-background.mp3' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+    assert.equal(result[0].confidence, 0.8);
+    assert.equal(result[0].classification_source, 'filename');
+  });
+
+  it('classifies narration-* filename as audio', () => {
+    const brief = { assets: [{ id: 'a', src: 'narration-intro.wav' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+    assert.equal(result[0].role, 'supporting');
+  });
+
+  it('classifies voiceover-* filename as audio', () => {
+    const brief = { assets: [{ id: 'a', src: 'voiceover-scene1.mp3' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+  });
+
+  it('classifies sfx-* filename as audio', () => {
+    const brief = { assets: [{ id: 'a', src: 'sfx-whoosh.wav' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+  });
+
+  it('classifies audio by hint', () => {
+    const brief = { assets: [{ id: 'a', src: 'file.mp3', hint: 'music' }] };
+    const result = classifyAssets(brief);
+    assert.equal(result[0].content_type, 'audio');
+    assert.equal(result[0].confidence, 1.0);
+  });
 });
 
 // ── resolveTemplate ──────────────────────────────────────────────────────────
@@ -916,7 +984,7 @@ describe('constants', () => {
   it('HINT_TO_CONTENT_TYPE maps to valid content types', () => {
     const validTypes = Object.keys(CONTENT_TYPE_TO_LAYOUT);
     for (const [hint, type] of Object.entries(HINT_TO_CONTENT_TYPE)) {
-      assert.ok(validTypes.includes(type) || type === 'collage' || type === 'data_visualization',
+      assert.ok(validTypes.includes(type) || type === 'collage' || type === 'data_visualization' || type === 'audio',
         `Hint "${hint}" maps to unknown type "${type}"`);
     }
   });

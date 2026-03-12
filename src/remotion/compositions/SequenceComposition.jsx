@@ -1,4 +1,4 @@
-import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig, interpolate, staticFile } from 'remotion';
 import { SceneComposition } from './SceneComposition.jsx';
 import { TransitionWrapper, TransitionOutWrapper } from './transitions.jsx';
 import { getDefaultTransitionDuration, calculateLayout } from '../lib.js';
@@ -24,8 +24,37 @@ export const SequenceComposition = ({ manifest, sceneDefs = {} }) => {
   // accounting for transition overlap with the next scene.
   const layout = calculateLayout(scenes, fps);
 
+  // Calculate total frames for global audio fade-out
+  const totalFrames = layout.length > 0
+    ? layout[layout.length - 1].startFrame + layout[layout.length - 1].durationFrames
+    : 0;
+
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0a0a' }}>
+      {/* Global background audio track */}
+      {manifest.audio?.src && (
+        <Audio
+          src={staticFile(manifest.audio.src)}
+          volume={(f) => {
+            const vol = manifest.audio.volume ?? 1;
+            const fadeInMs = manifest.audio.fade_in_ms ?? 0;
+            const fadeOutMs = manifest.audio.fade_out_ms ?? 0;
+            const fadeInFrames = Math.round((fadeInMs / 1000) * fps);
+            const fadeOutFrames = Math.round((fadeOutMs / 1000) * fps);
+
+            let v = vol;
+            if (fadeInFrames > 0 && f < fadeInFrames) {
+              v = interpolate(f, [0, fadeInFrames], [0, vol], { extrapolateRight: 'clamp' });
+            }
+            if (fadeOutFrames > 0 && f > totalFrames - fadeOutFrames) {
+              v = interpolate(f, [totalFrames - fadeOutFrames, totalFrames], [vol, 0], { extrapolateLeft: 'clamp' });
+            }
+            return v;
+          }}
+          startFrom={Math.round((manifest.audio.offset_s || 0) * fps)}
+        />
+      )}
+
       {layout.map(({ entry, index, startFrame, durationFrames, nextTransition, nextTransitionFrames }) => {
         const sceneDef = sceneDefs[entry.scene] || createPlaceholderScene(entry, index);
         const sceneWithOverrides = {
@@ -55,6 +84,15 @@ export const SequenceComposition = ({ manifest, sceneDefs = {} }) => {
                 <SceneComposition scene={sceneWithOverrides} />
               </TransitionWrapper>
             </TransitionOutWrapper>
+
+            {/* Per-scene audio clip */}
+            {entry.audio?.src && (
+              <Audio
+                src={staticFile(entry.audio.src)}
+                volume={entry.audio.volume ?? 1}
+                startFrom={Math.round((entry.audio.offset_s || 0) * fps)}
+              />
+            )}
 
             <SceneLabel
               sceneId={entry.scene}

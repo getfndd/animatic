@@ -39,6 +39,10 @@ export const ASSET_FILENAME_PATTERNS = [
   { pattern: /^photo[-_]|[-_]photo/i,      content_type: 'portrait',     role: 'supporting' },
   { pattern: /^chart[-_]|[-_]chart|^graph/i,content_type: 'data_visualization', role: 'supporting' },
   { pattern: /^icon[-_]|[-_]icon/i,        content_type: 'brand_mark',   role: 'supporting' },
+  { pattern: /^music[-_]|[-_]music/i,     content_type: 'audio',        role: 'background' },
+  { pattern: /^narration[-_]|[-_]narration/i, content_type: 'audio',    role: 'supporting' },
+  { pattern: /^voiceover[-_]|[-_]voiceover/i, content_type: 'audio',    role: 'supporting' },
+  { pattern: /^sfx[-_]|[-_]sfx/i,         content_type: 'audio',        role: 'supporting' },
 ];
 
 /**
@@ -74,6 +78,12 @@ export const HINT_TO_CONTENT_TYPE = {
   'grid':              'collage',
   'photo':             'portrait',
   'video':             'product_shot',
+  'audio':             'audio',
+  'music':             'audio',
+  'narration':         'audio',
+  'voiceover':         'audio',
+  'sfx':               'audio',
+  'sound':             'audio',
 };
 
 /**
@@ -143,6 +153,11 @@ const EXTENSION_TO_CONTENT_TYPE = {
   mp4:  'product_shot',
   webm: 'product_shot',
   mov:  'product_shot',
+  mp3:  'audio',
+  wav:  'audio',
+  m4a:  'audio',
+  aac:  'audio',
+  ogg:  'audio',
 };
 
 // ── Stage 1: validateBrief ───────────────────────────────────────────────────

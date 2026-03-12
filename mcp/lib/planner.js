@@ -445,10 +445,10 @@ function interpretCameraRules(rules, scene) {
  *
  * Returns a manifest conforming to the sequence-manifest spec, plus editorial notes.
  *
- * @param {{ scenes: object[], style: string, sequence_id?: string }} params
+ * @param {{ scenes: object[], style: string, sequence_id?: string, audio?: object }} params
  * @returns {{ manifest: object, notes: object }}
  */
-export function planSequence({ scenes, style, sequence_id }) {
+export function planSequence({ scenes, style, sequence_id, audio }) {
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     throw new Error('planSequence requires a non-empty scenes array');
   }
@@ -507,6 +507,7 @@ export function planSequence({ scenes, style, sequence_id }) {
     fps: 60,
     style,
     scenes: manifestScenes,
+    ...(audio ? { audio } : {}),
   };
 
   // Self-validate

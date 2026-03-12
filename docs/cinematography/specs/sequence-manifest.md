@@ -48,7 +48,7 @@ A sequence manifest is an ordered list of scenes with timing, transitions, and g
     },
     "audio": {
       "$ref": "#/$defs/audio_track",
-      "description": "Optional audio track. Future — not processed in v1."
+      "description": "Optional background audio track. Plays across the full sequence with volume envelope."
     }
   }
 }
@@ -94,6 +94,10 @@ A sequence manifest is an ordered list of scenes with timing, transitions, and g
             "framing": { "type": "string", "enum": ["center", "rule_of_thirds_left", "rule_of_thirds_right", "dynamic_offset"] }
           },
           "description": "Shot grammar classification. Added by the AI planner (ANI-26). Validated against personality restrictions. Optional — not present in hand-authored manifests unless explicitly set."
+        },
+        "audio": {
+          "$ref": "#/$defs/audio_track",
+          "description": "Optional per-scene audio clip (narration, SFX). Plays for the scene's duration."
         }
       }
     }
@@ -141,31 +145,43 @@ A sequence manifest is an ordered list of scenes with timing, transitions, and g
 
 During crossfade and whip transitions, both the outgoing and incoming scenes render simultaneously for the transition duration. The total video duration includes transition overlap — a 3s scene with a 400ms crossfade in means the scene content starts 400ms before the previous scene fully exits.
 
-### Audio Track Definition (Future)
+### Audio Track Definition
 
 ```json
 {
   "$defs": {
     "audio_track": {
       "type": "object",
+      "required": ["src"],
       "properties": {
         "src": {
           "type": "string",
-          "description": "Audio file path or URL."
+          "description": "Audio file path (relative to public/). Resolved via Remotion's staticFile()."
         },
         "volume": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "default": 1
+          "default": 1,
+          "description": "Playback volume. 0 = silent, 1 = full."
         },
         "fade_in_ms": {
           "type": "integer",
-          "default": 0
+          "minimum": 0,
+          "default": 0,
+          "description": "Fade-in duration from silence to volume."
         },
         "fade_out_ms": {
           "type": "integer",
-          "default": 0
+          "minimum": 0,
+          "default": 0,
+          "description": "Fade-out duration from volume to silence at end."
+        },
+        "offset_s": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0,
+          "description": "Start playback from this point in the audio file (trim head)."
         }
       }
     }
@@ -337,6 +353,49 @@ Hand-authored manifest describing the reference sizzle reel (31s, 12 shots):
 
 Total: 31.5s - 1.5s transitions = 30.0s (close to reference 31.4s — within tolerance).
 
+### Manifest with Audio
+
+```json
+{
+  "sequence_id": "seq_brand_with_audio",
+  "fps": 60,
+  "audio": {
+    "src": "music/brand-theme.mp3",
+    "volume": 0.7,
+    "fade_in_ms": 1000,
+    "fade_out_ms": 2000,
+    "offset_s": 5
+  },
+  "scenes": [
+    {
+      "scene": "sc_opening",
+      "duration_s": 3.0,
+      "audio": {
+        "src": "narration/intro.mp3",
+        "volume": 1.0,
+        "fade_in_ms": 200
+      }
+    },
+    {
+      "scene": "sc_product",
+      "duration_s": 4.0,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 }
+    },
+    {
+      "scene": "sc_closing",
+      "duration_s": 3.0,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 },
+      "audio": {
+        "src": "sfx/whoosh.mp3",
+        "volume": 0.5
+      }
+    }
+  ]
+}
+```
+
+The background track plays across the full sequence. Per-scene audio clips are scoped to their scene's `<Sequence>` and play independently.
+
 ## Design Decisions
 
 1. **Scene references, not inline scenes.** The manifest references scenes by ID. Scene definitions live in separate files. This allows the same scene to appear in multiple sequences and keeps manifests lightweight.
@@ -349,4 +408,4 @@ Total: 31.5s - 1.5s transitions = 30.0s (close to reference 31.4s — within tol
 
 5. **No timeline, just order + duration.** Scenes play sequentially. There is no concept of overlapping scenes (except during transitions) or parallel tracks. This keeps the format simple. Complex compositions are handled within individual scenes, not at the sequence level.
 
-6. **Audio is deferred.** The `audio` field exists in the schema for forward compatibility but is not processed in v1. Audio sync requires Remotion's `<Audio>` component and beat detection tooling.
+6. **Audio is passthrough.** Background music and per-scene audio clips (narration, SFX) render via Remotion's `<Audio>` component with volume envelopes. Beat detection and volume ducking are deferred (ANI-37).

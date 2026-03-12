@@ -550,4 +550,4 @@ All 12 shots are representable with this schema.
 
 4. **Metadata is optional for authoring, required for AI.** A human can write a scene without metadata. The AI scene analysis engine (ANI-22) populates metadata for AI-planned sequences.
 
-5. **No audio in v1.** The `audio` asset type exists for forward compatibility, but the v1 pipeline doesn't process it. Audio support comes with Remotion integration.
+5. **Audio at sequence level.** The `audio` asset type is supported for scene-level assets. Background music and per-scene audio clips (narration, SFX) are rendered at the sequence manifest level via Remotion's `<Audio>` component.

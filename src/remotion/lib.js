@@ -168,6 +168,52 @@ export function validateManifest(manifest) {
     }
   }
 
+  // audio (sequence-level background track)
+  if (manifest.audio) {
+    const a = manifest.audio;
+    if (!a.src || typeof a.src !== 'string') {
+      errors.push('audio.src is required and must be a string');
+    }
+    if (a.volume != null && (typeof a.volume !== 'number' || a.volume < 0 || a.volume > 1)) {
+      errors.push('audio.volume must be between 0 and 1');
+    }
+    if (a.fade_in_ms != null && (typeof a.fade_in_ms !== 'number' || a.fade_in_ms < 0)) {
+      errors.push('audio.fade_in_ms must be >= 0');
+    }
+    if (a.fade_out_ms != null && (typeof a.fade_out_ms !== 'number' || a.fade_out_ms < 0)) {
+      errors.push('audio.fade_out_ms must be >= 0');
+    }
+    if (a.offset_s != null && (typeof a.offset_s !== 'number' || a.offset_s < 0)) {
+      errors.push('audio.offset_s must be >= 0');
+    }
+  }
+
+  // per-scene audio
+  if (manifest.scenes && Array.isArray(manifest.scenes)) {
+    for (let i = 0; i < manifest.scenes.length; i++) {
+      const scene = manifest.scenes[i];
+      if (scene.audio) {
+        const sa = scene.audio;
+        const prefix = `scenes[${i}].audio`;
+        if (!sa.src || typeof sa.src !== 'string') {
+          errors.push(`${prefix}.src is required and must be a string`);
+        }
+        if (sa.volume != null && (typeof sa.volume !== 'number' || sa.volume < 0 || sa.volume > 1)) {
+          errors.push(`${prefix}.volume must be between 0 and 1`);
+        }
+        if (sa.fade_in_ms != null && (typeof sa.fade_in_ms !== 'number' || sa.fade_in_ms < 0)) {
+          errors.push(`${prefix}.fade_in_ms must be >= 0`);
+        }
+        if (sa.fade_out_ms != null && (typeof sa.fade_out_ms !== 'number' || sa.fade_out_ms < 0)) {
+          errors.push(`${prefix}.fade_out_ms must be >= 0`);
+        }
+        if (sa.offset_s != null && (typeof sa.offset_s !== 'number' || sa.offset_s < 0)) {
+          errors.push(`${prefix}.offset_s must be >= 0`);
+        }
+      }
+    }
+  }
+
   return { valid: errors.length === 0, errors };
 }
 

@@ -83,6 +83,7 @@ export const RemotionRoot = () => {
               { scene: 'sc_test_b', duration_s: 3 },
               { scene: 'sc_test_c', duration_s: 4 },
             ],
+            audio: null,
           },
           sceneDefs: {},
         }}

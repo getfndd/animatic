@@ -299,8 +299,8 @@ describe('sizzle pipeline + guardrails validation', () => {
 // ── CLI validation ──────────────────────────────────────────────────────────
 
 describe('CLI validation', () => {
-  it('STYLE_PACKS has all 8 entries', () => {
-    assert.equal(STYLE_PACKS.length, 8);
+  it('STYLE_PACKS has all 9 entries', () => {
+    assert.equal(STYLE_PACKS.length, 9);
     assert.ok(STYLE_PACKS.includes('prestige'));
     assert.ok(STYLE_PACKS.includes('energy'));
     assert.ok(STYLE_PACKS.includes('dramatic'));
@@ -309,6 +309,7 @@ describe('CLI validation', () => {
     assert.ok(STYLE_PACKS.includes('corporate'));
     assert.ok(STYLE_PACKS.includes('kinetic'));
     assert.ok(STYLE_PACKS.includes('fade'));
+    assert.ok(STYLE_PACKS.includes('analog'));
   });
 
   it('planSequence rejects unknown style', () => {

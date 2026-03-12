@@ -706,3 +706,22 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
+
+/* ── prefers-reduced-motion: Tier 3 (Remove) ──────────────────────────────── */
+/* Decorative effects hidden entirely. Content visible immediately.           */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-layer,
+  .grain-overlay,
+  .gradient-shift,
+  .blob,
+  [class*="breathe"],
+  [class*="pulse"],
+  [class*="float"] {
+    display: none !important;
+  }
+  [class*="stagger"],
+  [class*="reveal"] {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}

@@ -248,6 +248,24 @@ Shorter than cinematic (17-19s) because editorial trusts the content to carry it
 | Camera | No 3D perspective | 3D rotations | Full-screen scene cuts |
 | Loop time | 12-16s | 17-20s | 30-45s |
 
+## Ambient & Generative Effects
+
+Editorial uses **restrained** ambient effects. One effect at a time, never multiple.
+
+| Effect | Allowed | Max Opacity | Notes |
+|--------|---------|-------------|-------|
+| Gradient shift | Yes | 0.10 | `ct-gradient-shift`, `ct-color-cycle` — pick one |
+| Film grain | Yes | 0.08 | `bk-grain-texture`, `ct-film-grain` |
+| Blob morph | No | — | Too playful for content-forward |
+| Displacement warp | No | — | Too dramatic |
+| Concentric pulse | No | — | Too attention-seeking |
+| Soft reveal | Yes | 1.0 | `ct-soft-reveal` (entrance only) |
+| SVG draw | Yes | 1.0 | `ct-complex-draw`, `ct-handwriting-draw` |
+
+**Stacking:** Maximum 1 ambient layer. Choose gradient OR grain, never both.
+
+**`prefers-reduced-motion`:** Tier 2 (Reduce) — choreography simplified to crossfade-only.
+
 ## Reference Products
 
 - **Linear** — blur reveal, specular highlights, ambient gradient, interface-as-demo

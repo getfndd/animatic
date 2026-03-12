@@ -212,6 +212,58 @@ Gentler than buttons. The primary signal is border/background color, not scale:
 The icon inside the drop zone (e.g., upload arrow) gets a gentler wiggle:
 ±10deg rotation with slight `translateY(-2px)` lift to suggest "receiving."
 
+---
+
+## `prefers-reduced-motion` Enforcement
+
+All animations **must** respect `prefers-reduced-motion`. Three enforcement tiers:
+
+### Tier 1: Freeze (cinematic-dark default)
+Ambient loops pause. Choreography completes once but doesn't repeat.
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .ambient-layer * {
+    animation-play-state: paused !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+```
+
+### Tier 2: Reduce (editorial default)
+Choreography simplified to crossfade-only. No spatial transforms (slides, scales, rotations).
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  [class*="stagger"],
+  [class*="reveal"],
+  [class*="draw"] {
+    animation: fade-in 400ms ease-out forwards !important;
+  }
+}
+```
+
+### Tier 3: Remove (neutral-light default)
+Decorative filters and ambient effects hidden entirely. Content visible immediately.
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .grain-overlay,
+  .gradient-shift,
+  .blob,
+  .concentric-pulse .ring,
+  .ambient-layer {
+    display: none !important;
+  }
+}
+```
+
+**Personality defaults:** cinematic-dark → Tier 1, editorial → Tier 2, neutral-light → Tier 3, montage → N/A (no ambient).
+
+See `reference/ambient-generative-techniques.md` for full details.
+
+---
+
 ### Full Squash/Stretch (alternative)
 
 For playful/marketing contexts where more dramatic deformation is appropriate:

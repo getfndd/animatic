@@ -200,3 +200,22 @@ To add new folder/badge categories:
 | Loop pause (before restart) | 1.5s | Separation between loops |
 
 **Total loop time for 5 phases: ~17-19s**
+
+## Ambient & Generative Effects
+
+Cinematic-dark has the **richest ambient budget**. Multiple effects can stack.
+
+| Effect | Allowed | Max Opacity | Notes |
+|--------|---------|-------------|-------|
+| Gradient shift | Yes | 0.15 | `ct-gradient-shift`, `ct-aurora-gradient`, `ct-color-cycle` |
+| Film grain | Yes | 0.12 | `bk-grain-texture`, `ct-film-grain` |
+| Blob morph | Yes | 0.15 | `bk-blob-morph`, `bk-metaball-gooey` |
+| Displacement warp | Yes | 0.15 | `bk-displacement-warp` |
+| Concentric pulse | Yes | 0.15 | `bk-concentric-pulse` |
+| Liquid border | Yes | 1.0 | `ct-liquid-border` (decorative, not overlay) |
+| SVG draw | Yes | 1.0 | `ct-complex-draw`, `ct-handwriting-draw`, `ct-blueprint-draw` |
+| Soft reveal | Yes | 1.0 | `ct-soft-reveal` (entrance, not ambient) |
+
+**Stacking:** Up to 3 ambient layers. Grain + gradient + one shape effect.
+
+**`prefers-reduced-motion`:** Tier 1 (Freeze) — ambient loops pause, choreography plays once.

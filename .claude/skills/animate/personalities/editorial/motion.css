@@ -543,3 +543,23 @@ body {
   color: var(--ed-text-tertiary);
   min-width: 60px;
 }
+
+/* ── prefers-reduced-motion: Tier 2 (Reduce) ──────────────────────────────── */
+/* Choreography simplified to crossfade-only. No spatial transforms.          */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-layer *,
+  .grain-overlay,
+  .gradient-shift {
+    animation-play-state: paused !important;
+    animation-iteration-count: 1 !important;
+  }
+  [class*="stagger"],
+  [class*="reveal"],
+  [class*="draw"] {
+    animation: ed-fade-in 400ms ease-out forwards !important;
+  }
+  @keyframes ed-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}

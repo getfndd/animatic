@@ -105,6 +105,31 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `ed-scene-breathe` | Editorial Scene Breathing | 10000ms loop | editorial | research |
 | `nl-scene-breathe` | Neutral Scene Breathing | 12000ms loop | neutral-light | research |
 
+### SVG Filters / Generative
+
+| ID | Name | Duration | Personality | Source |
+|----|------|----------|-------------|--------|
+| `bk-metaball-gooey` | Metaball Gooey Merge | continuous | cinematic-dark | breakdown |
+| `bk-grain-texture` | SVG Grain Texture Overlay | continuous | cinematic-dark, editorial | breakdown |
+| `bk-displacement-warp` | Displacement Warp Pulse | 4000ms loop | cinematic-dark | breakdown |
+| `ct-gradient-shift` | Gradient Angle Shift | 8000ms loop | cinematic-dark, editorial | research |
+| `ct-aurora-gradient` | Aurora Multi-Gradient | 12000ms loop | cinematic-dark | research |
+| `ct-color-cycle` | Color Stop Cycling | 6000ms loop | cinematic-dark, editorial | research |
+| `ct-noise-overlay` | Animated Noise Overlay | continuous | cinematic-dark, editorial | research |
+| `ct-film-grain` | Film Grain (CSS-only) | 200ms steps | cinematic-dark, editorial | research |
+| `ct-soft-reveal` | Gradient Mask Reveal | 1200ms | cinematic-dark, editorial | research |
+| `bk-blob-morph` | Blob Shape Morph | 8000ms loop | cinematic-dark | breakdown |
+| `ct-liquid-border` | Liquid Conic Border | 4000ms loop | cinematic-dark | research |
+| `bk-concentric-pulse` | Concentric Ring Pulse | 3000ms loop | cinematic-dark | breakdown |
+
+### SVG Drawing
+
+| ID | Name | Duration | Personality | Source |
+|----|------|----------|-------------|--------|
+| `ct-complex-draw` | Complex SVG Path Draw | variable | cinematic-dark, editorial | research |
+| `ct-handwriting-draw` | Handwriting Path Draw | variable | cinematic-dark, editorial | research |
+| `ct-blueprint-draw` | Blueprint Grid Draw | 2000ms | cinematic-dark | research |
+
 ### Content Effects
 
 | ID | Name | Duration | Personality | Source |
@@ -192,6 +217,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 Best entrances: `cd-focus-stagger`, `ct-focus-pull`, `ct-zoom-from-space`, `as-zoomIn`, `bk-chat-typewriter-submit`, `bk-report-card-materialize`
 Best reveals: `ct-iris-open`, `ct-wipe-reveal`, `ct-bars-reveal`, `bk-arc-cascade`, `bk-content-line-stagger`, `bk-suggestion-chip-stagger`
 Best ambient: `ct-float`, `ct-glow-pulse`, `cd-progress-animation`, `bk-flow-field`, `ct-scene-breathe`, `ct-ambient-drift`, `ct-element-float`, `ct-slow-push`
+Best generative: `bk-metaball-gooey`, `bk-displacement-warp`, `ct-aurora-gradient`, `ct-gradient-shift`, `bk-grain-texture`, `bk-blob-morph`, `bk-concentric-pulse`, `ct-liquid-border`
+Best drawing: `ct-complex-draw`, `ct-handwriting-draw`, `ct-blueprint-draw`
 Best camera: `ct-camera-dolly`, `ct-camera-orbit`, `ct-camera-crane`, `ct-camera-push-in`, `ct-camera-rack-focus`, `ct-camera-handheld`, `ct-camera-shake`
 Best transitions: `cd-phase-transition`, `ct-camera-dolly`, `ct-camera-orbit`, `bk-bars-scatter`, `bk-icon-to-layout`
 Best typography: `ct-text-hero`, `ct-char-stagger`, `cd-typewriter`
@@ -201,6 +228,7 @@ Best typography: `ct-text-hero`, `ct-char-stagger`, `cd-typewriter`
 Best entrances: `ed-slide-stagger`, `ed-blur-reveal`, `as-fadeInUp`, `as-fadeInLeft`, `bk-report-card-materialize`
 Best reveals: `ct-text-sweep`, `ed-all-typewriters`, `bk-suggestion-chip-stagger`, `bk-table-row-stagger`
 Best ambient: `ed-content-cycle`, `ed-scene-breathe`, `ed-camera-push-in`, `ed-camera-drift`, `ct-slow-push`
+Best generative: `bk-grain-texture`, `ct-gradient-shift`, `ct-color-cycle`, `ct-soft-reveal` (pick one, not multiple)
 Best camera: `ed-camera-push-in`, `ed-camera-drift`, `ct-camera-push-in`
 Best content: `ed-count-up`, `ct-word-carousel`, `bk-text-image-split`, `bk-ai-response-stream`, `bk-stat-card-count-up`
 Best transitions: `ed-phase-transition`, `ed-tab-switch`, `bk-chat-to-split-pane`, `bk-panel-content-swap`
@@ -877,6 +905,7 @@ Full CSS implementations for effects extracted from reference breakdowns.
 | animate.style (Use tier) | `sources/animate-style.md` | 18 |
 | Cinematic techniques research | `../cinematic-techniques-research.md` | ~20 |
 | Camera & ambient primitives | `../camera-rig.md` | 20 |
-| Reference breakdowns | `sources/breakdowns.md` | 42 |
+| Reference breakdowns | `sources/breakdowns.md` | 48 |
+| Ambient/generative techniques | `../ambient-generative-techniques.md` | 15 |
 
-**Total cataloged:** ~120 named primitives
+**Total cataloged:** ~135 named primitives

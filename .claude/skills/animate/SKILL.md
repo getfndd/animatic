@@ -469,6 +469,29 @@ captures/
 
 ---
 
+## Ambient Composition (Brand Illustrations)
+
+When animating brand illustrations or visual assets (not product UI), add an ambient composition layer:
+
+1. **Identify subject type** — Is this product-ui (phases + engine) or illustration (SVG/brand visual)?
+2. **If illustration**, read `reference/ambient-generative-techniques.md` for technique categories
+3. **Select ambient effects** based on personality budget:
+   - cinematic-dark: Full ambient (gradient + grain + blob). Multiple stacking allowed.
+   - editorial: One effect only (gradient OR grain). Low opacity (≤0.10).
+   - neutral-light: Grain overlay only. Opacity ≤ 0.05.
+   - montage: No ambient effects.
+4. **Layer ambient below content** — z-index lower than choreography, `pointer-events: none`
+5. **Ambient starts immediately** — no entrance animation, runs continuously
+6. **Apply `prefers-reduced-motion`** at the personality's default tier
+7. **For SVG illustrations**, consider draw primitives (`ct-complex-draw`, `ct-handwriting-draw`)
+
+**Reading list for brand illustration work:**
+- `reference/ambient-generative-techniques.md` — Full technique guide
+- `reference/primitives/REGISTRY.md` → SVG Filters / Generative section
+- `reference/animation-principles.md` → `prefers-reduced-motion` section
+
+---
+
 ## Quality Checklist
 
 Before finalizing any animation, verify:
@@ -486,6 +509,9 @@ Before finalizing any animation, verify:
 - [ ] **Loop replay**: All animations reset cleanly and replay without refresh
 - [ ] **Embed mode**: `?embed` parameter works (no backdrop, no controls)
 - [ ] **Design system**: All colors use semantic tokens, no hardcoded hex
+- [ ] **Reduced motion**: `prefers-reduced-motion` respected at personality's tier
+- [ ] **Ambient budget**: Ambient effects within personality's allowed budget
+- [ ] **Ambient opacity**: Ambient layer opacity ≤ personality maximum (cinematic: 0.15, editorial: 0.10, neutral: 0.05)
 
 ---
 
@@ -506,6 +532,7 @@ The skill produces:
 - `.claude/skills/animate/reference/animation-principles.md` — Disney's 12 principles for UI
 - `.claude/skills/animate/reference/spring-physics.md` — Spring recipes, icon wiggle, and stagger patterns
 - `.claude/skills/animate/reference/primitives/REGISTRY.md` — Named animation primitives with CSS implementations
+- `.claude/skills/animate/reference/ambient-generative-techniques.md` — SVG filters, gradients, textures, organic shapes for brand illustration
 - `.claude/skills/animate/reference/breakdowns/INDEX.md` — Animation reference breakdown index
 - `.claude/skills/animate/reference/SCHEMA.md` — Template for creating new reference breakdowns
 - `.claude/skills/animate/reference/industry-references.md` — Gold-standard products, libraries, and learning resources

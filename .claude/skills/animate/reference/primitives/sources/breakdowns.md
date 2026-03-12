@@ -286,3 +286,8 @@ New animation primitives discovered through reference analysis. Each links back 
 | `bk-panel-content-swap` | Dashboard Panel Interior Crossfade | Transitions | nume-ai-chat-dashboard |
 | `bk-table-row-stagger` | Data Table Row Reveal | Reveals / Stagger | nume-ai-chat-dashboard |
 | `bk-scroll-trigger-typewriter` | Scroll-Triggered Typewriter w/ Pre-Blink | Content Effects / Typography | nume-ai-chat-dashboard |
+| `bk-metaball-gooey` | Metaball Gooey Merge | SVG Filters / Generative | liquid-metaball-merge |
+| `bk-grain-texture` | SVG Grain Texture Overlay | SVG Filters / Generative | grainy-organic-blob |
+| `bk-displacement-warp` | Displacement Warp Pulse | SVG Filters / Generative | liquid-metaball-merge |
+| `bk-blob-morph` | Blob Shape Morph | SVG Filters / Generative | grainy-organic-blob |
+| `bk-concentric-pulse` | Concentric Ring Pulse | SVG Filters / Generative | concentric-depth-pulse |

@@ -281,6 +281,12 @@ Longer than editorial (12-16s) and cinematic (17-20s) because montage packs more
 | Scene count | 4-5 | 3-5 | 5-7 |
 | Use case | Feature highlights | Product showcases | Sizzle reels, brand launches |
 
+## Ambient & Generative Effects
+
+Montage uses **no** ambient effects. Rapid cuts and hard transitions provide all the energy — continuous loops would conflict.
+
+**`prefers-reduced-motion`:** Not applicable (no ambient to reduce).
+
 ## Reference Products
 
 - **Apple keynotes** — rapid cuts, full-screen typography, stat callouts, product beauty shots

@@ -173,3 +173,18 @@ Is this an educational/tutorial animation?
 **Total loop time for 4 phases: ~13-15s**
 
 Shorter than cinematic (17-19s) because tutorials are more focused and don't need dramatic pauses.
+
+## Ambient & Generative Effects
+
+Neutral-light uses **minimal** ambient effects. Tutorials need zero distraction.
+
+| Effect | Allowed | Max Opacity | Notes |
+|--------|---------|-------------|-------|
+| Grain overlay | Yes | 0.05 | Very subtle texture only |
+| Gradient shift | No | — | Too decorative for tutorials |
+| Blob morph | No | — | Too playful |
+| All other generative | No | — | Conflicts with guided UX |
+
+**Stacking:** Maximum 1 layer. Grain only at near-invisible opacity.
+
+**`prefers-reduced-motion`:** Tier 3 (Remove) — all decorative effects hidden entirely.

@@ -864,3 +864,19 @@ body {
   font-variant-numeric: tabular-nums;
   margin-left: 4px;
 }
+
+/* ── prefers-reduced-motion: Tier 1 (Freeze) ──────────────────────────────── */
+/* Ambient loops pause. Choreography completes once but doesn't repeat.       */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-layer *,
+  .grain-overlay,
+  .gradient-shift,
+  .blob,
+  [class*="breathe"],
+  [class*="float"],
+  [class*="drift"],
+  [class*="pulse"] {
+    animation-play-state: paused !important;
+    animation-iteration-count: 1 !important;
+  }
+}

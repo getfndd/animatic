@@ -607,3 +607,17 @@ svg.ph {
   display: inline-block;
   vertical-align: middle;
 }
+
+/* ── prefers-reduced-motion ────────────────────────────────────────────────── */
+/* Montage has no ambient effects. Reduce spatial animations to fades.        */
+@media (prefers-reduced-motion: reduce) {
+  [class*="stagger"],
+  [class*="reveal"],
+  [class*="wipe"] {
+    animation: mo-fade-in 200ms ease-out forwards !important;
+  }
+  @keyframes mo-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}

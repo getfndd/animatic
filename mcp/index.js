@@ -1306,10 +1306,19 @@ function handleAnalyzeScene(args) {
   if (scene.camera) out += `- **Camera:** ${scene.camera.move || 'static'} (intensity: ${scene.camera.intensity ?? 'default'})\n`;
   out += `- **Duration:** ${scene.duration_s ?? 'unset'}s\n`;
 
+  // Reasoning chain (ANI-45)
+  if (result.reasoning) {
+    out += '## Reasoning\n\n';
+    for (const [field, explanation] of Object.entries(result.reasoning)) {
+      out += `- **${field}:** ${explanation}\n`;
+    }
+    out += '\n';
+  }
+
   // Low confidence warnings
   const lowConfidence = Object.entries(_confidence).filter(([, v]) => v < 0.50);
   if (lowConfidence.length > 0) {
-    out += '\n**Low confidence warnings:**\n';
+    out += '**Low confidence warnings:**\n';
     for (const [field, conf] of lowConfidence) {
       out += `- \`${field}\` at ${(conf * 100).toFixed(0)}% — consider manual override or LLM-assisted reclassification\n`;
     }
@@ -1470,6 +1479,19 @@ function handlePlanSequence(args) {
 
     // Ordering rationale
     out += `\n## Ordering\n\n${notes.ordering_rationale}\n`;
+
+    // Per-scene reasoning (ANI-45)
+    if (notes.reasoning && notes.reasoning.length > 0) {
+      out += '\n## Reasoning\n\n';
+      for (const r of notes.reasoning) {
+        out += `### ${r.scene}\n`;
+        out += `- **Duration:** ${r.duration}\n`;
+        out += `- **Transition:** ${r.transition}\n`;
+        out += `- **Camera:** ${r.camera}\n`;
+        if (r.shot_grammar) out += `- **Shot grammar:** ${r.shot_grammar}\n`;
+        out += '\n';
+      }
+    }
 
     // Manifest JSON
     out += '\n## Manifest\n\n```json\n';

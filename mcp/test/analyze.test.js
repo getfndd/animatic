@@ -549,6 +549,53 @@ describe('analyzeScene', () => {
     assert.ok(result.metadata.shot_grammar.framing, 'shot_grammar.framing required');
     assert.ok(result._confidence.shot_grammar, 'shot_grammar confidence required');
   });
+
+  it('includes reasoning for all classification fields (ANI-45)', () => {
+    const result = analyzeScene({
+      scene_id: 'sc_reasoning_test',
+      duration_s: 3,
+      camera: { move: 'push_in', intensity: 0.3 },
+      layers: [
+        { id: 'bg', type: 'html', depth_class: 'background', content: '<div style="background:#0a0a0a"></div>' },
+        { id: 'text', type: 'text', depth_class: 'foreground', style: { color: '#fff' }, animation: 'word-reveal' },
+      ],
+    });
+    assert.ok(result.reasoning, 'reasoning field required');
+    assert.ok(typeof result.reasoning.content_type === 'string', 'reasoning.content_type is string');
+    assert.ok(typeof result.reasoning.visual_weight === 'string', 'reasoning.visual_weight is string');
+    assert.ok(typeof result.reasoning.motion_energy === 'string', 'reasoning.motion_energy is string');
+    assert.ok(typeof result.reasoning.intent_tags === 'string', 'reasoning.intent_tags is string');
+    assert.ok(typeof result.reasoning.shot_grammar === 'string', 'reasoning.shot_grammar is string');
+
+    // Reasoning should reference the actual classified values
+    assert.ok(result.reasoning.content_type.includes(result.metadata.content_type),
+      'reasoning.content_type should mention the classified value');
+    assert.ok(result.reasoning.motion_energy.includes(result.metadata.motion_energy),
+      'reasoning.motion_energy should mention the classified value');
+  });
+
+  it('reasoning mentions camera signal when present (ANI-45)', () => {
+    const result = analyzeScene({
+      scene_id: 'sc_camera_reasoning',
+      camera: { move: 'drift', intensity: 0.2 },
+      layers: [{ type: 'text', depth_class: 'foreground', style: { color: '#fff' } }],
+    });
+    assert.ok(result.reasoning.motion_energy.includes('drift'),
+      'reasoning should mention camera move');
+  });
+
+  it('reasoning mentions layout template when present (ANI-45)', () => {
+    const result = analyzeScene({
+      scene_id: 'sc_layout_reasoning',
+      layout: { template: 'split-panel' },
+      layers: [
+        { id: 'left', type: 'image', depth_class: 'foreground', slot: 'left' },
+        { id: 'right', type: 'text', depth_class: 'foreground', slot: 'right' },
+      ],
+    });
+    assert.ok(result.reasoning.content_type.includes('split-panel'),
+      'reasoning should mention layout template');
+  });
 });
 
 // ── Ground truth: kinetic type scenes ───────────────────────────────────────

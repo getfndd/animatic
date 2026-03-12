@@ -409,3 +409,5 @@ The background track plays across the full sequence. Per-scene audio clips are s
 5. **No timeline, just order + duration.** Scenes play sequentially. There is no concept of overlapping scenes (except during transitions) or parallel tracks. This keeps the format simple. Complex compositions are handled within individual scenes, not at the sequence level.
 
 6. **Audio is passthrough.** Background music and per-scene audio clips (narration, SFX) render via Remotion's `<Audio>` component with volume envelopes. Beat detection and volume ducking are deferred (ANI-37).
+
+7. **Reasoning is surfaced, not embedded.** The planner produces per-scene reasoning in `notes.reasoning` (not in the manifest itself). Reasoning traces intent → style pack → duration/transition/camera decisions. This keeps the manifest clean (renderer doesn't need reasoning) while enabling traceability via MCP tools (ANI-45).

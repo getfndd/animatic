@@ -363,6 +363,9 @@ export function analyzeScene(scene) {
   };
   const shotGrammar = classifyShotGrammar(sceneWithMeta);
 
+  // Build reasoning chain — explains why each classification was chosen
+  const reasoning = buildAnalysisReasoning(scene, contentType, visualWeight, motionEnergy, intentTags, shotGrammar);
+
   return {
     metadata: {
       content_type: contentType.value,
@@ -378,5 +381,64 @@ export function analyzeScene(scene) {
       intent_tags: intentTags.confidence,
       shot_grammar: shotGrammar.confidence,
     },
+    reasoning,
   };
+}
+
+/**
+ * Build human-readable reasoning for each analysis classification.
+ * Traces the decision path so users can understand and override.
+ */
+function buildAnalysisReasoning(scene, contentType, visualWeight, motionEnergy, intentTags, shotGrammar) {
+  const layers = scene.layers || [];
+  const fgLayers = layers.filter(l => l.depth_class !== 'background');
+  const reasoning = {};
+
+  // Content type reasoning
+  if (scene.layout?.template) {
+    reasoning.content_type = `${contentType.value}: layout template "${scene.layout.template}" detected`;
+  } else if (contentType.value === 'typography') {
+    reasoning.content_type = `typography: all ${fgLayers.length} foreground layer(s) are text`;
+  } else {
+    reasoning.content_type = `${contentType.value}: inferred from layer composition (${layers.length} layers, types: ${[...new Set(layers.map(l => l.type))].join(', ')})`;
+  }
+
+  // Visual weight reasoning
+  const colors = extractColorsFromHTML(layers.filter(l => l.type === 'html').map(l => l.content || '').join(' '));
+  const colorCount = colors.length + layers.filter(l => l.style?.color).length;
+  reasoning.visual_weight = `${visualWeight.value}: ${colorCount} color signal(s) extracted from layers`;
+
+  // Motion energy reasoning
+  const signals = [];
+  if (scene.camera?.move && scene.camera.move !== 'static') {
+    signals.push(`camera ${scene.camera.move} (intensity ${scene.camera.intensity ?? 'default'})`);
+  }
+  const animatedLayers = layers.filter(l => l.animation);
+  if (animatedLayers.length > 0) {
+    signals.push(`${animatedLayers.length} animated layer(s): ${animatedLayers.map(l => l.animation).join(', ')}`);
+  }
+  const entranceLayers = layers.filter(l => l.entrance?.primitive);
+  if (entranceLayers.length > 0) {
+    signals.push(`${entranceLayers.length} entrance(s)`);
+  }
+  reasoning.motion_energy = `${motionEnergy.value}: ${signals.length > 0 ? signals.join('; ') : 'no motion signals detected'}`;
+
+  // Intent tags reasoning
+  if (intentTags.value.length > 0) {
+    reasoning.intent_tags = `[${intentTags.value.join(', ')}]: derived from content_type=${contentType.value}, motion_energy=${motionEnergy.value}`;
+  } else {
+    reasoning.intent_tags = 'no intent tags: insufficient structural signals';
+  }
+
+  // Shot grammar reasoning
+  if (shotGrammar.grammar) {
+    const parts = [];
+    if (shotGrammar.grammar.shot_size) parts.push(`size=${shotGrammar.grammar.shot_size}`);
+    if (shotGrammar.grammar.angle) parts.push(`angle=${shotGrammar.grammar.angle}`);
+    reasoning.shot_grammar = `${parts.join(', ')}: classified from content_type and layer structure`;
+  } else {
+    reasoning.shot_grammar = 'no shot grammar: insufficient signals';
+  }
+
+  return reasoning;
 }

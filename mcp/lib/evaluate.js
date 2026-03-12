@@ -25,6 +25,25 @@ const shotGrammarCatalog = loadShotGrammar();
 export const ENERGY_NUMERIC = { static: 0, subtle: 1, moderate: 2, high: 3 };
 export const DIMENSION_WEIGHTS = { pacing: 0.25, variety: 0.25, flow: 0.25, adherence: 0.25 };
 
+/**
+ * Dynamics profiles — how each style pack values duration contrast.
+ *
+ * contrast: rewards spiky variance (short bursts + rest beats) — energy/kinetic
+ * arc: rewards gradual build-peak-resolve curves — prestige/corporate/fade/intimate
+ * neutral: mild preference for any variance over flat — minimal/dramatic
+ */
+export const DYNAMICS_PROFILES = {
+  energy: 'contrast',
+  kinetic: 'contrast',
+  prestige: 'arc',
+  corporate: 'arc',
+  fade: 'arc',
+  intimate: 'arc',
+  analog: 'arc',
+  minimal: 'neutral',
+  dramatic: 'neutral',
+};
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -156,13 +175,91 @@ export function getExpectedCamera(rules, scene, personalitySlug) {
   return null;
 }
 
+// ── Dynamics scorer ──────────────────────────────────────────────────────────
+
+/**
+ * Score dynamics: how well the duration variance matches the style's profile.
+ *
+ * Three profiles:
+ *   contrast — rewards spiky variance with rest beats (energy/kinetic)
+ *   arc — rewards gradual build → peak → resolve shape (prestige/editorial styles)
+ *   neutral — mild reward for any variance over flat pacing (minimal/dramatic)
+ *
+ * Returns 0-100 score. Short sequences (<=2) get 100.
+ */
+export function scoreDynamics(manifestScenes, style) {
+  if (manifestScenes.length <= 2) return 100;
+
+  const profile = DYNAMICS_PROFILES[style] || 'neutral';
+  const durations = manifestScenes.map(s => s.duration_s);
+  const n = durations.length;
+
+  // Compute coefficient of variation (CV) = stddev / mean
+  const mean = durations.reduce((a, b) => a + b, 0) / n;
+  if (mean === 0) return 50;
+  const variance = durations.reduce((sum, d) => sum + (d - mean) ** 2, 0) / n;
+  const cv = Math.sqrt(variance) / mean;
+
+  if (profile === 'contrast') {
+    // Reward high CV (spiky durations) and presence of rest beats
+    // A rest beat = a duration significantly longer than the median
+    const sorted = [...durations].sort((a, b) => a - b);
+    const median = sorted[Math.floor(n / 2)];
+    const restBeats = durations.filter(d => d >= median * 1.4).length;
+    const hasRestBeat = restBeats >= 1 && restBeats <= Math.ceil(n / 3);
+
+    // CV > 0.3 = good contrast, CV > 0.5 = excellent
+    let score = Math.min(100, cv * 200);
+    if (hasRestBeat) score = Math.min(100, score + 15);
+    return Math.round(Math.max(0, Math.min(100, score)));
+  }
+
+  if (profile === 'arc') {
+    // Reward gradual build → peak → resolve
+    // Ideal shape: durations get shorter toward middle, then longer at end
+    // Score based on how well durations follow a curve
+    const third = Math.max(1, Math.floor(n / 3));
+    const opening = durations.slice(0, third);
+    const middle = durations.slice(third, n - third);
+    const closing = durations.slice(n - third);
+
+    const avgOpening = opening.reduce((a, b) => a + b, 0) / opening.length;
+    const avgMiddle = middle.length > 0
+      ? middle.reduce((a, b) => a + b, 0) / middle.length
+      : avgOpening;
+    const avgClosing = closing.reduce((a, b) => a + b, 0) / closing.length;
+
+    let score = 50; // baseline
+
+    // Build: opening should be >= middle (slower start, faster middle)
+    if (avgOpening >= avgMiddle * 0.9) score += 15;
+    // Resolve: closing should be >= middle (slow down at end)
+    if (avgClosing >= avgMiddle * 0.9) score += 15;
+    // Some variance exists (not flat)
+    if (cv > 0.05) score += 10;
+    if (cv > 0.15) score += 10;
+
+    return Math.round(Math.max(0, Math.min(100, score)));
+  }
+
+  // neutral — mild preference for any variance
+  let score = 50;
+  if (cv > 0.05) score += 20;
+  if (cv > 0.15) score += 15;
+  if (cv > 0.3) score += 15;
+  return Math.round(Math.max(0, Math.min(100, score)));
+}
+
 // ── Pacing scorer ────────────────────────────────────────────────────────────
 
 /**
- * Score pacing: how well scene durations match the style pack's hold_durations.
+ * Score pacing: blends consistency (70%) with dynamics (30%).
  *
- * Per-scene: deviation from expected penalizes proportionally.
+ * Consistency: how well scene durations match the style pack's hold_durations.
+ *   Per-scene: deviation from expected penalizes proportionally.
  *   Within ±0.5s = full marks; >1s off = warning finding.
+ * Dynamics: how well duration variance matches the style's dynamics profile.
+ *   See scoreDynamics() for profiles.
  * Total duration: compare against personality's loop_time range.
  * Max hold cap: violations generate warnings.
  * Confidence weighting: low-confidence motion_energy = less penalty.
@@ -254,7 +351,11 @@ export function scorePacing(manifestScenes, sceneMap, style) {
     }
   }
 
-  return { score: Math.round(Math.max(0, Math.min(100, score))), findings };
+  // Blend consistency (70%) with dynamics (30%)
+  const dynamicsScore = scoreDynamics(manifestScenes, style);
+  const blended = Math.round(score * 0.7 + dynamicsScore * 0.3);
+
+  return { score: Math.max(0, Math.min(100, blended)), findings };
 }
 
 // ── Variety scorer ───────────────────────────────────────────────────────────

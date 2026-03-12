@@ -294,7 +294,7 @@ function applyVarietyRules(scenes) {
  * @returns {number[]} — Array of duration_s values.
  */
 export function assignDurations(orderedScenes, style) {
-  return orderedScenes.map(scene => {
+  const durations = orderedScenes.map(scene => {
     const pack = resolveScenePack(scene, style);
     const table = pack.hold_durations;
     const energy = scene.metadata?.motion_energy || 'moderate';
@@ -306,6 +306,31 @@ export function assignDurations(orderedScenes, style) {
 
     return duration;
   });
+
+  // Rest beat insertion: for contrast-profile styles (energy/kinetic),
+  // after 3+ consecutive short holds (all same base duration), extend
+  // one duration by 1.5x to create a breathing point.
+  const contrastStyles = ['energy', 'kinetic'];
+  if (contrastStyles.includes(style) && durations.length >= 4) {
+    // Only trigger when there are runs of identical short durations
+    const minDuration = Math.min(...durations);
+    let consecutiveSame = 0;
+
+    for (let i = 0; i < durations.length; i++) {
+      if (durations[i] === minDuration) {
+        consecutiveSame++;
+        if (consecutiveSame >= 3) {
+          // Insert rest beat at this position
+          durations[i] = Math.round(durations[i] * 1.5 * 10) / 10;
+          consecutiveSame = 0;
+        }
+      } else {
+        consecutiveSame = 0;
+      }
+    }
+  }
+
+  return durations;
 }
 
 // ── Transitions ─────────────────────────────────────────────────────────────

@@ -243,6 +243,47 @@ describe('assignDurations', () => {
   it('throws on unknown style', () => {
     assert.throws(() => assignDurations([makeScene('sc_a')], 'unknown'), /Unknown style/);
   });
+
+  it('inserts rest beats for energy style after 3+ consecutive same-duration holds (ANI-41)', () => {
+    // 6 scenes all high energy → all get 1.5s base (energy pack high = 1.5, capped at max 4.0)
+    // After 3 consecutive identical durations, one should be extended
+    const scenes = [
+      makeScene('sc_a', { motion_energy: 'high' }),
+      makeScene('sc_b', { motion_energy: 'high' }),
+      makeScene('sc_c', { motion_energy: 'high' }),
+      makeScene('sc_d', { motion_energy: 'high' }),
+      makeScene('sc_e', { motion_energy: 'high' }),
+      makeScene('sc_f', { motion_energy: 'high' }),
+    ];
+    const durations = assignDurations(scenes, 'energy');
+    // At least one duration should be extended (rest beat = 1.5 * 1.5 = 2.3)
+    const hasExtended = durations.some(d => d > 1.5);
+    assert.ok(hasExtended, `Expected at least one rest beat, got: ${durations}`);
+  });
+
+  it('does not insert rest beats when durations vary (ANI-41)', () => {
+    // Mixed energies → different base durations → no rest beat triggered
+    const scenes = [
+      makeScene('sc_a', { motion_energy: 'static' }),
+      makeScene('sc_b', { motion_energy: 'subtle' }),
+      makeScene('sc_c', { motion_energy: 'moderate' }),
+      makeScene('sc_d', { motion_energy: 'high' }),
+    ];
+    const durations = assignDurations(scenes, 'energy');
+    assert.deepEqual(durations, [2.0, 2.0, 1.5, 1.5]);
+  });
+
+  it('does not insert rest beats for prestige style (ANI-41)', () => {
+    const scenes = [
+      makeScene('sc_a', { motion_energy: 'moderate' }),
+      makeScene('sc_b', { motion_energy: 'moderate' }),
+      makeScene('sc_c', { motion_energy: 'moderate' }),
+      makeScene('sc_d', { motion_energy: 'moderate' }),
+    ];
+    const durations = assignDurations(scenes, 'prestige');
+    // All should be exactly the pack's moderate duration (3.0)
+    assert.ok(durations.every(d => d === 3.0), `Expected all 3.0, got: ${durations}`);
+  });
 });
 
 // ── selectTransitions ───────────────────────────────────────────────────────

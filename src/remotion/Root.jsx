@@ -16,10 +16,22 @@ import { calculateDuration } from './lib.js';
 export const RemotionRoot = () => {
   return (
     <>
-      {/* Single scene — renders one scene definition to video */}
+      {/* Single scene — renders one scene definition to video.
+       *
+       * The calculateMetadata callback derives duration from props.scene.duration_s
+       * so the composition length matches the scene definition.
+       */}
       <Composition
         id="Scene"
         component={SceneComposition}
+        calculateMetadata={({ props }) => {
+          const fps = 60;
+          const durationS = props.scene?.duration_s || 3;
+          return {
+            durationInFrames: Math.round(durationS * fps),
+            fps,
+          };
+        }}
         durationInFrames={180}
         fps={60}
         width={1920}

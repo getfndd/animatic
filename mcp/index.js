@@ -41,6 +41,7 @@ import { planSequence, planVariants, STYLE_PACKS } from './lib/planner.js';
 import { evaluateSequence, compareVariants } from './lib/evaluate.js';
 import { validateFullManifest } from './lib/guardrails.js';
 import { generateScenes } from './lib/generator.js';
+import { detectBeats, computeEnergyCurve, decodeWav } from './lib/beats.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -385,7 +386,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'plan_sequence',
       description:
-        'Plan a sequence from analyzed scenes and a style pack. Decides shot order, hold durations, transitions, and camera overrides. Returns a valid sequence manifest with editorial notes. Scenes must have metadata (use analyze_scene first). Supports per-scene style blending via metadata.style_override.',
+        'Plan a sequence from analyzed scenes and a style pack. Decides shot order, hold durations, transitions, and camera overrides. Returns a valid sequence manifest with editorial notes. Scenes must have metadata (use analyze_scene first). Supports per-scene style blending via metadata.style_override. Pass beats from analyze_beats for beat-synced editing.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -398,6 +399,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: 'string',
             enum: STYLE_PACKS,
             description: 'Default style pack for the sequence. Individual scenes can override via metadata.style_override.',
+          },
+          beats: {
+            type: 'object',
+            description: 'Beat analysis data from analyze_beats. When provided, scene durations are snapped to beat boundaries and camera intensities are matched to audio energy.',
           },
         },
         required: ['scenes', 'style'],
@@ -562,6 +567,31 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['variants', 'scenes'],
       },
     },
+    {
+      name: 'analyze_beats',
+      description:
+        'Analyze a WAV audio file to detect beats, tempo (BPM), and energy curve. Returns beat timestamps and energy data that can be passed to plan_sequence for beat-synced editing. Supports 16-bit and 24-bit PCM WAV files.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          audio_path: {
+            type: 'string',
+            description: 'Absolute path to a WAV audio file.',
+          },
+          options: {
+            type: 'object',
+            description: 'Detection options: windowSize (default 1024), hopSize (default 512), threshold (default 1.3), minBeatInterval (default 0.2s).',
+            properties: {
+              windowSize: { type: 'number' },
+              hopSize: { type: 'number' },
+              threshold: { type: 'number' },
+              minBeatInterval: { type: 'number' },
+            },
+          },
+        },
+        required: ['audio_path'],
+      },
+    },
   ],
 }));
 
@@ -607,6 +637,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handlePlanVariants(args);
     case 'compare_variants':
       return handleCompareVariants(args);
+    case 'analyze_beats':
+      return handleAnalyzeBeats(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1488,7 +1520,7 @@ function handleGetStylePack(args) {
 // ── plan_sequence ───────────────────────────────────────────────────────────
 
 function handlePlanSequence(args) {
-  const { scenes, style } = args;
+  const { scenes, style, beats } = args;
 
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     return {
@@ -1511,12 +1543,18 @@ function handlePlanSequence(args) {
   }
 
   try {
-    const { manifest, notes } = planSequence({ scenes, style });
+    const { manifest, notes } = planSequence({ scenes, style, beats });
 
     let out = `# Sequence Plan: ${manifest.sequence_id}\n\n`;
     out += `**Style:** ${style} (${notes.style_personality})\n`;
     out += `**Scenes:** ${notes.scene_count}\n`;
-    out += `**Total Duration:** ${notes.total_duration_s}s\n\n`;
+    out += `**Total Duration:** ${notes.total_duration_s}s\n`;
+    if (notes.beat_sync) {
+      out += `**Beat Sync:** ${notes.beat_sync.adjustments_count} scene(s) adjusted to beat grid`;
+      if (notes.beat_sync.bpm) out += ` (${notes.beat_sync.bpm} BPM)`;
+      out += '\n';
+    }
+    out += '\n';
 
     // Shot list table
     out += '## Shot List\n\n';
@@ -2035,6 +2073,70 @@ function handleCompareVariants(args) {
   } catch (err) {
     return {
       content: [{ type: 'text', text: `Error comparing variants: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+// ── analyze_beats (ANI-37) ──────────────────────────────────────────────────
+
+function handleAnalyzeBeats(args) {
+  const { audio_path, options = {} } = args;
+
+  if (!audio_path || typeof audio_path !== 'string') {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `audio_path` must be a path to a WAV file.' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const buffer = readFileSync(audio_path);
+    const { samples, sampleRate, channels, duration } = decodeWav(buffer);
+
+    const hopSize = options.hopSize || 512;
+    const { bpm, beats, energy } = detectBeats(samples, sampleRate, {
+      ...options,
+      hopSize,
+    });
+
+    const energyCurve = computeEnergyCurve(energy);
+
+    let out = `# Beat Analysis\n\n`;
+    out += `**File:** ${audio_path}\n`;
+    out += `**Duration:** ${duration}s\n`;
+    out += `**Sample Rate:** ${sampleRate} Hz\n`;
+    out += `**Channels:** ${channels} (mixed to mono)\n`;
+    out += `**BPM:** ${bpm}\n`;
+    out += `**Beats Detected:** ${beats.length}\n\n`;
+
+    // Beat grid
+    if (beats.length > 0) {
+      out += '## Beat Grid\n\n';
+      out += beats.map((b, i) => `${i + 1}. ${b}s`).join('\n');
+      out += '\n\n';
+    }
+
+    // Energy curve visualization (text)
+    out += '## Energy Curve\n\n';
+    out += '```\n';
+    for (let i = 0; i < energyCurve.length; i++) {
+      const bar = '█'.repeat(Math.round(energyCurve[i] * 30));
+      const pct = (energyCurve[i] * 100).toFixed(0).padStart(3);
+      out += `${String(i + 1).padStart(2)}. ${pct}% ${bar}\n`;
+    }
+    out += '```\n\n';
+
+    // Output beat data for plan_sequence
+    out += '## Beat Data (for plan_sequence)\n\n```json\n';
+    const beatData = { bpm, beats, energy, sampleRate, hopSize };
+    out += JSON.stringify(beatData, null, 2);
+    out += '\n```\n';
+
+    return { content: [{ type: 'text', text: out }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Beat analysis failed: ${err.message}` }],
       isError: true,
     };
   }

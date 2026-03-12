@@ -432,6 +432,39 @@ function interpretCameraRules(rules, scene) {
   return null;
 }
 
+// ── Shot grammar pre-filter (ANI-34) ────────────────────────────────────────
+
+/**
+ * Pre-filter shot grammar values by personality restrictions.
+ * Replaces incompatible values with allowed alternatives before they enter
+ * the manifest, and collects correction notes for editorial transparency.
+ *
+ * @param {object[]} orderedScenes — Scenes with metadata (may include shot_grammar).
+ * @param {string} style — Style pack name.
+ * @returns {{ filtered: (object|null)[], corrections: string[] }}
+ */
+export function preFilterShotGrammar(orderedScenes, style) {
+  const corrections = [];
+  const filtered = orderedScenes.map((scene, i) => {
+    const rawGrammar = scene.metadata?.shot_grammar;
+    if (!rawGrammar) return null;
+
+    const scenePack = resolveScenePack(scene, style);
+    const validation = validateShotGrammar(rawGrammar, scenePack.personality);
+
+    if (!validation.valid) {
+      const sceneId = scene.scene_id || scene.id || `scene_${i}`;
+      for (const c of validation.corrections) {
+        corrections.push(`${sceneId}: ${c}`);
+      }
+    }
+
+    return validation.result;
+  });
+
+  return { filtered, corrections };
+}
+
 // ── Top-level orchestrator ──────────────────────────────────────────────────
 
 /**
@@ -468,6 +501,10 @@ export function planSequence({ scenes, style, sequence_id, audio }) {
   // Stage 4: Camera overrides
   const cameraOverrides = assignCameraOverrides(ordered, style);
 
+  // Stage 5: Pre-filter shot grammar by personality (ANI-34)
+  const { filtered: shotGrammars, corrections: shotGrammarCorrections } =
+    preFilterShotGrammar(ordered, style);
+
   // Assemble manifest
   const seqId = sequence_id || `seq_planned_${Date.now()}`;
   const overridesUsed = new Set();
@@ -485,12 +522,9 @@ export function planSequence({ scenes, style, sequence_id, audio }) {
       entry.camera_override = cameraOverrides[i];
     }
 
-    // ANI-26: Add validated shot grammar (use per-scene personality)
-    const rawGrammar = scene.metadata?.shot_grammar;
-    if (rawGrammar) {
-      const scenePack = resolveScenePack(scene, style);
-      const validation = validateShotGrammar(rawGrammar, scenePack.personality);
-      entry.shot_grammar = validation.result;
+    // ANI-26/ANI-34: Add pre-filtered shot grammar
+    if (shotGrammars[i]) {
+      entry.shot_grammar = shotGrammars[i];
     }
 
     // Track style overrides
@@ -540,6 +574,7 @@ export function planSequence({ scenes, style, sequence_id, audio }) {
     ordering_rationale: buildOrderingRationale(ordered),
     transition_summary: transitionCounts,
     ...(overridesUsed.size > 0 ? { style_overrides_used: [...overridesUsed] } : {}),
+    ...(shotGrammarCorrections.length > 0 ? { shot_grammar_corrections: shotGrammarCorrections } : {}),
   };
 
   return { manifest, notes };

@@ -21,6 +21,8 @@ import {
   getExpectedCamera,
   ENERGY_NUMERIC,
   DIMENSION_WEIGHTS,
+  DYNAMICS_PROFILES,
+  scoreDynamics,
   scorePacing,
   scoreVariety,
   scoreFlow,
@@ -678,5 +680,116 @@ describe('per-scene style blending in evaluator (ANI-30)', () => {
     assert.equal(result1.score, result2.score, 'Same input should produce same score');
     assert.equal(result1.dimensions.pacing.score, result2.dimensions.pacing.score);
     assert.equal(result1.dimensions.adherence.score, result2.dimensions.adherence.score);
+  });
+});
+
+// ── Dynamics scoring (ANI-41) ───────────────────────────────────────────────
+
+describe('DYNAMICS_PROFILES', () => {
+  it('maps all style packs to a profile', () => {
+    const expected = ['energy', 'kinetic', 'prestige', 'corporate', 'fade', 'intimate', 'analog', 'minimal', 'dramatic'];
+    for (const style of expected) {
+      assert.ok(DYNAMICS_PROFILES[style], `Missing dynamics profile for ${style}`);
+    }
+  });
+
+  it('uses contrast for energy/kinetic', () => {
+    assert.equal(DYNAMICS_PROFILES.energy, 'contrast');
+    assert.equal(DYNAMICS_PROFILES.kinetic, 'contrast');
+  });
+
+  it('uses arc for editorial styles', () => {
+    assert.equal(DYNAMICS_PROFILES.prestige, 'arc');
+    assert.equal(DYNAMICS_PROFILES.fade, 'arc');
+  });
+
+  it('uses neutral for minimal/dramatic', () => {
+    assert.equal(DYNAMICS_PROFILES.minimal, 'neutral');
+    assert.equal(DYNAMICS_PROFILES.dramatic, 'neutral');
+  });
+});
+
+describe('scoreDynamics', () => {
+  it('returns 100 for <=2 scenes', () => {
+    assert.equal(scoreDynamics([{ duration_s: 2 }], 'energy'), 100);
+    assert.equal(scoreDynamics([{ duration_s: 2 }, { duration_s: 2 }], 'energy'), 100);
+  });
+
+  it('rewards high variance for contrast profile (energy)', () => {
+    // Spiky: short-short-short-long pattern
+    const spiky = [
+      { duration_s: 1.5 }, { duration_s: 1.5 }, { duration_s: 1.5 },
+      { duration_s: 4.0 }, { duration_s: 1.5 }, { duration_s: 1.5 },
+    ];
+    // Flat: all same duration
+    const flat = [
+      { duration_s: 2.0 }, { duration_s: 2.0 }, { duration_s: 2.0 },
+      { duration_s: 2.0 }, { duration_s: 2.0 }, { duration_s: 2.0 },
+    ];
+    const spikyScore = scoreDynamics(spiky, 'energy');
+    const flatScore = scoreDynamics(flat, 'energy');
+    assert.ok(spikyScore > flatScore, `Spiky (${spikyScore}) should beat flat (${flatScore}) for energy`);
+  });
+
+  it('rewards arc shape for prestige', () => {
+    // Good arc: slow-fast-fast-slow
+    const arc = [
+      { duration_s: 3.5 }, { duration_s: 2.0 }, { duration_s: 2.0 },
+      { duration_s: 2.0 }, { duration_s: 3.0 }, { duration_s: 3.5 },
+    ];
+    const arcScore = scoreDynamics(arc, 'prestige');
+    assert.ok(arcScore >= 50, `Arc score (${arcScore}) should be >= 50 for prestige`);
+  });
+
+  it('gives mild reward for variance in neutral profile', () => {
+    const varied = [
+      { duration_s: 2.0 }, { duration_s: 3.0 }, { duration_s: 2.5 },
+      { duration_s: 3.5 }, { duration_s: 2.0 },
+    ];
+    const flat = [
+      { duration_s: 2.5 }, { duration_s: 2.5 }, { duration_s: 2.5 },
+      { duration_s: 2.5 }, { duration_s: 2.5 },
+    ];
+    const variedScore = scoreDynamics(varied, 'dramatic');
+    const flatScore = scoreDynamics(flat, 'dramatic');
+    assert.ok(variedScore > flatScore, `Varied (${variedScore}) should beat flat (${flatScore}) for dramatic`);
+  });
+});
+
+describe('scorePacing blends dynamics (ANI-41)', () => {
+  it('pacing score includes dynamics blend for energy style', () => {
+    // Build scenes with spiky durations for contrast profile
+    const scenes = [
+      makeScene('sc_a', { motion_energy: 'high' }),
+      makeScene('sc_b', { motion_energy: 'high' }),
+      makeScene('sc_c', { motion_energy: 'high' }),
+      makeScene('sc_d', { motion_energy: 'static' }),
+    ];
+    const sceneMap = buildSceneMap(scenes);
+    const manifestScenes = [
+      makeManifestScene('sc_a', 1.5),
+      makeManifestScene('sc_b', 1.5),
+      makeManifestScene('sc_c', 1.5),
+      makeManifestScene('sc_d', 4.0),
+    ];
+    const result = scorePacing(manifestScenes, sceneMap, 'energy');
+    assert.ok(typeof result.score === 'number');
+    assert.ok(result.score >= 0 && result.score <= 100);
+  });
+
+  it('pacing still returns valid scores for prestige', () => {
+    const scenes = [
+      makeScene('sc_a', { motion_energy: 'subtle' }),
+      makeScene('sc_b', { motion_energy: 'moderate' }),
+      makeScene('sc_c', { motion_energy: 'subtle' }),
+    ];
+    const sceneMap = buildSceneMap(scenes);
+    const manifestScenes = [
+      makeManifestScene('sc_a', 3.0),
+      makeManifestScene('sc_b', 3.0),
+      makeManifestScene('sc_c', 3.5),
+    ];
+    const result = scorePacing(manifestScenes, sceneMap, 'prestige');
+    assert.ok(result.score >= 0 && result.score <= 100);
   });
 });

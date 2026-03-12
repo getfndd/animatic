@@ -720,3 +720,46 @@ function buildOrderingRationale(ordered) {
 
   return parts.join('; ');
 }
+
+// ── Variant planning (ANI-44) ────────────────────────────────────────────────
+
+/**
+ * Plan multiple sequence variants from the same scenes with different styles.
+ *
+ * Each style produces an independent manifest via planSequence(). Variants
+ * share the same scene content and ordering but differ in timing, transitions,
+ * and camera choreography.
+ *
+ * @param {{ scenes: object[], styles: string[], sequence_id?: string, audio?: object }} params
+ * @returns {{ variants: Array<{ variant_id: string, style: string, manifest: object, notes: object }> }}
+ */
+export function planVariants({ scenes, styles, sequence_id, audio }) {
+  if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
+    throw new Error('planVariants requires a non-empty scenes array');
+  }
+  if (!styles || !Array.isArray(styles) || styles.length < 2) {
+    throw new Error('planVariants requires at least 2 styles to compare');
+  }
+
+  const variants = styles.map((style, i) => {
+    const seqId = sequence_id
+      ? `${sequence_id}_v${i + 1}_${style}`
+      : `seq_variant_${style}_${Date.now()}`;
+
+    const { manifest, notes } = planSequence({
+      scenes,
+      style,
+      sequence_id: seqId,
+      audio,
+    });
+
+    return {
+      variant_id: `v${i + 1}_${style}`,
+      style,
+      manifest,
+      notes,
+    };
+  });
+
+  return { variants };
+}

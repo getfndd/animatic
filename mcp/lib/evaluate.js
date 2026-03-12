@@ -822,3 +822,59 @@ export function evaluateSequence({ manifest, scenes, style }) {
     findings: allFindings,
   };
 }
+
+// ── Variant comparison (ANI-44) ──────────────────────────────────────────────
+
+/**
+ * Compare multiple sequence variants by scoring each and ranking them.
+ *
+ * @param {{ variants: Array<{ variant_id: string, style: string, manifest: object }>, scenes: object[] }} params
+ * @returns {{ rankings: Array<{ variant_id: string, style: string, score: number, dimensions: object }>, comparison: object }}
+ */
+export function compareVariants({ variants, scenes }) {
+  if (!variants || !Array.isArray(variants) || variants.length < 2) {
+    throw new Error('compareVariants requires at least 2 variants');
+  }
+  if (!scenes || !Array.isArray(scenes)) {
+    throw new Error('compareVariants requires a scenes array');
+  }
+
+  const scored = variants.map(v => {
+    const result = evaluateSequence({
+      manifest: v.manifest,
+      scenes,
+      style: v.style,
+    });
+    return {
+      variant_id: v.variant_id,
+      style: v.style,
+      score: result.score,
+      dimensions: result.dimensions,
+      findings: result.findings,
+    };
+  });
+
+  // Sort by score descending
+  scored.sort((a, b) => b.score - a.score);
+
+  // Build dimension-level comparison
+  const dimensionNames = ['pacing', 'variety', 'flow', 'adherence'];
+  const comparison = {};
+  for (const dim of dimensionNames) {
+    const best = scored.reduce((a, b) =>
+      (b.dimensions[dim]?.score ?? 0) > (a.dimensions[dim]?.score ?? 0) ? b : a
+    );
+    comparison[dim] = {
+      best_variant: best.variant_id,
+      best_score: best.dimensions[dim]?.score ?? 0,
+      scores: Object.fromEntries(scored.map(v => [v.variant_id, v.dimensions[dim]?.score ?? 0])),
+    };
+  }
+
+  return {
+    rankings: scored.map(({ variant_id, style, score, dimensions }) => ({
+      variant_id, style, score, dimensions,
+    })),
+    comparison,
+  };
+}

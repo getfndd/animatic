@@ -21,6 +21,7 @@ import {
   assignCameraOverrides,
   preFilterShotGrammar,
   planSequence,
+  planVariants,
   STYLE_PACKS,
   STYLE_TO_PERSONALITY,
 } from '../lib/planner.js';
@@ -1389,5 +1390,54 @@ describe('per-scene style blending (ANI-30)', () => {
       assert.deepEqual(result1.manifest.scenes[i].camera_override, result2.manifest.scenes[i].camera_override);
     }
     assert.ok(!result1.notes.style_overrides_used, 'No overrides should mean no style_overrides_used in notes');
+  });
+});
+
+// ── A/B Variant Planning (ANI-44) ────────────────────────────────────────────
+
+describe('planVariants (ANI-44)', () => {
+  const scenes = [
+    makeScene('sc_a', { intent_tags: ['opening'], motion_energy: 'moderate' }),
+    makeScene('sc_b', { intent_tags: ['detail'], content_type: 'ui_screenshot', motion_energy: 'subtle' }),
+    makeScene('sc_c', { intent_tags: ['closing'], content_type: 'brand_mark', motion_energy: 'static' }),
+  ];
+
+  it('generates one variant per style', () => {
+    const { variants } = planVariants({ scenes, styles: ['prestige', 'energy'] });
+    assert.equal(variants.length, 2);
+    assert.equal(variants[0].style, 'prestige');
+    assert.equal(variants[1].style, 'energy');
+  });
+
+  it('each variant has valid manifest', () => {
+    const { variants } = planVariants({ scenes, styles: ['prestige', 'dramatic', 'minimal'] });
+    for (const v of variants) {
+      assert.ok(v.variant_id, 'variant_id required');
+      assert.ok(v.manifest, 'manifest required');
+      assert.ok(v.notes, 'notes required');
+      assert.ok(v.manifest.sequence_id.includes(v.style),
+        `sequence_id should include style name: ${v.manifest.sequence_id}`);
+    }
+  });
+
+  it('variants have different durations for different styles', () => {
+    const { variants } = planVariants({ scenes, styles: ['prestige', 'energy'] });
+    assert.notEqual(variants[0].notes.total_duration_s, variants[1].notes.total_duration_s,
+      'prestige and energy should produce different total durations');
+  });
+
+  it('throws on fewer than 2 styles', () => {
+    assert.throws(() => planVariants({ scenes, styles: ['prestige'] }), /at least 2/);
+  });
+
+  it('throws on empty scenes', () => {
+    assert.throws(() => planVariants({ scenes: [], styles: ['prestige', 'energy'] }), /non-empty/);
+  });
+
+  it('uses base sequence_id with style suffix', () => {
+    const { variants } = planVariants({ scenes, styles: ['prestige', 'energy'], sequence_id: 'seq_test' });
+    assert.ok(variants[0].manifest.sequence_id.startsWith('seq_test'));
+    assert.ok(variants[1].manifest.sequence_id.startsWith('seq_test'));
+    assert.notEqual(variants[0].manifest.sequence_id, variants[1].manifest.sequence_id);
   });
 });

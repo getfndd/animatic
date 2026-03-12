@@ -11,6 +11,7 @@ import {
 import { getParallaxFactor, resolveLayoutSlots } from '../lib.js';
 import { CameraRig } from './CameraRig.jsx';
 import { TextLayer } from './TextLayer.jsx';
+import { AnalogOverlay } from './AnalogOverlay.jsx';
 
 /**
  * SceneComposition — Renders a single scene definition to video.
@@ -53,6 +54,7 @@ export const SceneComposition = ({ scene }) => {
           />
         ))}
       </CameraRig>
+      {scene.metadata?.visual_treatment === 'analog' && <AnalogOverlay />}
     </AbsoluteFill>
   );
 };

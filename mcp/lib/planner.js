@@ -533,6 +533,8 @@ export function planSequence({ scenes, style, sequence_id, audio }) {
   // Assemble manifest
   const seqId = sequence_id || `seq_planned_${Date.now()}`;
   const overridesUsed = new Set();
+  const sceneReasoning = [];
+
   const manifestScenes = ordered.map((scene, i) => {
     const entry = {
       scene: scene.scene_id || scene.id || `scene_${i}`,
@@ -556,6 +558,9 @@ export function planSequence({ scenes, style, sequence_id, audio }) {
     if (scene.metadata?.style_override) {
       overridesUsed.add(scene.metadata.style_override);
     }
+
+    // Build per-scene reasoning (ANI-45)
+    sceneReasoning.push(buildSceneReasoning(scene, i, style, durations[i], transitions[i], cameraOverrides[i], shotGrammars[i], shotGrammarCorrections));
 
     return entry;
   });
@@ -598,11 +603,99 @@ export function planSequence({ scenes, style, sequence_id, audio }) {
     style_personality: STYLE_TO_PERSONALITY[style],
     ordering_rationale: buildOrderingRationale(ordered),
     transition_summary: transitionCounts,
+    reasoning: sceneReasoning,
     ...(overridesUsed.size > 0 ? { style_overrides_used: [...overridesUsed] } : {}),
     ...(shotGrammarCorrections.length > 0 ? { shot_grammar_corrections: shotGrammarCorrections } : {}),
   };
 
   return { manifest, notes };
+}
+
+/**
+ * Build per-scene reasoning explaining each planning decision.
+ * Traces: intent → style pack → duration/transition/camera rules applied.
+ */
+function buildSceneReasoning(scene, index, style, duration, transition, cameraOverride, shotGrammar, sgCorrections) {
+  const pack = resolveScenePack(scene, style);
+  const packName = scene.metadata?.style_override || style;
+  const energy = scene.metadata?.motion_energy || 'moderate';
+  const sceneId = scene.scene_id || scene.id || `scene_${index}`;
+  const reasoning = { scene: sceneId };
+
+  // Duration reasoning
+  const baseDuration = pack.hold_durations[energy] ?? pack.hold_durations.moderate;
+  let durationExplanation = `${duration}s: ${packName}.hold_durations.${energy} (${baseDuration}s)`;
+  if (pack.max_hold_duration != null && baseDuration > pack.max_hold_duration) {
+    durationExplanation += ` → clamped to max ${pack.max_hold_duration}s`;
+  }
+  if (duration !== baseDuration && duration !== pack.max_hold_duration) {
+    durationExplanation += ` → adjusted to ${duration}s (rest beat)`;
+  }
+  reasoning.duration = durationExplanation;
+
+  // Transition reasoning
+  if (index === 0) {
+    reasoning.transition = 'none: first scene (no transition_in per spec)';
+  } else if (transition) {
+    const rule = identifyTransitionRule(pack.transitions, transition, index);
+    reasoning.transition = `${transition.type}${transition.duration_ms ? ` ${transition.duration_ms}ms` : ''}: ${rule}`;
+  } else {
+    reasoning.transition = 'none';
+  }
+
+  // Camera reasoning
+  if (cameraOverride) {
+    const contentType = scene.metadata?.content_type;
+    const intentTags = scene.metadata?.intent_tags || [];
+    if (pack.camera_overrides.force_static) {
+      reasoning.camera = `static: ${packName} enforces force_static`;
+    } else if (pack.camera_overrides.by_content_type?.[contentType]) {
+      reasoning.camera = `${cameraOverride.move} ${cameraOverride.intensity}: by_content_type.${contentType} → validated against ${pack.personality}`;
+    } else {
+      const matchedIntent = intentTags.find(t => pack.camera_overrides.by_intent?.[t]);
+      if (matchedIntent) {
+        reasoning.camera = `${cameraOverride.move} ${cameraOverride.intensity}: by_intent.${matchedIntent} → validated against ${pack.personality}`;
+      } else {
+        reasoning.camera = `${cameraOverride.move} ${cameraOverride.intensity ?? ''}: style pack rule`;
+      }
+    }
+  } else {
+    reasoning.camera = 'none: no matching camera rule (scene uses default)';
+  }
+
+  // Shot grammar reasoning
+  if (shotGrammar) {
+    const parts = [];
+    if (shotGrammar.shot_size) parts.push(shotGrammar.shot_size);
+    if (shotGrammar.angle) parts.push(shotGrammar.angle);
+    const corrected = sgCorrections.filter(c => c.startsWith(sceneId));
+    reasoning.shot_grammar = parts.join(', ') + (corrected.length > 0 ? ` (corrected: ${corrected.join('; ')})` : '');
+  }
+
+  return reasoning;
+}
+
+/**
+ * Identify which transition rule matched for reasoning output.
+ */
+function identifyTransitionRule(rules, transition, sceneIndex) {
+  if (rules.pattern && sceneIndex % rules.pattern.every_n === 0) {
+    return `pattern: every ${rules.pattern.every_n} scenes`;
+  }
+  if (rules.on_same_weight && transition.type === rules.on_same_weight.type) {
+    return 'on_same_weight: consecutive same visual weight';
+  }
+  if (rules.on_weight_change && transition.type === rules.on_weight_change.type &&
+      transition.duration_ms === rules.on_weight_change.duration_ms) {
+    return 'on_weight_change: visual weight shift detected';
+  }
+  if (rules.on_intent) {
+    const intentTransition = rules.on_intent.transition;
+    if (transition.type === intentTransition.type && transition.duration_ms === intentTransition.duration_ms) {
+      return `on_intent: matched tag [${rules.on_intent.tags.join(', ')}]`;
+    }
+  }
+  return 'default: fallback transition rule';
 }
 
 /**

@@ -548,6 +548,6 @@ All 12 shots are representable with this schema.
 
 3. **Assets are declared, not inline.** Media files are referenced by ID, allowing reuse across layers and enabling preloading. Asset resolution (file path → loaded media) is the renderer's job.
 
-4. **Metadata is optional for authoring, required for AI.** A human can write a scene without metadata. The AI scene analysis engine (ANI-22) populates metadata for AI-planned sequences.
+4. **Metadata is optional for authoring, required for AI.** A human can write a scene without metadata. The AI scene analysis engine (ANI-22) populates metadata for AI-planned sequences. The analyzer also produces a `reasoning` block explaining each classification decision (ANI-45), enabling traceability from intent to output.
 
 5. **Audio at sequence level.** The `audio` asset type is supported for scene-level assets. Background music and per-scene audio clips (narration, SFX) are rendered at the sequence manifest level via Remotion's `<Audio>` component.

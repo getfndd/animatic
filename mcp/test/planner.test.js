@@ -596,6 +596,80 @@ describe('planSequence', () => {
   });
 });
 
+// ── Choreography reasoning (ANI-45) ─────────────────────────────────────────
+
+describe('planSequence reasoning (ANI-45)', () => {
+  it('notes include reasoning array with per-scene entries', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'], motion_energy: 'moderate' }),
+      makeScene('sc_b', { intent_tags: ['detail'], content_type: 'ui_screenshot', motion_energy: 'subtle' }),
+      makeScene('sc_c', { intent_tags: ['closing'], content_type: 'brand_mark', motion_energy: 'static' }),
+    ];
+    const { notes } = planSequence({ scenes, style: 'prestige', sequence_id: 'seq_reasoning' });
+
+    assert.ok(Array.isArray(notes.reasoning), 'notes.reasoning is an array');
+    assert.equal(notes.reasoning.length, 3, 'one reasoning entry per scene');
+  });
+
+  it('each reasoning entry has scene, duration, transition, camera fields', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'], motion_energy: 'moderate' }),
+      makeScene('sc_b', { intent_tags: ['detail'], content_type: 'portrait', motion_energy: 'subtle' }),
+    ];
+    const { notes } = planSequence({ scenes, style: 'prestige', sequence_id: 'seq_reason_fields' });
+
+    for (const r of notes.reasoning) {
+      assert.ok(typeof r.scene === 'string', 'reasoning.scene is string');
+      assert.ok(typeof r.duration === 'string', 'reasoning.duration is string');
+      assert.ok(typeof r.transition === 'string', 'reasoning.transition is string');
+      assert.ok(typeof r.camera === 'string', 'reasoning.camera is string');
+    }
+  });
+
+  it('first scene reasoning says no transition', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['opening'] }),
+      makeScene('sc_b', { intent_tags: ['closing'] }),
+    ];
+    const { notes } = planSequence({ scenes, style: 'dramatic', sequence_id: 'seq_reason_first' });
+
+    assert.ok(notes.reasoning[0].transition.includes('first scene'),
+      'first scene reasoning should mention "first scene"');
+  });
+
+  it('duration reasoning references style pack and energy level', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['detail'], motion_energy: 'high' }),
+    ];
+    const { notes } = planSequence({ scenes, style: 'prestige', sequence_id: 'seq_reason_dur' });
+
+    assert.ok(notes.reasoning[0].duration.includes('prestige'),
+      'duration reasoning should mention style pack name');
+    assert.ok(notes.reasoning[0].duration.includes('high'),
+      'duration reasoning should mention energy level');
+  });
+
+  it('camera reasoning references content_type when by_content_type matches', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['detail'], content_type: 'portrait' }),
+    ];
+    const { notes } = planSequence({ scenes, style: 'prestige', sequence_id: 'seq_reason_cam' });
+
+    assert.ok(notes.reasoning[0].camera.includes('portrait'),
+      'camera reasoning should mention matched content_type');
+  });
+
+  it('force_static camera reasoning mentions the style pack', () => {
+    const scenes = [
+      makeScene('sc_a', { intent_tags: ['detail'], content_type: 'ui_screenshot' }),
+    ];
+    const { notes } = planSequence({ scenes, style: 'energy', sequence_id: 'seq_reason_static' });
+
+    assert.ok(notes.reasoning[0].camera.includes('force_static'),
+      'camera reasoning should mention force_static');
+  });
+});
+
 // ── Ground truth: kinetic type scenes through analyze → plan ────────────────
 
 describe('planSequence — kinetic type ground truth', () => {

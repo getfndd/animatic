@@ -37,8 +37,8 @@ import {
 
 import { filterByPersonality, parseDurationMs, checkBlurViolations } from './lib.js';
 import { analyzeScene } from './lib/analyze.js';
-import { planSequence, STYLE_PACKS } from './lib/planner.js';
-import { evaluateSequence } from './lib/evaluate.js';
+import { planSequence, planVariants, STYLE_PACKS } from './lib/planner.js';
+import { evaluateSequence, compareVariants } from './lib/evaluate.js';
 import { validateFullManifest } from './lib/guardrails.js';
 import { generateScenes } from './lib/generator.js';
 
@@ -504,6 +504,60 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['brief'],
       },
     },
+    {
+      name: 'plan_variants',
+      description:
+        'Plan multiple sequence variants from the same scenes with different styles. Each style produces an independent manifest. Use this to generate A/B choreography options for comparison. Requires at least 2 styles.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Array of analyzed scene objects with metadata (use analyze_scene first).',
+          },
+          styles: {
+            type: 'array',
+            items: { type: 'string', enum: STYLE_PACKS },
+            minItems: 2,
+            description: 'Array of style pack names to generate variants for.',
+          },
+          sequence_id: {
+            type: 'string',
+            description: 'Base sequence ID. Each variant gets a suffixed ID.',
+          },
+        },
+        required: ['scenes', 'styles'],
+      },
+    },
+    {
+      name: 'compare_variants',
+      description:
+        'Score and rank multiple sequence variants. Evaluates each variant across pacing, variety, flow, and adherence dimensions. Returns ranked results with per-dimension comparison. Use after plan_variants to pick the best choreography.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          variants: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                variant_id: { type: 'string' },
+                style: { type: 'string' },
+                manifest: { type: 'object' },
+              },
+            },
+            description: 'Array of variant objects from plan_variants output.',
+          },
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Analyzed scene objects with metadata (same scenes used for plan_variants).',
+          },
+        },
+        required: ['variants', 'scenes'],
+      },
+    },
   ],
 }));
 
@@ -545,6 +599,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleGetBriefTemplate(args);
     case 'generate_scenes':
       return handleGenerateScenes(args);
+    case 'plan_variants':
+      return handlePlanVariants(args);
+    case 'compare_variants':
+      return handleCompareVariants(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1833,6 +1891,146 @@ function handleGenerateScenes(args) {
 }
 
 // ── Start server ────────────────────────────────────────────────────────────
+
+// ── plan_variants (ANI-44) ──────────────────────────────────────────────────
+
+function handlePlanVariants(args) {
+  const { scenes, styles, sequence_id } = args;
+
+  if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `scenes` must be a non-empty array of scene objects with metadata.' }],
+      isError: true,
+    };
+  }
+
+  if (!styles || !Array.isArray(styles) || styles.length < 2) {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `styles` must be an array of at least 2 style pack names.' }],
+      isError: true,
+    };
+  }
+
+  for (const style of styles) {
+    if (!STYLE_PACKS.includes(style)) {
+      return {
+        content: [{ type: 'text', text: `Invalid style "${style}". Valid styles: ${STYLE_PACKS.join(', ')}` }],
+        isError: true,
+      };
+    }
+  }
+
+  try {
+    const { variants } = planVariants({ scenes, styles, sequence_id });
+
+    let out = `# A/B Variants: ${variants.length} choreographies\n\n`;
+
+    for (const v of variants) {
+      out += `## ${v.variant_id} (${v.style})\n\n`;
+      out += `**Duration:** ${v.notes.total_duration_s}s | **Scenes:** ${v.notes.scene_count}\n\n`;
+
+      out += '| # | Scene | Duration | Transition | Camera |\n';
+      out += '|---|-------|----------|------------|--------|\n';
+      for (let i = 0; i < v.manifest.scenes.length; i++) {
+        const s = v.manifest.scenes[i];
+        const transition = s.transition_in
+          ? `${s.transition_in.type}${s.transition_in.duration_ms ? ` (${s.transition_in.duration_ms}ms)` : ''}`
+          : '—';
+        const camera = s.camera_override
+          ? `${s.camera_override.move}${s.camera_override.intensity != null ? ` ${s.camera_override.intensity}` : ''}`
+          : '—';
+        out += `| ${i + 1} | ${s.scene} | ${s.duration_s}s | ${transition} | ${camera} |\n`;
+      }
+      out += '\n';
+    }
+
+    // Summary comparison
+    out += '## Quick Comparison\n\n';
+    out += '| Variant | Style | Duration | Transitions |\n';
+    out += '|---------|-------|----------|-------------|\n';
+    for (const v of variants) {
+      const transTypes = Object.entries(v.notes.transition_summary)
+        .map(([t, c]) => `${t}×${c}`)
+        .join(', ');
+      out += `| ${v.variant_id} | ${v.style} | ${v.notes.total_duration_s}s | ${transTypes} |\n`;
+    }
+
+    out += '\n*Use `compare_variants` to score and rank these variants.*\n';
+
+    // Append variant data for programmatic use
+    out += '\n## Variant Data\n\n```json\n';
+    out += JSON.stringify(variants.map(v => ({ variant_id: v.variant_id, style: v.style, manifest: v.manifest })), null, 2);
+    out += '\n```\n';
+
+    return { content: [{ type: 'text', text: out }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Error planning variants: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+// ── compare_variants (ANI-44) ───────────────────────────────────────────────
+
+function handleCompareVariants(args) {
+  const { variants, scenes } = args;
+
+  if (!variants || !Array.isArray(variants) || variants.length < 2) {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `variants` must be an array of at least 2 variant objects.' }],
+      isError: true,
+    };
+  }
+
+  if (!scenes || !Array.isArray(scenes)) {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `scenes` must be an array of analyzed scene objects.' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const result = compareVariants({ variants, scenes });
+
+    let out = '# Variant Comparison\n\n';
+
+    // Rankings
+    out += '## Rankings\n\n';
+    out += '| Rank | Variant | Style | Score | Pacing | Variety | Flow | Adherence |\n';
+    out += '|------|---------|-------|-------|--------|---------|------|-----------|\n';
+    for (let i = 0; i < result.rankings.length; i++) {
+      const r = result.rankings[i];
+      out += `| ${i + 1} | ${r.variant_id} | ${r.style} | **${r.score}** | ${r.dimensions.pacing.score} | ${r.dimensions.variety.score} | ${r.dimensions.flow.score} | ${r.dimensions.adherence.score} |\n`;
+    }
+
+    // Winner
+    const winner = result.rankings[0];
+    const margin = result.rankings.length > 1
+      ? winner.score - result.rankings[1].score
+      : 0;
+    out += `\n**Winner:** ${winner.variant_id} (${winner.style}) with score ${winner.score}`;
+    if (margin > 0) out += ` (+${margin} over runner-up)`;
+    out += '\n';
+
+    // Dimension breakdown
+    out += '\n## Per-Dimension Best\n\n';
+    for (const [dim, data] of Object.entries(result.comparison)) {
+      out += `- **${dim}:** ${data.best_variant} (${data.best_score})\n`;
+    }
+
+    out += '\n## Rankings Data\n\n```json\n';
+    out += JSON.stringify(result.rankings, null, 2);
+    out += '\n```\n';
+
+    return { content: [{ type: 'text', text: out }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Error comparing variants: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
 
 async function main() {
   const transport = new StdioServerTransport();

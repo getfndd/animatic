@@ -28,10 +28,11 @@ import {
   scoreFlow,
   scoreAdherence,
   evaluateSequence,
+  compareVariants,
 } from '../lib/evaluate.js';
 
 import { analyzeScene } from '../lib/analyze.js';
-import { planSequence } from '../lib/planner.js';
+import { planSequence, planVariants } from '../lib/planner.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
@@ -791,5 +792,57 @@ describe('scorePacing blends dynamics (ANI-41)', () => {
     ];
     const result = scorePacing(manifestScenes, sceneMap, 'prestige');
     assert.ok(result.score >= 0 && result.score <= 100);
+  });
+});
+
+// ── compareVariants (ANI-44) ────────────────────────────────────────────────
+
+describe('compareVariants (ANI-44)', () => {
+  const scenes = kineticScenes.map(scene => {
+    const analysis = analyzeScene(scene);
+    return { ...scene, metadata: analysis.metadata };
+  });
+
+  it('returns ranked results for 2 variants', () => {
+    const { variants } = planVariants({ scenes, styles: ['prestige', 'energy'] });
+    const result = compareVariants({ variants, scenes });
+
+    assert.ok(Array.isArray(result.rankings), 'rankings is array');
+    assert.equal(result.rankings.length, 2);
+    assert.ok(result.rankings[0].score >= result.rankings[1].score, 'rankings sorted by score descending');
+  });
+
+  it('each ranking has score and dimensions', () => {
+    const { variants } = planVariants({ scenes, styles: ['prestige', 'dramatic'] });
+    const result = compareVariants({ variants, scenes });
+
+    for (const r of result.rankings) {
+      assert.ok(typeof r.variant_id === 'string');
+      assert.ok(typeof r.style === 'string');
+      assert.ok(typeof r.score === 'number');
+      assert.ok(r.score >= 0 && r.score <= 100);
+      assert.ok(r.dimensions.pacing);
+      assert.ok(r.dimensions.variety);
+      assert.ok(r.dimensions.flow);
+      assert.ok(r.dimensions.adherence);
+    }
+  });
+
+  it('comparison shows per-dimension best', () => {
+    const { variants } = planVariants({ scenes, styles: ['prestige', 'energy', 'minimal'] });
+    const result = compareVariants({ variants, scenes });
+
+    assert.ok(result.comparison.pacing, 'comparison has pacing');
+    assert.ok(result.comparison.pacing.best_variant);
+    assert.ok(result.comparison.pacing.scores);
+    assert.equal(Object.keys(result.comparison.pacing.scores).length, 3);
+  });
+
+  it('throws on fewer than 2 variants', () => {
+    const { variants } = planVariants({ scenes, styles: ['prestige', 'energy'] });
+    assert.throws(
+      () => compareVariants({ variants: [variants[0]], scenes }),
+      /at least 2/
+    );
   });
 });

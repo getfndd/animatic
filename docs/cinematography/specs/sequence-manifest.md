@@ -411,3 +411,5 @@ The background track plays across the full sequence. Per-scene audio clips are s
 6. **Audio is passthrough.** Background music and per-scene audio clips (narration, SFX) render via Remotion's `<Audio>` component with volume envelopes. Beat detection and volume ducking are deferred (ANI-37).
 
 7. **Reasoning is surfaced, not embedded.** The planner produces per-scene reasoning in `notes.reasoning` (not in the manifest itself). Reasoning traces intent → style pack → duration/transition/camera decisions. This keeps the manifest clean (renderer doesn't need reasoning) while enabling traceability via MCP tools (ANI-45).
+
+8. **Variants are separate manifests.** A/B choreography comparison works by generating multiple complete manifests from the same scenes with different styles via `plan_variants`. Each variant is an independent, renderable manifest. Evaluation scores each independently via `compare_variants`, producing ranked results. This avoids schema complexity — no inline variants in scene entries (ANI-44).

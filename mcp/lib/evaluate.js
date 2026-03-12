@@ -40,6 +40,7 @@ export const DYNAMICS_PROFILES = {
   fade: 'arc',
   intimate: 'arc',
   analog: 'arc',
+  documentary: 'arc',
   minimal: 'neutral',
   dramatic: 'neutral',
 };

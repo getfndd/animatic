@@ -883,8 +883,8 @@ describe('planSequence surfaces shot_grammar_corrections in notes (ANI-34)', () 
 // ── Constants ───────────────────────────────────────────────────────────────
 
 describe('constants', () => {
-  it('STYLE_PACKS has 9 entries', () => {
-    assert.equal(STYLE_PACKS.length, 9);
+  it('STYLE_PACKS has 10 entries', () => {
+    assert.equal(STYLE_PACKS.length, 10);
     assert.ok(STYLE_PACKS.includes('prestige'));
     assert.ok(STYLE_PACKS.includes('energy'));
     assert.ok(STYLE_PACKS.includes('dramatic'));
@@ -894,6 +894,7 @@ describe('constants', () => {
     assert.ok(STYLE_PACKS.includes('kinetic'));
     assert.ok(STYLE_PACKS.includes('fade'));
     assert.ok(STYLE_PACKS.includes('analog'));
+    assert.ok(STYLE_PACKS.includes('documentary'));
   });
 
   it('STYLE_TO_PERSONALITY maps all packs', () => {
@@ -921,9 +922,9 @@ describe('catalog-driven style packs (ANI-24)', () => {
     readFileSync(resolve(ROOT, 'catalog/style-packs.json'), 'utf-8')
   );
 
-  it('style-packs.json defines all 9 styles', () => {
+  it('style-packs.json defines all 10 styles', () => {
     const names = stylePacks.map(p => p.name);
-    assert.deepEqual(names.sort(), ['analog', 'corporate', 'dramatic', 'energy', 'fade', 'intimate', 'kinetic', 'minimal', 'prestige']);
+    assert.deepEqual(names.sort(), ['analog', 'corporate', 'documentary', 'dramatic', 'energy', 'fade', 'intimate', 'kinetic', 'minimal', 'prestige']);
   });
 
   it('each pack has required fields', () => {

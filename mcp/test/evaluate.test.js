@@ -687,7 +687,7 @@ describe('per-scene style blending in evaluator (ANI-30)', () => {
 
 describe('DYNAMICS_PROFILES', () => {
   it('maps all style packs to a profile', () => {
-    const expected = ['energy', 'kinetic', 'prestige', 'corporate', 'fade', 'intimate', 'analog', 'minimal', 'dramatic'];
+    const expected = ['energy', 'kinetic', 'prestige', 'corporate', 'fade', 'intimate', 'analog', 'documentary', 'minimal', 'dramatic'];
     for (const style of expected) {
       assert.ok(DYNAMICS_PROFILES[style], `Missing dynamics profile for ${style}`);
     }

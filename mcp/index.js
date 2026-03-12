@@ -500,6 +500,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: 'object',
             description: 'A creative brief object with project (title required), template (template_id or "custom"), content (sections array with label + text + optional assets), assets (array with id + src + optional hint), and optional brand, tone, style, constraints fields.',
           },
+          enhance: {
+            type: 'boolean',
+            description: 'Enable LLM enhancement (ANI-36). When true and ANTHROPIC_API_KEY is set, Claude improves scene plan text and suggests camera moves. Falls back to rule-based output on any failure. Default: false.',
+          },
         },
         required: ['brief'],
       },
@@ -1831,8 +1835,8 @@ function handleGetBriefTemplate(args) {
 
 // ── generate_scenes ─────────────────────────────────────────────────────────
 
-function handleGenerateScenes(args) {
-  const { brief } = args;
+async function handleGenerateScenes(args) {
+  const { brief, enhance = false } = args;
 
   if (!brief || typeof brief !== 'object') {
     return {
@@ -1845,13 +1849,17 @@ function handleGenerateScenes(args) {
   }
 
   try {
-    const { scenes, notes } = generateScenes(brief);
+    const { scenes, notes } = await generateScenes(brief, { enhance });
 
     let out = `# Generated Scenes\n\n`;
     out += `**Template:** ${notes.template}\n`;
     out += `**Style:** ${notes.style}\n`;
     out += `**Scenes:** ${notes.scene_count}\n`;
-    out += `**Total Duration:** ${notes.total_duration_s.toFixed(1)}s\n\n`;
+    out += `**Total Duration:** ${notes.total_duration_s.toFixed(1)}s\n`;
+    if (notes.llm_enhancement) {
+      out += `**LLM Enhancement:** ${notes.llm_enhancement.join('; ')}\n`;
+    }
+    out += '\n';
 
     // Scene list table
     out += '## Scenes\n\n';

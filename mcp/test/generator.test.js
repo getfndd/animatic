@@ -855,16 +855,16 @@ describe('generateScene', () => {
 // ── generateScenes (integration) ─────────────────────────────────────────────
 
 describe('generateScenes integration', () => {
-  it('generates scenes from product-launch brief', () => {
+  it('generates scenes from product-launch brief', async () => {
     const brief = makeBrief();
-    const { scenes, notes } = generateScenes(brief);
+    const { scenes, notes } = await generateScenes(brief);
     assert.ok(scenes.length >= 3);
     assert.ok(notes.scene_count >= 3);
     assert.ok(notes.style);
     assert.ok(notes.total_duration_s > 0);
   });
 
-  it('generates scenes from brand-story brief', () => {
+  it('generates scenes from brand-story brief', async () => {
     const brief = makeBrief({
       template: 'brand-story',
       sections: [
@@ -875,12 +875,12 @@ describe('generateScenes integration', () => {
         { label: 'Closing', text: 'Built remote-first.', assets: ['logo'] },
       ],
     });
-    const { scenes, notes } = generateScenes(brief);
+    const { scenes, notes } = await generateScenes(brief);
     assert.ok(scenes.length >= 4);
     assert.equal(notes.template, 'brand-story');
   });
 
-  it('generates scenes from investor-pitch brief', () => {
+  it('generates scenes from investor-pitch brief', async () => {
     const brief = makeBrief({
       template: 'investor-pitch',
       sections: [
@@ -890,12 +890,12 @@ describe('generateScenes integration', () => {
         { label: 'Ask', text: 'Raising $8M.', assets: ['logo'] },
       ],
     });
-    const { scenes, notes } = generateScenes(brief);
+    const { scenes, notes } = await generateScenes(brief);
     assert.ok(scenes.length >= 3);
     assert.equal(notes.template, 'investor-pitch');
   });
 
-  it('generates scenes from tutorial brief', () => {
+  it('generates scenes from tutorial brief', async () => {
     const brief = makeBrief({
       template: 'tutorial',
       sections: [
@@ -906,12 +906,12 @@ describe('generateScenes integration', () => {
         { label: 'Next Steps', text: 'Learn more', assets: ['logo'] },
       ],
     });
-    const { scenes, notes } = generateScenes(brief);
+    const { scenes, notes } = await generateScenes(brief);
     assert.ok(scenes.length >= 4);
     assert.equal(notes.template, 'tutorial');
   });
 
-  it('generates scenes from custom brief', () => {
+  it('generates scenes from custom brief', async () => {
     const brief = makeBrief({
       template: 'custom',
       sections: [
@@ -921,22 +921,22 @@ describe('generateScenes integration', () => {
       ],
       assets: [],
     });
-    const { scenes } = generateScenes(brief);
+    const { scenes } = await generateScenes(brief);
     assert.ok(scenes.length >= 3);
   });
 
-  it('all generated scenes pass validateScene', () => {
+  it('all generated scenes pass validateScene', async () => {
     const brief = makeBrief();
-    const { scenes } = generateScenes(brief);
+    const { scenes } = await generateScenes(brief);
     for (const scene of scenes) {
       const result = validateScene(scene);
       assert.ok(result.valid, `${scene.scene_id} failed: ${result.errors.join('; ')}`);
     }
   });
 
-  it('all generated scenes produce valid analysis', () => {
+  it('all generated scenes produce valid analysis', async () => {
     const brief = makeBrief();
-    const { scenes } = generateScenes(brief);
+    const { scenes } = await generateScenes(brief);
     for (const scene of scenes) {
       const analysis = analyzeScene(scene);
       assert.ok(analysis.metadata);
@@ -946,23 +946,23 @@ describe('generateScenes integration', () => {
     }
   });
 
-  it('throws on invalid brief', () => {
-    assert.throws(() => generateScenes(null), /Brief validation failed/);
-    assert.throws(() => generateScenes({}), /Brief validation failed/);
+  it('throws on invalid brief', async () => {
+    await assert.rejects(() => generateScenes(null), /Brief validation failed/);
+    await assert.rejects(() => generateScenes({}), /Brief validation failed/);
   });
 
-  it('includes asset classification in notes', () => {
+  it('includes asset classification in notes', async () => {
     const brief = makeBrief();
-    const { notes } = generateScenes(brief);
+    const { notes } = await generateScenes(brief);
     assert.ok(Array.isArray(notes.asset_classification));
     assert.ok(notes.asset_classification.length > 0);
     assert.ok(notes.asset_classification[0].content_type);
     assert.ok(notes.asset_classification[0].confidence);
   });
 
-  it('includes plan summary in notes', () => {
+  it('includes plan summary in notes', async () => {
     const brief = makeBrief();
-    const { notes } = generateScenes(brief);
+    const { notes } = await generateScenes(brief);
     assert.ok(Array.isArray(notes.plan_summary));
     assert.ok(notes.plan_summary.length > 0);
     assert.ok(notes.plan_summary[0].label);
@@ -1002,6 +1002,43 @@ describe('constants', () => {
     for (const [mood, styles] of Object.entries(MOOD_TO_STYLES)) {
       assert.ok(Array.isArray(styles), `Mood "${mood}" should map to array`);
       assert.ok(styles.length > 0);
+    }
+  });
+});
+
+// ── LLM enhancement fallback (ANI-36) ────────────────────────────────────────
+
+describe('LLM enhancement (ANI-36)', () => {
+  it('enhance=false produces no llm_enhancement notes', async () => {
+    const brief = makeBrief();
+    const { notes } = await generateScenes(brief, { enhance: false });
+    assert.equal(notes.llm_enhancement, undefined);
+  });
+
+  it('enhance=true without API key falls back gracefully', async () => {
+    // ANTHROPIC_API_KEY is not set in test env
+    const original = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      const brief = makeBrief();
+      const { scenes, notes } = await generateScenes(brief, { enhance: true });
+      // Should still produce valid scenes (rule-based fallback)
+      assert.ok(scenes.length >= 3);
+      assert.ok(notes.scene_count >= 3);
+      // No LLM notes because key is not set — LLM calls are skipped entirely
+      assert.equal(notes.llm_enhancement, undefined);
+    } finally {
+      if (original) process.env.ANTHROPIC_API_KEY = original;
+    }
+  });
+
+  it('default options produce same output as enhance=false', async () => {
+    const brief = makeBrief();
+    const { scenes: s1 } = await generateScenes(brief);
+    const { scenes: s2 } = await generateScenes(brief, { enhance: false });
+    assert.equal(s1.length, s2.length);
+    for (let i = 0; i < s1.length; i++) {
+      assert.equal(s1[i].scene_id, s2[i].scene_id);
     }
   });
 });

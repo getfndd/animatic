@@ -7,11 +7,12 @@
  * 8 stage functions + orchestrator. Pure functions, catalog data at
  * module level. Self-validates output via validateScene().
  *
- * Rule-based v1 — deterministic, testable, no LLM calls.
+ * Rule-based core with optional LLM enhancement (ANI-36).
  */
 
 import { validateScene } from '../../src/remotion/lib.js';
 import { loadBriefTemplates, loadStylePacks, loadPersonalitiesCatalog } from '../data/loader.js';
+import { isLLMAvailable, enhanceScenePlan, enrichSceneContent } from './llm.js';
 
 // ── Load catalog data at module level ────────────────────────────────────────
 
@@ -1059,10 +1060,16 @@ function buildDataVizScene(scene, plan, colors, font) {
 /**
  * Full orchestrator: validates brief, composes stages 1-7, self-validates output.
  *
+ * When `options.enhance` is true and ANTHROPIC_API_KEY is set, layers LLM
+ * improvements on top of rule-based generation (ANI-36). Falls back to
+ * rule-based output on any LLM failure.
+ *
  * @param {object} brief — creative brief JSON
- * @returns {{ scenes: object[], notes: object }}
+ * @param {object} [options] — optional settings
+ * @param {boolean} [options.enhance=false] — enable LLM enhancement
+ * @returns {Promise<{ scenes: object[], notes: object }>}
  */
-export function generateScenes(brief) {
+export async function generateScenes(brief, options = {}) {
   // Stage 1: Validate
   const validation = validateBrief(brief);
   if (!validation.valid) {
@@ -1079,7 +1086,15 @@ export function generateScenes(brief) {
   const style = resolveStyle(brief, template);
 
   // Stage 5: Build scene plan (determines scene count)
-  const plan = buildScenePlan(brief, classifiedAssets, template);
+  let plan = buildScenePlan(brief, classifiedAssets, template);
+  const llmNotes = [];
+
+  // LLM Stage A: Enhance scene plan text (ANI-36)
+  if (options.enhance && isLLMAvailable()) {
+    const { enhanced, notes: planNotes } = await enhanceScenePlan(plan, brief, style);
+    plan = enhanced;
+    llmNotes.push(...planNotes);
+  }
 
   // Allocate durations with emphasis weighting
   const total = brief.project?.duration_target_s
@@ -1089,11 +1104,18 @@ export function generateScenes(brief) {
   const durations = allocateDurationsWeighted(total, emphases);
 
   // Stage 6-7: Generate scenes
-  const scenes = plan.map((entry, i) => {
+  let scenes = plan.map((entry, i) => {
     const scene = generateScene(entry, i, brief);
     scene.duration_s = durations[i] || 3;
     return scene;
   });
+
+  // LLM Stage B: Enrich scene content — camera suggestions (ANI-36)
+  if (options.enhance && isLLMAvailable()) {
+    const { enriched, notes: enrichNotes } = await enrichSceneContent(scenes, style);
+    scenes = enriched;
+    llmNotes.push(...enrichNotes);
+  }
 
   // Self-validate each scene
   const sceneErrors = [];
@@ -1128,6 +1150,7 @@ export function generateScenes(brief) {
       intent_tags: p.intent_tags,
       asset_count: p.assets.length,
     })),
+    ...(llmNotes.length > 0 ? { llm_enhancement: llmNotes } : {}),
   };
 
   return { scenes, notes };

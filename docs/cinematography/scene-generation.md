@@ -66,7 +66,7 @@ brief.json + assets/
 - **Camera always static** — Camera moves are the planner's job (ANI-23). Generated scenes set `{ move: 'static' }` to avoid conflicting with style pack camera overrides.
 - **Metadata pre-populated** — `content_type` and `intent_tags` set from the plan. The analyzer (ANI-22) re-derives and validates these independently.
 - **Self-validation** — Every generated scene passes through `validateScene()` before returning. Invalid output throws.
-- **No LLM calls** — Entirely rule-based. Deterministic, testable, fast. LLM enhancement can layer on top later.
+- **Optional LLM enhancement (ANI-36)** — Core generation is rule-based and deterministic. When `enhance: true` is passed and `ANTHROPIC_API_KEY` is set, two LLM stages layer on top: (A) scene plan text improvement, (B) camera move suggestions. All LLM output passes through `validateScene()`. On any failure, falls back to rule-based output. The LLM module lives in `mcp/lib/llm.js`.
 
 ## Module Pattern
 

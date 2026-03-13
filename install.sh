@@ -38,7 +38,7 @@ mkdir -p "$CLAUDE_DIR/skills" "$CLAUDE_DIR/hooks" "$CLAUDE_DIR/scripts"
 CHANGES=0
 
 # --- Skills ---
-SKILL_DIRS=(maya rams dex animate prototype)
+SKILL_DIRS=(animate brief sizzle storyboard review prototype maya rams dex)
 
 for skill in "${SKILL_DIRS[@]}"; do
   SRC="$ANIMATIC_DIR/.claude/skills/$skill"

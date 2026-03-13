@@ -219,6 +219,16 @@
       "versions": 1,
       "createdAt": "2026-02-20T14:15:00Z",
       "tags": ["fundraising", "investors", "nda", "dataroom", "relationship", "FND-1423"]
+    },
+    {
+      "id": "2026-03-13-brief-to-video-positioning",
+      "name": "Brief to Branded Video — Positioning Page",
+      "description": "Marketing positioning page for Animatic's AI cinematography pipeline. Tells the 'replaced 5 tools' story: brief to personality to scenes to choreography to rendered video in one pipeline. Dark theme, cinematic feel.",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 1,
+      "createdAt": "2026-03-13T20:30:00Z",
+      "tags": ["marketing", "positioning", "landing-page", "ANI-46"]
     }
   ]
 }

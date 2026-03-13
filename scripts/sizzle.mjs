@@ -265,7 +265,7 @@ async function main() {
 
     // Step 0: Generate scenes
     console.log(`0. Generating scenes from brief...`);
-    const { scenes: generatedScenes, notes } = generateScenes(brief);
+    const { scenes: generatedScenes, notes } = await generateScenes(brief);
     console.log(`   ${notes.scene_count} scenes generated (template: ${notes.template}, style: ${notes.style})`);
     if (verbose) {
       for (const ps of notes.plan_summary) {

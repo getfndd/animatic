@@ -22,6 +22,7 @@ import { tmpdir } from 'node:os';
 import { loadScenes, analyzeAll, assembleProps, evaluateManifest, validateManifestGuardrails } from '../../scripts/sizzle.mjs';
 import { planSequence, STYLE_PACKS, STYLE_TO_PERSONALITY } from '../lib/planner.js';
 import { validateManifest } from '../../src/remotion/lib.js';
+import { generateScenes } from '../lib/generator.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
@@ -319,5 +320,146 @@ describe('CLI validation', () => {
       () => planSequence({ scenes, style: 'nonexistent', sequence_id: 'seq_test' }),
       /Unknown style/
     );
+  });
+});
+
+// ── Brief mode E2E (ANI-35) ─────────────────────────────────────────────────
+
+describe('brief mode E2E (ANI-35)', () => {
+  const testBrief = {
+    project: { title: 'Sizzle E2E Test' },
+    template: 'product-launch',
+    content: {
+      sections: [
+        { label: 'Hook', text: 'Stop wasting time' },
+        { label: 'Product', text: 'Meet Animatic', assets: ['product-hero'] },
+        { label: 'Features', text: 'AI-powered editing' },
+        { label: 'Closing', text: 'Try it today', assets: ['logo'] },
+      ],
+    },
+    assets: [
+      { id: 'product-hero', src: 'images/product-hero.png' },
+      { id: 'logo', src: 'images/logo.svg' },
+    ],
+    tone: 'confident',
+  };
+
+  let tmpDir;
+
+  after(() => {
+    if (tmpDir) {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('generates scenes from brief → writes to temp dir → loads back', async () => {
+    // Step 1: Generate scenes from brief (mirrors sizzle.mjs brief mode)
+    const { scenes, notes } = await generateScenes(testBrief);
+
+    assert.ok(scenes.length >= 3, `Expected >= 3 scenes, got ${scenes.length}`);
+    assert.ok(notes.scene_count >= 3);
+    assert.ok(notes.style);
+
+    // Step 2: Write to temp dir (as sizzle.mjs does)
+    tmpDir = mkdtempSync(join(tmpdir(), 'sizzle-brief-test-'));
+    for (let i = 0; i < scenes.length; i++) {
+      const filename = `${String(i).padStart(2, '0')}-${scenes[i].scene_id}.json`;
+      writeFileSync(join(tmpDir, filename), JSON.stringify(scenes[i], null, 2));
+    }
+
+    // Step 3: Load scenes back (as sizzle pipeline does)
+    const loaded = loadScenes(tmpDir);
+    assert.equal(loaded.length, scenes.length);
+  });
+
+  it('brief → generate → analyze → plan → validate (full pipeline)', async () => {
+    const { scenes, notes } = await generateScenes(testBrief);
+    const style = notes.style;
+
+    // Analyze all scenes
+    const analyzed = analyzeAll(scenes);
+    assert.equal(analyzed.length, scenes.length);
+    for (const s of analyzed) {
+      assert.ok(s.metadata, `Scene ${s.scene_id} missing metadata`);
+      assert.ok(s.metadata.content_type);
+      assert.ok(s.metadata.visual_weight);
+      assert.ok(s.metadata.motion_energy);
+    }
+
+    // Plan sequence
+    const { manifest } = planSequence({
+      scenes: analyzed,
+      style,
+      sequence_id: 'seq_brief_e2e',
+    });
+    assert.ok(manifest);
+    assert.equal(manifest.scenes.length, analyzed.length);
+
+    // Validate manifest
+    const validation = validateManifest(manifest);
+    assert.ok(validation.valid, `Manifest invalid: ${validation.errors?.join('; ')}`);
+  });
+
+  it('brief → generate → plan → evaluate produces a score', async () => {
+    const { scenes, notes } = await generateScenes(testBrief);
+    const style = notes.style;
+    const analyzed = analyzeAll(scenes);
+    const { manifest } = planSequence({
+      scenes: analyzed,
+      style,
+      sequence_id: 'seq_brief_eval',
+    });
+
+    const evaluation = evaluateManifest(manifest, analyzed, style);
+    assert.ok(typeof evaluation.score === 'number');
+    assert.ok(evaluation.score >= 0 && evaluation.score <= 100);
+    assert.ok(evaluation.dimensions);
+  });
+
+  it('brief → generate → plan → guardrails runs without error', async () => {
+    const { scenes, notes } = await generateScenes(testBrief);
+    const style = notes.style;
+    const analyzed = analyzeAll(scenes);
+    const { manifest } = planSequence({
+      scenes: analyzed,
+      style,
+      sequence_id: 'seq_brief_guard',
+    });
+
+    const guardrails = validateManifestGuardrails(manifest, style);
+    assert.ok(guardrails.verdict, 'Should return a verdict');
+    assert.ok(['pass', 'warn', 'BLOCK'].includes(guardrails.verdict),
+      `Unexpected verdict "${guardrails.verdict}"`);
+    assert.ok(Array.isArray(guardrails.sceneResults));
+  });
+
+  it('invalid brief throws appropriate error', async () => {
+    await assert.rejects(
+      () => generateScenes(null),
+      /Brief validation failed/
+    );
+    await assert.rejects(
+      () => generateScenes({}),
+      /Brief validation failed/
+    );
+    await assert.rejects(
+      () => generateScenes({ project: {} }),
+      /Brief validation failed/
+    );
+  });
+
+  it('assembleProps produces valid Remotion input', async () => {
+    const { scenes, notes } = await generateScenes(testBrief);
+    const style = notes.style;
+    const analyzed = analyzeAll(scenes);
+    const { manifest } = planSequence({
+      scenes: analyzed,
+      style,
+      sequence_id: 'seq_brief_props',
+    });
+
+    const props = assembleProps(manifest, scenes);
+    assert.ok(props);
+    assert.ok(props.manifest || props.sequenceManifest, 'Should have manifest in props');
   });
 });

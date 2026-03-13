@@ -42,6 +42,7 @@ import { evaluateSequence, compareVariants } from './lib/evaluate.js';
 import { validateFullManifest } from './lib/guardrails.js';
 import { generateScenes } from './lib/generator.js';
 import { detectBeats, computeEnergyCurve, decodeWav } from './lib/beats.js';
+import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality } from './lib/personality.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -592,6 +593,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['audio_path'],
       },
     },
+    {
+      name: 'create_personality',
+      description:
+        'Create a custom personality definition. Validates the definition, derives guardrail boundaries and shot grammar restrictions from characteristics, and registers it for use in the current session. Custom personalities work with all pipeline tools (plan_sequence, evaluate_sequence, etc.).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          definition: {
+            type: 'object',
+            description: 'Personality definition. Required: name (string), slug (lowercase kebab-case). Optional: characteristics (contrast, motion_intensity, color_mode, entrance_style, transition_style, perspective, signature_effect), camera_behavior (mode: full-3d|2d-only|attention-direction|none, allowed_movements, depth_of_field, parallax, ambient_motion), duration_overrides, easing_overrides, speed_hierarchy, ai_guidance.',
+          },
+        },
+        required: ['definition'],
+      },
+    },
+    {
+      name: 'list_personalities',
+      description:
+        'List all available personalities (built-in and custom). Shows slug, name, camera mode, motion intensity, and whether it is built-in or custom.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+    },
   ],
 }));
 
@@ -639,6 +664,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleCompareVariants(args);
     case 'analyze_beats':
       return handleAnalyzeBeats(args);
+    case 'create_personality':
+      return handleCreatePersonality(args);
+    case 'list_personalities':
+      return handleListPersonalities(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -2140,6 +2169,105 @@ function handleAnalyzeBeats(args) {
       isError: true,
     };
   }
+}
+
+// ── create_personality (ANI-43) ─────────────────────────────────────────────
+
+function handleCreatePersonality(args) {
+  const { definition } = args;
+
+  if (!definition || typeof definition !== 'object') {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `definition` must be a JSON object with at least `name` and `slug`.' }],
+      isError: true,
+    };
+  }
+
+  const result = registerPersonality(definition);
+
+  if (!result.success) {
+    let out = '# Personality Validation Failed\n\n';
+    out += '**Errors:**\n';
+    for (const err of result.errors) {
+      out += `- ${err}\n`;
+    }
+    if (result.warnings.length > 0) {
+      out += '\n**Warnings:**\n';
+      for (const w of result.warnings) {
+        out += `- ${w}\n`;
+      }
+    }
+    return { content: [{ type: 'text', text: out }], isError: true };
+  }
+
+  const p = result.personality;
+  let out = `# Custom Personality Created: ${p.name}\n\n`;
+  out += `**Slug:** \`${p.slug}\`\n`;
+  out += `**Camera Mode:** ${p.camera_behavior.mode}\n`;
+  out += `**Motion Intensity:** ${p.characteristics.motion_intensity}\n`;
+  out += `**Color Mode:** ${p.characteristics.color_mode}\n`;
+  out += `**Contrast:** ${p.characteristics.contrast}\n\n`;
+
+  if (result.warnings.length > 0) {
+    out += '**Warnings:**\n';
+    for (const w of result.warnings) {
+      out += `- ${w}\n`;
+    }
+    out += '\n';
+  }
+
+  // Guardrails summary
+  out += '## Derived Guardrails\n\n';
+  out += `**Forbidden Features:** ${result.guardrails.forbidden_features.join(', ') || 'none'}\n`;
+  if (result.guardrails.max_translateXY) out += `**Max TranslateXY:** ${result.guardrails.max_translateXY}px\n`;
+  if (result.guardrails.max_scale_change_percent) out += `**Max Scale Change:** ${result.guardrails.max_scale_change_percent}%\n`;
+
+  // Shot grammar summary
+  out += '\n## Derived Shot Grammar Restrictions\n\n';
+  out += `**Allowed Sizes:** ${result.shot_grammar.allowed_sizes.join(', ')}\n`;
+  out += `**Allowed Angles:** ${result.shot_grammar.allowed_angles.join(', ')}\n`;
+  out += `**Allowed Framings:** ${result.shot_grammar.allowed_framings.join(', ')}\n`;
+  out += `**3D Rotation:** ${result.shot_grammar.use_3d_rotation ? 'yes' : 'no'}\n`;
+
+  // Usage instructions
+  out += '\n## Usage\n\n';
+  out += `To use this personality, create a style pack that maps to \`${p.slug}\`, or use it directly in scene analysis and planning.\n`;
+  out += `\nThis personality is registered for the current session. To make it permanent, save the definition to \`catalog/custom-personalities/\`.\n`;
+
+  // Full definition JSON
+  out += '\n## Full Definition\n\n```json\n';
+  out += JSON.stringify(p, null, 2);
+  out += '\n```\n';
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── list_personalities (ANI-43) ─────────────────────────────────────────────
+
+function handleListPersonalities() {
+  const allSlugs = getAllPersonalitySlugs();
+  const customs = listCustomPersonalities();
+  const customSlugs = new Set(customs.map(c => c.slug));
+
+  let out = `# Personalities (${allSlugs.length})\n\n`;
+  out += '| Slug | Name | Camera Mode | Motion | Color | Type |\n';
+  out += '|------|------|-------------|--------|-------|------|\n';
+
+  for (const slug of allSlugs) {
+    const p = getPersonality(slug);
+    if (!p) continue;
+    const type = customSlugs.has(slug) ? '**custom**' : 'built-in';
+    const cam = p.camera_behavior?.mode || 'none';
+    const motion = p.characteristics?.motion_intensity || '—';
+    const color = p.characteristics?.color_mode || '—';
+    out += `| \`${slug}\` | ${p.name} | ${cam} | ${motion} | ${color} | ${type} |\n`;
+  }
+
+  if (customs.length > 0) {
+    out += `\n**Custom personalities:** ${customs.length} registered this session.\n`;
+  }
+
+  return { content: [{ type: 'text', text: out }] };
 }
 
 async function main() {

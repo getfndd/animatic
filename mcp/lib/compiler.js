@@ -52,9 +52,9 @@ const ANIMATABLE_DEFAULTS = {
 // ── Main Entry Point ─────────────────────────────────────────────────────────
 
 /**
- * Compile a v2 scene's motion intent into a frame-addressed timeline.
+ * Compile a v2/v3 scene's motion intent into a frame-addressed timeline.
  *
- * @param {object} scene - Scene with `motion` block (Level 1)
+ * @param {object} scene - Scene with `motion` and/or `semantic` block (Level 1)
  * @param {object} catalogs - { recipes: { byId }, primitives: { bySlug } }
  * @param {object} [options] - { personality?: string }
  * @returns {{ scene_id: string, duration_frames: number, fps: number, tracks: { camera: object, layers: object } }}
@@ -63,6 +63,12 @@ export function compileMotion(scene, catalogs = {}, options = {}) {
   const fps = scene.fps || 60;
   const durationS = scene.duration_s || 3;
   const durationFrames = Math.round(durationS * fps);
+
+  // v3 semantic pre-processing — mutates scene in place
+  if (scene.semantic) {
+    compileSemantic(scene, options);
+  }
+
   const motion = scene.motion;
 
   if (!motion) {
@@ -635,6 +641,11 @@ function effectTypeToProperty(type) {
     case 'stroke_opacity': return 'stroke_opacity';
     // Text-specific effect types
     case 'typewriter': return 'text_chars';
+    // Pass-through property types (used by semantic compiler)
+    case 'opacity': return 'opacity';
+    case 'translateX': return 'translateX';
+    case 'translateY': return 'translateY';
+    case 'rotate': return 'rotate';
     default: return null;
   }
 }
@@ -680,6 +691,396 @@ function resolveCameraConstantsForPersonality(personality) {
   };
 }
 
+// ── Semantic Compiler (v3 → v2) ─────────────────────────────────────────────
+
+/**
+ * Pre-process a v3 scene's semantic block into v2 motion groups + layers.
+ * Mutates scene in place: populates scene.layers, scene.motion.groups, scene.motion.camera.
+ *
+ * @param {object} scene - Scene with `semantic` block
+ * @param {object} [options] - { personality?: string }
+ */
+function compileSemantic(scene, options = {}) {
+  const semantic = scene.semantic;
+  if (!semantic) return;
+
+  const personality = options.personality || scene.personality || null;
+  const fps = scene.fps || 60;
+  const durationS = scene.duration_s || 3;
+  const durationFrames = Math.round(durationS * fps);
+
+  const components = semantic.components || [];
+  const interactions = semantic.interactions || [];
+
+  // Build component lookup map
+  const componentMap = new Map();
+  for (const cmp of components) {
+    componentMap.set(cmp.id, cmp);
+  }
+
+  // Step 1: Generate layers for components without layer_ref
+  if (!scene.layers) scene.layers = [];
+  const existingLayerIds = new Set(scene.layers.map(l => l.id));
+
+  for (const cmp of components) {
+    if (cmp.layer_ref) {
+      // Validate layer_ref exists
+      if (!existingLayerIds.has(cmp.layer_ref)) {
+        throw new Error(`Component ${cmp.id} references non-existent layer: ${cmp.layer_ref}`);
+      }
+    } else {
+      // Auto-generate a layer using the component ID as layer ID
+      if (!existingLayerIds.has(cmp.id)) {
+        scene.layers.push({
+          id: cmp.id,
+          type: 'html',
+          content: `<div data-component="${cmp.type}">${cmp.id}</div>`,
+        });
+        existingLayerIds.add(cmp.id);
+      }
+    }
+  }
+
+  // Step 2: Map interactions → motion groups
+  const semanticGroups = [];
+  for (const interaction of interactions) {
+    const groups = interactionToGroup(interaction, componentMap, personality, fps);
+    semanticGroups.push(...groups);
+  }
+
+  // Step 3: Apply personality constraints
+  if (personality) {
+    applySemanticConstraints(semanticGroups, personality);
+  }
+
+  // Step 4: Map camera_behavior → motion.camera
+  if (!scene.motion) scene.motion = {};
+  if (semantic.camera_behavior) {
+    const cameraBehavior = compileCameraBehavior(
+      semantic.camera_behavior, durationFrames, fps, personality, interactions
+    );
+    if (cameraBehavior && Object.keys(cameraBehavior).length > 0) {
+      // Only set if scene doesn't already have explicit camera motion
+      if (!scene.motion.camera) {
+        scene.motion.camera = cameraBehavior;
+      }
+    }
+  }
+
+  // Step 5: Merge semantic groups with existing explicit groups
+  // Semantic groups come first, then explicit groups (explicit take precedence on cue conflicts)
+  const existingGroups = scene.motion.groups || [];
+  scene.motion.groups = [...semanticGroups, ...existingGroups];
+}
+
+/**
+ * Map a single interaction to one or more v2 motion groups.
+ *
+ * @param {object} interaction - Interaction definition from semantic.interactions[]
+ * @param {Map} componentMap - Component ID → component definition
+ * @param {string|null} personality - Active personality name
+ * @param {number} fps - Frames per second
+ * @returns {object[]} Array of motion group objects
+ */
+function interactionToGroup(interaction, componentMap, personality, fps = 60) {
+  const { id, target, kind, params = {}, timing, on_complete, duration_ms } = interaction;
+  const component = componentMap.get(target);
+  const layerId = component?.layer_ref || target;
+
+  // Resolve timing into group-compatible fields
+  const timingFields = resolveInteractionTiming(timing);
+
+  const baseGroup = {
+    id,
+    targets: [layerId],
+    ...timingFields,
+    ...(on_complete ? { on_complete } : {}),
+  };
+
+  switch (kind) {
+    case 'focus': {
+      const dur = duration_ms || 300;
+      const groups = [{
+        ...baseGroup,
+        effects: [
+          { type: 'opacity', from: 1, to: 0.7, duration_ms: dur / 2, easing: 'ease_out' },
+          { type: 'opacity', from: 0.7, to: 1, duration_ms: dur / 2, delay_ms: dur / 2, easing: 'ease_out' },
+          { type: 'scale', from: 1, to: 1.05, duration_ms: dur / 2, easing: 'ease_out' },
+          { type: 'scale', from: 1.05, to: 1, duration_ms: dur / 2, delay_ms: dur / 2, easing: 'ease_out' },
+        ],
+      }];
+
+      // Emit sibling dim group — dim all other components
+      const siblingIds = [];
+      for (const [cmpId, cmp] of componentMap) {
+        if (cmpId !== target) {
+          siblingIds.push(cmp.layer_ref || cmpId);
+        }
+      }
+      if (siblingIds.length > 0) {
+        const dimOpacity = personality === 'editorial' ? 0.4 : 0.2;
+        groups.push({
+          id: `${id}_sibling_dim`,
+          targets: siblingIds,
+          ...timingFields,
+          effects: [
+            { type: 'opacity', from: 1, to: dimOpacity, duration_ms: dur / 2, easing: 'ease_out' },
+            { type: 'opacity', from: dimOpacity, to: 1, duration_ms: dur / 2, delay_ms: dur / 2, easing: 'ease_out' },
+          ],
+        });
+      }
+
+      return groups;
+    }
+
+    case 'type_text': {
+      const text = params.text || '';
+      const speed = params.speed || 50;
+      const dur = duration_ms || text.length * speed;
+      return [{
+        ...baseGroup,
+        effects: [
+          { type: 'typewriter', from: 0, to: text.length, duration_ms: dur, easing: 'linear' },
+        ],
+      }];
+    }
+
+    case 'replace_text': {
+      const dur = duration_ms || 400;
+      return [{
+        ...baseGroup,
+        effects: [
+          { type: 'opacity', from: 1, to: 0, duration_ms: dur / 2, easing: 'ease_out' },
+          { type: 'opacity', from: 0, to: 1, duration_ms: dur / 2, delay_ms: dur / 2, easing: 'ease_out' },
+        ],
+      }];
+    }
+
+    case 'open_menu': {
+      const dur = duration_ms || 300;
+      return [{
+        ...baseGroup,
+        effects: [
+          { type: 'translateY', from: -20, to: 0, duration_ms: dur, easing: 'ease_out' },
+          { type: 'opacity', from: 0, to: 1, duration_ms: dur, easing: 'ease_out' },
+        ],
+      }];
+    }
+
+    case 'select_item': {
+      const dur = duration_ms || 200;
+      return [{
+        ...baseGroup,
+        effects: [
+          { type: 'opacity', from: 0.5, to: 1, duration_ms: dur, easing: 'ease_out' },
+        ],
+      }];
+    }
+
+    case 'insert_items': {
+      const items = params.items || [];
+      const staggerMs = params.stagger_ms || 120;
+      const dur = duration_ms || 300;
+      // Create one group with stagger for all item sub-layers
+      const itemTargets = items.map((_, i) => `${layerId}_item_${i}`);
+      return [{
+        ...baseGroup,
+        targets: itemTargets.length > 0 ? itemTargets : [layerId],
+        stagger: { interval_ms: staggerMs, order: 'sequential' },
+        effects: [
+          { type: 'translateY', from: 20, to: 0, duration_ms: dur, easing: 'ease_out' },
+          { type: 'opacity', from: 0, to: 1, duration_ms: dur, easing: 'ease_out' },
+        ],
+      }];
+    }
+
+    case 'fan_stack': {
+      const spread = params.spread || 15;
+      const dur = duration_ms || 600;
+      const items = component?.props?.items || [];
+      const count = Math.max(items.length, 3);
+      const itemTargets = Array.from({ length: count }, (_, i) => `${layerId}_card_${i}`);
+
+      // Each card gets rotate + translateX based on its position relative to center
+      const groups = [];
+      for (let i = 0; i < count; i++) {
+        const centerOffset = i - (count - 1) / 2;
+        const angle = centerOffset * (spread / (count - 1 || 1));
+        const tx = centerOffset * 30;
+        groups.push({
+          id: `${id}_card_${i}`,
+          targets: [itemTargets[i]],
+          ...timingFields,
+          effects: [
+            { type: 'rotate', from: 0, to: angle, duration_ms: dur, easing: 'spring' },
+            { type: 'translateX', from: 0, to: tx, duration_ms: dur, easing: 'spring' },
+          ],
+        });
+      }
+      // Emit on_complete only on the last card group
+      if (on_complete && groups.length > 0) {
+        groups[groups.length - 1].on_complete = on_complete;
+        // Remove on_complete from earlier groups
+        for (let i = 0; i < groups.length - 1; i++) {
+          delete groups[i].on_complete;
+        }
+      }
+      return groups;
+    }
+
+    case 'settle': {
+      const dur = duration_ms || 400;
+      const easing = personality === 'cinematic-dark' ? 'spring' : 'ease_out';
+      return [{
+        ...baseGroup,
+        effects: [
+          { type: 'scale', from: 1.05, to: 1, duration_ms: dur, easing },
+        ],
+      }];
+    }
+
+    case 'pulse_focus': {
+      const count = params.count || 2;
+      const intensity = params.intensity || 1.05;
+      const cycleDur = duration_ms ? Math.round(duration_ms / count) : 200;
+      const effects = [];
+      for (let i = 0; i < count; i++) {
+        effects.push(
+          { type: 'scale', from: 1, to: intensity, duration_ms: cycleDur / 2, delay_ms: i * cycleDur, easing: 'ease_out' },
+          { type: 'scale', from: intensity, to: 1, duration_ms: cycleDur / 2, delay_ms: i * cycleDur + cycleDur / 2, easing: 'ease_out' },
+        );
+      }
+      return [{ ...baseGroup, effects }];
+    }
+
+    default:
+      return [baseGroup];
+  }
+}
+
+/**
+ * Resolve interaction timing fields into v2 group-compatible fields.
+ */
+function resolveInteractionTiming(timing) {
+  if (!timing) return {};
+
+  const fields = {};
+
+  if (timing.at_ms != null) {
+    fields.delay_after_hero_ms = timing.at_ms;
+  } else if (timing.at != null) {
+    // Proportional — stored as a marker, resolved during cue graph building
+    fields._at_proportional = timing.at;
+  }
+
+  if (timing.delay) {
+    fields.delay = { ...timing.delay };
+  }
+
+  return fields;
+}
+
+/**
+ * Map semantic.camera_behavior to v2 motion.camera format.
+ *
+ * @param {object} cameraBehavior - { mode, ambient, push_in_on_focus }
+ * @param {number} durationFrames - Total scene duration in frames
+ * @param {number} fps - Frames per second
+ * @param {string|null} personality - Active personality
+ * @param {object[]} interactions - Scene interactions (for reactive sync)
+ * @returns {object} v2-compatible camera motion object
+ */
+function compileCameraBehavior(cameraBehavior, durationFrames, fps, personality, interactions = []) {
+  let mode = cameraBehavior.mode || 'ambient';
+
+  // Montage: no ambient camera — fall through to static
+  if (personality === 'montage' && mode === 'ambient') {
+    mode = 'static';
+  }
+
+  switch (mode) {
+    case 'reactive': {
+      // Sync push_in to first focus interaction
+      const firstFocus = interactions.find(i => i.kind === 'focus');
+      const camera = {
+        move: 'push_in',
+        intensity: 0.2,
+      };
+      if (firstFocus?.timing?.at_ms != null) {
+        camera.sync = { peak_at: firstFocus.timing.at_ms / ((durationFrames / fps) * 1000) };
+      }
+      return camera;
+    }
+
+    case 'ambient': {
+      const driftIntensity = cameraBehavior.ambient?.drift ?? 0.15;
+      return {
+        move: 'drift',
+        intensity: driftIntensity,
+      };
+    }
+
+    case 'static':
+      return {};
+
+    default:
+      return {};
+  }
+}
+
+/**
+ * Post-processing pass: apply personality constraints to semantic groups.
+ *
+ * @param {object[]} groups - Generated motion groups
+ * @param {string} personality - Personality name
+ */
+function applySemanticConstraints(groups, personality) {
+  for (const group of groups) {
+    if (!group.effects) continue;
+
+    switch (personality) {
+      case 'editorial':
+        for (const effect of group.effects) {
+          // settle easing → ease_out (not spring)
+          if (effect.easing === 'spring') {
+            effect.easing = 'ease_out';
+          }
+          // fan_stack spread ≤ 10° — handled by capping rotate values
+          if (effect.type === 'rotate' && Math.abs(effect.to) > 10) {
+            effect.to = Math.sign(effect.to) * 10;
+          }
+        }
+        break;
+
+      case 'neutral-light':
+        for (const effect of group.effects) {
+          // fan_stack → slide fallback: convert rotate to translateX
+          if (effect.type === 'rotate') {
+            effect.type = 'translateX';
+            effect.from = 0;
+            effect.to = effect.to > 0 ? 20 : -20;
+            effect.easing = 'ease_out';
+          }
+        }
+        // pulse_focus max 1 count — trim extra scale effects
+        if (group.id && group.effects.filter(e => e.type === 'scale').length > 2) {
+          // Keep only first scale up + scale down pair
+          const scaleEffects = group.effects.filter(e => e.type === 'scale');
+          const nonScaleEffects = group.effects.filter(e => e.type !== 'scale');
+          group.effects = [...nonScaleEffects, ...scaleEffects.slice(0, 2)];
+        }
+        break;
+
+      case 'montage':
+        // insert_items stagger → 0ms (simultaneous)
+        if (group.stagger) {
+          group.stagger.interval_ms = 0;
+        }
+        break;
+    }
+  }
+}
+
 // ── Exports for testing ──────────────────────────────────────────────────────
 
 export {
@@ -693,6 +1094,10 @@ export {
   computeAmplitude,
   primitiveToTracks,
   resolveCameraConstantsForPersonality,
+  compileSemantic,
+  compileCameraBehavior,
+  interactionToGroup,
+  applySemanticConstraints,
   ANIMATABLE_DEFAULTS,
   PERSONALITY_CAMERA,
 };

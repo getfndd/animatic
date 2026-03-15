@@ -947,7 +947,7 @@ describe('interactionToGroup', () => {
     assert.ok(groups[0].effects.some(e => e.type === 'translateY'));
     assert.ok(groups[0].effects.some(e => e.type === 'opacity'));
     const ty = groups[0].effects.find(e => e.type === 'translateY');
-    assert.equal(ty.from, -20);
+    assert.equal(ty.from, -30); // dropdown_menu override (was -20)
     assert.equal(ty.to, 0);
   });
 
@@ -959,7 +959,7 @@ describe('interactionToGroup', () => {
 
     assert.equal(groups.length, 1);
     assert.ok(groups[0].effects.some(e => e.type === 'opacity'));
-    assert.equal(groups[0].effects[0].duration_ms, 200);
+    assert.equal(groups[0].effects[0].duration_ms, 150); // dropdown_menu override (was 200)
   });
 
   it('insert_items → stagger group with correct interval', () => {
@@ -974,6 +974,10 @@ describe('interactionToGroup', () => {
     assert.equal(groups[0].targets.length, 3);
     assert.ok(groups[0].effects.some(e => e.type === 'translateY'));
     assert.ok(groups[0].effects.some(e => e.type === 'opacity'));
+    // result_stack override adds scale effect
+    const ty = groups[0].effects.find(e => e.type === 'translateY');
+    assert.equal(ty.from, 30); // result_stack override (was 20)
+    assert.ok(groups[0].effects.some(e => e.type === 'scale'), 'result_stack adds scale');
   });
 
   it('fan_stack → rotate + translateX per card', () => {
@@ -983,6 +987,7 @@ describe('interactionToGroup', () => {
     }, cmpMap, null);
 
     // Should have one group per card (3 items)
+    // stacked_cards override uses spread 20, but params.spread is ignored when override exists
     assert.equal(groups.length, 3);
     for (const g of groups) {
       assert.ok(g.effects.some(e => e.type === 'rotate'), 'has rotate');
@@ -998,7 +1003,7 @@ describe('interactionToGroup', () => {
     assert.equal(groups.length, 1);
     const scaleEffect = groups[0].effects.find(e => e.type === 'scale');
     assert.ok(scaleEffect);
-    assert.equal(scaleEffect.from, 1.05);
+    assert.equal(scaleEffect.from, 1.08); // stacked_cards override (was 1.05)
     assert.equal(scaleEffect.to, 1);
     assert.equal(scaleEffect.easing, 'spring');
   });
@@ -1009,6 +1014,7 @@ describe('interactionToGroup', () => {
     }, cmpMap, 'editorial');
 
     const scaleEffect = groups[0].effects.find(e => e.type === 'scale');
+    assert.equal(scaleEffect.from, 1.08); // stacked_cards override (was 1.05)
     assert.equal(scaleEffect.easing, 'ease_out');
   });
 
@@ -1053,6 +1059,52 @@ describe('interactionToGroup', () => {
     }, cmpMap, null);
 
     assert.deepEqual(groups[0].on_complete, { emit: 'typed' });
+  });
+
+  // ── State machine integration tests (ANI-76) ──────────────────────────────
+
+  it('prompt_card focus uses override values (scale 1.02, sibling dim 0.3)', () => {
+    const promptMap = makeComponentMap([
+      { id: 'cmp_prompt', type: 'prompt_card', role: 'hero' },
+      { id: 'cmp_other', type: 'icon_label_row', role: 'background' },
+    ]);
+    const groups = interactionToGroup({
+      id: 'int_focus', target: 'cmp_prompt', kind: 'focus',
+    }, promptMap, null);
+
+    assert.ok(groups.length >= 2, 'target + sibling dim');
+    const scaleTo = groups[0].effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleTo.to, 1.02, 'prompt_card uses 1.02 not 1.05');
+
+    const dimGroup = groups[1];
+    const dimEffect = dimGroup.effects.find(e => e.type === 'opacity');
+    assert.equal(dimEffect.to, 0.3, 'prompt_card sibling dim is 0.3');
+  });
+
+  it('component without machine uses default values', () => {
+    // cmp_search is input_field — no machine
+    const groups = interactionToGroup({
+      id: 'int_focus', target: 'cmp_search', kind: 'focus',
+    }, cmpMap, null);
+
+    const scaleTo = groups[0].effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleTo.to, 1.05, 'input_field uses default 1.05');
+
+    const dimGroup = groups[1];
+    const dimEffect = dimGroup.effects.find(e => e.type === 'opacity');
+    assert.equal(dimEffect.to, 0.2, 'default sibling dim is 0.2');
+  });
+
+  it('override + personality constraints compose correctly', () => {
+    // stacked_cards settle with editorial — override gives scale from 1.08, easing resolves to ease_out
+    const groups = interactionToGroup({
+      id: 'int_settle', target: 'cmp_cards', kind: 'settle',
+    }, cmpMap, 'editorial');
+
+    const scaleEffect = groups[0].effects.find(e => e.type === 'scale');
+    assert.equal(scaleEffect.from, 1.08, 'override value preserved');
+    assert.equal(scaleEffect.easing, 'ease_out', 'personality resolves null easing');
+    assert.equal(scaleEffect.duration_ms, 450, 'override duration preserved');
   });
 });
 

@@ -14,6 +14,7 @@
  */
 
 import { resolveEntrancePrimitive, CAMERA_CONSTANTS } from '../../src/remotion/lib.js';
+import { resolveStateOverrides } from './state-machines.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -796,6 +797,111 @@ function interactionToGroup(interaction, componentMap, personality, fps = 60) {
     ...timingFields,
     ...(on_complete ? { on_complete } : {}),
   };
+
+  // ── Component-local state machine overrides (ANI-76) ───────────────────
+  const override = resolveStateOverrides(component?.type, kind, params);
+
+  if (override && kind === 'fan_stack') {
+    // fan_stack special path: use override spread/easing but keep per-card loop
+    const spread = override.fan_spread || params.spread || 15;
+    const fanEasing = override.fan_easing || 'spring';
+    const dur = duration_ms || 600;
+    const items = component?.props?.items || [];
+    const count = Math.max(items.length, 3);
+    const itemTargets = Array.from({ length: count }, (_, i) => `${layerId}_card_${i}`);
+
+    const groups = [];
+    for (let i = 0; i < count; i++) {
+      const centerOffset = i - (count - 1) / 2;
+      const angle = centerOffset * (spread / (count - 1 || 1));
+      const tx = centerOffset * 30;
+      groups.push({
+        id: `${id}_card_${i}`,
+        targets: [itemTargets[i]],
+        ...timingFields,
+        effects: [
+          { type: 'rotate', from: 0, to: angle, duration_ms: dur, easing: fanEasing },
+          { type: 'translateX', from: 0, to: tx, duration_ms: dur, easing: fanEasing },
+        ],
+      });
+    }
+    if (on_complete && groups.length > 0) {
+      groups[groups.length - 1].on_complete = on_complete;
+      for (let i = 0; i < groups.length - 1; i++) {
+        delete groups[i].on_complete;
+      }
+    }
+    return groups;
+  }
+
+  if (override && override.effects) {
+    // Resolve null easing to personality default
+    const defaultEasing = personality === 'cinematic-dark' ? 'spring' : 'ease_out';
+    const effects = override.effects.map(e => ({
+      ...e,
+      easing: e.easing === null ? defaultEasing : e.easing,
+    }));
+
+    // Use override duration if provided, else interaction-level, else effect-level
+    const dur = duration_ms || override.duration_ms;
+    if (dur) {
+      for (const e of effects) {
+        // Scale effect durations proportionally if override has a base duration
+        if (override.duration_ms && e.duration_ms) {
+          const ratio = e.duration_ms / override.duration_ms;
+          e.duration_ms = Math.round(dur * ratio);
+          if (e.delay_ms != null) {
+            e.delay_ms = Math.round(dur * (e.delay_ms / override.duration_ms));
+          }
+        }
+      }
+    }
+
+    if (kind === 'focus') {
+      // Focus path: build target group + sibling dim group
+      const groups = [{ ...baseGroup, effects }];
+
+      const siblingIds = [];
+      for (const [cmpId, cmp] of componentMap) {
+        if (cmpId !== target) {
+          siblingIds.push(cmp.layer_ref || cmpId);
+        }
+      }
+      if (siblingIds.length > 0) {
+        const dimOpacity = override.sibling_dim_opacity != null
+          ? override.sibling_dim_opacity
+          : (personality === 'editorial' ? 0.4 : 0.2);
+        const halfDur = (dur || 300) / 2;
+        groups.push({
+          id: `${id}_sibling_dim`,
+          targets: siblingIds,
+          ...timingFields,
+          effects: [
+            { type: 'opacity', from: 1, to: dimOpacity, duration_ms: halfDur, easing: defaultEasing },
+            { type: 'opacity', from: dimOpacity, to: 1, duration_ms: halfDur, delay_ms: halfDur, easing: defaultEasing },
+          ],
+        });
+      }
+      return groups;
+    }
+
+    if (kind === 'insert_items') {
+      // insert_items path: keep stagger structure, use override effects
+      const items = params.items || [];
+      const staggerMs = params.stagger_ms || 120;
+      const itemTargets = items.map((_, i) => `${layerId}_item_${i}`);
+      return [{
+        ...baseGroup,
+        targets: itemTargets.length > 0 ? itemTargets : [layerId],
+        stagger: { interval_ms: staggerMs, order: 'sequential' },
+        effects,
+      }];
+    }
+
+    // Generic override path (settle, open_menu, select_item, etc.)
+    return [{ ...baseGroup, effects }];
+  }
+  // ── End state machine overrides ────────────────────────────────────────
 
   switch (kind) {
     case 'focus': {

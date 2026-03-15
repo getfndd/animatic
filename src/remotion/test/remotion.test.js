@@ -1856,3 +1856,160 @@ describe('trackValuesToCSS', () => {
     assert.equal(css.svgProperties, undefined);
   });
 });
+
+// ── Semantic v3 Validation ────────────────────────────────────────────────────
+
+describe('validateScene: semantic v3', () => {
+  /** Helper: minimal valid v3 scene */
+  function v3Scene(overrides = {}) {
+    return {
+      scene_id: 'sc_test_v3',
+      format_version: 3,
+      duration_s: 3,
+      camera: { move: 'static' },
+      layers: [],
+      semantic: {
+        components: [
+          { id: 'cmp_search', type: 'input_field', role: 'hero' },
+        ],
+        interactions: [
+          { id: 'int_type', target: 'cmp_search', kind: 'type_text' },
+        ],
+      },
+      ...overrides,
+    };
+  }
+
+  it('valid v3 scene passes', () => {
+    const result = validateScene(v3Scene());
+    assert.equal(result.valid, true, `Expected valid, got errors: ${result.errors.join('; ')}`);
+  });
+
+  it('rejects missing component id', () => {
+    const scene = v3Scene();
+    scene.semantic.components = [{ type: 'input_field' }];
+    scene.semantic.interactions = [];
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('.id is required')));
+  });
+
+  it('rejects invalid component id pattern', () => {
+    const scene = v3Scene();
+    scene.semantic.components = [{ id: 'bad_id', type: 'input_field' }];
+    scene.semantic.interactions = [];
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('must match')));
+  });
+
+  it('rejects duplicate component ids', () => {
+    const scene = v3Scene();
+    scene.semantic.components = [
+      { id: 'cmp_a', type: 'input_field' },
+      { id: 'cmp_a', type: 'prompt_card' },
+    ];
+    scene.semantic.interactions = [];
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('duplicate component id')));
+  });
+
+  it('rejects invalid component type', () => {
+    const scene = v3Scene();
+    scene.semantic.components = [{ id: 'cmp_x', type: 'not_a_type' }];
+    scene.semantic.interactions = [];
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('.type') && e.includes('not valid')));
+  });
+
+  it('rejects invalid component role', () => {
+    const scene = v3Scene();
+    scene.semantic.components = [{ id: 'cmp_x', type: 'input_field', role: 'main' }];
+    scene.semantic.interactions = [];
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('.role') && e.includes('not valid')));
+  });
+
+  it('rejects unknown layer_ref', () => {
+    const scene = v3Scene();
+    scene.semantic.components = [{ id: 'cmp_x', type: 'input_field', layer_ref: 'nonexistent' }];
+    scene.semantic.interactions = [];
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('layer_ref') && e.includes('unknown layer')));
+  });
+
+  it('accepts valid layer_ref', () => {
+    const scene = v3Scene({
+      layers: [{ id: 'my_layer', type: 'html', src: 'test.html' }],
+    });
+    scene.semantic.components = [{ id: 'cmp_x', type: 'input_field', layer_ref: 'my_layer' }];
+    scene.semantic.interactions = [];
+    const result = validateScene(scene);
+    assert.equal(result.valid, true, `Expected valid, got errors: ${result.errors.join('; ')}`);
+  });
+
+  it('rejects missing interaction target', () => {
+    const scene = v3Scene();
+    scene.semantic.interactions = [{ id: 'int_x', kind: 'focus' }];
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('.target is required')));
+  });
+
+  it('rejects unknown interaction target', () => {
+    const scene = v3Scene();
+    scene.semantic.interactions = [{ id: 'int_x', target: 'cmp_nope', kind: 'focus' }];
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('unknown component')));
+  });
+
+  it('rejects invalid interaction kind', () => {
+    const scene = v3Scene();
+    scene.semantic.interactions = [{ id: 'int_x', target: 'cmp_search', kind: 'explode' }];
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('.kind') && e.includes('not valid')));
+  });
+
+  it('rejects invalid camera_behavior mode', () => {
+    const scene = v3Scene();
+    scene.semantic.camera_behavior = { mode: 'cinematic' };
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('camera_behavior.mode') && e.includes('not valid')));
+  });
+
+  it('rejects invalid art_direction enums', () => {
+    const scene = v3Scene();
+    scene.semantic.art_direction = { density: 'ultra', focus: 'narrow', motion_profile: 'wild' };
+    const result = validateScene(scene);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('density')));
+    assert.ok(result.errors.some(e => e.includes('focus')));
+    assert.ok(result.errors.some(e => e.includes('motion_profile')));
+  });
+
+  it('v3 + v2 motion coexistence passes', () => {
+    const scene = v3Scene({
+      motion: {
+        groups: [
+          { id: 'grp_bg', targets: ['bg'], primitive: 'as-fadeIn' },
+        ],
+      },
+      layers: [{ id: 'bg', type: 'html', src: 'bg.html' }],
+    });
+    const result = validateScene(scene);
+    assert.equal(result.valid, true, `Expected valid, got errors: ${result.errors.join('; ')}`);
+  });
+
+  it('empty layers with semantic components passes', () => {
+    const scene = v3Scene({ layers: [] });
+    const result = validateScene(scene);
+    assert.equal(result.valid, true, `Expected valid, got errors: ${result.errors.join('; ')}`);
+  });
+});

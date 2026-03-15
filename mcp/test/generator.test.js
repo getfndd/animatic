@@ -21,9 +21,11 @@ import {
   buildScenePlan,
   generateScene,
   generateScenes,
+  attachSemanticBlock,
   ASSET_FILENAME_PATTERNS,
   HINT_TO_CONTENT_TYPE,
   CONTENT_TYPE_TO_LAYOUT,
+  CONTENT_TYPE_TO_COMPONENT,
   LABEL_TO_INTENT,
   MOOD_TO_STYLES,
 } from '../lib/generator.js';
@@ -1039,6 +1041,233 @@ describe('LLM enhancement (ANI-36)', () => {
     assert.equal(s1.length, s2.length);
     for (let i = 0; i < s1.length; i++) {
       assert.equal(s1[i].scene_id, s2[i].scene_id);
+    }
+  });
+});
+
+// ── attachSemanticBlock (ANI-68) ─────────────────────────────────────────────
+
+describe('attachSemanticBlock', () => {
+  const baseBrief = { brand: { colors: { primary: '#0066ff', text: '#ffffff', background: '#0a0a0a' } } };
+
+  function makeSceneWithPlan(contentType, intentTags = ['detail'], text = 'Test content') {
+    const planEntry = {
+      label: 'Test',
+      text,
+      emphasis: 'normal',
+      content_type: contentType,
+      layout: CONTENT_TYPE_TO_LAYOUT[contentType] || 'hero-center',
+      intent_tags: intentTags,
+      assets: [],
+      repeat_index: 0,
+    };
+    const scene = generateScene(planEntry, 0, baseBrief);
+    scene.duration_s = 3;
+    return { scene, planEntry };
+  }
+
+  it('typography → prompt_card component + focus + type_text for hero intent', () => {
+    const { scene, planEntry } = makeSceneWithPlan('typography', ['opening', 'hero']);
+    const result = attachSemanticBlock(scene, 'cinematic-dark', planEntry);
+    assert.equal(result, true);
+    assert.equal(scene.format_version, 3);
+    assert.ok(scene.semantic);
+    const cmp = scene.semantic.components.find(c => c.type === 'prompt_card');
+    assert.ok(cmp, 'should have prompt_card component');
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'focus'));
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'type_text'));
+    const typeText = scene.semantic.interactions.find(i => i.kind === 'type_text');
+    assert.equal(typeText.params.speed, 45);
+  });
+
+  it('typography detail → prompt_card + focus only (no type_text)', () => {
+    const { scene, planEntry } = makeSceneWithPlan('typography', ['detail']);
+    attachSemanticBlock(scene, 'editorial', planEntry);
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'focus'));
+    assert.ok(!scene.semantic.interactions.some(i => i.kind === 'type_text'));
+    assert.ok(!scene.semantic.interactions.some(i => i.kind === 'pulse_focus'));
+  });
+
+  it('typography closing → prompt_card + focus + pulse_focus', () => {
+    const { scene, planEntry } = makeSceneWithPlan('typography', ['closing']);
+    attachSemanticBlock(scene, 'editorial', planEntry);
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'focus'));
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'pulse_focus'));
+    const pulse = scene.semantic.interactions.find(i => i.kind === 'pulse_focus');
+    assert.equal(pulse.params.count, 1);
+  });
+
+  it('brand_mark → icon_label_row + focus + pulse_focus', () => {
+    const planEntry = {
+      label: 'Logo', text: 'Brand Name', emphasis: 'normal',
+      content_type: 'brand_mark', layout: 'hero-center',
+      intent_tags: ['closing'],
+      assets: [{ id: 'logo', src: 'logo.svg', content_type: 'brand_mark' }],
+      repeat_index: 0,
+    };
+    const scene = generateScene(planEntry, 0, baseBrief);
+    scene.duration_s = 3;
+    const result = attachSemanticBlock(scene, 'editorial', planEntry);
+    assert.equal(result, true);
+    const cmp = scene.semantic.components.find(c => c.type === 'icon_label_row');
+    assert.ok(cmp);
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'focus'));
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'pulse_focus'));
+  });
+
+  it('data_visualization → icon_label_row + focus', () => {
+    const { scene, planEntry } = makeSceneWithPlan('data_visualization', ['detail'], 'Revenue Growth');
+    const result = attachSemanticBlock(scene, 'editorial', planEntry);
+    assert.equal(result, true);
+    const cmp = scene.semantic.components.find(c => c.type === 'icon_label_row');
+    assert.ok(cmp);
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'focus'));
+  });
+
+  it('collage → stacked_cards + fan_stack + settle', () => {
+    const planEntry = {
+      label: 'Grid', text: '', emphasis: 'normal',
+      content_type: 'collage', layout: 'masonry-grid',
+      intent_tags: ['detail'],
+      assets: [
+        { id: 'p1', src: '1.jpg' }, { id: 'p2', src: '2.jpg' },
+        { id: 'p3', src: '3.jpg' }, { id: 'p4', src: '4.jpg' },
+      ],
+      repeat_index: 0,
+    };
+    const scene = generateScene(planEntry, 0, baseBrief);
+    scene.duration_s = 3;
+    const result = attachSemanticBlock(scene, 'cinematic-dark', planEntry);
+    assert.equal(result, true);
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'fan_stack'));
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'settle'));
+  });
+
+  it('returns false for product_shot (no semantic mapping)', () => {
+    const planEntry = {
+      label: 'Product', text: 'Shot', emphasis: 'normal',
+      content_type: 'product_shot', layout: 'device-mockup',
+      intent_tags: ['hero'],
+      assets: [{ id: 'hero', src: 'hero.png', content_type: 'product_shot' }],
+      repeat_index: 0,
+    };
+    const scene = generateScene(planEntry, 0, baseBrief);
+    const result = attachSemanticBlock(scene, 'editorial', planEntry);
+    assert.equal(result, false);
+    assert.equal(scene.semantic, undefined);
+  });
+
+  it('returns false for portrait', () => {
+    const planEntry = {
+      label: 'Team', text: 'Photo', emphasis: 'normal',
+      content_type: 'portrait', layout: 'split-panel',
+      intent_tags: ['detail'],
+      assets: [{ id: 'photo', src: 'team.jpg' }],
+      repeat_index: 0,
+    };
+    const scene = generateScene(planEntry, 0, baseBrief);
+    const result = attachSemanticBlock(scene, 'editorial', planEntry);
+    assert.equal(result, false);
+  });
+
+  it('hero intent → reactive camera_behavior', () => {
+    const { scene, planEntry } = makeSceneWithPlan('typography', ['opening', 'hero']);
+    attachSemanticBlock(scene, 'cinematic-dark', planEntry);
+    assert.equal(scene.semantic.camera_behavior.mode, 'reactive');
+  });
+
+  it('non-hero intent → ambient camera_behavior with drift', () => {
+    const { scene, planEntry } = makeSceneWithPlan('typography', ['detail']);
+    attachSemanticBlock(scene, 'editorial', planEntry);
+    assert.equal(scene.semantic.camera_behavior.mode, 'ambient');
+    assert.equal(scene.semantic.camera_behavior.ambient.drift, 0.15);
+  });
+
+  it('sets format_version = 3', () => {
+    const { scene, planEntry } = makeSceneWithPlan('typography', ['detail']);
+    attachSemanticBlock(scene, 'editorial', planEntry);
+    assert.equal(scene.format_version, 3);
+  });
+
+  it('component gets correct anchor from layout slot', () => {
+    const { scene, planEntry } = makeSceneWithPlan('typography', ['detail']);
+    attachSemanticBlock(scene, 'editorial', planEntry);
+    const cmp = scene.semantic.components[0];
+    assert.ok(cmp.anchor, 'component should have an anchor');
+  });
+});
+
+// ── v3 format integration (ANI-68) ──────────────────────────────────────────
+
+describe('generateScenes v3 format', () => {
+  it('format v3 produces semantic blocks for typography scenes', async () => {
+    const brief = makeBrief({
+      template: 'custom',
+      sections: [
+        { label: 'Hero', text: 'Welcome to the future' },
+        { label: 'Features', text: 'Built for speed' },
+        { label: 'CTA', text: 'Try it now' },
+      ],
+      assets: [],
+    });
+    const { scenes, notes } = await generateScenes(brief, { format: 'v3' });
+    assert.equal(notes.format, 'v3');
+    // Typography scenes should have semantic blocks
+    const v3Scenes = scenes.filter(s => s.format_version === 3);
+    assert.ok(v3Scenes.length > 0, 'should have at least one v3 scene');
+    for (const s of v3Scenes) {
+      assert.ok(s.semantic, 'v3 scene should have semantic block');
+      assert.ok(s.semantic.components.length > 0);
+      assert.ok(s.semantic.interactions.length > 0);
+      assert.ok(s.semantic.camera_behavior);
+    }
+  });
+
+  it('mixed: typography v3, product_shot v2 in same generation', async () => {
+    const brief = makeBrief({
+      template: 'custom',
+      sections: [
+        { label: 'Hero', text: 'Welcome' },
+        { label: 'Product', text: 'Our product', assets: ['product-hero'] },
+        { label: 'CTA', text: 'Get started' },
+      ],
+      assets: [
+        { id: 'product-hero', src: 'assets/hero-product.png', hint: 'product' },
+      ],
+    });
+    const { scenes } = await generateScenes(brief, { format: 'v3' });
+    const v3Scenes = scenes.filter(s => s.format_version === 3);
+    const v2Scenes = scenes.filter(s => s.format_version === 2);
+    assert.ok(v3Scenes.length > 0, 'should have v3 scenes (typography)');
+    assert.ok(v2Scenes.length > 0, 'should have v2 scenes (product_shot)');
+  });
+
+  it('default format is v2 (backward compat)', async () => {
+    const brief = makeBrief();
+    const { scenes, notes } = await generateScenes(brief);
+    assert.equal(notes.format, 'v2');
+    for (const s of scenes) {
+      // format_version is 2 if motion block was attached, undefined otherwise
+      assert.ok(s.format_version === 2 || s.format_version === undefined,
+        `Expected v2 or undefined, got ${s.format_version}`);
+      assert.equal(s.semantic, undefined);
+    }
+  });
+
+  it('all v3 generated scenes pass validateScene', async () => {
+    const brief = makeBrief({
+      template: 'custom',
+      sections: [
+        { label: 'Hero', text: 'Big headline' },
+        { label: 'Detail', text: 'Supporting copy' },
+        { label: 'Closing', text: 'Final word' },
+      ],
+      assets: [],
+    });
+    const { scenes } = await generateScenes(brief, { format: 'v3' });
+    for (const scene of scenes) {
+      const result = validateScene(scene);
+      assert.ok(result.valid, `${scene.scene_id} failed: ${result.errors.join('; ')}`);
     }
   });
 });

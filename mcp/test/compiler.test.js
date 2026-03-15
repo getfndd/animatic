@@ -23,6 +23,10 @@ import {
   computeAmplitude,
   primitiveToTracks,
   resolveCameraConstantsForPersonality,
+  compileSemantic,
+  compileCameraBehavior,
+  interactionToGroup,
+  applySemanticConstraints,
   ANIMATABLE_DEFAULTS,
   PERSONALITY_CAMERA,
 } from '../lib/compiler.js';
@@ -766,5 +770,494 @@ describe('compileEffects — clip-path shapes', () => {
     assert.ok(layerTracks.panel.clip_ellipse);
     assert.equal(layerTracks.panel.clip_ellipse[0].value, 0);
     assert.equal(layerTracks.panel.clip_ellipse[1].value, 100);
+  });
+});
+
+// ── compileSemantic — v3 semantic pre-processing ─────────────────────────────
+
+function makeV3Scene(overrides = {}) {
+  return {
+    scene_id: 'sc_v3_test',
+    format_version: 3,
+    duration_s: 4,
+    fps: 60,
+    layers: [],
+    ...overrides,
+  };
+}
+
+function makeComponentMap(components) {
+  const map = new Map();
+  for (const cmp of components) {
+    map.set(cmp.id, cmp);
+  }
+  return map;
+}
+
+describe('compileSemantic', () => {
+  it('returns without modifying scene when no semantic block', () => {
+    const scene = makeV3Scene({ semantic: undefined });
+    compileSemantic(scene);
+    assert.equal(scene.motion, undefined);
+  });
+
+  it('generates layers for components without layer_ref', () => {
+    const scene = makeV3Scene({
+      semantic: {
+        components: [
+          { id: 'cmp_search', type: 'input_field', role: 'hero' },
+          { id: 'cmp_menu', type: 'dropdown_menu', role: 'supporting' },
+        ],
+        interactions: [],
+      },
+    });
+
+    compileSemantic(scene);
+
+    assert.equal(scene.layers.length, 2);
+    assert.equal(scene.layers[0].id, 'cmp_search');
+    assert.equal(scene.layers[1].id, 'cmp_menu');
+    assert.equal(scene.layers[0].type, 'html');
+  });
+
+  it('preserves existing layers when layer_ref is used', () => {
+    const scene = makeV3Scene({
+      layers: [
+        { id: 'existing_layer', type: 'html', content: '<div>existing</div>' },
+      ],
+      semantic: {
+        components: [
+          { id: 'cmp_search', type: 'input_field', role: 'hero', layer_ref: 'existing_layer' },
+        ],
+        interactions: [],
+      },
+    });
+
+    compileSemantic(scene);
+
+    // Should not add a new layer — uses existing one
+    assert.equal(scene.layers.length, 1);
+    assert.equal(scene.layers[0].id, 'existing_layer');
+  });
+
+  it('throws when layer_ref references non-existent layer', () => {
+    const scene = makeV3Scene({
+      semantic: {
+        components: [
+          { id: 'cmp_search', type: 'input_field', layer_ref: 'nonexistent' },
+        ],
+        interactions: [],
+      },
+    });
+
+    assert.throws(() => compileSemantic(scene), /non-existent layer/);
+  });
+
+  it('merges semantic groups before explicit groups', () => {
+    const scene = makeV3Scene({
+      motion: {
+        groups: [
+          { id: 'explicit_group', targets: ['logo'], primitive: 'as-fadeIn' },
+        ],
+      },
+      semantic: {
+        components: [
+          { id: 'cmp_search', type: 'input_field', role: 'hero' },
+        ],
+        interactions: [
+          { id: 'int_type', target: 'cmp_search', kind: 'type_text', params: { text: 'hello' } },
+        ],
+      },
+    });
+
+    compileSemantic(scene);
+
+    // Semantic group should come first, explicit group second
+    assert.equal(scene.motion.groups[0].id, 'int_type');
+    assert.equal(scene.motion.groups[scene.motion.groups.length - 1].id, 'explicit_group');
+  });
+});
+
+// ── interactionToGroup — kind mapping ────────────────────────────────────────
+
+describe('interactionToGroup', () => {
+  const components = [
+    { id: 'cmp_search', type: 'input_field', role: 'hero' },
+    { id: 'cmp_menu', type: 'dropdown_menu', role: 'supporting' },
+    { id: 'cmp_results', type: 'result_stack', role: 'hero' },
+    { id: 'cmp_cards', type: 'stacked_cards', role: 'supporting', props: { items: ['A', 'B', 'C'] } },
+    { id: 'cmp_badge', type: 'icon_label_row', role: 'background' },
+  ];
+  const cmpMap = makeComponentMap(components);
+
+  it('type_text → text_chars effect with correct duration', () => {
+    const groups = interactionToGroup({
+      id: 'int_type', target: 'cmp_search', kind: 'type_text',
+      params: { text: 'hello world', speed: 50 },
+    }, cmpMap, null);
+
+    assert.equal(groups.length, 1);
+    const g = groups[0];
+    assert.equal(g.targets[0], 'cmp_search');
+    const tw = g.effects.find(e => e.type === 'typewriter');
+    assert.ok(tw, 'should have typewriter effect');
+    assert.equal(tw.from, 0);
+    assert.equal(tw.to, 11); // 'hello world'.length
+    assert.equal(tw.duration_ms, 550); // 11 * 50
+  });
+
+  it('focus → opacity/scale pulse + sibling dim group', () => {
+    const groups = interactionToGroup({
+      id: 'int_focus', target: 'cmp_search', kind: 'focus',
+    }, cmpMap, null);
+
+    assert.ok(groups.length >= 2, 'should emit target group + sibling dim');
+
+    const targetGroup = groups[0];
+    assert.ok(targetGroup.effects.some(e => e.type === 'opacity'), 'has opacity effect');
+    assert.ok(targetGroup.effects.some(e => e.type === 'scale'), 'has scale effect');
+
+    const dimGroup = groups[1];
+    assert.equal(dimGroup.id, 'int_focus_sibling_dim');
+    // Should target all other components
+    assert.ok(dimGroup.targets.length === components.length - 1);
+    const dimEffect = dimGroup.effects.find(e => e.type === 'opacity');
+    assert.equal(dimEffect.to, 0.2, 'default dim is 0.2');
+  });
+
+  it('replace_text → opacity crossfade', () => {
+    const groups = interactionToGroup({
+      id: 'int_replace', target: 'cmp_search', kind: 'replace_text',
+      params: { text: 'new text' },
+    }, cmpMap, null);
+
+    assert.equal(groups.length, 1);
+    const opEffects = groups[0].effects.filter(e => e.type === 'opacity');
+    assert.equal(opEffects.length, 2);
+    assert.equal(opEffects[0].to, 0); // fade out
+    assert.equal(opEffects[1].to, 1); // fade in
+  });
+
+  it('open_menu → translateY + opacity', () => {
+    const groups = interactionToGroup({
+      id: 'int_open', target: 'cmp_menu', kind: 'open_menu',
+    }, cmpMap, null);
+
+    assert.equal(groups.length, 1);
+    assert.ok(groups[0].effects.some(e => e.type === 'translateY'));
+    assert.ok(groups[0].effects.some(e => e.type === 'opacity'));
+    const ty = groups[0].effects.find(e => e.type === 'translateY');
+    assert.equal(ty.from, -20);
+    assert.equal(ty.to, 0);
+  });
+
+  it('select_item → opacity highlight', () => {
+    const groups = interactionToGroup({
+      id: 'int_select', target: 'cmp_menu', kind: 'select_item',
+      params: { index: 0 },
+    }, cmpMap, null);
+
+    assert.equal(groups.length, 1);
+    assert.ok(groups[0].effects.some(e => e.type === 'opacity'));
+    assert.equal(groups[0].effects[0].duration_ms, 200);
+  });
+
+  it('insert_items → stagger group with correct interval', () => {
+    const groups = interactionToGroup({
+      id: 'int_insert', target: 'cmp_results', kind: 'insert_items',
+      params: { items: ['A', 'B', 'C'], stagger_ms: 100 },
+    }, cmpMap, null);
+
+    assert.equal(groups.length, 1);
+    assert.ok(groups[0].stagger, 'should have stagger');
+    assert.equal(groups[0].stagger.interval_ms, 100);
+    assert.equal(groups[0].targets.length, 3);
+    assert.ok(groups[0].effects.some(e => e.type === 'translateY'));
+    assert.ok(groups[0].effects.some(e => e.type === 'opacity'));
+  });
+
+  it('fan_stack → rotate + translateX per card', () => {
+    const groups = interactionToGroup({
+      id: 'int_fan', target: 'cmp_cards', kind: 'fan_stack',
+      params: { spread: 15 },
+    }, cmpMap, null);
+
+    // Should have one group per card (3 items)
+    assert.equal(groups.length, 3);
+    for (const g of groups) {
+      assert.ok(g.effects.some(e => e.type === 'rotate'), 'has rotate');
+      assert.ok(g.effects.some(e => e.type === 'translateX'), 'has translateX');
+    }
+  });
+
+  it('settle → scale with spring easing for cinematic-dark', () => {
+    const groups = interactionToGroup({
+      id: 'int_settle', target: 'cmp_cards', kind: 'settle',
+    }, cmpMap, 'cinematic-dark');
+
+    assert.equal(groups.length, 1);
+    const scaleEffect = groups[0].effects.find(e => e.type === 'scale');
+    assert.ok(scaleEffect);
+    assert.equal(scaleEffect.from, 1.05);
+    assert.equal(scaleEffect.to, 1);
+    assert.equal(scaleEffect.easing, 'spring');
+  });
+
+  it('settle → ease_out easing for editorial', () => {
+    const groups = interactionToGroup({
+      id: 'int_settle', target: 'cmp_cards', kind: 'settle',
+    }, cmpMap, 'editorial');
+
+    const scaleEffect = groups[0].effects.find(e => e.type === 'scale');
+    assert.equal(scaleEffect.easing, 'ease_out');
+  });
+
+  it('pulse_focus → scale oscillation × count', () => {
+    const groups = interactionToGroup({
+      id: 'int_pulse', target: 'cmp_badge', kind: 'pulse_focus',
+      params: { count: 3, intensity: 1.08 },
+    }, cmpMap, null);
+
+    assert.equal(groups.length, 1);
+    const scaleEffects = groups[0].effects.filter(e => e.type === 'scale');
+    // 3 pulses × 2 effects (up + down) = 6 scale effects
+    assert.equal(scaleEffects.length, 6);
+    assert.equal(scaleEffects[0].to, 1.08);
+  });
+
+  it('timing: at_ms resolves to delay_after_hero_ms', () => {
+    const groups = interactionToGroup({
+      id: 'int_type', target: 'cmp_search', kind: 'type_text',
+      params: { text: 'hi' },
+      timing: { at_ms: 500 },
+    }, cmpMap, null);
+
+    assert.equal(groups[0].delay_after_hero_ms, 500);
+  });
+
+  it('timing: delay.after passes through to group', () => {
+    const groups = interactionToGroup({
+      id: 'int_type', target: 'cmp_search', kind: 'type_text',
+      params: { text: 'hi' },
+      timing: { delay: { after: 'typed', offset_ms: 200 } },
+    }, cmpMap, null);
+
+    assert.deepEqual(groups[0].delay, { after: 'typed', offset_ms: 200 });
+  });
+
+  it('timing: on_complete.emit passes through', () => {
+    const groups = interactionToGroup({
+      id: 'int_type', target: 'cmp_search', kind: 'type_text',
+      params: { text: 'hi' },
+      on_complete: { emit: 'typed' },
+    }, cmpMap, null);
+
+    assert.deepEqual(groups[0].on_complete, { emit: 'typed' });
+  });
+});
+
+// ── compileCameraBehavior ────────────────────────────────────────────────────
+
+describe('compileCameraBehavior', () => {
+  it('reactive → push_in', () => {
+    const result = compileCameraBehavior(
+      { mode: 'reactive' }, 240, 60, null, []
+    );
+    assert.equal(result.move, 'push_in');
+    assert.equal(result.intensity, 0.2);
+  });
+
+  it('ambient → drift with custom intensity', () => {
+    const result = compileCameraBehavior(
+      { mode: 'ambient', ambient: { drift: 0.3 } }, 240, 60, null
+    );
+    assert.equal(result.move, 'drift');
+    assert.equal(result.intensity, 0.3);
+  });
+
+  it('static → empty object', () => {
+    const result = compileCameraBehavior(
+      { mode: 'static' }, 240, 60, null
+    );
+    assert.deepEqual(result, {});
+  });
+
+  it('montage personality forces ambient → static', () => {
+    const result = compileCameraBehavior(
+      { mode: 'ambient', ambient: { drift: 0.2 } }, 240, 60, 'montage'
+    );
+    assert.deepEqual(result, {});
+  });
+});
+
+// ── applySemanticConstraints ─────────────────────────────────────────────────
+
+describe('applySemanticConstraints', () => {
+  it('editorial: settle easing → ease_out (not spring)', () => {
+    const groups = [{
+      id: 'int_settle',
+      effects: [{ type: 'scale', from: 1.05, to: 1, duration_ms: 400, easing: 'spring' }],
+    }];
+    applySemanticConstraints(groups, 'editorial');
+    assert.equal(groups[0].effects[0].easing, 'ease_out');
+  });
+
+  it('editorial: fan_stack rotate capped at 10°', () => {
+    const groups = [{
+      id: 'int_fan_card_0',
+      effects: [{ type: 'rotate', from: 0, to: 15, duration_ms: 600, easing: 'spring' }],
+    }];
+    applySemanticConstraints(groups, 'editorial');
+    assert.equal(groups[0].effects[0].to, 10);
+    assert.equal(groups[0].effects[0].easing, 'ease_out');
+  });
+
+  it('montage: insert_items stagger → 0ms', () => {
+    const groups = [{
+      id: 'int_insert',
+      stagger: { interval_ms: 120, order: 'sequential' },
+      effects: [{ type: 'translateY', from: 20, to: 0 }],
+    }];
+    applySemanticConstraints(groups, 'montage');
+    assert.equal(groups[0].stagger.interval_ms, 0);
+  });
+
+  it('neutral-light: fan_stack rotate → translateX fallback', () => {
+    const groups = [{
+      id: 'int_fan_card_0',
+      effects: [{ type: 'rotate', from: 0, to: 5, duration_ms: 600, easing: 'spring' }],
+    }];
+    applySemanticConstraints(groups, 'neutral-light');
+    assert.equal(groups[0].effects[0].type, 'translateX');
+    assert.equal(groups[0].effects[0].easing, 'ease_out');
+  });
+
+  it('neutral-light: pulse_focus limited to 1 count (2 scale effects)', () => {
+    const groups = [{
+      id: 'int_pulse',
+      effects: [
+        { type: 'scale', from: 1, to: 1.05, duration_ms: 100 },
+        { type: 'scale', from: 1.05, to: 1, duration_ms: 100 },
+        { type: 'scale', from: 1, to: 1.05, duration_ms: 100 },
+        { type: 'scale', from: 1.05, to: 1, duration_ms: 100 },
+      ],
+    }];
+    applySemanticConstraints(groups, 'neutral-light');
+    const scaleEffects = groups[0].effects.filter(e => e.type === 'scale');
+    assert.equal(scaleEffects.length, 2, 'should only have 1 pulse (2 scale effects)');
+  });
+});
+
+// ── Full v3 → Level 2 integration ───────────────────────────────────────────
+
+describe('v3 semantic → compileMotion integration', () => {
+  it('full v3 scene produces valid Level 2 timeline', () => {
+    const scene = makeV3Scene({
+      semantic: {
+        components: [
+          { id: 'cmp_search', type: 'input_field', role: 'hero' },
+          { id: 'cmp_results', type: 'result_stack', role: 'supporting' },
+        ],
+        interactions: [
+          {
+            id: 'int_type',
+            target: 'cmp_search',
+            kind: 'type_text',
+            params: { text: 'hello', speed: 50 },
+            timing: { at_ms: 300 },
+            on_complete: { emit: 'typed' },
+          },
+          {
+            id: 'int_insert',
+            target: 'cmp_results',
+            kind: 'insert_items',
+            params: { items: ['A', 'B'], stagger_ms: 100 },
+            timing: { delay: { after: 'typed', offset_ms: 200 } },
+          },
+        ],
+        camera_behavior: { mode: 'ambient', ambient: { drift: 0.15 } },
+      },
+    });
+
+    const result = compileMotion(scene, makeCatalogs());
+
+    // Should produce a valid timeline
+    assert.ok(result, 'should return a timeline');
+    assert.equal(result.scene_id, 'sc_v3_test');
+    assert.equal(result.duration_frames, 240); // 4s * 60fps
+    assert.ok(result.tracks.layers, 'should have layer tracks');
+
+    // Should have camera tracks from ambient drift
+    assert.ok(result.tracks.camera, 'should have camera tracks');
+
+    // Layer tracks should have keyframes
+    const layerIds = Object.keys(result.tracks.layers);
+    assert.ok(layerIds.length > 0, 'should have at least one layer with tracks');
+
+    // Verify keyframe structure
+    for (const [layerId, tracks] of Object.entries(result.tracks.layers)) {
+      for (const [prop, keyframes] of Object.entries(tracks)) {
+        assert.ok(Array.isArray(keyframes), `${layerId}.${prop} should be array`);
+        for (const kf of keyframes) {
+          assert.equal(typeof kf.frame, 'number', `${layerId}.${prop} keyframe needs frame`);
+          assert.ok(kf.value != null, `${layerId}.${prop} keyframe needs value`);
+        }
+      }
+    }
+  });
+
+  it('v1/v2 scenes still compile correctly (regression)', () => {
+    // v1 scene — no motion, no semantic
+    const v1Scene = makeScene({ motion: undefined, semantic: undefined });
+    assert.equal(compileMotion(v1Scene), null);
+
+    // v2 scene — motion block, no semantic
+    const v2Scene = makeScene({
+      motion: {
+        groups: [{
+          id: 'hero',
+          targets: ['title'],
+          primitive: 'as-fadeInUp',
+        }],
+      },
+    });
+    const v2Result = compileMotion(v2Scene, makeCatalogs());
+    assert.ok(v2Result);
+    assert.ok(v2Result.tracks.layers.title);
+  });
+
+  it('mixed v2+v3 scene compiles with both explicit and semantic groups', () => {
+    const scene = makeV3Scene({
+      layers: [
+        { id: 'logo', type: 'image', content: 'logo.png' },
+      ],
+      motion: {
+        groups: [{
+          id: 'logo_entrance',
+          targets: ['logo'],
+          primitive: 'as-fadeIn',
+        }],
+      },
+      semantic: {
+        components: [
+          { id: 'cmp_search', type: 'input_field', role: 'hero' },
+        ],
+        interactions: [
+          {
+            id: 'int_type',
+            target: 'cmp_search',
+            kind: 'type_text',
+            params: { text: 'test' },
+            timing: { at_ms: 500 },
+          },
+        ],
+      },
+    });
+
+    const result = compileMotion(scene, makeCatalogs());
+
+    assert.ok(result, 'should compile');
+    // Should have tracks for both logo (v2) and semantic targets
+    assert.ok(result.tracks.layers.logo, 'logo should have tracks from v2 group');
   });
 });

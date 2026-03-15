@@ -398,9 +398,122 @@ export function validateScene(scene) {
     }
   }
 
+  // v3: semantic block validation
+  if (scene.semantic) {
+    const sem = scene.semantic;
+
+    // Collect layer IDs for layer_ref cross-referencing
+    const layerIds = new Set();
+    if (scene.layers && Array.isArray(scene.layers)) {
+      for (const layer of scene.layers) {
+        if (layer.id) layerIds.add(layer.id);
+      }
+    }
+
+    // Components
+    const validComponentTypes = ['input_field', 'prompt_card', 'dropdown_menu', 'result_stack', 'upload_zone', 'chip_row', 'icon_label_row', 'stacked_cards'];
+    const validRoles = ['hero', 'supporting', 'background', 'wildcard'];
+    const componentIds = new Set();
+
+    if (sem.components && Array.isArray(sem.components)) {
+      for (let i = 0; i < sem.components.length; i++) {
+        const c = sem.components[i];
+        const cp = `semantic.components[${i}]`;
+
+        if (!c.id) {
+          errors.push(`${cp}.id is required`);
+        } else if (!/^cmp_[a-z0-9_]+$/.test(c.id)) {
+          errors.push(`${cp}.id "${c.id}" must match ^cmp_[a-z0-9_]+$`);
+        } else if (componentIds.has(c.id)) {
+          errors.push(`duplicate component id "${c.id}"`);
+        } else {
+          componentIds.add(c.id);
+        }
+
+        if (!c.type || !validComponentTypes.includes(c.type)) {
+          errors.push(`${cp}.type "${c.type}" is not valid (must be one of: ${validComponentTypes.join(', ')})`);
+        }
+
+        if (c.role != null && !validRoles.includes(c.role)) {
+          errors.push(`${cp}.role "${c.role}" is not valid (must be one of: ${validRoles.join(', ')})`);
+        }
+
+        if (c.layer_ref != null && !layerIds.has(c.layer_ref)) {
+          errors.push(`${cp}.layer_ref "${c.layer_ref}" references unknown layer`);
+        }
+
+        if (c.anchor) {
+          if (c.anchor.x != null && (c.anchor.x < 0 || c.anchor.x > 1)) {
+            errors.push(`${cp}.anchor.x must be between 0 and 1`);
+          }
+          if (c.anchor.y != null && (c.anchor.y < 0 || c.anchor.y > 1)) {
+            errors.push(`${cp}.anchor.y must be between 0 and 1`);
+          }
+        }
+      }
+    }
+
+    // Interactions
+    const validKinds = ['focus', 'type_text', 'replace_text', 'open_menu', 'select_item', 'insert_items', 'fan_stack', 'settle', 'pulse_focus'];
+    const interactionIds = new Set();
+
+    if (sem.interactions && Array.isArray(sem.interactions)) {
+      for (let i = 0; i < sem.interactions.length; i++) {
+        const int = sem.interactions[i];
+        const ip = `semantic.interactions[${i}]`;
+
+        if (!int.id) {
+          errors.push(`${ip}.id is required`);
+        } else if (!/^int_[a-z0-9_]+$/.test(int.id)) {
+          errors.push(`${ip}.id "${int.id}" must match ^int_[a-z0-9_]+$`);
+        } else if (interactionIds.has(int.id)) {
+          errors.push(`duplicate interaction id "${int.id}"`);
+        } else {
+          interactionIds.add(int.id);
+        }
+
+        if (!int.target) {
+          errors.push(`${ip}.target is required`);
+        } else if (!componentIds.has(int.target)) {
+          errors.push(`${ip}.target "${int.target}" references unknown component`);
+        }
+
+        if (!int.kind || !validKinds.includes(int.kind)) {
+          errors.push(`${ip}.kind "${int.kind}" is not valid (must be one of: ${validKinds.join(', ')})`);
+        }
+
+        if (int.duration_ms != null && (typeof int.duration_ms !== 'number' || int.duration_ms < 0)) {
+          errors.push(`${ip}.duration_ms must be >= 0`);
+        }
+      }
+    }
+
+    // Camera behavior
+    if (sem.camera_behavior) {
+      const validModes = ['reactive', 'ambient', 'static'];
+      if (sem.camera_behavior.mode != null && !validModes.includes(sem.camera_behavior.mode)) {
+        errors.push(`semantic.camera_behavior.mode "${sem.camera_behavior.mode}" is not valid (must be one of: ${validModes.join(', ')})`);
+      }
+    }
+
+    // Art direction
+    if (sem.art_direction) {
+      const ad = sem.art_direction;
+      if (ad.density != null && !['sparse', 'balanced', 'dense'].includes(ad.density)) {
+        errors.push(`semantic.art_direction.density "${ad.density}" is not valid (must be one of: sparse, balanced, dense)`);
+      }
+      if (ad.focus != null && !['single', 'distributed'].includes(ad.focus)) {
+        errors.push(`semantic.art_direction.focus "${ad.focus}" is not valid (must be one of: single, distributed)`);
+      }
+      if (ad.motion_profile != null && !['restrained', 'fluid', 'energetic'].includes(ad.motion_profile)) {
+        errors.push(`semantic.art_direction.motion_profile "${ad.motion_profile}" is not valid (must be one of: restrained, fluid, energetic)`);
+      }
+    }
+  }
+
   // format_version
-  if (scene.format_version != null && ![1, 2].includes(scene.format_version)) {
-    errors.push(`format_version must be 1 or 2 (got ${scene.format_version})`);
+  if (scene.format_version != null && ![1, 2, 3].includes(scene.format_version)) {
+    errors.push(`format_version must be 1, 2, or 3 (got ${scene.format_version})`);
   }
 
   return { valid: errors.length === 0, errors };

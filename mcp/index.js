@@ -516,6 +516,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: 'boolean',
             description: 'Enable LLM enhancement (ANI-36). When true and ANTHROPIC_API_KEY is set, Claude improves scene plan text and suggests camera moves. Falls back to rule-based output on any failure. Default: false.',
           },
+          format: {
+            type: 'string',
+            enum: ['v2', 'v3'],
+            description: 'Output format. "v2" emits motion blocks (default). "v3" emits semantic components + interactions for content types that support it (typography, brand_mark, data_visualization, collage); other content types fall back to v2 motion blocks.',
+          },
         },
         required: ['brief'],
       },
@@ -626,13 +631,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'compile_motion',
       description:
-        'Compile a v2 scene with a motion block (Level 1 Motion Intent) into a frame-addressed Level 2 Motion Timeline. The timeline contains per-layer keyframe tracks and camera tracks consumable by the Remotion renderer. Use this after authoring a v2 scene with motion groups, recipes, stagger, and cues.',
+        'Compile a v2 or v3 scene into a frame-addressed Level 2 Motion Timeline. Supports v2 motion blocks (groups, recipes, stagger, cues) and v3 semantic blocks (components, interactions, camera_behavior). v3 scenes are pre-compiled to v2 motion groups before the 7-step pipeline runs. The timeline contains per-layer keyframe tracks and camera tracks consumable by the Remotion renderer.',
       inputSchema: {
         type: 'object',
         properties: {
           scene: {
             type: 'object',
-            description: 'A v2 scene definition with a `motion` block containing groups, recipes, stagger directives, cues, and camera sync.',
+            description: 'A v2 or v3 scene definition. v2: `motion` block with groups, recipes, stagger, cues, camera sync. v3: `semantic` block with components, interactions, camera_behavior.',
           },
           personality: {
             type: 'string',
@@ -1963,7 +1968,7 @@ function handleGetBriefTemplate(args) {
 // ── generate_scenes ─────────────────────────────────────────────────────────
 
 async function handleGenerateScenes(args) {
-  const { brief, enhance = false } = args;
+  const { brief, enhance = false, format } = args;
 
   if (!brief || typeof brief !== 'object') {
     return {
@@ -1976,10 +1981,11 @@ async function handleGenerateScenes(args) {
   }
 
   try {
-    const { scenes, notes } = await generateScenes(brief, { enhance });
+    const { scenes, notes } = await generateScenes(brief, { enhance, format });
 
     let out = `# Generated Scenes\n\n`;
     out += `**Template:** ${notes.template}\n`;
+    out += `**Format:** ${notes.format}\n`;
     out += `**Style:** ${notes.style}\n`;
     out += `**Scenes:** ${notes.scene_count}\n`;
     out += `**Total Duration:** ${notes.total_duration_s.toFixed(1)}s\n`;
@@ -2342,11 +2348,11 @@ function handleCompileMotion(args) {
     };
   }
 
-  if (!scene.motion) {
+  if (!scene.motion && !scene.semantic) {
     return {
       content: [{
         type: 'text',
-        text: '**Note:** Scene has no `motion` block — this is a v1 scene. No compilation needed; the renderer uses the existing camera/entrance path.',
+        text: '**Note:** Scene has no `motion` or `semantic` block — this is a v1 scene. No compilation needed; the renderer uses the existing camera/entrance path.',
       }],
     };
   }
@@ -2364,7 +2370,8 @@ function handleCompileMotion(args) {
       trackCount += Object.keys(tracks).length;
     }
 
-    let summary = `## Compiled Motion Timeline\n\n`;
+    const isV3 = !!scene.semantic;
+    let summary = `## Compiled Motion Timeline${isV3 ? ' (v3 semantic → v2 → Level 2)' : ''}\n\n`;
     summary += `- **Scene:** ${timeline.scene_id}\n`;
     summary += `- **Duration:** ${timeline.duration_frames} frames (${(timeline.duration_frames / timeline.fps).toFixed(1)}s @ ${timeline.fps}fps)\n`;
     summary += `- **Layers:** ${layerCount} with ${trackCount} property tracks\n`;

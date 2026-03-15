@@ -148,6 +148,21 @@ export const MOOD_TO_STYLES = {
   'playful':       ['kinetic', 'energy'],
 };
 
+/**
+ * Map content types to v3 semantic component types.
+ * null = no semantic mapping (stays v2).
+ */
+export const CONTENT_TYPE_TO_COMPONENT = {
+  typography:          'prompt_card',
+  brand_mark:          'icon_label_row',
+  data_visualization:  'icon_label_row',
+  collage:             'stacked_cards',
+  ui_screenshot:       null,
+  product_shot:        null,
+  portrait:            null,
+  moodboard:           null,
+};
+
 // ── File extension fallback map ──────────────────────────────────────────────
 
 const EXTENSION_TO_CONTENT_TYPE = {
@@ -860,6 +875,160 @@ export function attachMotionBlock(scene, personality) {
   };
 }
 
+/**
+ * Attach a v3 semantic block to a generated scene.
+ *
+ * Maps content types to semantic component types and generates
+ * interactions based on intent tags and component type.
+ *
+ * @param {object} scene - Generated scene (mutated in place)
+ * @param {string} personality - Personality slug
+ * @param {object} planEntry - Plan entry with content_type, intent_tags, text
+ * @returns {boolean} true if semantic block was attached, false if no mapping
+ */
+export function attachSemanticBlock(scene, personality, planEntry) {
+  const componentType = CONTENT_TYPE_TO_COMPONENT[planEntry.content_type];
+  if (!componentType) return false;
+
+  const layers = scene.layers || [];
+  if (layers.length === 0) return false;
+
+  const intentTags = planEntry.intent_tags || [];
+  const isHero = intentTags.includes('hero') || intentTags.includes('opening');
+
+  // Build components from layers (component IDs must match ^cmp_[a-z0-9_]+$)
+  const components = [];
+  let cmpIndex = 0;
+  for (const layer of layers) {
+    if (layer.type === 'text') {
+      components.push({
+        id: `cmp_${cmpIndex++}`,
+        type: componentType,
+        role: layer.depth_class === 'foreground' ? 'hero' : 'supporting',
+        layer_ref: layer.id,
+        anchor: layer.slot || 'center',
+        props: layer.content ? { text: layer.content } : {},
+      });
+    }
+  }
+
+  // If no text layers produced components, use the first foreground/midground layer
+  if (components.length === 0) {
+    const primary = layers.find(l => l.depth_class === 'foreground' || l.depth_class === 'midground');
+    if (primary) {
+      components.push({
+        id: `cmp_${cmpIndex++}`,
+        type: componentType,
+        role: 'hero',
+        layer_ref: primary.id,
+        anchor: primary.slot || 'center',
+        props: {},
+      });
+    }
+  }
+
+  if (components.length === 0) return false;
+
+  // Build interactions based on component type + intent
+  const interactions = buildSemanticInteractions(componentType, intentTags, components, planEntry);
+
+  // Build camera behavior
+  const cameraBehavior = isHero
+    ? { mode: 'reactive' }
+    : { mode: 'ambient', ambient: { drift: 0.15 } };
+
+  scene.format_version = 3;
+  scene.semantic = {
+    components,
+    interactions,
+    camera_behavior: cameraBehavior,
+  };
+
+  return true;
+}
+
+/**
+ * Build semantic interactions for a component type + intent combination.
+ */
+function buildSemanticInteractions(componentType, intentTags, components, planEntry) {
+  const interactions = [];
+  const heroComponent = components.find(c => c.role === 'hero') || components[0];
+  const targetId = heroComponent.id;
+  const isHero = intentTags.includes('hero') || intentTags.includes('opening');
+  const isClosing = intentTags.includes('closing');
+
+  switch (componentType) {
+    case 'prompt_card': {
+      interactions.push({
+        id: `int_focus_${targetId}`,
+        target: targetId,
+        kind: 'focus',
+        timing: { at_ms: 0 },
+        on_complete: { emit: 'focused' },
+      });
+
+      if (isHero) {
+        // opening/hero → focus + type_text
+        interactions.push({
+          id: `int_type_${targetId}`,
+          target: targetId,
+          kind: 'type_text',
+          params: { text: planEntry.text || '', speed: 45 },
+          timing: { delay: { after: 'focused', offset_ms: 200 } },
+        });
+      } else if (isClosing) {
+        // closing → focus + pulse_focus
+        interactions.push({
+          id: `int_pulse_${targetId}`,
+          target: targetId,
+          kind: 'pulse_focus',
+          params: { count: 1 },
+          timing: { delay: { after: 'focused', offset_ms: 200 } },
+        });
+      }
+      // detail → focus only (already added)
+      break;
+    }
+
+    case 'icon_label_row': {
+      interactions.push({
+        id: `int_focus_${targetId}`,
+        target: targetId,
+        kind: 'focus',
+        timing: { at_ms: 0 },
+        on_complete: { emit: 'focused' },
+      });
+      interactions.push({
+        id: `int_pulse_${targetId}`,
+        target: targetId,
+        kind: 'pulse_focus',
+        params: { count: 1 },
+        timing: { delay: { after: 'focused', offset_ms: 200 } },
+      });
+      break;
+    }
+
+    case 'stacked_cards': {
+      interactions.push({
+        id: `int_fan_${targetId}`,
+        target: targetId,
+        kind: 'fan_stack',
+        timing: { at_ms: 0 },
+        on_complete: { emit: 'fanned' },
+      });
+      interactions.push({
+        id: `int_settle_${targetId}`,
+        target: targetId,
+        kind: 'settle',
+        timing: { delay: { after: 'fanned', offset_ms: 200 } },
+      });
+      break;
+    }
+  }
+
+  return interactions;
+}
+
 function makeSceneId(label, index) {
   const sanitized = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
   const padded = String(index).padStart(2, '0');
@@ -1141,6 +1310,7 @@ function buildDataVizScene(scene, plan, colors, font) {
  * @param {object} brief — creative brief JSON
  * @param {object} [options] — optional settings
  * @param {boolean} [options.enhance=false] — enable LLM enhancement
+ * @param {string} [options.format='v2'] — output format: 'v2' (motion blocks) or 'v3' (semantic components)
  * @returns {Promise<{ scenes: object[], notes: object }>}
  */
 export async function generateScenes(brief, options = {}) {
@@ -1191,11 +1361,18 @@ export async function generateScenes(brief, options = {}) {
     llmNotes.push(...enrichNotes);
   }
 
-  // Stage 8: Attach v2 motion blocks (recipe-based choreography)
+  // Stage 8: Attach motion blocks (v2 recipe-based or v3 semantic)
+  const format = options.format || 'v2';
   const stylePack = stylePacksCatalog.byName.get(style);
   const personality = stylePack?.personality || 'editorial';
-  for (const scene of scenes) {
-    attachMotionBlock(scene, personality);
+  for (let i = 0; i < scenes.length; i++) {
+    const scene = scenes[i];
+    if (format === 'v3') {
+      const attached = attachSemanticBlock(scene, personality, plan[i]);
+      if (!attached) attachMotionBlock(scene, personality);
+    } else {
+      attachMotionBlock(scene, personality);
+    }
   }
 
   // Self-validate each scene
@@ -1214,6 +1391,7 @@ export async function generateScenes(brief, options = {}) {
   // Build notes
   const notes = {
     scene_count: scenes.length,
+    format,
     template: brief.template || 'custom',
     style,
     total_duration_s: durations.reduce((sum, d) => sum + d, 0),

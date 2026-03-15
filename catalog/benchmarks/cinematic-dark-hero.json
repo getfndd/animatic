@@ -1,0 +1,62 @@
+{
+  "scene_id": "bench_cinematic_dark_hero",
+  "duration_s": 5,
+  "fps": 60,
+  "format_version": 2,
+  "personality": "cinematic-dark",
+  "assets": [
+    { "id": "hero-bg", "src": "public/benchmarks/hero-bg.svg", "type": "svg" },
+    { "id": "product-shape", "src": "public/benchmarks/product.svg", "type": "svg" },
+    { "id": "logo-mark", "src": "public/benchmarks/logo.svg", "type": "svg" }
+  ],
+  "layers": [
+    { "id": "bg", "type": "image", "depth_class": "background", "src": "public/benchmarks/hero-bg.svg" },
+    { "id": "product", "type": "image", "depth_class": "midground", "src": "public/benchmarks/product.svg" },
+    { "id": "headline", "type": "text", "depth_class": "foreground", "content": "Introducing the Future" },
+    { "id": "tagline", "type": "text", "depth_class": "foreground", "content": "Precision. Power. Presence." },
+    { "id": "logo", "type": "svg", "depth_class": "foreground", "src": "public/benchmarks/logo.svg" }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "id": "bg-entrance",
+        "targets": ["bg"],
+        "primitive": "fade-in"
+      },
+      {
+        "id": "headline-reveal",
+        "targets": ["headline"],
+        "primitive": "cd-focus-stagger",
+        "on_complete": { "emit": "headline_done" },
+        "effects": [
+          { "type": "blur", "from": 8, "to": 0, "duration_ms": 600, "easing": "expo_out" }
+        ]
+      },
+      {
+        "id": "product-entrance",
+        "targets": ["product"],
+        "primitive": "cd-focus-stagger",
+        "delay": { "after": "headline_done", "offset_ms": 100 },
+        "effects": [
+          { "type": "brightness", "from": 0.5, "to": 1, "duration_ms": 500, "easing": "ease_out" }
+        ]
+      },
+      {
+        "id": "supporting-stagger",
+        "targets": ["tagline", "logo"],
+        "primitive": "cd-focus-stagger",
+        "delay": { "after": "headline_done", "offset_ms": 300 },
+        "stagger": {
+          "interval_ms": 180,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.6 }
+        }
+      }
+    ],
+    "camera": {
+      "move": "push_in",
+      "intensity": 0.35,
+      "sync": { "cue": "headline_done" }
+    }
+  }
+}

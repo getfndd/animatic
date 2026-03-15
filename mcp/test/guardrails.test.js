@@ -90,10 +90,8 @@ describe('validateCameraMove — speed limits', () => {
   });
 
   it('push_in at moderate intensity/duration passes speed limit', () => {
-    // intensity=0.5, SCALE_FACTOR=0.08, duration=3s → 4%/3s ≈ 1.33 %/s (limit 0.5)
-    // Wait: 0.5 * 0.08 * 100 = 4, / 3 = 1.33 — that exceeds 0.5!
-    // Actually let's use a longer duration. intensity=0.3, duration=5s → 0.3*0.08*100/5 = 0.48
-    const result = validateCameraMove(makeCamera('push_in', 0.3), null, 5, 'cinematic-dark');
+    // intensity=0.15, SCALE_FACTOR=0.14, duration=5s → 0.15*0.14*100/5 = 0.42 %/s (limit 0.5)
+    const result = validateCameraMove(makeCamera('push_in', 0.15), null, 5, 'cinematic-dark');
     const speedWarnings = result.warnings.filter(w => w.check === 'speed_limit');
     assert.equal(speedWarnings.length, 0);
   });
@@ -170,15 +168,15 @@ describe('validateCameraMove — jerk/settling', () => {
 // ── Check 4: Lens bounds ────────────────────────────────────────────────────
 
 describe('validateCameraMove — lens bounds', () => {
-  it('push_in at intensity 0.5 passes lens bounds (scale 1.04)', () => {
-    // 1 + 0.5 * 0.08 = 1.04, within [0.95, 1.05]
-    const result = validateCameraMove(makeCamera('push_in', 0.5), null, 3, 'cinematic-dark');
+  it('push_in at intensity 0.3 passes lens bounds (scale 1.042)', () => {
+    // 1 + 0.3 * 0.14 = 1.042, within [0.95, 1.05]
+    const result = validateCameraMove(makeCamera('push_in', 0.3), null, 3, 'cinematic-dark');
     const lensWarnings = result.warnings.filter(w => w.check === 'lens_bounds');
     assert.equal(lensWarnings.length, 0);
   });
 
   it('push_in at intensity 1.0 warns on lens bounds (scale 1.08)', () => {
-    // 1 + 1.0 * 0.08 = 1.08, exceeds max 1.05
+    // 1 + 1.0 * 0.14 = 1.14, exceeds max 1.05
     const result = validateCameraMove(makeCamera('push_in', 1.0), null, 3, 'cinematic-dark');
     const lensWarnings = result.warnings.filter(w => w.check === 'lens_bounds');
     assert.equal(lensWarnings.length, 1);

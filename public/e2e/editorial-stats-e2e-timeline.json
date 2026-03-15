@@ -1,0 +1,140 @@
+{
+  "scene_id": "bench_ed_stats",
+  "duration_frames": 300,
+  "fps": 60,
+  "tracks": {
+    "camera": {
+      "scale": [
+        {
+          "frame": 0,
+          "value": 1
+        },
+        {
+          "frame": 180,
+          "value": 1.012,
+          "easing": "cubic-bezier(0.33,0,0.2,1)"
+        }
+      ],
+      "translateX": [
+        {
+          "frame": 180,
+          "value": 0
+        },
+        {
+          "frame": 300,
+          "value": 0.24,
+          "easing": "cubic-bezier(0.33,0,0.2,1)"
+        }
+      ]
+    },
+    "layers": {
+      "bg": {
+        "opacity": [
+          {
+            "frame": 0,
+            "value": 0
+          },
+          {
+            "frame": 24,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      },
+      "glow": {
+        "opacity": [
+          {
+            "frame": 0,
+            "value": 0
+          },
+          {
+            "frame": 24,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "scale": [
+          {
+            "frame": 0,
+            "value": 0.8
+          },
+          {
+            "frame": 120,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      },
+      "pill-calls": {
+        "opacity": [
+          {
+            "frame": 0,
+            "value": 0
+          },
+          {
+            "frame": 24,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "translateY": [
+          {
+            "frame": 0,
+            "value": 10
+          },
+          {
+            "frame": 24,
+            "value": 0,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "scale": [
+          {
+            "frame": 0,
+            "value": 0.92
+          },
+          {
+            "frame": 48,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      },
+      "pill-emails": {
+        "opacity": [
+          {
+            "frame": 36,
+            "value": 0
+          },
+          {
+            "frame": 60,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "translateY": [
+          {
+            "frame": 36,
+            "value": 10
+          },
+          {
+            "frame": 60,
+            "value": 0,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "scale": [
+          {
+            "frame": 36,
+            "value": 0.92
+          },
+          {
+            "frame": 84,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      }
+    }
+  }
+}

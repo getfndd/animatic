@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: transparent;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 0;
+  }
+  .response {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .icon {
+    font-size: 16px;
+    color: oklch(55% 0.015 70);
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-weight: 300;
+  }
+  .content {
+    font-size: 15px;
+    line-height: 1.55;
+    color: oklch(25% 0.02 70);
+  }
+  .content strong {
+    font-weight: 500;
+  }
+  .details {
+    margin-top: 10px;
+    padding-left: 12px;
+    border-left: 2px solid oklch(75% 0.02 70);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .details span {
+    font-size: 14px;
+    color: oklch(45% 0.02 70);
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+  <div class="response">
+    <div class="icon">✳</div>
+    <div class="content">
+      <strong>Got it.</strong> I've drafted a campaign targeting fintech CTOs in the US.
+      <div class="details">
+        <span>1,259 verified contacts found</span>
+        <span>Personalized email + call sequence created</span>
+        <span>Cadence: 6 touchpoints over 10 days</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

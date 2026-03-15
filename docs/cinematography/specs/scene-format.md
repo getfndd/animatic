@@ -166,7 +166,7 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
         },
         "type": {
           "type": "string",
-          "enum": ["html", "video", "image", "text"],
+          "enum": ["html", "video", "image", "text", "svg"],
           "description": "Layer content type."
         },
         "slot": {
@@ -238,6 +238,16 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
           "type": "string",
           "enum": ["normal", "screen", "multiply", "overlay"],
           "default": "normal"
+        },
+        "mask_layer": {
+          "type": "string",
+          "description": "ID of another layer to use as an alpha/luminance mask source."
+        },
+        "mask_type": {
+          "type": "string",
+          "enum": ["alpha", "luminance"],
+          "default": "alpha",
+          "description": "Mask compositing mode. Alpha uses opacity channel; luminance uses brightness."
         },
         "entrance": {
           "type": "object",
@@ -521,6 +531,57 @@ When a scene has a `layout`, layers can reference named `slot` values. The pipel
 }
 ```
 
+### SVG Layer (vector shapes with stroke draw-on animation)
+
+```json
+{
+  "scene_id": "sc_icon_reveal",
+  "duration_s": 3,
+  "format_version": 2,
+  "camera": { "move": "static" },
+  "layers": [
+    {
+      "id": "icon",
+      "type": "svg",
+      "content": "<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><circle cx='50' cy='50' r='40' fill='none' stroke='white' stroke-width='2' style='stroke-dasharray: var(--stroke-dasharray); stroke-dashoffset: var(--stroke-dashoffset); fill-opacity: var(--fill-opacity)'/></svg>",
+      "depth_class": "foreground"
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "id": "draw_on",
+        "targets": ["icon"],
+        "primitive": "as-fadeIn",
+        "effects": [
+          { "type": "stroke_dashoffset", "from": 251, "to": 0, "duration_ms": 1500, "easing": "ease_out" },
+          { "type": "fill_opacity", "from": 0, "to": 1, "duration_ms": 800, "delay_ms": 1000 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### SVG Layer Details
+
+The `svg` layer type supports two content modes:
+
+- **Inline SVG** (`content`): SVG markup rendered directly in the DOM via `innerHTML`. This allows SVG elements to reference CSS custom properties set by the timeline system (e.g., `var(--stroke-dashoffset)`).
+- **External SVG** (`src`): An `.svg` file rendered as an `<img>` element. External SVGs cannot be animated via CSS custom properties — use this mode for static vector graphics.
+
+**SVG-specific animatable properties** (exposed as CSS custom properties on the layer wrapper):
+
+| Property | CSS Custom Property | Default | Use Case |
+|----------|-------------------|---------|----------|
+| `stroke_dashoffset` | `--stroke-dashoffset` | 0 | Stroke draw-on animation |
+| `stroke_dasharray` | `--stroke-dasharray` | 0 | Stroke pattern animation |
+| `fill_opacity` | `--fill-opacity` | 1 | Fill fade independent of layer opacity |
+| `stroke_opacity` | `--stroke-opacity` | 1 | Stroke fade independent of layer opacity |
+| `path_length` | `--path-length` | 0 | Length-based morphing |
+
+Inline SVG elements should reference these via CSS `var()` functions in their `style` attributes. The timeline system interpolates the values per frame and sets them as CSS custom properties on the layer's wrapper `<div>`.
+
 ## Validation
 
 The schema must describe all 12 shot types from the reference `high.mp4`:
@@ -551,3 +612,227 @@ All 12 shots are representable with this schema.
 4. **Metadata is optional for authoring, required for AI.** A human can write a scene without metadata. The AI scene analysis engine (ANI-22) populates metadata for AI-planned sequences. The analyzer also produces a `reasoning` block explaining each classification decision (ANI-45), enabling traceability from intent to output.
 
 5. **Audio at sequence level.** The `audio` asset type is supported for scene-level assets. Background music and per-scene audio clips (narration, SFX) are rendered at the sequence manifest level via Remotion's `<Audio>` component.
+
+---
+
+## Scene Format v2 — Motion Block
+
+### Overview
+
+v2 scenes add a `motion` block that describes rich choreography at a semantic level (Level 1: Motion Intent). A compiler transforms this into frame-addressed keyframe tracks (Level 2: Motion Timeline) consumable by the Remotion renderer.
+
+**Detection:** `if (scene.format_version === 2 || scene.motion) → v2 path`
+
+v1 scenes without a `motion` block continue to render via the existing camera/entrance path.
+
+### `format_version`
+
+Optional. When set to `2`, signals v2 rendering path. Also triggered by presence of `motion` block.
+
+### `motion` Block
+
+```json
+{
+  "motion": {
+    "camera": { ... },
+    "groups": [ ... ],
+    "recipe": "recipe-id",
+    "target_map": { ... }
+  }
+}
+```
+
+### Groups
+
+Each group targets a set of layers sharing an animation primitive and timing:
+
+```json
+{
+  "id": "cards",
+  "targets": ["card-0", "card-1", "card-2"],
+  "primitive": "ed-slide-stagger",
+  "stagger": {
+    "interval_ms": 120,
+    "order": "sequential",
+    "amplitude": { "curve": "descending", "start": 1.0, "end": 0.6 },
+    "settle": { "easing": "spring", "duration_ms": 600 }
+  },
+  "delay": { "after": "headline_done", "offset_ms": 200 },
+  "on_complete": { "emit": "cards_done" }
+}
+```
+
+**Stagger directive fields:**
+- `interval_ms` — time between element starts (>= 0)
+- `order` — `sequential`, `reverse`, `center_out`, `random`, `distance`
+- `amplitude.curve` — `uniform`, `descending`, `ascending`, `wave`
+- `amplitude.start` / `amplitude.end` — multiplier range
+- `settle` — shared settle curve for "landing together" feel
+
+### Cues
+
+Named sync points for coordinating motion across groups and camera:
+
+**Sources:**
+- `on_complete` on groups — fires when last element finishes
+- `{ "at": 0.5 }` — proportional scene time
+- `{ "at_ms": 2000 }` — absolute time
+- `"scene_start"`, `"scene_end"` — implicit
+
+### Camera (v2)
+
+Single move with sync:
+```json
+{
+  "camera": {
+    "move": "push_in",
+    "intensity": 0.3,
+    "sync": { "peak_at": 0.6, "cue": "headline_done" }
+  }
+}
+```
+
+Multi-move:
+```json
+{
+  "camera": {
+    "moves": [
+      { "move": "push_in", "intensity": 0.4, "from": 0, "to": 0.6 },
+      { "move": "drift", "intensity": 0.15, "from": 0.6, "to": 1.0 }
+    ]
+  }
+}
+```
+
+### Recipes
+
+Composable motion modules that expand into groups:
+
+```json
+{
+  "motion": {
+    "recipe": "editorial-feature-reveal",
+    "target_map": { "hero": ["title"], "supporting": ["card-0", "card-1"] }
+  }
+}
+```
+
+Recipes are defined in `catalog/recipes.json` (12 initial recipes, 3 per personality).
+
+### Per-Layer Effects
+
+```json
+{
+  "effects": [
+    { "type": "blur", "from": 8, "to": 0, "duration_ms": 600, "easing": "ease_out" },
+    { "type": "brightness", "from": 0.3, "to": 1.0, "duration_ms": 800 }
+  ]
+}
+```
+
+### Clip-Path Reveal Shapes
+
+Beyond `clip_inset_*` (rectangular reveals), the pipeline supports circle, ellipse, and polygon clip-path shapes. These are animatable via keyframe tracks — the radius/size values interpolate between keyframes.
+
+**Circle reveal:** `clip_circle` controls the radius percentage. Optional `clip_circle_cx` / `clip_circle_cy` control the center (default 50%, 50%).
+
+```json
+{
+  "effects": [
+    { "type": "clip_circle", "from": 0, "to": 100, "duration_ms": 800 }
+  ]
+}
+```
+
+Renders as `clip-path: circle(R% at CX% CY%)`.
+
+**Ellipse reveal:** `clip_ellipse` controls the X radius. Optional `clip_ellipse_ry` controls the Y radius (defaults to matching X). Optional `clip_ellipse_cx` / `clip_ellipse_cy` control the center.
+
+```json
+{
+  "effects": [
+    { "type": "clip_ellipse", "from": 0, "to": 100, "duration_ms": 600 }
+  ]
+}
+```
+
+Renders as `clip-path: ellipse(RX% RY% at CX% CY%)`.
+
+**Polygon reveal:** `clip_polygon` is a serialized polygon string passed directly. Useful for custom shapes like diagonal wipes or star reveals.
+
+At the Level 2 timeline level, the `clip_polygon` track value is a string:
+
+```json
+{
+  "clip_polygon": [
+    { "frame": 0, "value": "0% 0%, 0% 0%, 0% 0%" },
+    { "frame": 48, "value": "0% 0%, 100% 0%, 100% 100%" }
+  ]
+}
+```
+
+Renders as `clip-path: polygon(...)`.
+
+### Layer Masking
+
+A layer can reference another layer as an alpha or luminance mask using `mask_layer` and `mask_type`.
+
+```json
+{
+  "layers": [
+    {
+      "id": "mask-shape",
+      "type": "html",
+      "content": "<div style='background: white; border-radius: 50%; width: 100%; height: 100%'></div>"
+    },
+    {
+      "id": "content",
+      "type": "video",
+      "asset": "hero_clip",
+      "mask_layer": "mask-shape",
+      "mask_type": "alpha"
+    }
+  ]
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `mask_layer` | string | — | ID of another layer to use as the mask source |
+| `mask_type` | `"alpha"` \| `"luminance"` | `"alpha"` | Mask compositing mode. Alpha uses the mask's opacity channel; luminance uses brightness. |
+
+The mask source layer is rendered but hidden (`visibility: hidden`). The renderer applies CSS `mask-mode` for compositing. The mask layer can itself be animated via timeline tracks (e.g., animating a clip-path on the mask layer creates a shaped, animated reveal).
+
+### Level 2 Motion Timeline (compiled output)
+
+Frame-addressed, per-property, fully expanded. No semantic references.
+
+```json
+{
+  "scene_id": "sc_hero",
+  "duration_frames": 240,
+  "fps": 60,
+  "tracks": {
+    "camera": {
+      "scale": [
+        { "frame": 0, "value": 1, "easing": "cubic-bezier(0.33,0,0.2,1)" },
+        { "frame": 144, "value": 1.042 }
+      ]
+    },
+    "layers": {
+      "title": {
+        "opacity": [ { "frame": 0, "value": 0 }, { "frame": 36, "value": 1, "easing": "..." } ],
+        "filter_blur": [ { "frame": 0, "value": 8 }, { "frame": 36, "value": 0, "easing": "..." } ]
+      }
+    }
+  }
+}
+```
+
+**Animatable properties:** `opacity`, `translateX`, `translateY`, `scale`, `rotate`, `filter_blur`, `filter_brightness`, `filter_contrast`, `filter_saturate`, `clip_inset_top`, `clip_inset_right`, `clip_inset_bottom`, `clip_inset_left`, `clip_circle`, `clip_circle_cx`, `clip_circle_cy`, `clip_ellipse`, `clip_ellipse_ry`, `clip_ellipse_cx`, `clip_ellipse_cy`, `clip_polygon`, `stroke_dashoffset`, `stroke_dasharray`, `fill_opacity`, `stroke_opacity`, `path_length`
+
+### MCP Tools
+
+- `compile_motion` — Compile v2 scene → Level 2 timeline
+- `validate_manifest` — Extended for v2 fields
+- `validate_choreography` — Extended for motion group validation

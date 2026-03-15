@@ -11,7 +11,7 @@
  */
 
 import { validateScene } from '../../src/remotion/lib.js';
-import { loadBriefTemplates, loadStylePacks, loadPersonalitiesCatalog } from '../data/loader.js';
+import { loadBriefTemplates, loadStylePacks, loadPersonalitiesCatalog, loadRecipes } from '../data/loader.js';
 import { isLLMAvailable, enhanceScenePlan, enrichSceneContent } from './llm.js';
 
 // ── Load catalog data at module level ────────────────────────────────────────
@@ -21,6 +21,7 @@ const stylePacksCatalog = loadStylePacks(
   personalitiesCatalog.array.map(p => p.slug)
 );
 const briefTemplatesCatalog = loadBriefTemplates();
+const recipesCatalog = loadRecipes();
 
 // ── Constants & Maps ─────────────────────────────────────────────────────────
 
@@ -786,6 +787,79 @@ export function generateScene(planEntry, index, brief) {
   return scene;
 }
 
+/**
+ * Attach a v2 motion block to a generated scene.
+ *
+ * Selects a recipe from the catalog based on content_type and personality,
+ * maps layer IDs to recipe target roles, and emits motion groups with
+ * stagger and camera sync.
+ *
+ * @param {object} scene - Generated scene (mutated in place)
+ * @param {string} personality - Personality slug
+ */
+export function attachMotionBlock(scene, personality) {
+  const layers = scene.layers || [];
+  if (layers.length === 0) return;
+
+  // Classify layers into roles
+  const heroLayers = layers.filter(l => l.depth_class === 'foreground' || l.type === 'text');
+  const supportingLayers = layers.filter(l => l.depth_class === 'midground' || (l.type !== 'text' && l.depth_class !== 'background' && l.depth_class !== 'foreground'));
+  const bgLayers = layers.filter(l => l.depth_class === 'background');
+
+  // Find a recipe for this personality
+  const personalityRecipes = recipesCatalog.array.filter(r => r.personality === personality);
+  if (personalityRecipes.length === 0) return;
+
+  // Select recipe based on content type
+  const contentType = scene.metadata?.content_type;
+  let recipe;
+  if (contentType === 'typography' || contentType === 'brand_mark') {
+    recipe = personalityRecipes.find(r => r.id.includes('reveal') || r.id.includes('focus'));
+  } else if (contentType === 'data_visualization') {
+    recipe = personalityRecipes.find(r => r.id.includes('stat') || r.id.includes('stagger'));
+  } else {
+    recipe = personalityRecipes.find(r => r.id.includes('stagger') || r.id.includes('entrance'));
+  }
+  recipe = recipe || personalityRecipes[0];
+
+  // Build motion groups
+  const groups = [];
+
+  if (heroLayers.length > 0) {
+    const heroGroup = recipe.groups.find(g => g.role === 'hero') || recipe.groups[0];
+    groups.push({
+      id: 'hero',
+      targets: heroLayers.map(l => l.id),
+      primitive: heroGroup.primitive,
+      on_complete: { emit: 'hero_done' },
+    });
+  }
+
+  if (supportingLayers.length > 0) {
+    const supportGroup = recipe.groups.find(g => g.role === 'supporting' || g.role === '*');
+    const primitive = supportGroup?.primitive || recipe.groups[0].primitive;
+    const stagger = supportGroup?.stagger || { interval_ms: 120, order: 'sequential' };
+
+    groups.push({
+      id: 'supporting',
+      targets: supportingLayers.map(l => l.id),
+      primitive,
+      stagger,
+      delay: heroLayers.length > 0 ? { after: 'hero_done', offset_ms: 200 } : undefined,
+    });
+  }
+
+  if (groups.length === 0) return;
+
+  scene.format_version = 2;
+  scene.motion = {
+    groups,
+    camera: recipe.default_camera
+      ? { ...recipe.default_camera, sync: recipe.camera_sync || undefined }
+      : scene.camera,
+  };
+}
+
 function makeSceneId(label, index) {
   const sanitized = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
   const padded = String(index).padStart(2, '0');
@@ -1115,6 +1189,13 @@ export async function generateScenes(brief, options = {}) {
     const { enriched, notes: enrichNotes } = await enrichSceneContent(scenes, style);
     scenes = enriched;
     llmNotes.push(...enrichNotes);
+  }
+
+  // Stage 8: Attach v2 motion blocks (recipe-based choreography)
+  const stylePack = stylePacksCatalog.byName.get(style);
+  const personality = stylePack?.personality || 'editorial';
+  for (const scene of scenes) {
+    attachMotionBlock(scene, personality);
   }
 
   // Self-validate each scene

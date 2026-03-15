@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="montageBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#montageBg)"/>
+  <!-- Diagonal energy lines -->
+  <line x1="0" y1="0" x2="1920" y2="1080" stroke="#f43f5e" stroke-opacity="0.06" stroke-width="2"/>
+  <line x1="200" y1="0" x2="1920" y2="860" stroke="#f43f5e" stroke-opacity="0.04" stroke-width="1.5"/>
+  <line x1="400" y1="0" x2="1920" y2="640" stroke="#f43f5e" stroke-opacity="0.03" stroke-width="1"/>
+  <line x1="0" y1="200" x2="1720" y2="1080" stroke="#6366f1" stroke-opacity="0.05" stroke-width="1.5"/>
+  <line x1="0" y1="400" x2="1520" y2="1080" stroke="#6366f1" stroke-opacity="0.03" stroke-width="1"/>
+  <!-- Corner accent -->
+  <polygon points="0,0 120,0 0,120" fill="#f43f5e" opacity="0.05"/>
+  <polygon points="1920,1080 1800,1080 1920,960" fill="#6366f1" opacity="0.05"/>
+</svg>

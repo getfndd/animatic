@@ -28,6 +28,8 @@ import {
   loadCameraGuardrails,
   loadStylePacks,
   loadBriefTemplates,
+  loadRecipes,
+  loadBenchmarks,
   parseRegistry,
   parseBreakdownIndex,
   readBreakdown,
@@ -43,6 +45,9 @@ import { validateFullManifest } from './lib/guardrails.js';
 import { generateScenes } from './lib/generator.js';
 import { detectBeats, computeEnergyCurve, decodeWav } from './lib/beats.js';
 import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality } from './lib/personality.js';
+import { compileMotion } from './lib/compiler.js';
+import { critiqueTimeline } from './lib/critic.js';
+import { runBenchmarks, QUALITY_THRESHOLD } from './lib/benchmark.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -57,6 +62,7 @@ const stylePacksCatalog = loadStylePacks(
   personalitiesCatalog.array.map(p => p.slug)
 );
 const briefTemplatesCatalog = loadBriefTemplates();
+const recipesCatalog = loadRecipes();
 const registry = parseRegistry();
 const breakdownIndex = parseBreakdownIndex();
 
@@ -617,6 +623,54 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {},
       },
     },
+    {
+      name: 'compile_motion',
+      description:
+        'Compile a v2 scene with a motion block (Level 1 Motion Intent) into a frame-addressed Level 2 Motion Timeline. The timeline contains per-layer keyframe tracks and camera tracks consumable by the Remotion renderer. Use this after authoring a v2 scene with motion groups, recipes, stagger, and cues.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scene: {
+            type: 'object',
+            description: 'A v2 scene definition with a `motion` block containing groups, recipes, stagger directives, cues, and camera sync.',
+          },
+          personality: {
+            type: 'string',
+            enum: getAllPersonalitySlugs(),
+            description: 'Personality for guardrail validation (optional, uses scene.personality if not provided)',
+          },
+        },
+        required: ['scene'],
+      },
+    },
+    {
+      name: 'critique_motion',
+      description:
+        'Analyze a compiled Level 2 motion timeline for quality issues: dead holds, flat motion, missing hierarchy, repetitive easing, orphan layers, camera-motion mismatch, and excessive simultaneity. Returns a 0-100 quality score with actionable revision suggestions. Use after compile_motion to validate motion choreography.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          timeline: {
+            type: 'object',
+            description: 'A compiled Level 2 motion timeline (output of compile_motion) with scene_id, duration_frames, fps, and tracks.',
+          },
+          scene: {
+            type: 'object',
+            description: 'The original scene definition with layers array. Used to detect orphan layers and hierarchy.',
+          },
+        },
+        required: ['timeline', 'scene'],
+      },
+    },
+    {
+      name: 'run_benchmarks',
+      description:
+        'Run the benchmark suite of gold-standard scenes. Compiles each benchmark through the motion compiler, runs the critic, and returns per-scene scores and aggregate stats. No parameters required.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+    },
   ],
 }));
 
@@ -668,6 +722,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleCreatePersonality(args);
     case 'list_personalities':
       return handleListPersonalities(args);
+    case 'compile_motion':
+      return handleCompileMotion(args);
+    case 'critique_motion':
+      return handleCritiqueMotion(args);
+    case 'run_benchmarks':
+      return handleRunBenchmarks(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -2268,6 +2328,170 @@ function handleListPersonalities() {
   }
 
   return { content: [{ type: 'text', text: out }] };
+}
+
+// ── compile_motion ──────────────────────────────────────────────────────────
+
+function handleCompileMotion(args) {
+  const { scene, personality } = args;
+
+  if (!scene) {
+    return {
+      content: [{ type: 'text', text: '**Error:** scene is required' }],
+      isError: true,
+    };
+  }
+
+  if (!scene.motion) {
+    return {
+      content: [{
+        type: 'text',
+        text: '**Note:** Scene has no `motion` block — this is a v1 scene. No compilation needed; the renderer uses the existing camera/entrance path.',
+      }],
+    };
+  }
+
+  try {
+    const catalogs = { recipes: recipesCatalog };
+    const timeline = compileMotion(scene, catalogs, {
+      personality: personality || scene.personality,
+    });
+
+    const layerCount = Object.keys(timeline.tracks.layers).length;
+    const cameraProps = Object.keys(timeline.tracks.camera);
+    let trackCount = 0;
+    for (const tracks of Object.values(timeline.tracks.layers)) {
+      trackCount += Object.keys(tracks).length;
+    }
+
+    let summary = `## Compiled Motion Timeline\n\n`;
+    summary += `- **Scene:** ${timeline.scene_id}\n`;
+    summary += `- **Duration:** ${timeline.duration_frames} frames (${(timeline.duration_frames / timeline.fps).toFixed(1)}s @ ${timeline.fps}fps)\n`;
+    summary += `- **Layers:** ${layerCount} with ${trackCount} property tracks\n`;
+    summary += `- **Camera:** ${cameraProps.length > 0 ? cameraProps.join(', ') : 'none'}\n`;
+
+    summary += `\n### Layer tracks\n`;
+    for (const [layerId, tracks] of Object.entries(timeline.tracks.layers)) {
+      const props = Object.keys(tracks);
+      const kfCount = props.reduce((sum, p) => sum + tracks[p].length, 0);
+      summary += `- **${layerId}:** ${props.join(', ')} (${kfCount} keyframes)\n`;
+    }
+
+    summary += `\n### Full timeline JSON\n\n\`\`\`json\n${JSON.stringify(timeline, null, 2)}\n\`\`\``;
+
+    return { content: [{ type: 'text', text: summary }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `**Compilation Error:** ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+// ── critique_motion ─────────────────────────────────────────────────────────
+
+function handleCritiqueMotion(args) {
+  const { timeline, scene } = args;
+
+  if (!timeline) {
+    return {
+      content: [{ type: 'text', text: '**Error:** timeline is required' }],
+      isError: true,
+    };
+  }
+
+  if (!scene) {
+    return {
+      content: [{ type: 'text', text: '**Error:** scene is required' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const result = critiqueTimeline(timeline, scene);
+
+    let output = `## Motion Critique\n\n`;
+    output += `- **Score:** ${result.score}/100\n`;
+    output += `- **Summary:** ${result.summary}\n`;
+
+    if (result.issues.length > 0) {
+      output += `\n### Issues\n\n`;
+      for (const issue of result.issues) {
+        const icon = issue.severity === 'error' ? '!!!' : issue.severity === 'warning' ? '!!' : '!';
+        output += `- **[${icon} ${issue.severity.toUpperCase()}]** \`${issue.rule}\``;
+        if (issue.layer) output += ` on \`${issue.layer}\``;
+        output += `\n  ${issue.message}\n`;
+        if (issue.suggestion) {
+          output += `  *Suggestion:* ${issue.suggestion}\n`;
+        }
+      }
+    }
+
+    output += `\n### Full critique JSON\n\n\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\``;
+
+    return { content: [{ type: 'text', text: output }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `**Critique Error:** ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+// ── run_benchmarks ──────────────────────────────────────────────────────────
+
+function handleRunBenchmarks() {
+  try {
+    const scenes = loadBenchmarks();
+
+    if (scenes.length === 0) {
+      return {
+        content: [{ type: 'text', text: '**Warning:** No benchmark scenes found in catalog/benchmarks/' }],
+      };
+    }
+
+    const catalogs = { recipes: recipesCatalog };
+    const report = runBenchmarks(scenes, catalogs);
+
+    let output = `## Benchmark Report\n\n`;
+    output += `- **Scenes:** ${report.scenes.length}\n`;
+    output += `- **Passed:** ${report.aggregate.passCount} / ${report.scenes.length}\n`;
+    output += `- **Avg Score:** ${report.aggregate.avgScore}\n`;
+    output += `- **Min / Max:** ${report.aggregate.minScore} / ${report.aggregate.maxScore}\n`;
+    output += `- **Threshold:** ${QUALITY_THRESHOLD}\n`;
+
+    output += `\n### Per-Scene Results\n\n`;
+    for (const scene of report.scenes) {
+      const icon = scene.pass ? 'PASS' : 'FAIL';
+      output += `#### [${icon}] ${scene.scene_id} (${scene.personality})\n`;
+      output += `- **Score:** ${scene.score}/100\n`;
+
+      if (scene.compileError) {
+        output += `- **Compile Error:** ${scene.compileError}\n`;
+      }
+
+      if (scene.orphanLayers.length > 0) {
+        output += `- **Orphan Layers:** ${scene.orphanLayers.join(', ')}\n`;
+      }
+
+      if (scene.issues.length > 0) {
+        output += `- **Issues:** ${scene.issues.length}\n`;
+        for (const issue of scene.issues) {
+          output += `  - [${issue.severity}] \`${issue.rule}\`: ${issue.message}\n`;
+        }
+      }
+      output += `\n`;
+    }
+
+    output += `\n### Full report JSON\n\n\`\`\`json\n${JSON.stringify(report, null, 2)}\n\`\`\``;
+
+    return { content: [{ type: 'text', text: output }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `**Benchmark Error:** ${err.message}` }],
+      isError: true,
+    };
+  }
 }
 
 async function main() {

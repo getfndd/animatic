@@ -23,20 +23,23 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | [notion-onboarding-flow](notion-onboarding-flow.md) | Notion Web Onboarding — Multi-Phase Progressive Disclosure | motion-study | neutral-light | strong | onboarding, form, card, selection, checklist, tutorial, sidebar, stagger, transition, light-mode |
 | [vercel-onboarding-flow](vercel-onboarding-flow.md) | Vercel Web Onboarding — Centered Minimal Flow | motion-study | neutral-light | strong | onboarding, form, verification, button-stack, radio-card, loading, input, stagger, transition, light-mode |
 | [nume-ai-chat-dashboard](nume-ai-chat-dashboard.md) | Nume.ai — Chat-to-Dashboard Progressive Build | video | editorial | exemplary | chat, ai, dashboard, typewriter, progressive-reveal, split-pane, report, stagger, count-up, suggestion-chips, streaming, product-demo, conversation |
+| [liquid-metaball-merge](liquid-metaball-merge.md) | Liquid Metaball Merge — Gooey Color Blob Chain | gif | cinematic-dark | exemplary | metaball, liquid, gooey, svg-filter, blob, color, continuous, ambient, generative, brand |
+| [grainy-organic-blob](grainy-organic-blob.md) | Grainy Organic Blob — Stippled Morphing Mass | gif | cinematic-dark | exemplary | blob, grain, noise, morph, organic, texture, ambient, continuous, generative, brand, stipple |
+| [concentric-depth-pulse](concentric-depth-pulse.md) | Concentric Depth Pulse — Layered Ring Breathing | gif | universal | strong | concentric, rings, pulse, breathing, depth, scale, ambient, continuous, brand, minimal, tunnel |
 
 ---
 
 ## By Personality
 
-**Cinematic Dark:** dot-grid-ripple, kinetic-type-scale-cascade, linear-homepage, arc-wave-cascade, flow-field-vortex, kinetic-bars-scatter, icon-document-morph
+**Cinematic Dark:** dot-grid-ripple, kinetic-type-scale-cascade, linear-homepage, arc-wave-cascade, flow-field-vortex, kinetic-bars-scatter, icon-document-morph, liquid-metaball-merge, grainy-organic-blob
 **Editorial:** 3d-card-cascade, text-image-reveal, nume-ai-chat-dashboard
 **Neutral Light:** nl-dot-grid-breathing, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow
-**Universal:** sparse-dot-breathing
+**Universal:** sparse-dot-breathing, concentric-depth-pulse
 
 ## By Quality Tier
 
-**Exemplary:** dot-grid-ripple, linear-homepage, text-image-reveal, nl-dot-grid-breathing, linear-onboarding-wizard, nume-ai-chat-dashboard
-**Strong:** kinetic-type-scale-cascade, 3d-card-cascade, sparse-dot-breathing, arc-wave-cascade, flow-field-vortex, kinetic-bars-scatter, icon-document-morph, notion-onboarding-flow, vercel-onboarding-flow
+**Exemplary:** dot-grid-ripple, linear-homepage, text-image-reveal, nl-dot-grid-breathing, linear-onboarding-wizard, nume-ai-chat-dashboard, liquid-metaball-merge, grainy-organic-blob
+**Strong:** kinetic-type-scale-cascade, 3d-card-cascade, sparse-dot-breathing, arc-wave-cascade, flow-field-vortex, kinetic-bars-scatter, icon-document-morph, notion-onboarding-flow, vercel-onboarding-flow, concentric-depth-pulse
 **Interesting:** *(none yet)*
 
 ## By Tag
@@ -48,20 +51,20 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | typography | kinetic-type-scale-cascade, text-image-reveal |
 | spring | linear-homepage |
 | 3d | 3d-card-cascade |
-| ambient | dot-grid-ripple, sparse-dot-breathing, flow-field-vortex, nl-dot-grid-breathing |
+| ambient | dot-grid-ripple, sparse-dot-breathing, flow-field-vortex, nl-dot-grid-breathing, liquid-metaball-merge, grainy-organic-blob, concentric-depth-pulse |
 | cascade | kinetic-type-scale-cascade, 3d-card-cascade, arc-wave-cascade |
 | reveal | 3d-card-cascade, arc-wave-cascade, text-image-reveal |
-| continuous | dot-grid-ripple, flow-field-vortex |
+| continuous | dot-grid-ripple, flow-field-vortex, liquid-metaball-merge, grainy-organic-blob, concentric-depth-pulse |
 | arc | arc-wave-cascade |
 | wave | dot-grid-ripple, arc-wave-cascade |
 | background | sparse-dot-breathing, flow-field-vortex, nl-dot-grid-breathing |
 | flow-field | flow-field-vortex |
-| generative | flow-field-vortex |
+| generative | flow-field-vortex, liquid-metaball-merge, grainy-organic-blob |
 | bars | kinetic-bars-scatter |
 | scatter | kinetic-bars-scatter, icon-document-morph |
 | rhythm | kinetic-bars-scatter |
 | transition | kinetic-bars-scatter, icon-document-morph, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow, nume-ai-chat-dashboard |
-| morph | icon-document-morph |
+| morph | icon-document-morph, grainy-organic-blob |
 | icon | icon-document-morph |
 | document | icon-document-morph |
 | reconverge | icon-document-morph |
@@ -70,9 +73,9 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | loop | icon-document-morph |
 | image | text-image-reveal |
 | hero | text-image-reveal |
-| breathing | sparse-dot-breathing, nl-dot-grid-breathing |
+| breathing | sparse-dot-breathing, nl-dot-grid-breathing, concentric-depth-pulse |
 | light-mode | nl-dot-grid-breathing, linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
-| minimal | nl-dot-grid-breathing, vercel-onboarding-flow |
+| minimal | nl-dot-grid-breathing, vercel-onboarding-flow, concentric-depth-pulse |
 | onboarding | linear-onboarding-wizard, notion-onboarding-flow, vercel-onboarding-flow |
 | wizard | linear-onboarding-wizard |
 | step-indicator | linear-onboarding-wizard |
@@ -101,6 +104,24 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | streaming | nume-ai-chat-dashboard |
 | product-demo | linear-homepage, nume-ai-chat-dashboard |
 | conversation | nume-ai-chat-dashboard |
+| metaball | liquid-metaball-merge |
+| liquid | liquid-metaball-merge |
+| gooey | liquid-metaball-merge |
+| svg-filter | liquid-metaball-merge |
+| blob | liquid-metaball-merge, grainy-organic-blob |
+| color | liquid-metaball-merge |
+| brand | liquid-metaball-merge, grainy-organic-blob, concentric-depth-pulse |
+| grain | grainy-organic-blob |
+| noise | grainy-organic-blob |
+| organic | grainy-organic-blob |
+| texture | grainy-organic-blob |
+| stipple | grainy-organic-blob |
+| concentric | concentric-depth-pulse |
+| rings | concentric-depth-pulse |
+| pulse | concentric-depth-pulse |
+| depth | concentric-depth-pulse |
+| scale | kinetic-type-scale-cascade, concentric-depth-pulse |
+| tunnel | concentric-depth-pulse |
 
 ---
 

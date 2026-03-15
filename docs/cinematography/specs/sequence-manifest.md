@@ -396,6 +396,53 @@ Total: 31.5s - 1.5s transitions = 30.0s (close to reference 31.4s — within tol
 
 The background track plays across the full sequence. Per-scene audio clips are scoped to their scene's `<Sequence>` and play independently.
 
+## Direction Block (v2)
+
+When the planner generates a sequence from v2 scenes with motion blocks, it emits a top-level `direction` block that describes sequence-level choreography intent. This guides the compiler's energy shaping and camera progression across the full sequence.
+
+**Detection:** Present only when scenes contain motion blocks.
+
+### Schema
+
+```json
+{
+  "direction": {
+    "energy_arc": {
+      "shape": "build_peak_resolve",
+      "peak_scene": 2,
+      "intensity_curve": [0.4, 0.7, 1.0, 0.6, 0.3]
+    },
+    "camera_arc": {
+      "progression": ["push_in", "push_in", "drift", "pull_out", "static"],
+      "intensity_follows_energy": true
+    }
+  }
+}
+```
+
+### `energy_arc`
+
+Describes how energy builds and releases across the sequence.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `shape` | `string` | Arc shape: `build_peak_resolve`, `sustained_high`, `slow_build`, `bookend` |
+| `peak_scene` | `integer` | 0-based index of the highest-energy scene |
+| `intensity_curve` | `number[]` | Per-scene intensity multiplier (0.0–1.0), one entry per scene |
+
+### `camera_arc`
+
+Describes how camera movement progresses across the sequence.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `progression` | `string[]` | Per-scene camera move type, one entry per scene |
+| `intensity_follows_energy` | `boolean` | When `true`, camera intensity scales with `intensity_curve` |
+
+### Interaction with Motion Blocks
+
+The direction block is informational for the planner and evaluator — it does not directly drive rendering. The compiler uses per-scene `motion.camera` blocks for frame-accurate camera tracks. The evaluator scores how well the compiled output matches the direction's intent (energy arc shape, camera progression coherence).
+
 ## Design Decisions
 
 1. **Scene references, not inline scenes.** The manifest references scenes by ID. Scene definitions live in separate files. This allows the same scene to appear in multiple sequences and keeps manifests lightweight.

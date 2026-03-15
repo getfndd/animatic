@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --surface-0: oklch(12% 0.02 260);
+    --surface-1: oklch(16% 0.02 260);
+    --surface-2: oklch(20% 0.015 260);
+    --text-primary: oklch(95% 0.01 260);
+    --text-secondary: oklch(60% 0.01 260);
+    --text-tertiary: oklch(45% 0.01 260);
+    --accent: oklch(65% 0.18 145);
+    --accent-dim: oklch(45% 0.10 145);
+    --border: oklch(25% 0.01 260);
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: transparent;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .frame {
+    width: 100%;
+    height: 100%;
+    background: var(--surface-1);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow:
+      0 0 0 1px oklch(15% 0.01 260),
+      0 40px 100px -20px oklch(5% 0.02 260 / 80%);
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .breadcrumb {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+  }
+
+  .breadcrumb strong {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-pill {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: oklch(65% 0.18 145 / 10%);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .avatar-stack {
+    display: flex;
+  }
+
+  .avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--surface-1);
+    margin-left: -6px;
+  }
+
+  .avatar:first-child { margin-left: 0; background: oklch(55% 0.12 30); }
+  .avatar:nth-child(2) { background: oklch(55% 0.12 200); }
+  .avatar:nth-child(3) { background: oklch(55% 0.12 300); }
+
+  /* Content area */
+  .content {
+    flex: 1;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    align-content: start;
+  }
+
+  .metric {
+    padding: 14px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    border: 1px solid oklch(25% 0.005 260);
+  }
+
+  .metric-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+  }
+
+  .metric-value {
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .metric-delta {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-top: 6px;
+  }
+
+  /* Chart row */
+  .chart-row {
+    grid-column: span 3;
+    padding: 16px 20px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    border: 1px solid oklch(25% 0.005 260);
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+  }
+
+  .chart-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .chart-period {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+  }
+
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 64px;
+  }
+
+  .bar {
+    flex: 1;
+    background: var(--accent-dim);
+    border-radius: 3px 3px 0 0;
+    min-height: 4px;
+  }
+
+  .bar:nth-child(7n+1) { height: 35%; }
+  .bar:nth-child(7n+2) { height: 52%; }
+  .bar:nth-child(7n+3) { height: 44%; }
+  .bar:nth-child(7n+4) { height: 68%; }
+  .bar:nth-child(7n+5) { height: 90%; background: var(--accent); }
+  .bar:nth-child(7n+6) { height: 75%; }
+  .bar:nth-child(7n+7) { height: 58%; }
+
+  /* List row */
+  .list-row {
+    grid-column: span 3;
+    padding: 4px 0;
+  }
+
+  .list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 8px;
+  }
+
+  .list-item:hover {
+    background: var(--surface-2);
+  }
+
+  .list-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .list-indicator {
+    width: 3px;
+    height: 20px;
+    border-radius: 2px;
+    background: var(--accent-dim);
+  }
+
+  .list-item:first-child .list-indicator {
+    background: var(--accent);
+  }
+
+  .list-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .list-meta {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  .list-value {
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <span class="breadcrumb">Dashboard / <strong>Overview</strong></span>
+      </div>
+      <div class="toolbar-right">
+        <span class="status-pill">Live</span>
+        <div class="avatar-stack">
+          <div class="avatar"></div>
+          <div class="avatar"></div>
+          <div class="avatar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="metric">
+        <div class="metric-label">Revenue</div>
+        <div class="metric-value">$2.4M</div>
+        <div class="metric-delta">+18.2% vs last month</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Active Users</div>
+        <div class="metric-value">48,291</div>
+        <div class="metric-delta">+2,340 this week</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Conversion</div>
+        <div class="metric-value">3.8%</div>
+        <div class="metric-delta">+0.4pp vs target</div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-header">
+          <span class="chart-title">Weekly activity</span>
+          <span class="chart-period">Last 28 days</span>
+        </div>
+        <div class="bars">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+      </div>
+
+      <div class="list-row">
+        <div class="list-item">
+          <div class="list-left">
+            <div class="list-indicator"></div>
+            <span class="list-name">Enterprise onboarding</span>
+            <span class="list-meta">12 steps remaining</span>
+          </div>
+          <span class="list-value">67%</span>
+        </div>
+        <div class="list-item">
+          <div class="list-left">
+            <div class="list-indicator"></div>
+            <span class="list-name">Q1 pipeline review</span>
+            <span class="list-meta">Due Mar 20</span>
+          </div>
+          <span class="list-value">$840K</span>
+        </div>
+        <div class="list-item">
+          <div class="list-left">
+            <div class="list-indicator"></div>
+            <span class="list-name">API integration audit</span>
+            <span class="list-meta">3 endpoints flagged</span>
+          </div>
+          <span class="list-value">Review</span>
+        </div>
+        <div class="list-item">
+          <div class="list-left">
+            <div class="list-indicator"></div>
+            <span class="list-name">Retention cohort analysis</span>
+            <span class="list-meta">Week 4 drop-off</span>
+          </div>
+          <span class="list-value">In progress</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

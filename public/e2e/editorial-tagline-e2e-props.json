@@ -1,0 +1,127 @@
+{
+  "scene": {
+    "scene_id": "bench_ed_tagline",
+    "duration_s": 4,
+    "fps": 60,
+    "format_version": 2,
+    "personality": "editorial",
+    "background": "#d4a43a",
+    "layers": [
+      {
+        "id": "bg",
+        "type": "html",
+        "depth_class": "background",
+        "content": "<div style=\"width:100%;height:100%;background:linear-gradient(180deg, oklch(90% 0.10 82) 0%, oklch(82% 0.14 75) 50%, oklch(78% 0.16 70) 100%)\"></div>"
+      },
+      {
+        "id": "tagline",
+        "type": "text",
+        "depth_class": "foreground",
+        "content": "Book more meetings, without all the grind",
+        "animation": "word-reveal",
+        "style": {
+          "fontFamily": "system-ui, -apple-system, sans-serif",
+          "fontSize": 52,
+          "fontWeight": 500,
+          "color": "oklch(20% 0.02 70)",
+          "textAlign": "center",
+          "letterSpacing": "-0.02em",
+          "lineHeight": 1.2
+        },
+        "position": {
+          "x": 360,
+          "y": 370,
+          "w": 1200,
+          "h": 140
+        }
+      }
+    ],
+    "motion": {
+      "groups": [
+        {
+          "id": "bg-entrance",
+          "targets": [
+            "bg"
+          ],
+          "primitive": "fade-in"
+        },
+        {
+          "id": "tagline-entrance",
+          "targets": [
+            "tagline"
+          ],
+          "primitive": "fade-in",
+          "delay": {
+            "after": "scene_start",
+            "offset_ms": 400
+          },
+          "_resolvedDelayFrame": 24
+        }
+      ],
+      "camera": {
+        "moves": [
+          {
+            "move": "static",
+            "intensity": 0,
+            "from": 0,
+            "to": 0.3
+          },
+          {
+            "move": "push_in",
+            "intensity": 0.06,
+            "from": 0.3,
+            "to": 1
+          }
+        ]
+      }
+    }
+  },
+  "timeline": {
+    "scene_id": "bench_ed_tagline",
+    "duration_frames": 240,
+    "fps": 60,
+    "tracks": {
+      "camera": {
+        "scale": [
+          {
+            "frame": 72,
+            "value": 1
+          },
+          {
+            "frame": 240,
+            "value": 1.006,
+            "easing": "cubic-bezier(0.33,0,0.2,1)"
+          }
+        ]
+      },
+      "layers": {
+        "bg": {
+          "opacity": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 24,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        },
+        "tagline": {
+          "opacity": [
+            {
+              "frame": 24,
+              "value": 0
+            },
+            {
+              "frame": 48,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

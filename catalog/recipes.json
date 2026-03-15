@@ -1,0 +1,280 @@
+[
+  {
+    "id": "cd-focus-reveal",
+    "name": "Cinematic Focus Reveal",
+    "personality": "cinematic-dark",
+    "description": "Hero element emerges through blur with spring settle, supporting elements follow with descending stagger",
+    "groups": [
+      {
+        "role": "hero",
+        "primitive": "cd-focus-stagger",
+        "stagger": null
+      },
+      {
+        "role": "supporting",
+        "primitive": "cd-focus-stagger",
+        "delay_after_hero_ms": 200,
+        "stagger": {
+          "interval_ms": 180,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.6 }
+        }
+      }
+    ],
+    "camera_sync": { "peak_at": 0.5, "cue": "hero_done" },
+    "default_camera": { "move": "push_in", "intensity": 0.35 }
+  },
+  {
+    "id": "cd-parallax-entrance",
+    "name": "Cinematic Parallax Entrance",
+    "personality": "cinematic-dark",
+    "description": "Depth-staggered entrance where background layers arrive first, foreground last",
+    "groups": [
+      {
+        "role": "background",
+        "primitive": "fade-in",
+        "stagger": null
+      },
+      {
+        "role": "supporting",
+        "primitive": "cd-focus-stagger",
+        "delay_after_hero_ms": 300,
+        "stagger": {
+          "interval_ms": 150,
+          "order": "sequential",
+          "amplitude": { "curve": "uniform", "start": 1.0, "end": 1.0 }
+        }
+      },
+      {
+        "role": "hero",
+        "primitive": "cd-focus-stagger",
+        "delay_after_hero_ms": 500
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "drift", "intensity": 0.2 }
+  },
+  {
+    "id": "cd-spring-stagger",
+    "name": "Cinematic Spring Stagger",
+    "personality": "cinematic-dark",
+    "description": "All elements enter with spring physics, staggered from center outward",
+    "groups": [
+      {
+        "role": "*",
+        "primitive": "cd-focus-stagger",
+        "stagger": {
+          "interval_ms": 120,
+          "order": "center_out",
+          "amplitude": { "curve": "wave", "start": 1.0, "end": 1.0 },
+          "settle": { "easing": "spring", "duration_ms": 600 }
+        }
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "push_in", "intensity": 0.25 }
+  },
+  {
+    "id": "ed-blur-reveal",
+    "name": "Editorial Blur Reveal",
+    "personality": "editorial",
+    "description": "Clean blur-to-sharp reveal for hero content, supporting fades in after",
+    "groups": [
+      {
+        "role": "hero",
+        "primitive": "ed-blur-reveal",
+        "stagger": null
+      },
+      {
+        "role": "supporting",
+        "primitive": "ed-slide-stagger",
+        "delay_after_hero_ms": 200,
+        "stagger": {
+          "interval_ms": 120,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.7 }
+        }
+      }
+    ],
+    "camera_sync": { "peak_at": 0.6, "cue": "hero_done" },
+    "default_camera": { "move": "push_in", "intensity": 0.2 }
+  },
+  {
+    "id": "ed-slide-stagger",
+    "name": "Editorial Slide Stagger",
+    "personality": "editorial",
+    "description": "Sequential slide-up entrance for card grids and lists",
+    "groups": [
+      {
+        "role": "*",
+        "primitive": "ed-slide-stagger",
+        "stagger": {
+          "interval_ms": 120,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.6 }
+        }
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "static" }
+  },
+  {
+    "id": "ed-feature-reveal",
+    "name": "Editorial Feature Reveal",
+    "personality": "editorial",
+    "description": "Headline reveals with blur, supporting cards slide in, camera pushes to peak",
+    "groups": [
+      {
+        "role": "hero",
+        "primitive": "ed-blur-reveal",
+        "stagger": null,
+        "on_complete_cue": "headline_done"
+      },
+      {
+        "role": "supporting",
+        "primitive": "ed-slide-stagger",
+        "delay_after_cue": "headline_done",
+        "delay_offset_ms": 200,
+        "stagger": {
+          "interval_ms": 120,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.6 }
+        }
+      }
+    ],
+    "camera_sync": { "peak_at": 0.6, "cue": "headline_done" },
+    "default_camera": { "move": "push_in", "intensity": 0.3 }
+  },
+  {
+    "id": "nl-step-focus",
+    "name": "Neutral Step Focus",
+    "personality": "neutral-light",
+    "description": "Tutorial-style sequential reveal with spotlight-like attention",
+    "groups": [
+      {
+        "role": "hero",
+        "primitive": "nl-slide-stagger",
+        "stagger": null
+      },
+      {
+        "role": "supporting",
+        "primitive": "nl-slide-stagger",
+        "delay_after_hero_ms": 300,
+        "stagger": {
+          "interval_ms": 200,
+          "order": "sequential",
+          "amplitude": { "curve": "uniform", "start": 1.0, "end": 1.0 }
+        }
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "static" }
+  },
+  {
+    "id": "nl-slide-stagger",
+    "name": "Neutral Slide Stagger",
+    "personality": "neutral-light",
+    "description": "Gentle slide-up stagger for onboarding content",
+    "groups": [
+      {
+        "role": "*",
+        "primitive": "nl-slide-stagger",
+        "stagger": {
+          "interval_ms": 150,
+          "order": "sequential",
+          "amplitude": { "curve": "uniform", "start": 1.0, "end": 1.0 }
+        }
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "static" }
+  },
+  {
+    "id": "nl-fade-sequence",
+    "name": "Neutral Fade Sequence",
+    "personality": "neutral-light",
+    "description": "Simple sequential fade-in for minimal content",
+    "groups": [
+      {
+        "role": "*",
+        "primitive": "fade-in",
+        "stagger": {
+          "interval_ms": 200,
+          "order": "sequential",
+          "amplitude": { "curve": "uniform", "start": 1.0, "end": 1.0 }
+        }
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "static" }
+  },
+  {
+    "id": "mo-scale-entrance",
+    "name": "Montage Scale Entrance",
+    "personality": "montage",
+    "description": "Punchy scale-in for hero elements in sizzle reels",
+    "groups": [
+      {
+        "role": "hero",
+        "primitive": "mo-scale-entrance",
+        "stagger": null
+      },
+      {
+        "role": "supporting",
+        "primitive": "mo-scale-entrance",
+        "delay_after_hero_ms": 100,
+        "stagger": {
+          "interval_ms": 80,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.7 }
+        }
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "static" }
+  },
+  {
+    "id": "mo-whip-stagger",
+    "name": "Montage Whip Stagger",
+    "personality": "montage",
+    "description": "Fast stagger entrance for high-energy stat cards and data points",
+    "groups": [
+      {
+        "role": "*",
+        "primitive": "mo-stat-reveal",
+        "stagger": {
+          "interval_ms": 60,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.5 }
+        }
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "static" }
+  },
+  {
+    "id": "mo-stat-reveal",
+    "name": "Montage Stat Reveal",
+    "personality": "montage",
+    "description": "Dramatic stat/number reveal with overshoot bounce",
+    "groups": [
+      {
+        "role": "hero",
+        "primitive": "mo-text-hero",
+        "stagger": null
+      },
+      {
+        "role": "supporting",
+        "primitive": "mo-stat-reveal",
+        "delay_after_hero_ms": 150,
+        "stagger": {
+          "interval_ms": 100,
+          "order": "sequential",
+          "amplitude": { "curve": "ascending", "start": 0.6, "end": 1.0 }
+        }
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "static" }
+  }
+]

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="600" height="400">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="productGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#fff" stop-opacity="0.12"/>
+      <stop offset="60%" stop-color="#fff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="60" width="400" height="280" rx="24" fill="url(#productGrad)" filter="url(#glow)"/>
+  <rect x="100" y="60" width="400" height="280" rx="24" fill="url(#shine)"/>
+  <rect x="140" y="120" width="320" height="8" rx="4" fill="#fff" opacity="0.3"/>
+  <rect x="140" y="148" width="240" height="8" rx="4" fill="#fff" opacity="0.2"/>
+  <rect x="140" y="176" width="280" height="8" rx="4" fill="#fff" opacity="0.15"/>
+  <circle cx="300" cy="260" r="24" fill="#fff" opacity="0.15"/>
+</svg>

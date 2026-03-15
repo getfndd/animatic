@@ -1,0 +1,12 @@
+{
+  "sequence_id": "seq_benchmark_showcase",
+  "resolution": { "w": 1920, "h": 1080 },
+  "fps": 60,
+  "style": "dramatic",
+  "scenes": [
+    { "scene": "bench_cinematic_dark_hero", "duration_s": 5.0 },
+    { "scene": "bench_editorial_feature", "duration_s": 4.5, "transition_in": { "type": "crossfade", "duration_ms": 600 } },
+    { "scene": "bench_neutral_light_tutorial", "duration_s": 4.0, "transition_in": { "type": "crossfade", "duration_ms": 400 } },
+    { "scene": "bench_montage_sizzle", "duration_s": 3.5, "transition_in": { "type": "whip_left", "duration_ms": 250 } }
+  ]
+}

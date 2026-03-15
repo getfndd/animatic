@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: transparent;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: oklch(98% 0.005 75 / 92%);
+    padding: 28px 48px;
+    border-radius: 20px;
+    box-shadow:
+      0 2px 8px oklch(40% 0.05 70 / 10%),
+      0 0 0 1px oklch(90% 0.02 75 / 40%);
+  }
+  .icon {
+    width: 36px;
+    height: 36px;
+    color: oklch(35% 0.02 70);
+  }
+  .stat-text {
+    font-size: 32px;
+    font-weight: 500;
+    color: oklch(25% 0.02 70);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+  <div class="pill">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+    <span class="stat-text">569 emails sent</span>
+  </div>
+</body>
+</html>

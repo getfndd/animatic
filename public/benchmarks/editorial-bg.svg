@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="editBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fafafa"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#editBg)"/>
+  <line x1="160" y1="0" x2="160" y2="1080" stroke="#e5e5e5" stroke-width="0.5"/>
+  <line x1="960" y1="0" x2="960" y2="1080" stroke="#e5e5e5" stroke-width="0.5"/>
+  <line x1="1760" y1="0" x2="1760" y2="1080" stroke="#e5e5e5" stroke-width="0.5"/>
+  <line x1="0" y1="540" x2="1920" y2="540" stroke="#e5e5e5" stroke-width="0.5"/>
+</svg>

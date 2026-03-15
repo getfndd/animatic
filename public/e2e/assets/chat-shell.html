@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: transparent;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    width: 100%;
+    height: 100%;
+    background: oklch(98% 0.008 75 / 82%);
+    border-radius: 24px;
+    border: 1px solid oklch(92% 0.01 70 / 60%);
+    box-shadow:
+      0 0 0 1px oklch(100% 0 0 / 10%),
+      0 20px 60px -10px oklch(40% 0.05 70 / 20%),
+      0 40px 100px -20px oklch(40% 0.05 70 / 10%);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 36px 36px 0;
+    gap: 8px;
+  }
+  .logo {
+    font-size: 36px;
+    color: oklch(25% 0.02 70);
+    font-weight: 300;
+    line-height: 1;
+  }
+  .greeting {
+    font-size: 20px;
+    font-weight: 400;
+    color: oklch(45% 0.02 70);
+    letter-spacing: -0.01em;
+  }
+  .input-bar {
+    margin: 0 20px 20px;
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid oklch(85% 0.01 70);
+    border-radius: 14px;
+    padding: 12px 14px 12px 18px;
+    gap: 10px;
+  }
+  .input-text {
+    flex: 1;
+    font-size: 14px;
+    color: oklch(55% 0.015 70);
+  }
+  .input-btn {
+    width: 32px;
+    height: 32px;
+    background: oklch(25% 0.02 70);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .input-btn-arrow {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="center">
+      <div class="logo">✳</div>
+      <div class="greeting">How can I assist you?</div>
+    </div>
+    <div class="input-bar">
+      <span class="input-text"></span>
+      <div class="input-btn">
+        <span class="input-btn-arrow">↑</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

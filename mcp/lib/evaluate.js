@@ -11,6 +11,7 @@
  */
 
 import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar } from '../data/loader.js';
+import { critiqueTimeline } from './critic.js';
 
 // ── Load catalog data at module level ────────────────────────────────────────
 
@@ -760,6 +761,165 @@ export function scoreAdherence(manifestScenes, sceneMap, style) {
   return { score: Math.max(0, Math.min(100, score)), findings };
 }
 
+// ── Motion richness scorer ───────────────────────────────────────────────────
+
+/**
+ * Score motion richness: how effectively v2 motion blocks are used.
+ * Four equally-weighted sub-scores (25% each):
+ *   - Recipe usage: scenes use named recipes vs bare primitives
+ *   - Stagger variety: diverse stagger orders and amplitude curves
+ *   - Cue synchronization: groups use cue-based delays and camera sync
+ *   - Effect layering: per-layer effects (blur, brightness, clip, etc.)
+ *
+ * Returns { score: 0, findings: [] } for v1 scenes (no motion blocks).
+ */
+export function scoreMotionRichness(sceneMap, timelineMap) {
+  const findings = [];
+  const scenes = [...sceneMap.values()];
+  const v2Scenes = scenes.filter(s => s.format_version === 2 || s.motion);
+
+  if (v2Scenes.length === 0) {
+    return { score: 0, findings };
+  }
+
+  // Sub-score 1: Recipe usage (25%)
+  let recipesUsed = 0;
+  let totalGroups = 0;
+  for (const scene of v2Scenes) {
+    const groups = scene.motion?.groups || [];
+    totalGroups += groups.length;
+    for (const group of groups) {
+      if (group.recipe) recipesUsed++;
+    }
+  }
+  // Also check scene-level recipe
+  for (const scene of v2Scenes) {
+    if (scene.motion?.recipe) {
+      recipesUsed++;
+      totalGroups++;
+    }
+  }
+  const recipeScore = totalGroups > 0
+    ? Math.round((recipesUsed / totalGroups) * 100)
+    : 50;
+
+  if (totalGroups > 0 && recipesUsed === 0) {
+    findings.push({
+      severity: 'info',
+      dimension: 'motion',
+      message: 'No recipes used — consider named recipes for consistent choreography',
+    });
+  }
+
+  // Sub-score 2: Stagger variety (25%)
+  const staggerOrders = new Set();
+  const amplitudeCurves = new Set();
+  let staggerCount = 0;
+  for (const scene of v2Scenes) {
+    const groups = scene.motion?.groups || [];
+    for (const group of groups) {
+      if (group.stagger) {
+        staggerCount++;
+        if (group.stagger.order) staggerOrders.add(group.stagger.order);
+        if (group.stagger.amplitude?.curve) amplitudeCurves.add(group.stagger.amplitude.curve);
+      }
+    }
+  }
+  let staggerScore = 50; // baseline
+  if (staggerCount > 0) {
+    // Reward variety in stagger orders
+    staggerScore = Math.min(100, 40 + staggerOrders.size * 15 + amplitudeCurves.size * 10);
+  }
+  if (v2Scenes.length >= 3 && staggerCount === 0) {
+    staggerScore = 30;
+    findings.push({
+      severity: 'info',
+      dimension: 'motion',
+      message: 'No stagger directives — consider staggered entrances for visual rhythm',
+    });
+  }
+
+  // Sub-score 3: Cue synchronization (25%)
+  let cueEmitters = 0;
+  let cueConsumers = 0;
+  let cameraSyncs = 0;
+  for (const scene of v2Scenes) {
+    const groups = scene.motion?.groups || [];
+    for (const group of groups) {
+      if (group.on_complete?.emit) cueEmitters++;
+      if (group.delay?.after && typeof group.delay.after === 'string') cueConsumers++;
+    }
+    const cam = scene.motion?.camera;
+    if (cam?.sync?.cue) cameraSyncs++;
+  }
+  let cueScore = 50; // baseline
+  if (cueEmitters > 0 && cueConsumers > 0) {
+    cueScore = 80;
+    if (cameraSyncs > 0) cueScore = 100;
+  } else if (cueEmitters > 0 || cueConsumers > 0) {
+    cueScore = 65;
+  }
+  if (v2Scenes.length >= 3 && cueEmitters === 0) {
+    findings.push({
+      severity: 'info',
+      dimension: 'motion',
+      message: 'No cue synchronization — groups animate independently without coordination',
+    });
+  }
+
+  // Sub-score 4: Effect layering (25%)
+  let effectCount = 0;
+  const effectTypes = new Set();
+  for (const scene of v2Scenes) {
+    const groups = scene.motion?.groups || [];
+    for (const group of groups) {
+      if (group.effects && Array.isArray(group.effects)) {
+        effectCount += group.effects.length;
+        for (const fx of group.effects) {
+          if (fx.type) effectTypes.add(fx.type);
+        }
+      }
+    }
+  }
+  let effectScore = 50; // baseline — effects are optional
+  if (effectCount > 0) {
+    effectScore = Math.min(100, 50 + effectTypes.size * 15);
+  }
+
+  let baseScore = Math.round((recipeScore + staggerScore + cueScore + effectScore) / 4);
+
+  // Optional critic integration: if compiled timelines are available,
+  // run the motion critic and blend its score + findings
+  if (timelineMap && timelineMap.size > 0) {
+    let criticScoreSum = 0;
+    let criticCount = 0;
+    for (const scene of v2Scenes) {
+      const sceneId = scene.scene_id || scene.id;
+      const timeline = timelineMap.get(sceneId);
+      if (timeline) {
+        const critique = critiqueTimeline(timeline, scene);
+        criticScoreSum += critique.score;
+        criticCount++;
+        for (const issue of critique.issues) {
+          findings.push({
+            severity: issue.severity,
+            dimension: 'motion',
+            message: `[critic:${issue.rule}] ${issue.message}`,
+            suggestion: issue.suggestion,
+          });
+        }
+      }
+    }
+    if (criticCount > 0) {
+      const avgCriticScore = Math.round(criticScoreSum / criticCount);
+      // Blend: 70% structural richness + 30% critic quality
+      baseScore = Math.round(baseScore * 0.7 + avgCriticScore * 0.3);
+    }
+  }
+
+  return { score: Math.max(0, Math.min(100, baseScore)), findings };
+}
+
 // ── Orchestrator ─────────────────────────────────────────────────────────────
 
 /**
@@ -795,12 +955,20 @@ export function evaluateSequence({ manifest, scenes, style }) {
   const variety = scoreVariety(manifestScenes, sceneMap);
   const flow = scoreFlow(manifestScenes, sceneMap, style);
   const adherence = scoreAdherence(manifestScenes, sceneMap, style);
+  const motion = scoreMotionRichness(sceneMap);
+
+  // Motion richness is a bonus dimension — doesn't penalize v1 scenes
+  const hasMotion = motion.score > 0;
+  const weights = hasMotion
+    ? { pacing: 0.2, variety: 0.2, flow: 0.2, adherence: 0.2, motion: 0.2 }
+    : DIMENSION_WEIGHTS;
 
   const overall = Math.round(
-    pacing.score * DIMENSION_WEIGHTS.pacing +
-    variety.score * DIMENSION_WEIGHTS.variety +
-    flow.score * DIMENSION_WEIGHTS.flow +
-    adherence.score * DIMENSION_WEIGHTS.adherence
+    pacing.score * weights.pacing +
+    variety.score * weights.variety +
+    flow.score * weights.flow +
+    adherence.score * weights.adherence +
+    (hasMotion ? motion.score * weights.motion : 0)
   );
 
   // Merge all findings
@@ -809,16 +977,23 @@ export function evaluateSequence({ manifest, scenes, style }) {
     ...variety.findings,
     ...flow.findings,
     ...adherence.findings,
+    ...motion.findings,
   ];
+
+  const dimensions = {
+    pacing: { score: pacing.score, findings: pacing.findings },
+    variety: { score: variety.score, findings: variety.findings },
+    flow: { score: flow.score, findings: flow.findings },
+    adherence: { score: adherence.score, findings: adherence.findings },
+  };
+
+  if (hasMotion) {
+    dimensions.motion = { score: motion.score, findings: motion.findings };
+  }
 
   return {
     score: overall,
-    dimensions: {
-      pacing: { score: pacing.score, findings: pacing.findings },
-      variety: { score: variety.score, findings: variety.findings },
-      flow: { score: flow.score, findings: flow.findings },
-      adherence: { score: adherence.score, findings: adherence.findings },
-    },
+    dimensions,
     findings: allFindings,
   };
 }

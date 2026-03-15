@@ -1,0 +1,49 @@
+{
+  "scene_id": "bench_ed_photo",
+  "duration_s": 5,
+  "fps": 60,
+  "format_version": 2,
+  "personality": "editorial",
+  "background": "#8a6530",
+  "layers": [
+    {
+      "id": "photo",
+      "type": "html",
+      "depth_class": "background",
+      "src": "e2e/assets/meeting-photo.html"
+    },
+    {
+      "id": "notification",
+      "type": "html",
+      "depth_class": "foreground",
+      "src": "e2e/assets/meeting-notification.html",
+      "position": { "x": 460, "y": 420, "w": 560, "h": 80 }
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "id": "photo-entrance",
+        "targets": ["photo"],
+        "primitive": "fade-in",
+        "effects": [
+          { "type": "scale", "from": 1.05, "to": 1.0, "duration_ms": 5000, "easing": "ease_out" }
+        ]
+      },
+      {
+        "id": "notif-entrance",
+        "targets": ["notification"],
+        "primitive": "fade-in",
+        "delay": { "after": "scene_start", "offset_ms": 1200 },
+        "effects": [
+          { "type": "scale", "from": 0.9, "to": 1.0, "duration_ms": 600, "easing": "ease_out" }
+        ]
+      }
+    ],
+    "camera": {
+      "moves": [
+        { "move": "push_in", "intensity": 0.08, "from": 0, "to": 1.0 }
+      ]
+    }
+  }
+}

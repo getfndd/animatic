@@ -175,6 +175,44 @@ suggests where it's going next. Common patterns:
 - Content sweeps **left** = "filed away" or "done"
 - Content **scales down** = "receding" or "closing"
 
+## Spatial Causality
+
+**The principle:** Element B appears *because* element A's animation reached it — not
+because a timer happened to fire. Motion flows through space with visible cause and effect.
+
+### Timer Sequence vs. Causality Chain
+
+```
+Timer sequence (independent delays):
+  0ms   → A appears    No visual connection between
+  400ms → B appears    elements. Feels mechanical.
+  800ms → C appears
+
+Causality chain (spatial triggers):
+  A's stroke reaches corner → B reveals from that corner
+  B's edge reaches C       → C begins drawing
+  Result: Each motion causes the next. Feels organic.
+```
+
+### When Causality Matters
+
+| Context | Causality Needed? | Why |
+|---------|-------------------|-----|
+| **Illustration animation** | Always | The whole point — shapes relate spatially |
+| **Product-ui stagger reveals** | Sometimes | Stagger items within a phase can use spatial flow (e.g., items reveal from the direction of a preceding action) |
+| **Phase transitions** | Rarely | Phase crossfades are temporal, not spatial |
+| **Ambient effects** | Never | Background particles, glows, etc. are decorative |
+
+### Building a Causality Graph
+
+1. **Identify root(s)** — what starts the sequence (largest element, outer boundary, or focal point)
+2. **Map adjacency** — which elements are spatially near each other
+3. **Define triggers** — "A's animation reaching point X triggers B"
+4. **Choose chain type** — `animationend` for strict sequence, timed causality (75% overlap) for flow
+5. **Verify** — every non-root element has exactly one spatial cause
+
+See `svg-illustration-techniques.md` for full implementation patterns and code.
+
 ## Speed Hierarchy
 
 Create rhythm by varying speeds across elements:

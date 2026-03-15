@@ -41,7 +41,7 @@ fi
 
 # 3. Check remote sync status
 echo -n "Checking remote sync... "
-git fetch --quiet origin 2>/dev/null || true
+timeout 5 git fetch --quiet origin 2>/dev/null || true
 LOCAL=$(git rev-parse HEAD 2>/dev/null)
 REMOTE=$(git rev-parse @{u} 2>/dev/null || echo "")
 if [ -z "$REMOTE" ]; then

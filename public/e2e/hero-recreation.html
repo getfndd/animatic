@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>Hero Recreation</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Background ── */
+  .bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+      oklch(94% 0.06 82) 0%,
+      oklch(86% 0.12 78) 50%,
+      oklch(80% 0.16 72) 100%
+    );
+    transition: background 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .bg.vivid {
+    background: linear-gradient(180deg,
+      oklch(90% 0.18 90) 0%,
+      oklch(88% 0.24 88) 30%,
+      oklch(86% 0.28 85) 60%,
+      oklch(84% 0.30 82) 100%
+    );
+  }
+  .bg.photo-bg {
+    background: oklch(30% 0.04 55);
+  }
+  .bg.end-bg {
+    background: linear-gradient(180deg,
+      oklch(94% 0.06 82) 0%,
+      oklch(86% 0.12 78) 50%,
+      oklch(80% 0.16 72) 100%
+    );
+  }
+
+  /* ── Camera wrapper ── */
+  .camera {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 45%;
+    will-change: transform;
+  }
+
+  /* ── Scene containers ── */
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: opacity;
+  }
+  .scene.active { opacity: 1; }
+
+  /* ══════════════════════════════════════════
+     SCENE 1: Chat
+     ══════════════════════════════════════════ */
+  .chat-card {
+    width: 860px;
+    background: oklch(96% 0.015 78 / 85%);
+    border-radius: 28px;
+    border: 1px solid oklch(100% 0 0 / 25%);
+    box-shadow:
+      0 8px 40px oklch(50% 0.08 70 / 12%),
+      0 2px 8px oklch(50% 0.05 70 / 8%);
+    padding: 48px 52px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transition: background 0.6s ease, box-shadow 0.6s ease;
+    overflow: hidden;
+    min-height: 360px;
+  }
+  .chat-card.conversation {
+    background: oklch(100% 0 0 / 92%);
+    box-shadow:
+      0 12px 60px oklch(50% 0.08 70 / 18%),
+      0 2px 8px oklch(50% 0.05 70 / 10%);
+  }
+
+  .chat-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .chat-logo {
+    font-size: 36px;
+    color: oklch(35% 0.03 70);
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  .chat-greeting {
+    font-size: 26px;
+    font-weight: 400;
+    color: oklch(35% 0.02 70);
+    letter-spacing: -0.01em;
+    min-height: 36px;
+  }
+
+  .chat-input-bar {
+    display: flex;
+    align-items: center;
+    background: oklch(100% 0 0 / 80%);
+    border: 1px solid oklch(80% 0.02 75 / 60%);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-top: auto;
+    gap: 12px;
+  }
+  .chat-input-text {
+    flex: 1;
+    font-size: 20px;
+    font-weight: 400;
+    color: oklch(25% 0.02 70);
+    letter-spacing: -0.005em;
+    line-height: 1.4;
+    min-height: 28px;
+  }
+  .chat-input-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 24px;
+    background: oklch(35% 0.02 70);
+    vertical-align: text-bottom;
+    margin-left: 1px;
+  }
+  .chat-send-btn {
+    width: 40px;
+    height: 40px;
+    background: oklch(20% 0.01 70);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .chat-send-btn svg {
+    width: 18px;
+    height: 18px;
+    color: white;
+  }
+
+  /* Conversation elements */
+  .chat-conversation {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow: hidden;
+  }
+  .user-bubble {
+    align-self: flex-end;
+    background: oklch(95% 0.12 90 / 70%);
+    padding: 18px 24px;
+    border-radius: 20px 20px 4px 20px;
+    font-size: 22px;
+    font-weight: 400;
+    color: oklch(20% 0.02 70);
+    max-width: 70%;
+    line-height: 1.35;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .user-bubble.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .ai-response {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .ai-response.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .ai-response-lead {
+    font-size: 22px;
+    font-weight: 400;
+    color: oklch(20% 0.02 70);
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  .ai-response-lead .bold { font-weight: 600; }
+  .ai-detail-list {
+    border-left: 2px solid oklch(80% 0.03 75);
+    padding-left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 18px;
+  }
+  .ai-detail-item {
+    font-size: 17px;
+    color: oklch(45% 0.02 70);
+    line-height: 1.5;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .ai-detail-item.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .ai-spinner {
+    font-size: 20px;
+    color: oklch(45% 0.03 70);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    margin-top: 8px;
+  }
+  .ai-spinner.visible { opacity: 1; }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .ai-spinner span {
+    display: inline-block;
+    animation: spin-slow 2s linear infinite;
+  }
+
+  .cta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: oklch(98% 0.005 75);
+    border: 1px solid oklch(85% 0.03 75);
+    border-radius: 12px;
+    padding: 14px 22px;
+    font-size: 19px;
+    font-weight: 500;
+    color: oklch(20% 0.02 70);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    margin-top: 4px;
+  }
+  .cta-button.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .cta-button svg {
+    width: 20px;
+    height: 20px;
+    color: oklch(35% 0.02 70);
+  }
+
+  /* ══════════════════════════════════════════
+     SCENE 2: Stats
+     ══════════════════════════════════════════ */
+  .stats-scene {
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    align-items: center;
+  }
+  .stats-glow {
+    position: absolute;
+    width: 900px;
+    height: 700px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, oklch(92% 0.20 88 / 60%) 0%, oklch(88% 0.24 85 / 30%) 40%, transparent 70%);
+    filter: blur(40px);
+  }
+  .stats-arcs {
+    position: absolute;
+    width: 1200px;
+    height: 900px;
+  }
+  .stats-arc {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid oklch(86% 0.22 85 / 40%);
+    box-shadow: 0 0 30px oklch(86% 0.20 85 / 15%), inset 0 0 30px oklch(86% 0.20 85 / 10%);
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 1s ease, transform 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .stats-arc.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .stats-arc:nth-child(2) {
+    inset: 100px;
+    transition-delay: 0.2s;
+  }
+  .stats-arc:nth-child(3) {
+    inset: 200px;
+    transition-delay: 0.4s;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: oklch(98% 0.005 80 / 92%);
+    padding: 24px 44px;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px oklch(50% 0.08 70 / 12%);
+    z-index: 1;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .stat-pill.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  /* Calls pill — slightly left of center */
+  .stat-pill.pill-calls {
+    margin-right: 40px;
+  }
+  /* Emails pill — slightly right, golden-tinted bg */
+  .stat-pill.pill-emails {
+    margin-left: 40px;
+    background: oklch(92% 0.14 85 / 75%);
+    box-shadow: 0 4px 24px oklch(50% 0.08 70 / 8%);
+  }
+  .stat-pill svg {
+    width: 32px;
+    height: 32px;
+    color: oklch(35% 0.02 70);
+    flex-shrink: 0;
+  }
+  .stat-pill .stat-text {
+    font-size: 30px;
+    font-weight: 500;
+    color: oklch(25% 0.02 70);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ══════════════════════════════════════════
+     SCENE 3: Photo
+     ══════════════════════════════════════════ */
+  .photo-scene {
+    background: url('') center/cover;
+  }
+  .photo-placeholder {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 45%, oklch(55% 0.08 70 / 60%) 0%, transparent 55%),
+      radial-gradient(ellipse at 20% 60%, oklch(22% 0.04 50 / 85%) 0%, transparent 35%),
+      radial-gradient(ellipse at 82% 50%, oklch(28% 0.05 55 / 75%) 0%, transparent 30%),
+      linear-gradient(180deg, oklch(40% 0.07 65) 0%, oklch(28% 0.05 50) 100%);
+  }
+  .photo-notification {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: oklch(97% 0.004 75 / 90%);
+    backdrop-filter: blur(16px);
+    padding: 18px 32px;
+    border-radius: 14px;
+    box-shadow: 0 8px 40px oklch(15% 0.04 60 / 30%);
+    z-index: 1;
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .photo-notification.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  .photo-notification svg {
+    width: 26px;
+    height: 26px;
+    color: oklch(35% 0.02 70);
+    flex-shrink: 0;
+    transform-origin: 50% 4px;
+  }
+  .photo-notification.visible svg {
+    animation: bell-ring 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.3s 2;
+  }
+  @keyframes bell-ring {
+    0% { transform: rotate(0deg); }
+    15% { transform: rotate(14deg); }
+    30% { transform: rotate(-12deg); }
+    45% { transform: rotate(8deg); }
+    60% { transform: rotate(-6deg); }
+    75% { transform: rotate(3deg); }
+    100% { transform: rotate(0deg); }
+  }
+  .photo-notification .notif-text {
+    font-size: 22px;
+    font-weight: 500;
+    color: oklch(20% 0.02 70);
+    min-height: 28px;
+  }
+
+  /* ══════════════════════════════════════════
+     SCENE 4: Tagline
+     ══════════════════════════════════════════ */
+  .tagline-text {
+    font-size: 48px;
+    font-weight: 400;
+    color: oklch(18% 0.02 70);
+    letter-spacing: -0.02em;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .tagline-word {
+    display: inline-block;
+    opacity: 0;
+    transform: scale(1.4);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .tagline-word.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* ══════════════════════════════════════════
+     TRANSITION: Flying paper plane
+     ══════════════════════════════════════════ */
+  .flying-plane {
+    position: fixed;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    will-change: transform, opacity;
+    transition: none;
+  }
+  .flying-plane svg {
+    color: oklch(30% 0.02 70);
+  }
+
+  /* Card morph state — shrinks to pill */
+  .chat-card.morphing {
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .chat-card.morphing .chat-header,
+  .chat-card.morphing .chat-conversation,
+  .chat-card.morphing #input-section {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  /* Layered shadow stack effect during morph */
+  .card-shadow-stack {
+    position: fixed;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .card-shadow-stack.visible { opacity: 1; }
+  .card-shadow-layer {
+    position: absolute;
+    background: oklch(98% 0.005 80 / 50%);
+    border-radius: 20px;
+  }
+
+  /* Concentric pulse behind morph pill */
+  .morph-pulse {
+    position: fixed;
+    z-index: 8;
+    pointer-events: none;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 900px;
+    height: 600px;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  .morph-pulse.visible { opacity: 1; }
+  .morph-pulse-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2.5px solid oklch(88% 0.22 85 / 30%);
+    box-shadow: 0 0 20px oklch(88% 0.20 85 / 10%);
+    transform: scale(0.5);
+    opacity: 0;
+    transition: transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.8s ease;
+  }
+  .morph-pulse-ring.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .morph-pulse-ring:nth-child(2) {
+    inset: 80px;
+    transition-delay: 0.15s;
+  }
+  .morph-pulse-ring:nth-child(3) {
+    inset: 160px;
+    transition-delay: 0.3s;
+  }
+
+  /* Email pill during morph — centered, with counter */
+  .morph-pill {
+    position: fixed;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: oklch(98% 0.005 80 / 94%);
+    padding: 28px 52px;
+    border-radius: 20px;
+    box-shadow:
+      0 4px 30px oklch(50% 0.08 70 / 15%),
+      0 20px 60px oklch(50% 0.08 70 / 8%);
+    opacity: 0;
+    will-change: transform, opacity;
+    transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  .morph-pill.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .morph-pill svg {
+    width: 36px;
+    height: 36px;
+    color: oklch(35% 0.02 70);
+    flex-shrink: 0;
+  }
+  .morph-pill .counter-text {
+    font-size: 34px;
+    font-weight: 500;
+    color: oklch(25% 0.02 70);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* ── Cursor blink ── */
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  .cursor-blink {
+    animation: blink 0.8s step-end infinite;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg" id="bg"></div>
+
+<div class="camera" id="camera">
+  <!-- SCENE 1: Chat -->
+  <div class="scene active" id="scene-chat">
+    <div class="chat-card" id="chat-card">
+      <div class="chat-header">
+        <div class="chat-logo">&#10035;</div>
+        <div class="chat-greeting" id="greeting"></div>
+      </div>
+
+      <div class="chat-conversation" id="conversation" style="display:none;">
+        <div class="user-bubble" id="user-bubble">Create a multi-channel campaign to reach fintech CTOs in the US</div>
+
+        <div class="ai-spinner" id="ai-spinner"><span>&#10035;</span></div>
+
+        <div class="ai-response" id="ai-response">
+          <div class="ai-response-lead" id="ai-response-text"></div>
+          <div class="ai-detail-list">
+            <div class="ai-detail-item" id="detail-0">1,259 verified contacts found</div>
+            <div class="ai-detail-item" id="detail-1">Personalized email + call sequence created</div>
+            <div class="ai-detail-item" id="detail-2">Cadence: 6 touchpoints over 10 days</div>
+          </div>
+        </div>
+
+        <div class="ai-spinner" id="ai-spinner-2"><span>&#10035;</span></div>
+
+        <div class="cta-button" id="cta-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          Start Outreach to CTOs in the US
+        </div>
+      </div>
+
+      <div id="input-section">
+        <div class="chat-input-bar">
+          <div class="chat-input-text" id="input-text"></div>
+          <div class="chat-send-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 2: Stats -->
+  <div class="scene stats-scene" id="scene-stats">
+    <div class="stats-glow"></div>
+    <div class="stats-arcs">
+      <div class="stats-arc" id="arc-0"></div>
+      <div class="stats-arc" id="arc-1"></div>
+      <div class="stats-arc" id="arc-2"></div>
+    </div>
+    <div class="stat-pill pill-calls" id="pill-calls">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+      </svg>
+      <span class="stat-text">319 calls dialed</span>
+    </div>
+    <div class="stat-pill pill-emails" id="pill-emails">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+      <span class="stat-text">569 emails sent</span>
+    </div>
+  </div>
+
+  <!-- SCENE 3: Photo -->
+  <div class="scene photo-scene" id="scene-photo">
+    <div class="photo-placeholder"></div>
+    <div class="photo-notification" id="notification">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span class="notif-text" id="notif-text"></span>
+    </div>
+  </div>
+
+  <!-- SCENE 4: Tagline -->
+  <div class="scene" id="scene-tagline">
+    <div class="tagline-text" id="tagline"><span class="tagline-word">Book</span> <span class="tagline-word">more</span> <span class="tagline-word">meetings,</span> <span class="tagline-word">without</span> <span class="tagline-word">all</span> <span class="tagline-word">the</span> <span class="tagline-word">grind</span></div>
+  </div>
+</div>
+
+<!-- Flying paper plane (positioned absolutely, outside camera) -->
+<div class="flying-plane" id="flying-plane">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  </svg>
+</div>
+
+<!-- Concentric pulse during morph -->
+<div class="morph-pulse" id="morph-pulse">
+  <div class="morph-pulse-ring" id="pulse-0"></div>
+  <div class="morph-pulse-ring" id="pulse-1"></div>
+  <div class="morph-pulse-ring" id="pulse-2"></div>
+</div>
+
+<!-- Morph pill (email counter during transition) -->
+<div class="morph-pill" id="morph-pill">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  </svg>
+  <span class="counter-text" id="email-counter">550 emails sent</span>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var EASE_OUT_QUART = function(t) { return 1 - Math.pow(1 - t, 4); };
+
+  // Timeline cues (ms)
+  var T = {
+    greetingStart: 400,
+    greetingDur: 800,
+    inputStart: 1800,
+    inputDur: 2800,
+    sendAt: 5200,
+    spinnerAt: 5600,
+    aiStartAt: 6400,
+    aiTextDur: 1200,
+    detail0At: 7800,
+    detail1At: 8100,
+    detail2At: 8400,
+    ctaAt: 9000,
+    // Transition: plane flight + morph
+    planeStartAt: 10200,
+    planeDur: 800,
+    chatFadeAt: 10400,
+    morphPillAt: 11000,
+    counterStart: 11200,
+    counterDur: 2000,
+    counterFrom: 540,
+    counterTo: 569,
+    bgVividAt: 10800,
+    // Stats scene (after morph settles)
+    statsIn: 12800,
+    callPillAt: 13400,
+    arcsAt: 13000,
+    statsDwell: 16000,
+    photoIn: 16600,
+    notifAt: 17600,
+    notifDur: 1000,
+    photoDwell: 20500,
+    taglineIn: 21000,
+    taglineTextAt: 21600,
+    end: 25000
+  };
+
+  // DOM refs
+  var greetingEl = document.getElementById('greeting');
+  var inputEl = document.getElementById('input-text');
+  var card = document.getElementById('chat-card');
+  var convo = document.getElementById('conversation');
+  var userBubble = document.getElementById('user-bubble');
+  var spinner = document.getElementById('ai-spinner');
+  var aiResponse = document.getElementById('ai-response');
+  var aiText = document.getElementById('ai-response-text');
+  var ctaBtn = document.getElementById('cta-btn');
+  var bg = document.getElementById('bg');
+  var cameraEl = document.getElementById('camera');
+
+  var sceneChat = document.getElementById('scene-chat');
+  var sceneStats = document.getElementById('scene-stats');
+  var scenePhoto = document.getElementById('scene-photo');
+  var sceneTagline = document.getElementById('scene-tagline');
+  var flyingPlane = document.getElementById('flying-plane');
+  var morphPill = document.getElementById('morph-pill');
+  var emailCounter = document.getElementById('email-counter');
+  var morphPulse = document.getElementById('morph-pulse');
+  var spinner2 = document.getElementById('ai-spinner-2');
+  var taglineWords = document.querySelectorAll('.tagline-word');
+
+  var greetingText = 'How can I assist you?';
+  var inputMsg = 'Create a multi-channel campaign to reach fintech CTOs in the US';
+  var aiFullText = "Got it. I've drafted a campaign targeting fintech CTOs in the US.";
+  var notifFullText = 'Congrats, you have 42 meetings booked';
+
+  var startTime = null;
+  var fired = {};
+
+  function makeCursor() {
+    var span = document.createElement('span');
+    span.className = 'chat-input-cursor cursor-blink';
+    return span;
+  }
+
+  function setTypewriterText(el, fullText, charCount, withCursor) {
+    el.textContent = fullText.slice(0, charCount);
+    if (withCursor) {
+      el.appendChild(makeCursor());
+    }
+  }
+
+  function setAIText(el, fullText, charCount) {
+    // Clear
+    while (el.firstChild) el.removeChild(el.firstChild);
+    var visible = fullText.slice(0, charCount);
+    var boldEnd = 7; // "Got it."
+    if (charCount <= boldEnd) {
+      var b = document.createElement('strong');
+      b.textContent = visible;
+      el.appendChild(b);
+    } else {
+      var b2 = document.createElement('strong');
+      b2.textContent = fullText.slice(0, boldEnd);
+      el.appendChild(b2);
+      el.appendChild(document.createTextNode(visible.slice(boldEnd)));
+    }
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * Math.min(1, Math.max(0, t)); }
+
+  function tick(timestamp) {
+    if (!startTime) startTime = timestamp;
+    var t = timestamp - startTime;
+
+    // Camera — slow push
+    var camP = Math.min(1, t / T.end);
+    var camScale = lerp(1.0, 1.06, EASE_OUT_QUART(camP));
+    cameraEl.style.transform = 'scale(' + camScale + ')';
+
+    // ── Scene 1: Chat ──
+
+    // Greeting typewriter
+    if (t >= T.greetingStart && t < T.greetingStart + T.greetingDur) {
+      var p = (t - T.greetingStart) / T.greetingDur;
+      var chars = Math.round(greetingText.length * EASE_OUT_QUART(p));
+      setTypewriterText(greetingEl, greetingText, chars, true);
+    } else if (t >= T.greetingStart + T.greetingDur && !fired.greetingDone) {
+      greetingEl.textContent = greetingText;
+      fired.greetingDone = true;
+    }
+
+    // Input typewriter
+    if (t >= T.inputStart && t < T.inputStart + T.inputDur) {
+      var p2 = (t - T.inputStart) / T.inputDur;
+      var chars2 = Math.round(inputMsg.length * p2);
+      setTypewriterText(inputEl, inputMsg, chars2, true);
+    } else if (t >= T.inputStart + T.inputDur && !fired.inputDone) {
+      setTypewriterText(inputEl, inputMsg, inputMsg.length, true);
+      fired.inputDone = true;
+    }
+
+    // Send message
+    if (t >= T.sendAt && !fired.send) {
+      card.classList.add('conversation');
+      convo.style.display = 'flex';
+      inputEl.textContent = '';
+      userBubble.classList.add('visible');
+      fired.send = true;
+    }
+
+    // Spinner
+    if (t >= T.spinnerAt && !fired.spinner) {
+      spinner.classList.add('visible');
+      fired.spinner = true;
+    }
+
+    // AI response streaming
+    if (t >= T.aiStartAt && !fired.aiStart) {
+      spinner.classList.remove('visible');
+      aiResponse.classList.add('visible');
+      fired.aiStart = true;
+    }
+    if (t >= T.aiStartAt && t < T.aiStartAt + T.aiTextDur) {
+      var p3 = (t - T.aiStartAt) / T.aiTextDur;
+      var chars3 = Math.round(aiFullText.length * p3);
+      setAIText(aiText, aiFullText, chars3);
+    } else if (t >= T.aiStartAt + T.aiTextDur && !fired.aiDone) {
+      setAIText(aiText, aiFullText, aiFullText.length);
+      fired.aiDone = true;
+    }
+
+    // Detail items stagger
+    if (t >= T.detail0At && !fired.d0) { document.getElementById('detail-0').classList.add('visible'); fired.d0 = true; }
+    if (t >= T.detail1At && !fired.d1) { document.getElementById('detail-1').classList.add('visible'); fired.d1 = true; }
+    if (t >= T.detail2At && !fired.d2) { document.getElementById('detail-2').classList.add('visible'); fired.d2 = true; }
+
+    // Second spinner (appears after details)
+    if (t >= T.detail2At + 300 && !fired.spinner2) {
+      spinner2.classList.add('visible');
+      fired.spinner2 = true;
+    }
+
+    // CTA (hides second spinner)
+    if (t >= T.ctaAt && !fired.cta) {
+      spinner2.classList.remove('visible');
+      ctaBtn.classList.add('visible');
+      fired.cta = true;
+    }
+
+    // ── Transition: Chat → Stats (plane flight + morph) ──
+
+    // Paper plane scales up and flies from CTA position to center
+    if (t >= T.planeStartAt && t < T.planeStartAt + T.planeDur) {
+      var pp = (t - T.planeStartAt) / T.planeDur;
+      var ep = EASE_OUT_QUART(pp);
+      // Start from CTA icon position (~400, 520 in card coords) → center of screen
+      var startX = 420, startY = 530;
+      var endX = 500, endY = 460;
+      var px = lerp(startX, endX, ep);
+      var py = lerp(startY, endY, ep);
+      var pScale = lerp(1, 3.5, ep);
+      flyingPlane.style.opacity = '1';
+      flyingPlane.style.left = px + 'px';
+      flyingPlane.style.top = py + 'px';
+      flyingPlane.style.width = (20 * pScale) + 'px';
+      flyingPlane.style.height = (20 * pScale) + 'px';
+    }
+
+    // Fade out chat content (card stays)
+    if (t >= T.chatFadeAt && !fired.chatFade) {
+      card.classList.add('morphing');
+      fired.chatFade = true;
+    }
+
+    // Hide flying plane, show morph pill + pulse rings
+    if (t >= T.morphPillAt && !fired.morphPill) {
+      flyingPlane.style.opacity = '0';
+      sceneChat.classList.remove('active');
+      morphPill.classList.add('visible');
+      morphPulse.classList.add('visible');
+      document.getElementById('pulse-0').classList.add('visible');
+      document.getElementById('pulse-1').classList.add('visible');
+      document.getElementById('pulse-2').classList.add('visible');
+      fired.morphPill = true;
+    }
+
+    // Background goes vivid during morph
+    if (t >= T.bgVividAt && !fired.bgVivid) {
+      bg.classList.add('vivid');
+      fired.bgVivid = true;
+    }
+
+    // Email counter ticks up
+    if (t >= T.counterStart && t < T.counterStart + T.counterDur) {
+      var cp = (t - T.counterStart) / T.counterDur;
+      var count = Math.round(lerp(T.counterFrom, T.counterTo, EASE_OUT_QUART(cp)));
+      emailCounter.textContent = count + ' emails sent';
+    } else if (t >= T.counterStart + T.counterDur && !fired.counterDone) {
+      emailCounter.textContent = '569 emails sent';
+      fired.counterDone = true;
+    }
+
+    // Stats scene enters (morph pill stays, calls pill enters)
+    if (t >= T.statsIn && !fired.statsIn) {
+      sceneStats.classList.add('active');
+      // Hide the morph pill + pulse since the stats scene has its own email pill
+      morphPill.style.opacity = '0';
+      morphPill.style.transition = 'opacity 0.4s ease';
+      morphPulse.style.opacity = '0';
+      morphPulse.style.transition = 'opacity 0.4s ease';
+      // Show the stats email pill immediately
+      document.getElementById('pill-emails').classList.add('visible');
+      fired.statsIn = true;
+    }
+
+    // Stats elements
+    if (t >= T.arcsAt && !fired.arcs) {
+      document.getElementById('arc-0').classList.add('visible');
+      document.getElementById('arc-1').classList.add('visible');
+      document.getElementById('arc-2').classList.add('visible');
+      fired.arcs = true;
+    }
+    if (t >= T.callPillAt && !fired.callPill) {
+      document.getElementById('pill-calls').classList.add('visible');
+      fired.callPill = true;
+    }
+
+    // Stats → Photo (overlap: photo fades in while stats fades out)
+    if (t >= T.statsDwell && !fired.statsOut) {
+      bg.classList.remove('vivid');
+      bg.classList.add('photo-bg');
+      scenePhoto.classList.add('active');
+      fired.statsOut = true;
+    }
+    if (t >= T.statsDwell + 600 && !fired.statsRemove) {
+      sceneStats.classList.remove('active');
+      fired.statsRemove = true;
+    }
+
+    // Photo notification typewriter
+    if (t >= T.notifAt && !fired.notifShow) {
+      document.getElementById('notification').classList.add('visible');
+      fired.notifShow = true;
+    }
+    var notifEl = document.getElementById('notif-text');
+    if (t >= T.notifAt && t < T.notifAt + T.notifDur) {
+      var p4 = (t - T.notifAt) / T.notifDur;
+      var chars4 = Math.round(notifFullText.length * EASE_OUT_QUART(p4));
+      notifEl.textContent = notifFullText.slice(0, chars4);
+    } else if (t >= T.notifAt + T.notifDur && !fired.notifDone) {
+      notifEl.textContent = notifFullText;
+      fired.notifDone = true;
+    }
+
+    // Photo → Tagline (overlap: tagline fades in while photo fades out)
+    if (t >= T.photoDwell && !fired.photoOut) {
+      bg.classList.remove('photo-bg');
+      bg.classList.add('end-bg');
+      sceneTagline.classList.add('active');
+      fired.photoOut = true;
+    }
+    if (t >= T.photoDwell + 600 && !fired.photoRemove) {
+      scenePhoto.classList.remove('active');
+      fired.photoRemove = true;
+    }
+    // Word-by-word tagline reveal (stagger 120ms per word)
+    if (t >= T.photoDwell + 800) {
+      var wordDelay = 120;
+      for (var w = 0; w < taglineWords.length; w++) {
+        var wordTime = T.photoDwell + 800 + (w * wordDelay);
+        if (t >= wordTime && !fired['word' + w]) {
+          taglineWords[w].classList.add('visible');
+          fired['word' + w] = true;
+        }
+      }
+    }
+
+    if (t < T.end) {
+      requestAnimationFrame(tick);
+    }
+  }
+
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

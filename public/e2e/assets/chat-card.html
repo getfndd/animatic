@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --text-primary: oklch(25% 0.02 70);
+    --text-secondary: oklch(45% 0.02 70);
+    --text-tertiary: oklch(55% 0.015 70);
+    --surface-card: oklch(98% 0.008 75 / 82%);
+    --surface-input: oklch(100% 0 0);
+    --border: oklch(85% 0.01 70);
+    --accent: oklch(88% 0.15 95);
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: transparent;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card {
+    width: 100%;
+    height: 100%;
+    background: var(--surface-card);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-radius: 24px;
+    border: 1px solid oklch(92% 0.01 70 / 60%);
+    box-shadow:
+      0 0 0 1px oklch(100% 0 0 / 10%),
+      0 20px 60px -10px oklch(40% 0.05 70 / 20%),
+      0 40px 100px -20px oklch(40% 0.05 70 / 10%);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Chat area */
+  .chat {
+    flex: 1;
+    padding: 32px 36px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Logo */
+  .logo {
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .logo-icon {
+    font-size: 36px;
+    color: var(--text-primary);
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .greeting {
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+
+  /* Messages */
+  .messages {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .msg-user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: var(--text-primary);
+    padding: 14px 18px;
+    border-radius: 18px 18px 4px 18px;
+    font-size: 15px;
+    line-height: 1.45;
+    max-width: 80%;
+    font-weight: 400;
+  }
+
+  .msg-ai {
+    align-self: flex-start;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .msg-ai-icon {
+    font-size: 16px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-weight: 300;
+  }
+
+  .msg-ai-content {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text-primary);
+  }
+
+  .msg-ai-content strong {
+    font-weight: 500;
+  }
+
+  .msg-ai-details {
+    margin-top: 8px;
+    padding-left: 12px;
+    border-left: 2px solid oklch(75% 0.02 70);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .msg-ai-details span {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Input bar */
+  .input-bar {
+    margin: 0 20px 20px;
+    display: flex;
+    align-items: center;
+    background: var(--surface-input);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px 12px 18px;
+    gap: 10px;
+  }
+
+  .input-text {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.01em;
+  }
+
+  .input-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--text-primary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .input-btn-arrow {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="chat">
+      <div class="logo">
+        <div class="logo-icon">✳</div>
+      </div>
+      <div class="greeting">How can I assist you?</div>
+
+      <div class="messages">
+        <div class="msg-user">
+          Create a multi-channel campaign to reach fintech CTOs in the US
+        </div>
+        <div class="msg-ai">
+          <div class="msg-ai-icon">✳</div>
+          <div class="msg-ai-content">
+            <strong>Got it.</strong> I've drafted a campaign targeting fintech CTOs in the US.
+            <div class="msg-ai-details">
+              <span>1,259 verified contacts found</span>
+              <span>Personalized email + call sequence created</span>
+              <span>Cadence: 6 touchpoints over 10 days</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <span class="input-text"></span>
+      <div class="input-btn">
+        <span class="input-btn-arrow">↑</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

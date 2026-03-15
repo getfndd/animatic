@@ -1,0 +1,48 @@
+{
+  "scene_id": "bench_neutral_light_tutorial",
+  "duration_s": 4,
+  "fps": 60,
+  "format_version": 2,
+  "personality": "neutral-light",
+  "assets": [
+    { "id": "tutorial-bg", "src": "public/benchmarks/tutorial-bg.svg", "type": "svg" },
+    { "id": "step-indicator", "src": "public/benchmarks/step-indicator.svg", "type": "svg" }
+  ],
+  "layers": [
+    { "id": "bg", "type": "image", "depth_class": "background", "src": "public/benchmarks/tutorial-bg.svg" },
+    { "id": "step-indicator", "type": "svg", "depth_class": "midground", "src": "public/benchmarks/step-indicator.svg" },
+    { "id": "content-area", "type": "html", "depth_class": "foreground", "content": "<div>Step content here</div>" },
+    { "id": "action-button", "type": "html", "depth_class": "foreground", "content": "<button>Next Step</button>" }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "id": "bg-entrance",
+        "targets": ["bg"],
+        "primitive": "fade-in"
+      },
+      {
+        "id": "step-reveal",
+        "targets": ["step-indicator"],
+        "primitive": "nl-slide-stagger",
+        "on_complete": { "emit": "step_shown" }
+      },
+      {
+        "id": "content-reveal",
+        "targets": ["content-area"],
+        "primitive": "nl-slide-stagger",
+        "delay": { "after": "step_shown", "offset_ms": 150 },
+        "on_complete": { "emit": "content_shown" }
+      },
+      {
+        "id": "button-reveal",
+        "targets": ["action-button"],
+        "primitive": "nl-slide-stagger",
+        "delay": { "after": "content_shown", "offset_ms": 200 }
+      }
+    ],
+    "camera": {
+      "move": "static"
+    }
+  }
+}

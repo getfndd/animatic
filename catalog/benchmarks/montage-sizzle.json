@@ -1,0 +1,50 @@
+{
+  "scene_id": "bench_montage_sizzle",
+  "duration_s": 3,
+  "fps": 60,
+  "format_version": 2,
+  "personality": "montage",
+  "assets": [
+    { "id": "montage-bg", "src": "public/benchmarks/montage-bg.svg", "type": "svg" },
+    { "id": "brand-mark", "src": "public/benchmarks/brand-mark.svg", "type": "svg" }
+  ],
+  "layers": [
+    { "id": "bg", "type": "image", "depth_class": "background", "src": "public/benchmarks/montage-bg.svg" },
+    { "id": "stat-0", "type": "text", "depth_class": "foreground", "content": "10x Faster" },
+    { "id": "stat-1", "type": "text", "depth_class": "foreground", "content": "99.9% Uptime" },
+    { "id": "stat-2", "type": "text", "depth_class": "foreground", "content": "50M+ Users" },
+    { "id": "brand-mark", "type": "svg", "depth_class": "foreground", "src": "public/benchmarks/brand-mark.svg" }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "id": "bg-entrance",
+        "targets": ["bg"],
+        "primitive": "fade-in"
+      },
+      {
+        "id": "stats-entrance",
+        "targets": ["stat-0", "stat-1", "stat-2"],
+        "primitive": "mo-stat-reveal",
+        "stagger": {
+          "interval_ms": 80,
+          "order": "sequential",
+          "amplitude": { "curve": "ascending", "start": 0.6, "end": 1.0 }
+        },
+        "on_complete": { "emit": "stats_done" }
+      },
+      {
+        "id": "brand-entrance",
+        "targets": ["brand-mark"],
+        "primitive": "mo-scale-entrance",
+        "delay": { "after": "stats_done", "offset_ms": 100 }
+      }
+    ],
+    "camera": {
+      "moves": [
+        { "move": "push_in", "from": 0, "to": 0.6, "intensity": 0.3 },
+        { "move": "drift", "from": 0.6, "to": 1.0, "intensity": 0.2 }
+      ]
+    }
+  }
+}

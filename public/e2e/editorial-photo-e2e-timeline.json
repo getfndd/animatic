@@ -1,0 +1,70 @@
+{
+  "scene_id": "bench_ed_photo",
+  "duration_frames": 300,
+  "fps": 60,
+  "tracks": {
+    "camera": {
+      "scale": [
+        {
+          "frame": 0,
+          "value": 1
+        },
+        {
+          "frame": 300,
+          "value": 1.008,
+          "easing": "cubic-bezier(0.33,0,0.2,1)"
+        }
+      ]
+    },
+    "layers": {
+      "photo": {
+        "opacity": [
+          {
+            "frame": 0,
+            "value": 0
+          },
+          {
+            "frame": 24,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "scale": [
+          {
+            "frame": 0,
+            "value": 1.05
+          },
+          {
+            "frame": 300,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      },
+      "notification": {
+        "opacity": [
+          {
+            "frame": 72,
+            "value": 0
+          },
+          {
+            "frame": 96,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "scale": [
+          {
+            "frame": 72,
+            "value": 0.9
+          },
+          {
+            "frame": 108,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      }
+    }
+  }
+}

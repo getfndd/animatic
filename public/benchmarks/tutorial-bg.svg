@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <rect width="1920" height="1080" fill="#f8f9fa"/>
+  <!-- Subtle grid -->
+  <defs>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#e2e8f0" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#grid)" opacity="0.6"/>
+  <!-- Subtle accent line -->
+  <line x1="0" y1="200" x2="1920" y2="200" stroke="#6366f1" stroke-opacity="0.06" stroke-width="1"/>
+</svg>

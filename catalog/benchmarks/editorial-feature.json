@@ -1,0 +1,55 @@
+{
+  "scene_id": "bench_editorial_feature",
+  "duration_s": 4,
+  "fps": 60,
+  "format_version": 2,
+  "personality": "editorial",
+  "assets": [
+    { "id": "editorial-bg", "src": "public/benchmarks/editorial-bg.svg", "type": "svg" },
+    { "id": "feature-img", "src": "public/benchmarks/feature-image.svg", "type": "svg" }
+  ],
+  "layers": [
+    { "id": "bg", "type": "image", "depth_class": "background", "src": "public/benchmarks/editorial-bg.svg" },
+    { "id": "feature-image", "type": "image", "depth_class": "midground", "src": "public/benchmarks/feature-image.svg" },
+    { "id": "title", "type": "text", "depth_class": "foreground", "content": "Reimagine Your Workflow" },
+    { "id": "card-0", "type": "html", "depth_class": "foreground", "content": "<div>Speed</div>" },
+    { "id": "card-1", "type": "html", "depth_class": "foreground", "content": "<div>Clarity</div>" },
+    { "id": "card-2", "type": "html", "depth_class": "foreground", "content": "<div>Control</div>" }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "id": "bg-entrance",
+        "targets": ["bg"],
+        "primitive": "fade-in"
+      },
+      {
+        "id": "feature-entrance",
+        "targets": ["feature-image"],
+        "primitive": "ed-slide-stagger",
+        "delay": { "after": "scene_start", "offset_ms": 200 }
+      },
+      {
+        "id": "title-entrance",
+        "targets": ["title"],
+        "primitive": "ed-slide-stagger",
+        "on_complete": { "emit": "title_done" }
+      },
+      {
+        "id": "cards-stagger",
+        "targets": ["card-0", "card-1", "card-2"],
+        "primitive": "ed-slide-stagger",
+        "delay": { "after": "title_done", "offset_ms": 200 },
+        "stagger": {
+          "interval_ms": 120,
+          "order": "center_out",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.6 }
+        }
+      }
+    ],
+    "camera": {
+      "move": "drift",
+      "intensity": 0.2
+    }
+  }
+}

@@ -8,8 +8,14 @@
 #   - Project docs: CLAUDE.md, README.md
 #   - Directories: src/, docs/, supabase/, etc.
 
-# Only check when tool_input contains "git commit"
-if ! echo "$TOOL_INPUT" 2>/dev/null | grep -q "git commit"; then
+# Read JSON input from stdin (must consume stdin or Claude Code hangs)
+INPUT=$(cat)
+
+# Extract command from JSON
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""')
+
+# Only check when command contains "git commit"
+if ! echo "$COMMAND" | grep -q "git commit"; then
     exit 0
 fi
 

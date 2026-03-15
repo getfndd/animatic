@@ -1,0 +1,330 @@
+{
+  "scene": {
+    "scene_id": "bench_ed_chat",
+    "duration_s": 8,
+    "fps": 60,
+    "format_version": 2,
+    "personality": "editorial",
+    "background": "#d4a43a",
+    "layers": [
+      {
+        "id": "bg",
+        "type": "html",
+        "depth_class": "background",
+        "content": "<div style=\"width:100%;height:100%;background:linear-gradient(180deg, oklch(88% 0.10 82) 0%, oklch(78% 0.16 72) 40%, oklch(72% 0.18 65) 100%)\"></div>"
+      },
+      {
+        "id": "card-shell",
+        "type": "html",
+        "depth_class": "midground",
+        "src": "e2e/assets/chat-shell.html",
+        "position": {
+          "x": 410,
+          "y": 160,
+          "w": 1100,
+          "h": 560
+        }
+      },
+      {
+        "id": "typed-input",
+        "type": "text",
+        "depth_class": "foreground",
+        "content": "Create a multi-channel campaign to reach fintech CTOs in the US",
+        "style": {
+          "fontFamily": "system-ui, -apple-system, sans-serif",
+          "fontSize": 14,
+          "fontWeight": 400,
+          "color": "oklch(55% 0.015 70)",
+          "textAlign": "left",
+          "letterSpacing": "0.01em",
+          "lineHeight": 1.4
+        },
+        "position": {
+          "x": 460,
+          "y": 620,
+          "w": 960,
+          "h": 40
+        }
+      },
+      {
+        "id": "user-msg",
+        "type": "html",
+        "depth_class": "foreground",
+        "src": "e2e/assets/chat-user-msg.html",
+        "position": {
+          "x": 880,
+          "y": 340,
+          "w": 580,
+          "h": 60
+        }
+      },
+      {
+        "id": "ai-response",
+        "type": "html",
+        "depth_class": "foreground",
+        "src": "e2e/assets/chat-ai-response.html",
+        "position": {
+          "x": 450,
+          "y": 415,
+          "w": 750,
+          "h": 170
+        }
+      }
+    ],
+    "motion": {
+      "groups": [
+        {
+          "id": "bg-entrance",
+          "targets": [
+            "bg"
+          ],
+          "primitive": "fade-in"
+        },
+        {
+          "id": "card-reveal",
+          "targets": [
+            "card-shell"
+          ],
+          "primitive": "ed-slide-stagger",
+          "on_complete": {
+            "emit": "card_ready"
+          },
+          "effects": [
+            {
+              "type": "scale",
+              "from": 0.96,
+              "to": 1,
+              "duration_ms": 1200,
+              "easing": "ease_out"
+            }
+          ]
+        },
+        {
+          "id": "typing",
+          "targets": [
+            "typed-input"
+          ],
+          "primitive": "fade-in",
+          "delay": {
+            "after": "card_ready",
+            "offset_ms": 400
+          },
+          "on_complete": {
+            "emit": "typing_done"
+          },
+          "effects": [
+            {
+              "type": "typewriter",
+              "from": 0,
+              "to": 64,
+              "duration_ms": 2000,
+              "easing": "linear"
+            },
+            {
+              "type": "clip_top",
+              "from": 0,
+              "to": 100,
+              "duration_ms": 150,
+              "delay_ms": 2100,
+              "easing": "ease_out"
+            }
+          ],
+          "_resolvedDelayFrame": 48
+        },
+        {
+          "id": "user-msg-entrance",
+          "targets": [
+            "user-msg"
+          ],
+          "primitive": "ed-slide-stagger",
+          "delay": {
+            "after": "typing_done",
+            "offset_ms": 300
+          },
+          "_resolvedDelayFrame": 90
+        },
+        {
+          "id": "ai-response-entrance",
+          "targets": [
+            "ai-response"
+          ],
+          "primitive": "fade-in",
+          "delay": {
+            "after": "typing_done",
+            "offset_ms": 800
+          },
+          "_resolvedDelayFrame": 120
+        }
+      ],
+      "camera": {
+        "moves": [
+          {
+            "move": "push_in",
+            "intensity": 0.15,
+            "from": 0,
+            "to": 0.5
+          },
+          {
+            "move": "drift",
+            "intensity": 0.05,
+            "from": 0.5,
+            "to": 1
+          }
+        ]
+      }
+    }
+  },
+  "timeline": {
+    "scene_id": "bench_ed_chat",
+    "duration_frames": 480,
+    "fps": 60,
+    "tracks": {
+      "camera": {
+        "scale": [
+          {
+            "frame": 0,
+            "value": 1
+          },
+          {
+            "frame": 240,
+            "value": 1.015,
+            "easing": "cubic-bezier(0.33,0,0.2,1)"
+          }
+        ],
+        "translateX": [
+          {
+            "frame": 240,
+            "value": 0
+          },
+          {
+            "frame": 480,
+            "value": 0.30000000000000004,
+            "easing": "cubic-bezier(0.33,0,0.2,1)"
+          }
+        ]
+      },
+      "layers": {
+        "bg": {
+          "opacity": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 24,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        },
+        "card-shell": {
+          "opacity": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 24,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ],
+          "translateY": [
+            {
+              "frame": 0,
+              "value": 10
+            },
+            {
+              "frame": 24,
+              "value": 0,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ],
+          "scale": [
+            {
+              "frame": 0,
+              "value": 0.96
+            },
+            {
+              "frame": 72,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        },
+        "typed-input": {
+          "opacity": [
+            {
+              "frame": 48,
+              "value": 0
+            },
+            {
+              "frame": 72,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ],
+          "text_chars": [
+            {
+              "frame": 48,
+              "value": 0
+            },
+            {
+              "frame": 168,
+              "value": 64,
+              "easing": "linear"
+            }
+          ],
+          "clip_inset_top": [
+            {
+              "frame": 174,
+              "value": 0
+            },
+            {
+              "frame": 183,
+              "value": 100,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        },
+        "user-msg": {
+          "opacity": [
+            {
+              "frame": 90,
+              "value": 0
+            },
+            {
+              "frame": 114,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ],
+          "translateY": [
+            {
+              "frame": 90,
+              "value": 10
+            },
+            {
+              "frame": 114,
+              "value": 0,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        },
+        "ai-response": {
+          "opacity": [
+            {
+              "frame": 120,
+              "value": 0
+            },
+            {
+              "frame": 144,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

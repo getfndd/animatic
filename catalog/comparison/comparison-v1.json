@@ -1,0 +1,22 @@
+{
+  "scene_id": "sc_comparison_v1",
+  "duration_s": 4.0,
+  "fps": 60,
+  "personality": "cinematic-dark",
+  "layers": [
+    { "id": "background", "type": "image", "depth_class": "background", "src": "bg-launch.jpg" },
+    { "id": "hero-image", "type": "image", "depth_class": "midground", "src": "product-hero.png" },
+    { "id": "headline", "type": "text", "depth_class": "foreground", "content": "Product Launch" },
+    { "id": "tagline", "type": "text", "depth_class": "foreground", "content": "The future is here" },
+    { "id": "cta-button", "type": "text", "depth_class": "foreground", "content": "Learn More" }
+  ],
+  "camera": {
+    "move": "push_in",
+    "intensity": 0.3,
+    "easing": "cinematic_scurve"
+  },
+  "entrance": {
+    "primitive": "as-fadeInUp",
+    "delay_ms": 0
+  }
+}

@@ -5,7 +5,7 @@
  * and parses breakdown INDEX.md into queryable in-memory data.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,6 +18,7 @@ const CATALOG_DIR = resolve(ROOT, 'catalog');
 const REFERENCE_DIR = resolve(ROOT, '.claude/skills/animate/reference');
 const PRIMITIVES_DIR = resolve(REFERENCE_DIR, 'primitives');
 const BREAKDOWNS_DIR = resolve(REFERENCE_DIR, 'breakdowns');
+const BENCHMARKS_DIR = resolve(CATALOG_DIR, 'benchmarks');
 
 // ── JSON catalog loaders ────────────────────────────────────────────────────
 
@@ -94,6 +95,23 @@ export function loadStylePacks(personalitySlugs) {
   }
 
   return { array: arr, byName };
+}
+
+/** Load catalog/recipes.json → array + id map */
+export function loadRecipes() {
+  const arr = loadJSON(resolve(CATALOG_DIR, 'recipes.json'));
+  const byId = new Map(arr.map(r => [r.id, r]));
+  return { array: arr, byId };
+}
+
+/** Load catalog/benchmarks/*.json → array of benchmark scenes */
+export function loadBenchmarks() {
+  try {
+    const files = readdirSync(BENCHMARKS_DIR).filter(f => f.endsWith('.json')).sort();
+    return files.map(f => loadJSON(resolve(BENCHMARKS_DIR, f)));
+  } catch {
+    return []; // benchmarks dir may not exist
+  }
 }
 
 // ── REGISTRY.md parser ──────────────────────────────────────────────────────

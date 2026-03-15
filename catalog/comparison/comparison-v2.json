@@ -1,0 +1,57 @@
+{
+  "scene_id": "sc_comparison_v2",
+  "duration_s": 4.0,
+  "fps": 60,
+  "format_version": 2,
+  "personality": "cinematic-dark",
+  "layers": [
+    { "id": "background", "type": "image", "depth_class": "background", "src": "bg-launch.jpg" },
+    { "id": "hero-image", "type": "image", "depth_class": "midground", "src": "product-hero.png" },
+    { "id": "headline", "type": "text", "depth_class": "foreground", "content": "Product Launch" },
+    { "id": "tagline", "type": "text", "depth_class": "foreground", "content": "The future is here" },
+    { "id": "cta-button", "type": "text", "depth_class": "foreground", "content": "Learn More" }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "id": "hero",
+        "targets": ["headline"],
+        "primitive": "cd-focus-stagger",
+        "on_complete": { "emit": "headline_done" },
+        "effects": [
+          { "type": "blur", "from": 8, "to": 0, "duration_ms": 600, "easing": "expo_out" },
+          { "type": "brightness", "from": 0.3, "to": 1.0, "duration_ms": 800, "easing": "ease_out" }
+        ]
+      },
+      {
+        "id": "supporting",
+        "targets": ["tagline", "cta-button"],
+        "primitive": "cd-focus-stagger",
+        "delay": { "after": "headline_done", "offset_ms": 200 },
+        "stagger": {
+          "interval_ms": 120,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.6 }
+        }
+      },
+      {
+        "id": "background-group",
+        "targets": ["hero-image"],
+        "primitive": "fade-in",
+        "effects": [
+          { "type": "scale", "from": 1.05, "to": 1.0, "duration_ms": 2000, "easing": "ease_out" }
+        ]
+      },
+      {
+        "id": "bg-entrance",
+        "targets": ["background"],
+        "primitive": "fade-in"
+      }
+    ],
+    "camera": {
+      "move": "push_in",
+      "intensity": 0.4,
+      "sync": { "cue": "headline_done", "peak_at": 0.6 }
+    }
+  }
+}

@@ -595,6 +595,9 @@ export function planSequence({ scenes, style, sequence_id, audio, beats }) {
     return entry;
   });
 
+  // Build direction block (v2 sequence-level art direction)
+  const direction = buildDirectionBlock(ordered, cameraOverrides, durations, style);
+
   const manifest = {
     sequence_id: seqId,
     resolution: { w: 1920, h: 1080 },
@@ -602,6 +605,7 @@ export function planSequence({ scenes, style, sequence_id, audio, beats }) {
     style,
     scenes: manifestScenes,
     ...(audio ? { audio } : {}),
+    ...(direction ? { direction } : {}),
   };
 
   // Self-validate
@@ -640,6 +644,56 @@ export function planSequence({ scenes, style, sequence_id, audio, beats }) {
   };
 
   return { manifest, notes };
+}
+
+/**
+ * Build a v2 direction block for sequence-level art direction.
+ *
+ * Generates energy_arc (intensity curve across scenes),
+ * camera_arc (camera progression), and identifies peak scene.
+ */
+function buildDirectionBlock(scenes, cameraOverrides, durations, style) {
+  if (!scenes || scenes.length < 2) return null;
+
+  const n = scenes.length;
+
+  // Energy arc: derive intensity curve from scene metadata
+  const intensityCurve = scenes.map((scene, i) => {
+    const energy = scene.metadata?.motion_energy || 'moderate';
+    const energyMap = { static: 0.2, subtle: 0.4, moderate: 0.6, high: 0.9 };
+    return parseFloat((energyMap[energy] || 0.5).toFixed(1));
+  });
+
+  // Find peak scene
+  let peakScene = 0;
+  let peakValue = 0;
+  for (let i = 0; i < intensityCurve.length; i++) {
+    if (intensityCurve[i] > peakValue) {
+      peakValue = intensityCurve[i];
+      peakScene = i;
+    }
+  }
+
+  // Determine arc shape
+  let shape = 'flat';
+  if (peakScene <= 1) shape = 'front_loaded';
+  else if (peakScene >= n - 2) shape = 'back_loaded';
+  else shape = 'build_peak_resolve';
+
+  // Camera arc: progression of camera moves
+  const cameraProgression = cameraOverrides.map(cam => cam?.move || 'static');
+
+  return {
+    energy_arc: {
+      shape,
+      peak_scene: peakScene,
+      intensity_curve: intensityCurve,
+    },
+    camera_arc: {
+      progression: cameraProgression,
+      intensity_follows_energy: true,
+    },
+  };
 }
 
 /**

@@ -17,7 +17,11 @@ import {
   validateManifest,
   validateScene,
   CAMERA_CONSTANTS,
+  resolveCameraConstants,
   getParallaxFactor,
+  resolveEntranceAnimation,
+  resolveSceneBackground,
+  getCameraMotionValues,
   getCameraTransformValues,
   calculateOverscanDimensions,
   getShotGrammarCSS,
@@ -29,6 +33,14 @@ import {
   getWeightMorphValue,
   resolveLayoutSlots,
   getAvailableSlots,
+  // Level 2 Timeline
+  interpolateTrack,
+  interpolateAllTracks,
+  trackValuesToCSS,
+  findTrackSegment,
+  parseCubicBezier,
+  evaluateCubicBezier,
+  resolveEasing,
 } from '../lib.js';
 
 // ── Load test manifests ─────────────────────────────────────────────────────
@@ -486,10 +498,19 @@ describe('validateScene', () => {
     const result = validateScene({
       scene_id: 'sc_test',
       assets: [],
-      layers: [{ id: 'layer1', type: 'svg' }],
+      layers: [{ id: 'layer1', type: 'canvas' }],
     });
     assert.equal(result.valid, false);
     assert.ok(result.errors.some(e => e.includes('type')));
+  });
+
+  it('accepts svg layer type', () => {
+    const result = validateScene({
+      scene_id: 'sc_test',
+      assets: [],
+      layers: [{ id: 'layer1', type: 'svg', content: '<svg><circle cx="50" cy="50" r="40"/></svg>' }],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
   });
 
   it('rejects invalid depth_class', () => {
@@ -548,6 +569,57 @@ describe('validateScene', () => {
       assert.equal(result.valid, true, `${move} should be valid`);
     }
   });
+
+  it('accepts mask_layer as optional string field', () => {
+    const result = validateScene({
+      scene_id: 'sc_test',
+      assets: [
+        { id: 'a1', type: 'image', src: 'img.png' },
+      ],
+      layers: [
+        { id: 'mask', type: 'image', asset: 'a1' },
+        { id: 'content', type: 'image', asset: 'a1', mask_layer: 'mask' },
+      ],
+    });
+    assert.equal(result.valid, true);
+  });
+
+  it('rejects non-string mask_layer', () => {
+    const result = validateScene({
+      scene_id: 'sc_test',
+      assets: [{ id: 'a1', type: 'image', src: 'img.png' }],
+      layers: [
+        { id: 'content', type: 'image', asset: 'a1', mask_layer: 123 },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('mask_layer')));
+  });
+
+  it('accepts valid mask_type values', () => {
+    for (const maskType of ['luminance', 'alpha']) {
+      const result = validateScene({
+        scene_id: 'sc_test',
+        assets: [{ id: 'a1', type: 'image', src: 'img.png' }],
+        layers: [
+          { id: 'content', type: 'image', asset: 'a1', mask_type: maskType },
+        ],
+      });
+      assert.equal(result.valid, true, `${maskType} should be valid`);
+    }
+  });
+
+  it('rejects invalid mask_type', () => {
+    const result = validateScene({
+      scene_id: 'sc_test',
+      assets: [{ id: 'a1', type: 'image', src: 'img.png' }],
+      layers: [
+        { id: 'content', type: 'image', asset: 'a1', mask_type: 'invalid' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('mask_type')));
+  });
 });
 
 // ── Camera Math ──────────────────────────────────────────────────────────────
@@ -564,9 +636,26 @@ describe('CAMERA_CONSTANTS', () => {
   });
 
   it('has correct spec values', () => {
-    assert.equal(CAMERA_CONSTANTS.SCALE_FACTOR, 0.08);
-    assert.equal(CAMERA_CONSTANTS.PAN_MAX_PX, 80);
-    assert.equal(CAMERA_CONSTANTS.DRIFT_AMPLITUDE, 3);
+    assert.equal(CAMERA_CONSTANTS.SCALE_FACTOR, 0.14);
+    assert.equal(CAMERA_CONSTANTS.PAN_MAX_PX, 160);
+    assert.equal(CAMERA_CONSTANTS.DRIFT_AMPLITUDE, 8);
+  });
+});
+
+describe('resolveCameraConstants', () => {
+  it('returns defaults when no tuning is provided', () => {
+    assert.deepEqual(resolveCameraConstants({ move: 'push_in' }), CAMERA_CONSTANTS);
+  });
+
+  it('allows per-scene tuning overrides', () => {
+    const constants = resolveCameraConstants({
+      move: 'pan_right',
+      tuning: { PAN_MAX_PX: 220, DRIFT_AMPLITUDE: 5 },
+    });
+
+    assert.equal(constants.PAN_MAX_PX, 220);
+    assert.equal(constants.DRIFT_AMPLITUDE, 5);
+    assert.equal(constants.SCALE_FACTOR, CAMERA_CONSTANTS.SCALE_FACTOR);
   });
 });
 
@@ -608,7 +697,7 @@ describe('getCameraTransformValues', () => {
 
   it('uses DEFAULT_INTENSITY when intensity not specified', () => {
     const result = getCameraTransformValues({ move: 'push_in' }, 1, linear);
-    const expectedScale = 1 + 1 * 0.5 * 0.08; // progress=1, default intensity=0.5
+    const expectedScale = 1 + 1 * 0.5 * 0.14; // progress=1, default intensity=0.5
     assert.equal(result.transform, `scale(${expectedScale})`);
   });
 
@@ -620,27 +709,27 @@ describe('getCameraTransformValues', () => {
 
   it('push_in at progress=0.5 scales partially', () => {
     const result = getCameraTransformValues({ move: 'push_in', intensity: 0.5 }, 0.5, linear);
-    const expected = 1 + 0.5 * 0.5 * 0.08;
+    const expected = 1 + 0.5 * 0.5 * 0.14;
     assert.equal(result.transform, `scale(${expected})`);
   });
 
   it('push_in at progress=1 reaches max scale', () => {
     const result = getCameraTransformValues({ move: 'push_in', intensity: 1.0 }, 1, linear);
-    const expected = 1 + 1 * 1.0 * 0.08;
+    const expected = 1 + 1 * 1.0 * 0.14;
     assert.equal(result.transform, `scale(${expected})`);
   });
 
   // pull_out
   it('pull_out at progress=0 starts at max scale', () => {
     const result = getCameraTransformValues({ move: 'pull_out', intensity: 0.5 }, 0, linear);
-    const expected = 1 + 0.5 * 0.08;
+    const expected = 1 + 0.5 * 0.14;
     assert.equal(result.transform, `scale(${expected})`);
   });
 
   it('pull_out at progress=1 returns to scale(1)', () => {
     const result = getCameraTransformValues({ move: 'pull_out', intensity: 0.5 }, 1, linear);
-    const startScale = 1 + 0.5 * 0.08;
-    const expected = startScale - 1 * 0.5 * 0.08;
+    const startScale = 1 + 0.5 * 0.14;
+    const expected = startScale - 1 * 0.5 * 0.14;
     assert.equal(result.transform, `scale(${expected})`);
   });
 
@@ -652,14 +741,14 @@ describe('getCameraTransformValues', () => {
 
   it('pan_left at progress=1 translates full distance', () => {
     const result = getCameraTransformValues({ move: 'pan_left', intensity: 0.4 }, 1, linear);
-    const expected = -1 * 0.4 * 80;
+    const expected = -1 * 0.4 * 160;
     assert.equal(result.transform, `translateX(${expected}px)`);
   });
 
   // pan_right
   it('pan_right at progress=1 translates positive', () => {
     const result = getCameraTransformValues({ move: 'pan_right', intensity: 0.5 }, 1, linear);
-    const expected = 1 * 0.5 * 80;
+    const expected = 1 * 0.5 * 160;
     assert.equal(result.transform, `translateX(${expected}px)`);
   });
 
@@ -667,7 +756,7 @@ describe('getCameraTransformValues', () => {
   it('drift at progress=0 starts at translate(0px, ...)', () => {
     const result = getCameraTransformValues({ move: 'drift', intensity: 0.5 }, 0, linear);
     // sin(0) = 0, cos(0) = 1
-    const amplitude = 0.5 * 3;
+    const amplitude = 0.5 * 8;
     const ty = 1 * amplitude * 0.6;
     assert.equal(result.transform, `translate(0px, ${ty}px)`);
   });
@@ -676,7 +765,7 @@ describe('getCameraTransformValues', () => {
     // Pass a doubling easing — drift should ignore it and use raw progress
     const doubleEasing = (t) => t * 2;
     const result = getCameraTransformValues({ move: 'drift', intensity: 1.0 }, 0.25, doubleEasing);
-    const amplitude = 1.0 * 3;
+    const amplitude = 1.0 * 8;
     const tx = Math.sin(0.25 * Math.PI * 2) * amplitude;
     const ty = Math.cos(0.25 * Math.PI * 1.5) * amplitude * 0.6;
     assert.equal(result.transform, `translate(${tx}px, ${ty}px)`);
@@ -684,8 +773,64 @@ describe('getCameraTransformValues', () => {
 
   it('works without easing function (falls back to raw progress)', () => {
     const result = getCameraTransformValues({ move: 'push_in', intensity: 0.5 }, 1, null);
-    const expected = 1 + 1 * 0.5 * 0.08;
+    const expected = 1 + 1 * 0.5 * 0.14;
     assert.equal(result.transform, `scale(${expected})`);
+  });
+});
+
+describe('getCameraMotionValues', () => {
+  it('honors per-scene tuning overrides', () => {
+    const result = getCameraMotionValues(
+      { move: 'pan_right', intensity: 0.5, tuning: { PAN_MAX_PX: 200 } },
+      1,
+      linear
+    );
+
+    assert.deepEqual(result, { scale: 1, translateX: 100, translateY: 0 });
+  });
+});
+
+describe('resolveSceneBackground', () => {
+  it('prefers explicit scene background fills', () => {
+    assert.equal(resolveSceneBackground({ background: { fill: '#faf7f0' } }), '#faf7f0');
+  });
+
+  it('falls back to the first background html layer fill', () => {
+    const scene = {
+      layers: [
+        {
+          type: 'html',
+          depth_class: 'background',
+          content: '<div style="width:100%;height:100%;background:linear-gradient(135deg,#fff,#eee)"></div>',
+        },
+      ],
+    };
+    assert.equal(resolveSceneBackground(scene), 'linear-gradient(135deg,#fff,#eee)');
+  });
+});
+
+describe('resolveEntranceAnimation', () => {
+  it('uses primitive-specific timing and transforms', () => {
+    const result = resolveEntranceAnimation(
+      { opacity: 0.8, entrance: { primitive: 'ed-slide-stagger' } },
+      12,
+      60,
+      { parallaxFactor: 1 }
+    );
+
+    assert.ok(result.opacity > 0 && result.opacity <= 0.8);
+    assert.match(result.transform, /translateY/);
+  });
+
+  it('supports typewriter entrances for text layers', () => {
+    const result = resolveEntranceAnimation(
+      { content: 'Hello', entrance: { primitive: 'cd-typewriter' } },
+      0,
+      60
+    );
+
+    assert.equal(result.mode, 'typewriter');
+    assert.equal(result.opacity, 1);
   });
 });
 
@@ -1458,5 +1603,256 @@ describe('composeCameraTransform with clampBounds', () => {
     assert.ok(unclampedScale > clampedScale, 'Clamped should be smaller');
     // Clamped camera scale is 1.05, times SG 1.08 = 1.134
     assert.ok(Math.abs(clampedScale - 1.08 * 1.05) < 0.001);
+  });
+});
+
+// ── Level 2 Timeline Interpolation ──────────────────────────────────────────
+
+describe('parseCubicBezier', () => {
+  it('returns null for linear', () => {
+    assert.equal(parseCubicBezier('linear'), null);
+    assert.equal(parseCubicBezier(null), null);
+  });
+
+  it('parses valid cubic-bezier string', () => {
+    const result = parseCubicBezier('cubic-bezier(0.25, 0.46, 0.45, 0.94)');
+    assert.deepEqual(result, [0.25, 0.46, 0.45, 0.94]);
+  });
+
+  it('returns null for invalid string', () => {
+    assert.equal(parseCubicBezier('ease'), null);
+  });
+});
+
+describe('evaluateCubicBezier', () => {
+  it('returns x for linear (null points)', () => {
+    assert.equal(evaluateCubicBezier(null, 0.5), 0.5);
+    assert.equal(evaluateCubicBezier(null, 0), 0);
+    assert.equal(evaluateCubicBezier(null, 1), 1);
+  });
+
+  it('ease_out reaches ~1 at x=1', () => {
+    const easeOut = [0.25, 0.46, 0.45, 0.94];
+    const val = evaluateCubicBezier(easeOut, 1);
+    assert.ok(Math.abs(val - 1) < 0.01, `should be ~1, got ${val}`);
+  });
+
+  it('ease_out is 0 at x=0', () => {
+    const easeOut = [0.25, 0.46, 0.45, 0.94];
+    const val = evaluateCubicBezier(easeOut, 0);
+    assert.ok(Math.abs(val) < 0.01, `should be ~0, got ${val}`);
+  });
+
+  it('ease_out curve is ahead of linear at midpoint', () => {
+    const easeOut = [0.25, 0.46, 0.45, 0.94];
+    const val = evaluateCubicBezier(easeOut, 0.5);
+    assert.ok(val > 0.5, `ease_out at 0.5 should be > 0.5, got ${val}`);
+  });
+});
+
+describe('resolveEasing', () => {
+  it('returns null for linear', () => {
+    assert.equal(resolveEasing('linear'), null);
+  });
+
+  it('resolves named presets', () => {
+    const points = resolveEasing('ease_out');
+    assert.ok(Array.isArray(points));
+    assert.equal(points.length, 4);
+  });
+
+  it('parses cubic-bezier strings', () => {
+    const points = resolveEasing('cubic-bezier(0.1,0.2,0.3,0.4)');
+    assert.deepEqual(points, [0.1, 0.2, 0.3, 0.4]);
+  });
+});
+
+describe('findTrackSegment', () => {
+  const track = [
+    { frame: 0, value: 0 },
+    { frame: 30, value: 1 },
+    { frame: 60, value: 0.5 },
+  ];
+
+  it('returns first keyframe before track starts', () => {
+    const seg = findTrackSegment(track, -5);
+    assert.equal(seg.localProgress, 0);
+    assert.equal(seg.from.value, 0);
+  });
+
+  it('interpolates within first segment', () => {
+    const seg = findTrackSegment(track, 15);
+    assert.equal(seg.from.frame, 0);
+    assert.equal(seg.to.frame, 30);
+    assert.ok(Math.abs(seg.localProgress - 0.5) < 0.01);
+  });
+
+  it('returns last keyframe after track ends', () => {
+    const seg = findTrackSegment(track, 100);
+    assert.equal(seg.localProgress, 1);
+    assert.equal(seg.from.value, 0.5);
+  });
+
+  it('returns null for empty track', () => {
+    assert.equal(findTrackSegment([], 10), null);
+  });
+});
+
+describe('interpolateTrack', () => {
+  it('interpolates linear between keyframes', () => {
+    const track = [
+      { frame: 0, value: 0 },
+      { frame: 60, value: 100 }, // no easing = linear
+    ];
+    assert.equal(interpolateTrack(track, 0), 0);
+    assert.equal(interpolateTrack(track, 30), 50);
+    assert.equal(interpolateTrack(track, 60), 100);
+  });
+
+  it('holds first value before track', () => {
+    const track = [
+      { frame: 10, value: 5 },
+      { frame: 20, value: 10 },
+    ];
+    assert.equal(interpolateTrack(track, 0), 5);
+  });
+
+  it('holds last value after track', () => {
+    const track = [
+      { frame: 0, value: 0 },
+      { frame: 30, value: 1 },
+    ];
+    assert.equal(interpolateTrack(track, 60), 1);
+  });
+
+  it('applies easing curve', () => {
+    const track = [
+      { frame: 0, value: 0 },
+      { frame: 60, value: 100, easing: 'ease_out' },
+    ];
+    const midValue = interpolateTrack(track, 30);
+    // ease_out at 0.5 progress should be > 50 (faster start)
+    assert.ok(midValue > 50, `eased value at midpoint should be > 50, got ${midValue}`);
+  });
+
+  it('returns 0 for null/empty track', () => {
+    assert.equal(interpolateTrack(null, 10), 0);
+    assert.equal(interpolateTrack([], 10), 0);
+  });
+});
+
+describe('interpolateAllTracks', () => {
+  it('interpolates multiple properties', () => {
+    const tracks = {
+      opacity: [
+        { frame: 0, value: 0 },
+        { frame: 30, value: 1 },
+      ],
+      translateY: [
+        { frame: 0, value: 20 },
+        { frame: 30, value: 0 },
+      ],
+    };
+    const result = interpolateAllTracks(tracks, 15);
+    assert.ok(Math.abs(result.opacity - 0.5) < 0.01);
+    assert.ok(Math.abs(result.translateY - 10) < 0.5);
+  });
+
+  it('returns empty object for null', () => {
+    assert.deepEqual(interpolateAllTracks(null, 10), {});
+  });
+});
+
+describe('trackValuesToCSS', () => {
+  it('converts opacity', () => {
+    const css = trackValuesToCSS({ opacity: 0.5 });
+    assert.equal(css.opacity, 0.5);
+  });
+
+  it('converts translate to transform', () => {
+    const css = trackValuesToCSS({ translateX: 10, translateY: 20 });
+    assert.ok(css.transform.includes('translate(10px, 20px)'));
+  });
+
+  it('converts scale to transform', () => {
+    const css = trackValuesToCSS({ scale: 1.5 });
+    assert.ok(css.transform.includes('scale(1.5)'));
+  });
+
+  it('converts filter_blur to filter', () => {
+    const css = trackValuesToCSS({ filter_blur: 8 });
+    assert.ok(css.filter.includes('blur(8px)'));
+  });
+
+  it('converts clip_inset values', () => {
+    const css = trackValuesToCSS({ clip_inset_top: 10, clip_inset_right: 20, clip_inset_bottom: 30, clip_inset_left: 40 });
+    assert.equal(css.clipPath, 'inset(10% 20% 30% 40%)');
+  });
+
+  it('converts clip_circle to circle() clip-path', () => {
+    const css = trackValuesToCSS({ clip_circle: 50 });
+    assert.equal(css.clipPath, 'circle(50% at 50% 50%)');
+  });
+
+  it('converts clip_circle with custom center', () => {
+    const css = trackValuesToCSS({ clip_circle: 30, clip_circle_cx: 25, clip_circle_cy: 75 });
+    assert.equal(css.clipPath, 'circle(30% at 25% 75%)');
+  });
+
+  it('converts clip_ellipse to ellipse() clip-path', () => {
+    const css = trackValuesToCSS({ clip_ellipse: 40 });
+    assert.equal(css.clipPath, 'ellipse(40% 40% at 50% 50%)');
+  });
+
+  it('converts clip_ellipse with separate radii and center', () => {
+    const css = trackValuesToCSS({ clip_ellipse: 60, clip_ellipse_ry: 30, clip_ellipse_cx: 20, clip_ellipse_cy: 80 });
+    assert.equal(css.clipPath, 'ellipse(60% 30% at 20% 80%)');
+  });
+
+  it('converts clip_polygon to polygon() clip-path', () => {
+    const css = trackValuesToCSS({ clip_polygon: '0% 0%, 100% 0%, 100% 100%' });
+    assert.equal(css.clipPath, 'polygon(0% 0%, 100% 0%, 100% 100%)');
+  });
+
+  it('clip_circle takes priority over clip_inset', () => {
+    const css = trackValuesToCSS({ clip_circle: 50, clip_inset_top: 10 });
+    assert.ok(css.clipPath.startsWith('circle('));
+  });
+
+  it('returns none for identity values', () => {
+    const css = trackValuesToCSS({ scale: 1, filter_blur: 0 });
+    assert.equal(css.transform, 'none');
+    assert.equal(css.filter, 'none');
+  });
+
+  it('composes multiple transform properties', () => {
+    const css = trackValuesToCSS({ translateX: 5, translateY: 10, scale: 1.2, rotate: 45 });
+    assert.ok(css.transform.includes('translate(5px, 10px)'));
+    assert.ok(css.transform.includes('scale(1.2)'));
+    assert.ok(css.transform.includes('rotate(45deg)'));
+  });
+
+  it('converts SVG stroke_dashoffset to CSS custom property', () => {
+    const css = trackValuesToCSS({ stroke_dashoffset: 100 });
+    assert.ok(css.svgProperties, 'should have svgProperties');
+    assert.equal(css.svgProperties['--stroke-dashoffset'], 100);
+  });
+
+  it('converts SVG fill_opacity and stroke_opacity to CSS custom properties', () => {
+    const css = trackValuesToCSS({ fill_opacity: 0.5, stroke_opacity: 0.8 });
+    assert.ok(css.svgProperties, 'should have svgProperties');
+    assert.equal(css.svgProperties['--fill-opacity'], 0.5);
+    assert.equal(css.svgProperties['--stroke-opacity'], 0.8);
+  });
+
+  it('converts SVG path_length to CSS custom property', () => {
+    const css = trackValuesToCSS({ path_length: 250 });
+    assert.ok(css.svgProperties, 'should have svgProperties');
+    assert.equal(css.svgProperties['--path-length'], 250);
+  });
+
+  it('does not include svgProperties when no SVG values present', () => {
+    const css = trackValuesToCSS({ opacity: 0.5 });
+    assert.equal(css.svgProperties, undefined);
   });
 });

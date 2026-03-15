@@ -1,0 +1,153 @@
+{
+  "scene_id": "bench_ed_chat",
+  "duration_frames": 480,
+  "fps": 60,
+  "tracks": {
+    "camera": {
+      "scale": [
+        {
+          "frame": 0,
+          "value": 1
+        },
+        {
+          "frame": 240,
+          "value": 1.015,
+          "easing": "cubic-bezier(0.33,0,0.2,1)"
+        }
+      ],
+      "translateX": [
+        {
+          "frame": 240,
+          "value": 0
+        },
+        {
+          "frame": 480,
+          "value": 0.30000000000000004,
+          "easing": "cubic-bezier(0.33,0,0.2,1)"
+        }
+      ]
+    },
+    "layers": {
+      "bg": {
+        "opacity": [
+          {
+            "frame": 0,
+            "value": 0
+          },
+          {
+            "frame": 24,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      },
+      "card-shell": {
+        "opacity": [
+          {
+            "frame": 0,
+            "value": 0
+          },
+          {
+            "frame": 24,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "translateY": [
+          {
+            "frame": 0,
+            "value": 10
+          },
+          {
+            "frame": 24,
+            "value": 0,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "scale": [
+          {
+            "frame": 0,
+            "value": 0.96
+          },
+          {
+            "frame": 72,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      },
+      "typed-input": {
+        "opacity": [
+          {
+            "frame": 48,
+            "value": 0
+          },
+          {
+            "frame": 72,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "text_chars": [
+          {
+            "frame": 48,
+            "value": 0
+          },
+          {
+            "frame": 168,
+            "value": 64,
+            "easing": "linear"
+          }
+        ],
+        "clip_inset_top": [
+          {
+            "frame": 174,
+            "value": 0
+          },
+          {
+            "frame": 183,
+            "value": 100,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      },
+      "user-msg": {
+        "opacity": [
+          {
+            "frame": 90,
+            "value": 0
+          },
+          {
+            "frame": 114,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ],
+        "translateY": [
+          {
+            "frame": 90,
+            "value": 10
+          },
+          {
+            "frame": 114,
+            "value": 0,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      },
+      "ai-response": {
+        "opacity": [
+          {
+            "frame": 120,
+            "value": 0
+          },
+          {
+            "frame": 144,
+            "value": 1,
+            "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,387 @@
+{
+  "scene": {
+    "scene_id": "bench_cd_e2e",
+    "duration_s": 5,
+    "fps": 60,
+    "format_version": 2,
+    "personality": "cinematic-dark",
+    "background": "#0d0d12",
+    "layers": [
+      {
+        "id": "bg",
+        "type": "html",
+        "depth_class": "background",
+        "content": "<div style=\"width:100%;height:100%;background:radial-gradient(ellipse 80% 60% at 50% 50%, oklch(18% 0.025 260), oklch(8% 0.015 260) 70%, #0d0d12)\"></div>"
+      },
+      {
+        "id": "headline",
+        "type": "text",
+        "depth_class": "foreground",
+        "content": "Introducing Aurora",
+        "style": {
+          "fontFamily": "system-ui, -apple-system, sans-serif",
+          "fontSize": 64,
+          "fontWeight": 700,
+          "color": "oklch(95% 0.01 260)",
+          "textAlign": "center",
+          "letterSpacing": "-0.02em",
+          "lineHeight": 1.05
+        },
+        "position": {
+          "x": 310,
+          "y": 56,
+          "w": 1300,
+          "h": 100
+        }
+      },
+      {
+        "id": "tagline",
+        "type": "text",
+        "depth_class": "foreground",
+        "content": "Analytics that see what others miss",
+        "style": {
+          "fontFamily": "system-ui, -apple-system, sans-serif",
+          "fontSize": 21,
+          "fontWeight": 400,
+          "color": "oklch(55% 0.01 260)",
+          "textAlign": "center",
+          "letterSpacing": "0.01em"
+        },
+        "position": {
+          "x": 510,
+          "y": 170,
+          "w": 900,
+          "h": 40
+        }
+      },
+      {
+        "id": "product",
+        "type": "html",
+        "depth_class": "midground",
+        "src": "e2e/assets/product-frame.html",
+        "position": {
+          "x": 430,
+          "y": 240,
+          "w": 1060,
+          "h": 480
+        }
+      },
+      {
+        "id": "glow",
+        "type": "html",
+        "depth_class": "background",
+        "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center\"><div style=\"width:700px;height:500px;background:radial-gradient(ellipse, oklch(28% 0.05 260 / 35%), transparent 70%);filter:blur(80px);transform:translateY(60px)\"></div></div>"
+      },
+      {
+        "id": "cta",
+        "type": "html",
+        "depth_class": "foreground",
+        "content": "<div style=\"display:flex;align-items:center;justify-content:center;width:100%;height:100%\"><div style=\"font-family:system-ui,-apple-system,sans-serif;font-size:14px;font-weight:500;letter-spacing:0.04em;color:oklch(90% 0.01 260);border:1px solid oklch(35% 0.01 260);padding:10px 28px;border-radius:8px;background:oklch(16% 0.015 260)\">Start free trial</div></div>",
+        "position": {
+          "x": 810,
+          "y": 750,
+          "w": 300,
+          "h": 50
+        }
+      }
+    ],
+    "motion": {
+      "groups": [
+        {
+          "id": "bg-entrance",
+          "targets": [
+            "bg",
+            "glow"
+          ],
+          "primitive": "fade-in"
+        },
+        {
+          "id": "headline-reveal",
+          "targets": [
+            "headline"
+          ],
+          "primitive": "cd-focus-stagger",
+          "on_complete": {
+            "emit": "headline_done"
+          },
+          "effects": [
+            {
+              "type": "blur",
+              "from": 8,
+              "to": 0,
+              "duration_ms": 600,
+              "easing": "expo_out"
+            },
+            {
+              "type": "brightness",
+              "from": 0.3,
+              "to": 1,
+              "duration_ms": 800,
+              "easing": "ease_out"
+            }
+          ]
+        },
+        {
+          "id": "tagline-entrance",
+          "targets": [
+            "tagline"
+          ],
+          "primitive": "ed-slide-stagger",
+          "delay": {
+            "after": "headline_done",
+            "offset_ms": 100
+          },
+          "_resolvedDelayFrame": 38
+        },
+        {
+          "id": "product-entrance",
+          "targets": [
+            "product"
+          ],
+          "primitive": "cd-focus-stagger",
+          "delay": {
+            "after": "headline_done",
+            "offset_ms": 300
+          },
+          "effects": [
+            {
+              "type": "scale",
+              "from": 1.03,
+              "to": 1,
+              "duration_ms": 1800,
+              "easing": "ease_out"
+            }
+          ],
+          "_resolvedDelayFrame": 50
+        },
+        {
+          "id": "cta-entrance",
+          "targets": [
+            "cta"
+          ],
+          "primitive": "fade-in",
+          "delay": {
+            "after": "headline_done",
+            "offset_ms": 700
+          },
+          "_resolvedDelayFrame": 74
+        }
+      ],
+      "camera": {
+        "moves": [
+          {
+            "move": "push_in",
+            "intensity": 0.3,
+            "from": 0,
+            "to": 0.6
+          },
+          {
+            "move": "drift",
+            "intensity": 0.1,
+            "from": 0.6,
+            "to": 1
+          }
+        ],
+        "sync": {
+          "peak_at": 0.6,
+          "cue": "headline_done"
+        }
+      }
+    }
+  },
+  "timeline": {
+    "scene_id": "bench_cd_e2e",
+    "duration_frames": 300,
+    "fps": 60,
+    "tracks": {
+      "camera": {
+        "scale": [
+          {
+            "frame": 0,
+            "value": 1
+          },
+          {
+            "frame": 180,
+            "value": 1.054,
+            "easing": "cubic-bezier(0.33,0,0.2,1)"
+          }
+        ],
+        "translateX": [
+          {
+            "frame": 180,
+            "value": 0
+          },
+          {
+            "frame": 300,
+            "value": 1.2000000000000002,
+            "easing": "cubic-bezier(0.33,0,0.2,1)"
+          }
+        ]
+      },
+      "layers": {
+        "bg": {
+          "opacity": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 24,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        },
+        "glow": {
+          "opacity": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 24,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        },
+        "headline": {
+          "opacity": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 32,
+              "value": 1,
+              "easing": "cubic-bezier(0.16,1,0.3,1)"
+            }
+          ],
+          "scale": [
+            {
+              "frame": 0,
+              "value": 0.97
+            },
+            {
+              "frame": 32,
+              "value": 1,
+              "easing": "cubic-bezier(0.16,1,0.3,1)"
+            }
+          ],
+          "filter_blur": [
+            {
+              "frame": 0,
+              "value": 8
+            },
+            {
+              "frame": 0,
+              "value": 8
+            },
+            {
+              "frame": 32,
+              "value": 0,
+              "easing": "cubic-bezier(0.16,1,0.3,1)"
+            },
+            {
+              "frame": 36,
+              "value": 0,
+              "easing": "cubic-bezier(0.16,1,0.3,1)"
+            }
+          ],
+          "filter_brightness": [
+            {
+              "frame": 0,
+              "value": 0.3
+            },
+            {
+              "frame": 48,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        },
+        "tagline": {
+          "opacity": [
+            {
+              "frame": 38,
+              "value": 0
+            },
+            {
+              "frame": 62,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ],
+          "translateY": [
+            {
+              "frame": 38,
+              "value": 10
+            },
+            {
+              "frame": 62,
+              "value": 0,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        },
+        "product": {
+          "opacity": [
+            {
+              "frame": 50,
+              "value": 0
+            },
+            {
+              "frame": 82,
+              "value": 1,
+              "easing": "cubic-bezier(0.16,1,0.3,1)"
+            }
+          ],
+          "scale": [
+            {
+              "frame": 50,
+              "value": 0.97
+            },
+            {
+              "frame": 50,
+              "value": 1.03
+            },
+            {
+              "frame": 82,
+              "value": 1,
+              "easing": "cubic-bezier(0.16,1,0.3,1)"
+            },
+            {
+              "frame": 158,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ],
+          "filter_blur": [
+            {
+              "frame": 50,
+              "value": 8
+            },
+            {
+              "frame": 82,
+              "value": 0,
+              "easing": "cubic-bezier(0.16,1,0.3,1)"
+            }
+          ]
+        },
+        "cta": {
+          "opacity": [
+            {
+              "frame": 74,
+              "value": 0
+            },
+            {
+              "frame": 98,
+              "value": 1,
+              "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

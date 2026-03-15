@@ -10,6 +10,8 @@ import {
   calculateOverscanDimensions,
   getShotGrammarCSS,
   composeCameraTransform,
+  interpolateTrack,
+  trackValuesToCSS,
 } from '../lib.js';
 
 /**
@@ -57,44 +59,74 @@ const GUARDRAIL_BOUNDS = {
  * Camera-only deltas are clamped to guardrail bounds before composition,
  * preventing out-of-range values from reaching the render.
  *
+ * **v2 Timeline mode:** When `timelineTracks` is provided (from compiled Level 2
+ * timeline), camera transform is driven by multi-keyframe interpolation instead
+ * of the single-move easing path. Falls back to v1 when timelineTracks is absent.
+ *
  * @param {object} props
  * @param {object} props.camera - { move, intensity, easing }
  * @param {object} [props.shotGrammar] - { shot_size, angle, framing }
+ * @param {object} [props.timelineTracks] - Level 2 camera tracks { transform: [...], ... }
  * @param {React.ReactNode} props.children
  */
-export const CameraRig = ({ camera, shotGrammar, children }) => {
+export const CameraRig = ({ camera, shotGrammar, timelineTracks, children }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, width, height } = useVideoConfig();
 
+  const hasTimeline = timelineTracks && Object.keys(timelineTracks).length > 0;
   const hasCamera = camera && camera.move !== 'static';
   const hasShotGrammar = shotGrammar && (shotGrammar.shot_size || shotGrammar.angle || shotGrammar.framing);
 
-  // No camera and no shot grammar — no rig needed
-  if (!hasCamera && !hasShotGrammar) {
+  // No camera, no shot grammar, no timeline — no rig needed
+  if (!hasCamera && !hasShotGrammar && !hasTimeline) {
     return <AbsoluteFill>{children}</AbsoluteFill>;
   }
 
-  // Frame-based progress via interpolate (matches transitions.jsx pattern)
-  const progress = interpolate(frame, [0, durationInFrames], [0, 1], {
-    extrapolateRight: 'clamp',
-    extrapolateLeft: 'clamp',
-  });
-
-  const easingFn = getEasingFunction(camera?.easing);
-
-  // Resolve shot grammar to CSS values
-  const sgCSS = hasShotGrammar ? getShotGrammarCSS(shotGrammar) : null;
-
-  // Compute transform: compound when shot grammar present, legacy path otherwise
   let transform, transformOrigin, perspectiveOrigin;
-  if (hasShotGrammar) {
-    ({ transform, transformOrigin, perspectiveOrigin } = composeCameraTransform(
-      sgCSS, camera, progress, easingFn, GUARDRAIL_BOUNDS
-    ));
-  } else {
-    ({ transform } = getCameraTransformValues(camera, progress, easingFn, GUARDRAIL_BOUNDS));
+
+  if (hasTimeline) {
+    // ── v2 Timeline path: multi-keyframe camera tracks ───────────────────
+    const values = {};
+    for (const [prop, track] of Object.entries(timelineTracks)) {
+      values[prop] = interpolateTrack(track, frame);
+    }
+
+    // If timeline provides a pre-composed transform string, use it directly
+    if (timelineTracks.transform) {
+      const css = trackValuesToCSS(values);
+      transform = css.transform;
+    } else {
+      // Build transform from individual properties
+      const parts = [];
+      if (values.scale != null && values.scale !== 1) parts.push(`scale(${values.scale})`);
+      if (values.translateX != null || values.translateY != null) {
+        parts.push(`translate(${values.translateX ?? 0}px, ${values.translateY ?? 0}px)`);
+      }
+      if (values.rotate != null && values.rotate !== 0) parts.push(`rotate(${values.rotate}deg)`);
+      transform = parts.length > 0 ? parts.join(' ') : 'none';
+    }
+
     transformOrigin = 'center center';
     perspectiveOrigin = undefined;
+  } else {
+    // ── v1 Legacy path: single-move easing ───────────────────────────────
+    const progress = interpolate(frame, [0, durationInFrames], [0, 1], {
+      extrapolateRight: 'clamp',
+      extrapolateLeft: 'clamp',
+    });
+
+    const easingFn = getEasingFunction(camera?.easing);
+    const sgCSS = hasShotGrammar ? getShotGrammarCSS(shotGrammar) : null;
+
+    if (hasShotGrammar) {
+      ({ transform, transformOrigin, perspectiveOrigin } = composeCameraTransform(
+        sgCSS, camera, progress, easingFn, GUARDRAIL_BOUNDS
+      ));
+    } else {
+      ({ transform } = getCameraTransformValues(camera, progress, easingFn, GUARDRAIL_BOUNDS));
+      transformOrigin = 'center center';
+      perspectiveOrigin = undefined;
+    }
   }
 
   const { canvasW, canvasH, offsetX, offsetY } = calculateOverscanDimensions(
@@ -104,6 +136,7 @@ export const CameraRig = ({ camera, shotGrammar, children }) => {
   );
 
   // 3D perspective needed when shot grammar applies rotation
+  const sgCSS = hasShotGrammar ? getShotGrammarCSS(shotGrammar) : null;
   const needs3D = sgCSS && (sgCSS.rotateX !== 0 || sgCSS.rotateZ !== 0);
 
   return (

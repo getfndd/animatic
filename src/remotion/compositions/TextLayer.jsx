@@ -20,8 +20,9 @@ import {
  * @param {object} props
  * @param {object} props.layer - Layer definition from scene JSON
  * @param {object} props.style - Container style from SceneLayer (entrance, blend, position)
+ * @param {object} props.entrance - Resolved entrance primitive state
  */
-export const TextLayer = ({ layer, style }) => {
+export const TextLayer = ({ layer, style, entrance }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, height } = useVideoConfig();
 
@@ -42,6 +43,21 @@ export const TextLayer = ({ layer, style }) => {
   };
 
   const content = layer.content || '';
+
+  if (entrance?.mode === 'typewriter') {
+    const align = textStyle.textAlign || 'center';
+    return (
+      <div style={{
+        ...style,
+        display: 'flex',
+        alignItems: align === 'left' ? 'flex-end' : 'center',
+        justifyContent: align === 'left' ? 'flex-start' : 'center',
+        padding: align === 'left' ? '0 0 4px 4px' : 0,
+      }}>
+        <TypewriterRenderer content={content} progress={entrance.progress} textStyle={textStyle} />
+      </div>
+    );
+  }
 
   switch (layer.animation) {
     case 'word-reveal':
@@ -80,6 +96,20 @@ export const TextLayer = ({ layer, style }) => {
         </div>
       );
   }
+};
+
+const TypewriterRenderer = ({ content, progress, textStyle }) => {
+  const totalChars = content.length;
+  const visibleChars = Math.max(0, Math.min(totalChars, Math.round(totalChars * progress)));
+  const visibleText = content.slice(0, visibleChars);
+  const cursorVisible = progress < 1 && Math.floor(progress * 16) % 2 === 0;
+
+  return (
+    <span style={{ ...textStyle, whiteSpace: 'pre-wrap' }}>
+      {visibleText}
+      {cursorVisible && <span style={{ opacity: 0.8 }}>|</span>}
+    </span>
+  );
 };
 
 /**

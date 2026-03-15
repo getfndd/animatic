@@ -48,6 +48,20 @@ const ANIMATABLE_DEFAULTS = {
   path_length: 0,
   // Text-specific properties
   text_chars: 0,
+  text_replace_progress: 0,
+  caret_opacity: 0,
+  selection_start: 0,
+  selection_end: 0,
+  // List-specific properties
+  list_insert_progress: 0,
+  list_remove_progress: 0,
+  list_reorder_progress: 0,
+  // Counter properties
+  counter_value: 0,
+  // Surface effect properties
+  surface_shadow: 0,
+  surface_blur: 0,
+  background_bloom: 0,
 };
 
 // ── Main Entry Point ─────────────────────────────────────────────────────────
@@ -607,6 +621,25 @@ function compileEffects(groups, layerTracks, cues, fps) {
       const endFrame = startFrame + durationFrames;
       const easing = primitiveEasingToCubicBezier(effect.easing || 'ease_out');
 
+      // Selection emits paired tracks (selection_start + selection_end)
+      if (effect.type === 'selection') {
+        const startTrack = [
+          { frame: startFrame, value: effect.from_start ?? 0 },
+          { frame: endFrame, value: effect.to_start ?? 0, easing },
+        ];
+        const endTrack = [
+          { frame: startFrame, value: effect.from_end ?? 0 },
+          { frame: endFrame, value: effect.to_end ?? 0, easing },
+        ];
+        for (const targetId of targets) {
+          layerTracks[targetId] = mergeTracksInto(layerTracks[targetId] || {}, {
+            selection_start: startTrack,
+            selection_end: endTrack,
+          });
+        }
+        continue;
+      }
+
       const track = [
         { frame: startFrame, value: effect.from },
         { frame: endFrame, value: effect.to, easing },
@@ -642,6 +675,19 @@ function effectTypeToProperty(type) {
     case 'stroke_opacity': return 'stroke_opacity';
     // Text-specific effect types
     case 'typewriter': return 'text_chars';
+    case 'text_replace': return 'text_replace_progress';
+    case 'caret': return 'caret_opacity';
+    case 'selection': return 'selection_start'; // paired track, see compileEffects
+    // List-specific effect types
+    case 'list_insert': return 'list_insert_progress';
+    case 'list_remove': return 'list_remove_progress';
+    case 'list_reorder': return 'list_reorder_progress';
+    // Surface effect types
+    case 'surface_shadow': return 'surface_shadow';
+    case 'surface_blur': return 'surface_blur';
+    case 'background_bloom': return 'background_bloom';
+    // Counter effect type
+    case 'counter': return 'counter_value';
     // Pass-through property types (used by semantic compiler)
     case 'opacity': return 'opacity';
     case 'translateX': return 'translateX';
@@ -947,6 +993,8 @@ function interactionToGroup(interaction, componentMap, personality, fps = 60) {
         ...baseGroup,
         effects: [
           { type: 'typewriter', from: 0, to: text.length, duration_ms: dur, easing: 'linear' },
+          { type: 'caret', from: 1, to: 1, duration_ms: dur, easing: 'linear' },
+          { type: 'caret', from: 1, to: 0, duration_ms: 1, delay_ms: dur, easing: 'linear' },
         ],
       }];
     }
@@ -956,8 +1004,9 @@ function interactionToGroup(interaction, componentMap, personality, fps = 60) {
       return [{
         ...baseGroup,
         effects: [
-          { type: 'opacity', from: 1, to: 0, duration_ms: dur / 2, easing: 'ease_out' },
-          { type: 'opacity', from: 0, to: 1, duration_ms: dur / 2, delay_ms: dur / 2, easing: 'ease_out' },
+          { type: 'text_replace', from: 0, to: 1, duration_ms: dur, easing: 'ease_out' },
+          { type: 'caret', from: 1, to: 1, duration_ms: dur, easing: 'linear' },
+          { type: 'caret', from: 1, to: 0, duration_ms: 1, delay_ms: dur, easing: 'linear' },
         ],
       }];
     }

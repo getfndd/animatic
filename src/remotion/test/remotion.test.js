@@ -1855,6 +1855,50 @@ describe('trackValuesToCSS', () => {
     const css = trackValuesToCSS({ opacity: 0.5 });
     assert.equal(css.svgProperties, undefined);
   });
+
+  // ── ANI-71: Surface effect properties ──────────────────────────────────────
+
+  it('surface_shadow → boxShadow', () => {
+    const css = trackValuesToCSS({ surface_shadow: 1 });
+    assert.ok(css.boxShadow, 'should have boxShadow');
+    assert.ok(css.boxShadow.includes('rgba(0,0,0,'), 'should include shadow color');
+  });
+
+  it('surface_blur → backdropFilter', () => {
+    const css = trackValuesToCSS({ surface_blur: 8 });
+    assert.ok(css.backdropFilter, 'should have backdropFilter');
+    assert.equal(css.backdropFilter, 'blur(8px)');
+  });
+
+  it('background_bloom → boxShadow glow', () => {
+    const css = trackValuesToCSS({ background_bloom: 1 });
+    assert.ok(css.boxShadow, 'should have boxShadow');
+    assert.ok(css.boxShadow.includes('rgba(255,255,255,'), 'should include glow color');
+  });
+
+  it('surface_shadow + background_bloom compose into single boxShadow', () => {
+    const css = trackValuesToCSS({ surface_shadow: 1, background_bloom: 0.5 });
+    assert.ok(css.boxShadow, 'should have boxShadow');
+    // Both shadows should be comma-separated
+    assert.ok(css.boxShadow.includes('rgba(0,0,0,'), 'should include shadow');
+    assert.ok(css.boxShadow.includes('rgba(255,255,255,'), 'should include bloom');
+    assert.ok(css.boxShadow.includes(','), 'should be comma-separated');
+  });
+
+  it('semantic properties (text_replace_progress) are ignored by trackValuesToCSS', () => {
+    const css = trackValuesToCSS({ text_replace_progress: 0.5, caret_opacity: 1, counter_value: 42 });
+    // These should not produce any CSS output
+    assert.equal(css.transform, 'none');
+    assert.equal(css.filter, 'none');
+    assert.equal(css.boxShadow, undefined);
+    assert.equal(css.backdropFilter, undefined);
+  });
+
+  it('zero surface values produce no CSS', () => {
+    const css = trackValuesToCSS({ surface_shadow: 0, surface_blur: 0, background_bloom: 0 });
+    assert.equal(css.boxShadow, undefined);
+    assert.equal(css.backdropFilter, undefined);
+  });
 });
 
 // ── Semantic v3 Validation ────────────────────────────────────────────────────

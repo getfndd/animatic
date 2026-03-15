@@ -925,17 +925,19 @@ describe('interactionToGroup', () => {
     assert.equal(dimEffect.to, 0.2, 'default dim is 0.2');
   });
 
-  it('replace_text → opacity crossfade', () => {
+  it('replace_text → text_replace + caret effects', () => {
     const groups = interactionToGroup({
       id: 'int_replace', target: 'cmp_search', kind: 'replace_text',
       params: { text: 'new text' },
     }, cmpMap, null);
 
     assert.equal(groups.length, 1);
-    const opEffects = groups[0].effects.filter(e => e.type === 'opacity');
-    assert.equal(opEffects.length, 2);
-    assert.equal(opEffects[0].to, 0); // fade out
-    assert.equal(opEffects[1].to, 1); // fade in
+    const replaceEffects = groups[0].effects.filter(e => e.type === 'text_replace');
+    assert.equal(replaceEffects.length, 1);
+    assert.equal(replaceEffects[0].from, 0);
+    assert.equal(replaceEffects[0].to, 1);
+    const caretEffects = groups[0].effects.filter(e => e.type === 'caret');
+    assert.ok(caretEffects.length >= 1, 'should have caret effects');
   });
 
   it('open_menu → translateY + opacity', () => {
@@ -1311,5 +1313,132 @@ describe('v3 semantic → compileMotion integration', () => {
     assert.ok(result, 'should compile');
     // Should have tracks for both logo (v2) and semantic targets
     assert.ok(result.tracks.layers.logo, 'logo should have tracks from v2 group');
+  });
+});
+
+// ── ANI-71: Rich Semantic Timeline Tracks ──────────────────────────────────
+
+describe('ANI-71: effectTypeToProperty — new types', () => {
+  const cases = [
+    ['text_replace', 'text_replace_progress'],
+    ['caret', 'caret_opacity'],
+    ['selection', 'selection_start'],
+    ['list_insert', 'list_insert_progress'],
+    ['list_remove', 'list_remove_progress'],
+    ['list_reorder', 'list_reorder_progress'],
+    ['surface_shadow', 'surface_shadow'],
+    ['surface_blur', 'surface_blur'],
+    ['background_bloom', 'background_bloom'],
+    ['counter', 'counter_value'],
+  ];
+
+  for (const [type, expected] of cases) {
+    it(`${type} → ${expected}`, () => {
+      assert.equal(effectTypeToProperty(type), expected);
+    });
+  }
+});
+
+describe('ANI-71: ANIMATABLE_DEFAULTS includes new properties', () => {
+  const newProps = [
+    'text_replace_progress', 'caret_opacity', 'selection_start', 'selection_end',
+    'list_insert_progress', 'list_remove_progress', 'list_reorder_progress',
+    'counter_value', 'surface_shadow', 'surface_blur', 'background_bloom',
+  ];
+
+  for (const prop of newProps) {
+    it(`has ${prop}`, () => {
+      assert.ok(prop in ANIMATABLE_DEFAULTS, `ANIMATABLE_DEFAULTS should have ${prop}`);
+      assert.equal(ANIMATABLE_DEFAULTS[prop], 0);
+    });
+  }
+});
+
+describe('ANI-71: type_text emits caret alongside typewriter', () => {
+  const cmpMap = new Map([
+    ['cmp_search', { id: 'cmp_search', type: 'input_field', role: 'hero' }],
+  ]);
+
+  it('type_text produces typewriter + caret effects', () => {
+    const groups = interactionToGroup({
+      id: 'int_type', target: 'cmp_search', kind: 'type_text',
+      params: { text: 'hello' },
+    }, cmpMap, null);
+
+    assert.equal(groups.length, 1);
+    const effects = groups[0].effects;
+    assert.ok(effects.some(e => e.type === 'typewriter'), 'has typewriter');
+    assert.ok(effects.some(e => e.type === 'caret'), 'has caret');
+    // Caret should snap to 0 after typing
+    const caretEffects = effects.filter(e => e.type === 'caret');
+    const lastCaret = caretEffects[caretEffects.length - 1];
+    assert.equal(lastCaret.to, 0, 'caret snaps to 0 after typing');
+  });
+});
+
+describe('ANI-71: compileEffects — selection paired tracks', () => {
+  it('selection effect emits selection_start + selection_end tracks', () => {
+    const groups = [{
+      targets: ['layer_1'],
+      effects: [{
+        type: 'selection',
+        from_start: 0, to_start: 5,
+        from_end: 0, to_end: 10,
+        duration_ms: 600,
+        easing: 'ease_out',
+      }],
+    }];
+    const layerTracks = { layer_1: {} };
+    compileEffects(groups, layerTracks, {}, 60);
+
+    assert.ok(layerTracks.layer_1.selection_start, 'should have selection_start');
+    assert.ok(layerTracks.layer_1.selection_end, 'should have selection_end');
+    assert.equal(layerTracks.layer_1.selection_start[1].value, 5);
+    assert.equal(layerTracks.layer_1.selection_end[1].value, 10);
+  });
+});
+
+describe('ANI-71: compileEffects — surface effects compile to tracks', () => {
+  it('surface_shadow compiles to track', () => {
+    const groups = [{
+      targets: ['layer_1'],
+      effects: [
+        { type: 'surface_shadow', from: 0, to: 1, duration_ms: 400 },
+      ],
+    }];
+    const layerTracks = { layer_1: {} };
+    compileEffects(groups, layerTracks, {}, 60);
+
+    assert.ok(layerTracks.layer_1.surface_shadow, 'should have surface_shadow track');
+    assert.equal(layerTracks.layer_1.surface_shadow[0].value, 0);
+    assert.equal(layerTracks.layer_1.surface_shadow[1].value, 1);
+  });
+
+  it('surface_blur compiles to track', () => {
+    const groups = [{
+      targets: ['layer_1'],
+      effects: [
+        { type: 'surface_blur', from: 0, to: 8, duration_ms: 400 },
+      ],
+    }];
+    const layerTracks = { layer_1: {} };
+    compileEffects(groups, layerTracks, {}, 60);
+
+    assert.ok(layerTracks.layer_1.surface_blur, 'should have surface_blur track');
+    assert.equal(layerTracks.layer_1.surface_blur[1].value, 8);
+  });
+
+  it('background_bloom compiles to track', () => {
+    const groups = [{
+      targets: ['layer_1'],
+      effects: [
+        { type: 'background_bloom', from: 0, to: 1, duration_ms: 300 },
+      ],
+    }];
+    const layerTracks = { layer_1: {} };
+    compileEffects(groups, layerTracks, {}, 60);
+
+    assert.ok(layerTracks.layer_1.background_bloom, 'should have background_bloom track');
+    assert.equal(layerTracks.layer_1.background_bloom[1].value, 1);
   });
 });

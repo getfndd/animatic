@@ -21,6 +21,15 @@ import {
  * @param {object} props.assets - Asset lookup map
  * @param {React.ReactNode} props.children - Layer content (rendered by SceneComposition)
  */
+// Semantic property keys — extracted from interpolated values and passed
+// to children via cloneElement instead of being converted to CSS.
+const SEMANTIC_KEYS = [
+  'text_chars', 'text_replace_progress', 'caret_opacity',
+  'selection_start', 'selection_end',
+  'list_insert_progress', 'list_remove_progress', 'list_reorder_progress',
+  'counter_value',
+];
+
 export const TimelineLayer = ({ layer, tracks, children, style: parentStyle }) => {
   const frame = useCurrentFrame();
 
@@ -28,7 +37,14 @@ export const TimelineLayer = ({ layer, tracks, children, style: parentStyle }) =
   const values = interpolateAllTracks(tracks, frame);
 
   // Extract non-CSS semantic properties before CSS conversion
-  const textChars = values.text_chars;
+  const semanticValues = {};
+  let hasSemanticValues = false;
+  for (const key of SEMANTIC_KEYS) {
+    if (values[key] != null) {
+      semanticValues[key] = values[key];
+      hasSemanticValues = true;
+    }
+  }
 
   // Apply parallax scaling to translation values
   const parallaxFactor = getParallaxFactor(layer.depth_class);
@@ -58,16 +74,22 @@ export const TimelineLayer = ({ layer, tracks, children, style: parentStyle }) =
     transform: trackCSS.transform,
     filter: trackCSS.filter,
     ...(trackCSS.clipPath ? { clipPath: trackCSS.clipPath } : {}),
+    // Surface effect CSS
+    ...(trackCSS.boxShadow ? { boxShadow: trackCSS.boxShadow } : {}),
+    ...(trackCSS.backdropFilter ? { backdropFilter: trackCSS.backdropFilter } : {}),
     // SVG-specific CSS custom properties for inline SVG animation
     ...(trackCSS.svgProperties || {}),
     ...parentStyle,
   };
 
   // Pass semantic properties to children via cloneElement
-  const enrichedChildren = textChars != null
+  const enrichedChildren = hasSemanticValues
     ? React.Children.map(children, child =>
         React.isValidElement(child)
-          ? React.cloneElement(child, { textChars: Math.round(textChars) })
+          ? React.cloneElement(child, {
+              textChars: semanticValues.text_chars != null ? Math.round(semanticValues.text_chars) : undefined,
+              semanticValues,
+            })
           : child
       )
     : children;

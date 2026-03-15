@@ -1420,6 +1420,24 @@ export function trackValuesToCSS(values) {
     }
   }
 
+  // Surface effect properties
+  const boxShadows = [];
+  if (values.surface_shadow != null && values.surface_shadow > 0) {
+    const spread = Math.round(values.surface_shadow * 4);
+    const blur = Math.round(values.surface_shadow * 8);
+    boxShadows.push(`0 ${spread}px ${blur}px rgba(0,0,0,${(values.surface_shadow * 0.3).toFixed(2)})`);
+  }
+  if (values.background_bloom != null && values.background_bloom > 0) {
+    const bloomBlur = Math.round(values.background_bloom * 12);
+    boxShadows.push(`0 0 ${bloomBlur}px rgba(255,255,255,${(values.background_bloom * 0.4).toFixed(2)})`);
+  }
+  if (boxShadows.length > 0) {
+    style.boxShadow = boxShadows.join(', ');
+  }
+  if (values.surface_blur != null && values.surface_blur > 0) {
+    style.backdropFilter = `blur(${values.surface_blur}px)`;
+  }
+
   // SVG-specific properties — exposed as CSS custom properties
   // so inline SVG can reference them via var(--stroke-dashoffset) etc.
   const svgProps = {};

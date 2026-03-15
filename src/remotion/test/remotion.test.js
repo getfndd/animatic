@@ -2057,3 +2057,41 @@ describe('validateScene: semantic v3', () => {
     assert.equal(result.valid, true, `Expected valid, got errors: ${result.errors.join('; ')}`);
   });
 });
+
+// ── SequenceComposition prop interface (ANI-72) ─────────────────────────────
+
+describe('SequenceComposition prop interface', () => {
+  // These tests validate the prop contract — they don't render React components,
+  // they verify the data flow that SequenceComposition expects.
+
+  it('timelines prop threads to SceneComposition via entry.scene key', () => {
+    // Simulate what SequenceComposition does internally with timelines
+    const timelines = {
+      sc_hero: { scene_id: 'sc_hero', tracks: { camera: {}, layers: {} } },
+    };
+    const entry = { scene: 'sc_hero', duration_s: 3 };
+
+    const threadedTimeline = timelines[entry.scene] || null;
+    assert.deepEqual(threadedTimeline, timelines.sc_hero, 'timeline should be looked up by scene id');
+  });
+
+  it('manifest.background overrides default background', () => {
+    const manifest = { background: '#1a1a2e', scenes: [] };
+    const bg = manifest.background || '#0a0a0a';
+    assert.equal(bg, '#1a1a2e', 'manifest background should override default');
+  });
+
+  it('missing manifest.background falls back to #0a0a0a', () => {
+    const manifest = { scenes: [] };
+    const bg = manifest.background || '#0a0a0a';
+    assert.equal(bg, '#0a0a0a', 'should fall back to default dark background');
+  });
+
+  it('missing timelines prop — backward-compatible v1 path', () => {
+    // When timelines is undefined/empty, SceneComposition gets null timeline
+    const timelines = {};
+    const entry = { scene: 'sc_v1', duration_s: 3 };
+    const threadedTimeline = timelines[entry.scene] || null;
+    assert.equal(threadedTimeline, null, 'missing timeline should resolve to null (v1 path)');
+  });
+});

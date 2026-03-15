@@ -1236,6 +1236,47 @@ function applySemanticConstraints(groups, personality) {
   }
 }
 
+// ── Batch Compilation ────────────────────────────────────────────────────────
+
+/**
+ * Compile all scenes referenced by a sequence manifest.
+ *
+ * Deep-clones each scene before compilation (compileSemantic mutates in place),
+ * then runs compileMotion on the clone. Returns post-mutation sceneDefs
+ * (with generated layers) and the compiled timelines map.
+ *
+ * Duplicate scene references are compiled only once.
+ * Scenes without a matching definition are skipped.
+ * v1 scenes (no motion/semantic block) produce null timelines.
+ *
+ * @param {object} manifest - Sequence manifest with `scenes` array
+ * @param {object} sceneDefs - Scene definitions keyed by scene_id
+ * @param {object} [catalogs] - { recipes, primitives } for compiler
+ * @param {object} [options] - { personality?: string }
+ * @returns {{ sceneDefs: object, timelines: object }}
+ */
+export function compileAllScenes(manifest, sceneDefs, catalogs = {}, options = {}) {
+  const compiledSceneDefs = {};
+  const timelines = {};
+  const scenes = manifest.scenes || [];
+
+  for (const entry of scenes) {
+    const sceneId = entry.scene;
+    if (compiledSceneDefs[sceneId]) continue; // already compiled (duplicate refs)
+    const original = sceneDefs[sceneId];
+    if (!original) continue;
+
+    const scene = structuredClone(original);
+    const personality = options.personality || scene.personality;
+    const timeline = compileMotion(scene, catalogs, { personality });
+
+    compiledSceneDefs[sceneId] = scene;  // post-mutation (has generated layers)
+    if (timeline) timelines[sceneId] = timeline;
+  }
+
+  return { sceneDefs: compiledSceneDefs, timelines };
+}
+
 // ── Exports for testing ──────────────────────────────────────────────────────
 
 export {

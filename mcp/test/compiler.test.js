@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 
 import {
   compileMotion,
+  compileAllScenes,
   resolveRecipes,
   buildCueGraph,
   expandGroups,
@@ -1440,5 +1441,141 @@ describe('ANI-71: compileEffects — surface effects compile to tracks', () => {
 
     assert.ok(layerTracks.layer_1.background_bloom, 'should have background_bloom track');
     assert.equal(layerTracks.layer_1.background_bloom[1].value, 1);
+  });
+});
+
+// ── compileAllScenes — batch compilation for sequences (ANI-72) ─────────────
+
+describe('compileAllScenes', () => {
+  function makeV2Scene(id) {
+    return {
+      scene_id: id,
+      duration_s: 3,
+      fps: 60,
+      format_version: 2,
+      layers: [
+        { id: 'title', type: 'text', content: 'Hello' },
+      ],
+      motion: {
+        groups: [
+          { id: 'grp_title', targets: ['title'], primitive: 'fade_in', duration_ms: 600 },
+        ],
+        camera: { move: 'push_in', easing: 'ease-out' },
+      },
+    };
+  }
+
+  function makeV3Scene(id) {
+    return {
+      scene_id: id,
+      duration_s: 4,
+      fps: 60,
+      format_version: 3,
+      personality: 'cinematic-dark',
+      semantic: {
+        components: [
+          { id: 'cmp_hero', type: 'headline', role: 'hero' },
+        ],
+        interactions: [
+          { id: 'int_enter', target: 'cmp_hero', kind: 'entrance' },
+        ],
+      },
+    };
+  }
+
+  function makeV1Scene(id) {
+    return {
+      scene_id: id,
+      duration_s: 3,
+      layers: [
+        { id: 'bg', type: 'html', content: '<div>v1</div>' },
+      ],
+      camera: { move: 'static' },
+    };
+  }
+
+  function makeManifest(sceneEntries) {
+    return {
+      sequence_id: 'seq_test',
+      fps: 60,
+      scenes: sceneEntries,
+    };
+  }
+
+  it('compiles v2 scene and produces timeline', () => {
+    const manifest = makeManifest([{ scene: 'sc_a', duration_s: 3 }]);
+    const sceneDefs = { sc_a: makeV2Scene('sc_a') };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_a, 'compiled scene should exist');
+    assert.ok(timelines.sc_a, 'timeline should exist for v2 scene');
+    assert.equal(timelines.sc_a.scene_id, 'sc_a');
+    assert.ok(timelines.sc_a.tracks.layers, 'timeline should have layer tracks');
+  });
+
+  it('compiles v3 semantic scene — timeline + generated layers', () => {
+    const manifest = makeManifest([{ scene: 'sc_v3', duration_s: 4 }]);
+    const sceneDefs = { sc_v3: makeV3Scene('sc_v3') };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_v3, 'compiled scene should exist');
+    assert.ok(compiled.sc_v3.layers.length > 0, 'v3 scene should have generated layers');
+    assert.ok(timelines.sc_v3, 'timeline should exist for v3 scene');
+  });
+
+  it('v1 scene (no motion) — null timeline, sceneDef preserved', () => {
+    const manifest = makeManifest([{ scene: 'sc_v1', duration_s: 3 }]);
+    const sceneDefs = { sc_v1: makeV1Scene('sc_v1') };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_v1, 'compiled scene should exist');
+    assert.equal(timelines.sc_v1, undefined, 'v1 scene should have no timeline');
+    assert.deepEqual(compiled.sc_v1.layers, makeV1Scene('sc_v1').layers, 'v1 layers unchanged');
+  });
+
+  it('mixed manifest (v1 + v2 + v3) — correct timelines map', () => {
+    const manifest = makeManifest([
+      { scene: 'sc_v1', duration_s: 3 },
+      { scene: 'sc_v2', duration_s: 3 },
+      { scene: 'sc_v3', duration_s: 4 },
+    ]);
+    const sceneDefs = {
+      sc_v1: makeV1Scene('sc_v1'),
+      sc_v2: makeV2Scene('sc_v2'),
+      sc_v3: makeV3Scene('sc_v3'),
+    };
+    const { timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.equal(timelines.sc_v1, undefined, 'v1 should have no timeline');
+    assert.ok(timelines.sc_v2, 'v2 should have timeline');
+    assert.ok(timelines.sc_v3, 'v3 should have timeline');
+  });
+
+  it('duplicate scene_id — compiled only once', () => {
+    const manifest = makeManifest([
+      { scene: 'sc_a', duration_s: 3 },
+      { scene: 'sc_a', duration_s: 3 },
+    ]);
+    const v2 = makeV2Scene('sc_a');
+    const sceneDefs = { sc_a: v2 };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_a, 'scene compiled');
+    assert.ok(timelines.sc_a, 'timeline exists');
+    // Original should not be mutated (deep clone protects it)
+    assert.notEqual(compiled.sc_a, v2, 'should be a clone, not the original');
+  });
+
+  it('missing sceneDef — skipped gracefully', () => {
+    const manifest = makeManifest([
+      { scene: 'sc_exists', duration_s: 3 },
+      { scene: 'sc_missing', duration_s: 3 },
+    ]);
+    const sceneDefs = { sc_exists: makeV2Scene('sc_exists') };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_exists, 'existing scene compiled');
+    assert.equal(compiled.sc_missing, undefined, 'missing scene skipped');
+    assert.equal(timelines.sc_missing, undefined, 'no timeline for missing scene');
   });
 });

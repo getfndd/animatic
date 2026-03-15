@@ -13,6 +13,7 @@
 import { validateScene } from '../../src/remotion/lib.js';
 import { loadBriefTemplates, loadStylePacks, loadPersonalitiesCatalog, loadRecipes } from '../data/loader.js';
 import { isLLMAvailable, enhanceScenePlan, enrichSceneContent } from './llm.js';
+import { expandRecipe, lookupRecipe } from './interaction-recipes.js';
 
 // ── Load catalog data at module level ────────────────────────────────────────
 
@@ -948,48 +949,41 @@ export function attachSemanticBlock(scene, personality, planEntry) {
 }
 
 /**
+ * Build recipe-specific params from a plan entry.
+ */
+function buildRecipeParams(recipeId, planEntry) {
+  switch (recipeId) {
+    case 'type-and-complete':
+      return { text: planEntry.text || '', speed: 45 };
+    case 'fade-and-swap-prompt':
+      return { text: planEntry.text || '' };
+    case 'fan-and-settle-cards':
+      return {};
+    default:
+      return {};
+  }
+}
+
+/**
  * Build semantic interactions for a component type + intent combination.
+ * Tries recipe lookup first; falls back to inline interactions.
  */
 function buildSemanticInteractions(componentType, intentTags, components, planEntry) {
-  const interactions = [];
   const heroComponent = components.find(c => c.role === 'hero') || components[0];
   const targetId = heroComponent.id;
-  const isHero = intentTags.includes('hero') || intentTags.includes('opening');
-  const isClosing = intentTags.includes('closing');
+
+  // Try recipe lookup
+  const recipeId = lookupRecipe(componentType, intentTags);
+  if (recipeId) {
+    const params = buildRecipeParams(recipeId, planEntry);
+    return expandRecipe(recipeId, targetId, params);
+  }
+
+  // Fallback: inline interactions for unmapped combinations
+  const interactions = [];
 
   switch (componentType) {
-    case 'prompt_card': {
-      interactions.push({
-        id: `int_focus_${targetId}`,
-        target: targetId,
-        kind: 'focus',
-        timing: { at_ms: 0 },
-        on_complete: { emit: 'focused' },
-      });
-
-      if (isHero) {
-        // opening/hero → focus + type_text
-        interactions.push({
-          id: `int_type_${targetId}`,
-          target: targetId,
-          kind: 'type_text',
-          params: { text: planEntry.text || '', speed: 45 },
-          timing: { delay: { after: 'focused', offset_ms: 200 } },
-        });
-      } else if (isClosing) {
-        // closing → focus + pulse_focus
-        interactions.push({
-          id: `int_pulse_${targetId}`,
-          target: targetId,
-          kind: 'pulse_focus',
-          params: { count: 1 },
-          timing: { delay: { after: 'focused', offset_ms: 200 } },
-        });
-      }
-      // detail → focus only (already added)
-      break;
-    }
-
+    case 'prompt_card':
     case 'icon_label_row': {
       interactions.push({
         id: `int_focus_${targetId}`,
@@ -998,30 +992,15 @@ function buildSemanticInteractions(componentType, intentTags, components, planEn
         timing: { at_ms: 0 },
         on_complete: { emit: 'focused' },
       });
-      interactions.push({
-        id: `int_pulse_${targetId}`,
-        target: targetId,
-        kind: 'pulse_focus',
-        params: { count: 1 },
-        timing: { delay: { after: 'focused', offset_ms: 200 } },
-      });
-      break;
-    }
-
-    case 'stacked_cards': {
-      interactions.push({
-        id: `int_fan_${targetId}`,
-        target: targetId,
-        kind: 'fan_stack',
-        timing: { at_ms: 0 },
-        on_complete: { emit: 'fanned' },
-      });
-      interactions.push({
-        id: `int_settle_${targetId}`,
-        target: targetId,
-        kind: 'settle',
-        timing: { delay: { after: 'fanned', offset_ms: 200 } },
-      });
+      if (componentType === 'icon_label_row') {
+        interactions.push({
+          id: `int_pulse_${targetId}`,
+          target: targetId,
+          kind: 'pulse_focus',
+          params: { count: 1 },
+          timing: { delay: { after: 'focused', offset_ms: 200 } },
+        });
+      }
       break;
     }
   }

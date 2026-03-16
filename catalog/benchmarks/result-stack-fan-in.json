@@ -1,0 +1,57 @@
+{
+  "scene_id": "bench_result_stack_fan_in",
+  "duration_s": 5,
+  "fps": 60,
+  "format_version": 3,
+  "personality": "cinematic-dark",
+  "layers": [],
+  "semantic": {
+    "components": [
+      {
+        "id": "cmp_stack",
+        "type": "result_stack",
+        "role": "hero",
+        "props": { "items": ["Card 1", "Card 2", "Card 3", "Card 4"] }
+      },
+      {
+        "id": "cmp_prompt",
+        "type": "prompt_card",
+        "role": "supporting",
+        "props": { "placeholder": "Search results" }
+      }
+    ],
+    "interactions": [
+      {
+        "id": "int_focus_stack",
+        "target": "cmp_stack",
+        "kind": "focus",
+        "timing": { "at_ms": 0 },
+        "on_complete": { "emit": "focus_done" }
+      },
+      {
+        "id": "int_insert_stack",
+        "target": "cmp_stack",
+        "kind": "insert_items",
+        "params": { "items": ["Card 1", "Card 2", "Card 3", "Card 4"], "stagger_ms": 80 },
+        "timing": { "delay": { "after": "focus_done", "offset_ms": 200 } },
+        "on_complete": { "emit": "insert_done" }
+      },
+      {
+        "id": "int_fan_stack",
+        "target": "cmp_stack",
+        "kind": "fan_stack",
+        "timing": { "delay": { "after": "insert_done", "offset_ms": 200 } },
+        "on_complete": { "emit": "fan_done" }
+      },
+      {
+        "id": "int_settle_stack",
+        "target": "cmp_stack",
+        "kind": "settle",
+        "timing": { "delay": { "after": "fan_done", "offset_ms": 200 } }
+      }
+    ],
+    "camera_behavior": {
+      "mode": "reactive"
+    }
+  }
+}

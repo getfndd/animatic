@@ -1,0 +1,65 @@
+{
+  "scene_id": "bench_prompt_typing_hero",
+  "duration_s": 5,
+  "fps": 60,
+  "format_version": 3,
+  "personality": "cinematic-dark",
+  "layers": [],
+  "semantic": {
+    "components": [
+      {
+        "id": "cmp_prompt",
+        "type": "prompt_card",
+        "role": "hero",
+        "props": { "placeholder": "Ask anything..." }
+      },
+      {
+        "id": "cmp_results",
+        "type": "result_stack",
+        "role": "supporting",
+        "props": { "items": ["Result A", "Result B", "Result C"] }
+      }
+    ],
+    "interactions": [
+      {
+        "id": "int_focus_prompt",
+        "target": "cmp_prompt",
+        "kind": "focus",
+        "timing": { "at_ms": 0 },
+        "on_complete": { "emit": "focus_done" }
+      },
+      {
+        "id": "int_type_prompt",
+        "target": "cmp_prompt",
+        "kind": "type_text",
+        "params": { "text": "How does semantic motion work?", "speed": 45 },
+        "timing": { "delay": { "after": "focus_done", "offset_ms": 200 } },
+        "on_complete": { "emit": "type_done" }
+      },
+      {
+        "id": "int_settle_prompt",
+        "target": "cmp_prompt",
+        "kind": "settle",
+        "timing": { "delay": { "after": "type_done", "offset_ms": 400 } },
+        "on_complete": { "emit": "settle_done" }
+      },
+      {
+        "id": "int_insert_results",
+        "target": "cmp_results",
+        "kind": "insert_items",
+        "params": { "items": ["Result A", "Result B", "Result C"], "stagger_ms": 80 },
+        "timing": { "delay": { "after": "settle_done", "offset_ms": 200 } },
+        "on_complete": { "emit": "insert_done" }
+      },
+      {
+        "id": "int_settle_results",
+        "target": "cmp_results",
+        "kind": "settle",
+        "timing": { "delay": { "after": "insert_done", "offset_ms": 200 } }
+      }
+    ],
+    "camera_behavior": {
+      "mode": "reactive"
+    }
+  }
+}

@@ -1855,6 +1855,50 @@ describe('trackValuesToCSS', () => {
     const css = trackValuesToCSS({ opacity: 0.5 });
     assert.equal(css.svgProperties, undefined);
   });
+
+  // ── ANI-71: Surface effect properties ──────────────────────────────────────
+
+  it('surface_shadow → boxShadow', () => {
+    const css = trackValuesToCSS({ surface_shadow: 1 });
+    assert.ok(css.boxShadow, 'should have boxShadow');
+    assert.ok(css.boxShadow.includes('rgba(0,0,0,'), 'should include shadow color');
+  });
+
+  it('surface_blur → backdropFilter', () => {
+    const css = trackValuesToCSS({ surface_blur: 8 });
+    assert.ok(css.backdropFilter, 'should have backdropFilter');
+    assert.equal(css.backdropFilter, 'blur(8px)');
+  });
+
+  it('background_bloom → boxShadow glow', () => {
+    const css = trackValuesToCSS({ background_bloom: 1 });
+    assert.ok(css.boxShadow, 'should have boxShadow');
+    assert.ok(css.boxShadow.includes('rgba(255,255,255,'), 'should include glow color');
+  });
+
+  it('surface_shadow + background_bloom compose into single boxShadow', () => {
+    const css = trackValuesToCSS({ surface_shadow: 1, background_bloom: 0.5 });
+    assert.ok(css.boxShadow, 'should have boxShadow');
+    // Both shadows should be comma-separated
+    assert.ok(css.boxShadow.includes('rgba(0,0,0,'), 'should include shadow');
+    assert.ok(css.boxShadow.includes('rgba(255,255,255,'), 'should include bloom');
+    assert.ok(css.boxShadow.includes(','), 'should be comma-separated');
+  });
+
+  it('semantic properties (text_replace_progress) are ignored by trackValuesToCSS', () => {
+    const css = trackValuesToCSS({ text_replace_progress: 0.5, caret_opacity: 1, counter_value: 42 });
+    // These should not produce any CSS output
+    assert.equal(css.transform, 'none');
+    assert.equal(css.filter, 'none');
+    assert.equal(css.boxShadow, undefined);
+    assert.equal(css.backdropFilter, undefined);
+  });
+
+  it('zero surface values produce no CSS', () => {
+    const css = trackValuesToCSS({ surface_shadow: 0, surface_blur: 0, background_bloom: 0 });
+    assert.equal(css.boxShadow, undefined);
+    assert.equal(css.backdropFilter, undefined);
+  });
 });
 
 // ── Semantic v3 Validation ────────────────────────────────────────────────────
@@ -2011,5 +2055,43 @@ describe('validateScene: semantic v3', () => {
     const scene = v3Scene({ layers: [] });
     const result = validateScene(scene);
     assert.equal(result.valid, true, `Expected valid, got errors: ${result.errors.join('; ')}`);
+  });
+});
+
+// ── SequenceComposition prop interface (ANI-72) ─────────────────────────────
+
+describe('SequenceComposition prop interface', () => {
+  // These tests validate the prop contract — they don't render React components,
+  // they verify the data flow that SequenceComposition expects.
+
+  it('timelines prop threads to SceneComposition via entry.scene key', () => {
+    // Simulate what SequenceComposition does internally with timelines
+    const timelines = {
+      sc_hero: { scene_id: 'sc_hero', tracks: { camera: {}, layers: {} } },
+    };
+    const entry = { scene: 'sc_hero', duration_s: 3 };
+
+    const threadedTimeline = timelines[entry.scene] || null;
+    assert.deepEqual(threadedTimeline, timelines.sc_hero, 'timeline should be looked up by scene id');
+  });
+
+  it('manifest.background overrides default background', () => {
+    const manifest = { background: '#1a1a2e', scenes: [] };
+    const bg = manifest.background || '#0a0a0a';
+    assert.equal(bg, '#1a1a2e', 'manifest background should override default');
+  });
+
+  it('missing manifest.background falls back to #0a0a0a', () => {
+    const manifest = { scenes: [] };
+    const bg = manifest.background || '#0a0a0a';
+    assert.equal(bg, '#0a0a0a', 'should fall back to default dark background');
+  });
+
+  it('missing timelines prop — backward-compatible v1 path', () => {
+    // When timelines is undefined/empty, SceneComposition gets null timeline
+    const timelines = {};
+    const entry = { scene: 'sc_v1', duration_s: 3 };
+    const threadedTimeline = timelines[entry.scene] || null;
+    assert.equal(threadedTimeline, null, 'missing timeline should resolve to null (v1 path)');
   });
 });

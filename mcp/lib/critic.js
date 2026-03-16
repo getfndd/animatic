@@ -17,6 +17,8 @@
  * Pure deterministic analysis — no LLM calls, no side effects.
  */
 
+import { critiqueSemanticScene } from './semantic-critic.js';
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const DEAD_HOLD_THRESHOLD = 0.3;       // 30% of scene duration
@@ -88,7 +90,7 @@ const SEVERITY_DEDUCTIONS = {
 /**
  * Compute a 0-100 motion quality score from issues.
  */
-function computeScore(issues) {
+export function computeScore(issues) {
   let deduction = 0;
   for (const issue of issues) {
     deduction += SEVERITY_DEDUCTIONS[issue.severity] || 3;
@@ -99,7 +101,7 @@ function computeScore(issues) {
 /**
  * Build a one-line summary verdict.
  */
-function buildSummary(score, issues) {
+export function buildSummary(score, issues) {
   const errors = issues.filter(i => i.severity === ERROR).length;
   const warnings = issues.filter(i => i.severity === WARNING).length;
   const infos = issues.filter(i => i.severity === INFO).length;
@@ -437,6 +439,30 @@ function getAllKeyframes(tracks) {
     if (keyframes) all.push(...keyframes);
   }
   return all.sort((a, b) => a.frame - b.frame);
+}
+
+// ── Combined Orchestrator ────────────────────────────────────────────────────
+
+/**
+ * Critique a scene using both timeline and semantic analysis.
+ *
+ * Timeline analysis always runs. Semantic analysis only runs when
+ * scene.semantic exists. Issues are merged, score recomputed.
+ *
+ * @param {object} timeline - Compiled Level 2 timeline from compileMotion()
+ * @param {object} scene - Original scene definition (v2 or v3)
+ * @returns {{ score: number, issues: Array, summary: string }}
+ */
+export function critiqueScene(timeline, scene) {
+  const timelineResult = critiqueTimeline(timeline, scene);
+
+  if (!scene?.semantic) return timelineResult;
+
+  const semanticResult = critiqueSemanticScene(scene, timeline);
+  const allIssues = [...timelineResult.issues, ...semanticResult.issues];
+  const score = computeScore(allIssues);
+
+  return { score, issues: allIssues, summary: buildSummary(score, allIssues) };
 }
 
 // ── Exports ──────────────────────────────────────────────────────────────────

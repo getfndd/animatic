@@ -1,0 +1,58 @@
+{
+  "scene_id": "bench_progress_complete_micro",
+  "duration_s": 4,
+  "fps": 60,
+  "format_version": 3,
+  "personality": "neutral-light",
+  "layers": [],
+  "semantic": {
+    "components": [
+      {
+        "id": "cmp_status",
+        "type": "input_field",
+        "role": "hero",
+        "props": { "value": "Ready" }
+      },
+      {
+        "id": "cmp_icon",
+        "type": "icon_label_row",
+        "role": "supporting",
+        "props": { "label": "Status" }
+      }
+    ],
+    "interactions": [
+      {
+        "id": "int_focus_status",
+        "target": "cmp_status",
+        "kind": "focus",
+        "timing": { "at_ms": 0 },
+        "on_complete": { "emit": "focus_done" }
+      },
+      {
+        "id": "int_replace_uploading",
+        "target": "cmp_status",
+        "kind": "replace_text",
+        "params": { "text": "Uploading..." },
+        "timing": { "delay": { "after": "focus_done", "offset_ms": 200 } },
+        "on_complete": { "emit": "upload_done" }
+      },
+      {
+        "id": "int_replace_complete",
+        "target": "cmp_status",
+        "kind": "replace_text",
+        "params": { "text": "Complete" },
+        "timing": { "delay": { "after": "upload_done", "offset_ms": 1000 } },
+        "on_complete": { "emit": "complete_done" }
+      },
+      {
+        "id": "int_settle_status",
+        "target": "cmp_status",
+        "kind": "settle",
+        "timing": { "delay": { "after": "complete_done", "offset_ms": 200 } }
+      }
+    ],
+    "camera_behavior": {
+      "mode": "static"
+    }
+  }
+}

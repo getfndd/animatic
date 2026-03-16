@@ -11,7 +11,7 @@
  */
 
 import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar } from '../data/loader.js';
-import { critiqueTimeline } from './critic.js';
+import { critiqueScene } from './critic.js';
 
 // ── Load catalog data at module level ────────────────────────────────────────
 
@@ -897,7 +897,7 @@ export function scoreMotionRichness(sceneMap, timelineMap) {
       const sceneId = scene.scene_id || scene.id;
       const timeline = timelineMap.get(sceneId);
       if (timeline) {
-        const critique = critiqueTimeline(timeline, scene);
+        const critique = critiqueScene(timeline, scene);
         criticScoreSum += critique.score;
         criticCount++;
         for (const issue of critique.issues) {

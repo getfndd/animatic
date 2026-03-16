@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 
 import {
   compileMotion,
+  compileAllScenes,
   resolveRecipes,
   buildCueGraph,
   expandGroups,
@@ -925,17 +926,19 @@ describe('interactionToGroup', () => {
     assert.equal(dimEffect.to, 0.2, 'default dim is 0.2');
   });
 
-  it('replace_text → opacity crossfade', () => {
+  it('replace_text → text_replace + caret effects', () => {
     const groups = interactionToGroup({
       id: 'int_replace', target: 'cmp_search', kind: 'replace_text',
       params: { text: 'new text' },
     }, cmpMap, null);
 
     assert.equal(groups.length, 1);
-    const opEffects = groups[0].effects.filter(e => e.type === 'opacity');
-    assert.equal(opEffects.length, 2);
-    assert.equal(opEffects[0].to, 0); // fade out
-    assert.equal(opEffects[1].to, 1); // fade in
+    const replaceEffects = groups[0].effects.filter(e => e.type === 'text_replace');
+    assert.equal(replaceEffects.length, 1);
+    assert.equal(replaceEffects[0].from, 0);
+    assert.equal(replaceEffects[0].to, 1);
+    const caretEffects = groups[0].effects.filter(e => e.type === 'caret');
+    assert.ok(caretEffects.length >= 1, 'should have caret effects');
   });
 
   it('open_menu → translateY + opacity', () => {
@@ -947,7 +950,7 @@ describe('interactionToGroup', () => {
     assert.ok(groups[0].effects.some(e => e.type === 'translateY'));
     assert.ok(groups[0].effects.some(e => e.type === 'opacity'));
     const ty = groups[0].effects.find(e => e.type === 'translateY');
-    assert.equal(ty.from, -20);
+    assert.equal(ty.from, -30); // dropdown_menu override (was -20)
     assert.equal(ty.to, 0);
   });
 
@@ -959,7 +962,7 @@ describe('interactionToGroup', () => {
 
     assert.equal(groups.length, 1);
     assert.ok(groups[0].effects.some(e => e.type === 'opacity'));
-    assert.equal(groups[0].effects[0].duration_ms, 200);
+    assert.equal(groups[0].effects[0].duration_ms, 150); // dropdown_menu override (was 200)
   });
 
   it('insert_items → stagger group with correct interval', () => {
@@ -974,6 +977,10 @@ describe('interactionToGroup', () => {
     assert.equal(groups[0].targets.length, 3);
     assert.ok(groups[0].effects.some(e => e.type === 'translateY'));
     assert.ok(groups[0].effects.some(e => e.type === 'opacity'));
+    // result_stack override adds scale effect
+    const ty = groups[0].effects.find(e => e.type === 'translateY');
+    assert.equal(ty.from, 30); // result_stack override (was 20)
+    assert.ok(groups[0].effects.some(e => e.type === 'scale'), 'result_stack adds scale');
   });
 
   it('fan_stack → rotate + translateX per card', () => {
@@ -983,6 +990,7 @@ describe('interactionToGroup', () => {
     }, cmpMap, null);
 
     // Should have one group per card (3 items)
+    // stacked_cards override uses spread 20, but params.spread is ignored when override exists
     assert.equal(groups.length, 3);
     for (const g of groups) {
       assert.ok(g.effects.some(e => e.type === 'rotate'), 'has rotate');
@@ -998,7 +1006,7 @@ describe('interactionToGroup', () => {
     assert.equal(groups.length, 1);
     const scaleEffect = groups[0].effects.find(e => e.type === 'scale');
     assert.ok(scaleEffect);
-    assert.equal(scaleEffect.from, 1.05);
+    assert.equal(scaleEffect.from, 1.08); // stacked_cards override (was 1.05)
     assert.equal(scaleEffect.to, 1);
     assert.equal(scaleEffect.easing, 'spring');
   });
@@ -1009,6 +1017,7 @@ describe('interactionToGroup', () => {
     }, cmpMap, 'editorial');
 
     const scaleEffect = groups[0].effects.find(e => e.type === 'scale');
+    assert.equal(scaleEffect.from, 1.08); // stacked_cards override (was 1.05)
     assert.equal(scaleEffect.easing, 'ease_out');
   });
 
@@ -1053,6 +1062,52 @@ describe('interactionToGroup', () => {
     }, cmpMap, null);
 
     assert.deepEqual(groups[0].on_complete, { emit: 'typed' });
+  });
+
+  // ── State machine integration tests (ANI-76) ──────────────────────────────
+
+  it('prompt_card focus uses override values (scale 1.02, sibling dim 0.3)', () => {
+    const promptMap = makeComponentMap([
+      { id: 'cmp_prompt', type: 'prompt_card', role: 'hero' },
+      { id: 'cmp_other', type: 'icon_label_row', role: 'background' },
+    ]);
+    const groups = interactionToGroup({
+      id: 'int_focus', target: 'cmp_prompt', kind: 'focus',
+    }, promptMap, null);
+
+    assert.ok(groups.length >= 2, 'target + sibling dim');
+    const scaleTo = groups[0].effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleTo.to, 1.02, 'prompt_card uses 1.02 not 1.05');
+
+    const dimGroup = groups[1];
+    const dimEffect = dimGroup.effects.find(e => e.type === 'opacity');
+    assert.equal(dimEffect.to, 0.3, 'prompt_card sibling dim is 0.3');
+  });
+
+  it('component without machine uses default values', () => {
+    // cmp_search is input_field — no machine
+    const groups = interactionToGroup({
+      id: 'int_focus', target: 'cmp_search', kind: 'focus',
+    }, cmpMap, null);
+
+    const scaleTo = groups[0].effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleTo.to, 1.05, 'input_field uses default 1.05');
+
+    const dimGroup = groups[1];
+    const dimEffect = dimGroup.effects.find(e => e.type === 'opacity');
+    assert.equal(dimEffect.to, 0.2, 'default sibling dim is 0.2');
+  });
+
+  it('override + personality constraints compose correctly', () => {
+    // stacked_cards settle with editorial — override gives scale from 1.08, easing resolves to ease_out
+    const groups = interactionToGroup({
+      id: 'int_settle', target: 'cmp_cards', kind: 'settle',
+    }, cmpMap, 'editorial');
+
+    const scaleEffect = groups[0].effects.find(e => e.type === 'scale');
+    assert.equal(scaleEffect.from, 1.08, 'override value preserved');
+    assert.equal(scaleEffect.easing, 'ease_out', 'personality resolves null easing');
+    assert.equal(scaleEffect.duration_ms, 450, 'override duration preserved');
   });
 });
 
@@ -1259,5 +1314,268 @@ describe('v3 semantic → compileMotion integration', () => {
     assert.ok(result, 'should compile');
     // Should have tracks for both logo (v2) and semantic targets
     assert.ok(result.tracks.layers.logo, 'logo should have tracks from v2 group');
+  });
+});
+
+// ── ANI-71: Rich Semantic Timeline Tracks ──────────────────────────────────
+
+describe('ANI-71: effectTypeToProperty — new types', () => {
+  const cases = [
+    ['text_replace', 'text_replace_progress'],
+    ['caret', 'caret_opacity'],
+    ['selection', 'selection_start'],
+    ['list_insert', 'list_insert_progress'],
+    ['list_remove', 'list_remove_progress'],
+    ['list_reorder', 'list_reorder_progress'],
+    ['surface_shadow', 'surface_shadow'],
+    ['surface_blur', 'surface_blur'],
+    ['background_bloom', 'background_bloom'],
+    ['counter', 'counter_value'],
+  ];
+
+  for (const [type, expected] of cases) {
+    it(`${type} → ${expected}`, () => {
+      assert.equal(effectTypeToProperty(type), expected);
+    });
+  }
+});
+
+describe('ANI-71: ANIMATABLE_DEFAULTS includes new properties', () => {
+  const newProps = [
+    'text_replace_progress', 'caret_opacity', 'selection_start', 'selection_end',
+    'list_insert_progress', 'list_remove_progress', 'list_reorder_progress',
+    'counter_value', 'surface_shadow', 'surface_blur', 'background_bloom',
+  ];
+
+  for (const prop of newProps) {
+    it(`has ${prop}`, () => {
+      assert.ok(prop in ANIMATABLE_DEFAULTS, `ANIMATABLE_DEFAULTS should have ${prop}`);
+      assert.equal(ANIMATABLE_DEFAULTS[prop], 0);
+    });
+  }
+});
+
+describe('ANI-71: type_text emits caret alongside typewriter', () => {
+  const cmpMap = new Map([
+    ['cmp_search', { id: 'cmp_search', type: 'input_field', role: 'hero' }],
+  ]);
+
+  it('type_text produces typewriter + caret effects', () => {
+    const groups = interactionToGroup({
+      id: 'int_type', target: 'cmp_search', kind: 'type_text',
+      params: { text: 'hello' },
+    }, cmpMap, null);
+
+    assert.equal(groups.length, 1);
+    const effects = groups[0].effects;
+    assert.ok(effects.some(e => e.type === 'typewriter'), 'has typewriter');
+    assert.ok(effects.some(e => e.type === 'caret'), 'has caret');
+    // Caret should snap to 0 after typing
+    const caretEffects = effects.filter(e => e.type === 'caret');
+    const lastCaret = caretEffects[caretEffects.length - 1];
+    assert.equal(lastCaret.to, 0, 'caret snaps to 0 after typing');
+  });
+});
+
+describe('ANI-71: compileEffects — selection paired tracks', () => {
+  it('selection effect emits selection_start + selection_end tracks', () => {
+    const groups = [{
+      targets: ['layer_1'],
+      effects: [{
+        type: 'selection',
+        from_start: 0, to_start: 5,
+        from_end: 0, to_end: 10,
+        duration_ms: 600,
+        easing: 'ease_out',
+      }],
+    }];
+    const layerTracks = { layer_1: {} };
+    compileEffects(groups, layerTracks, {}, 60);
+
+    assert.ok(layerTracks.layer_1.selection_start, 'should have selection_start');
+    assert.ok(layerTracks.layer_1.selection_end, 'should have selection_end');
+    assert.equal(layerTracks.layer_1.selection_start[1].value, 5);
+    assert.equal(layerTracks.layer_1.selection_end[1].value, 10);
+  });
+});
+
+describe('ANI-71: compileEffects — surface effects compile to tracks', () => {
+  it('surface_shadow compiles to track', () => {
+    const groups = [{
+      targets: ['layer_1'],
+      effects: [
+        { type: 'surface_shadow', from: 0, to: 1, duration_ms: 400 },
+      ],
+    }];
+    const layerTracks = { layer_1: {} };
+    compileEffects(groups, layerTracks, {}, 60);
+
+    assert.ok(layerTracks.layer_1.surface_shadow, 'should have surface_shadow track');
+    assert.equal(layerTracks.layer_1.surface_shadow[0].value, 0);
+    assert.equal(layerTracks.layer_1.surface_shadow[1].value, 1);
+  });
+
+  it('surface_blur compiles to track', () => {
+    const groups = [{
+      targets: ['layer_1'],
+      effects: [
+        { type: 'surface_blur', from: 0, to: 8, duration_ms: 400 },
+      ],
+    }];
+    const layerTracks = { layer_1: {} };
+    compileEffects(groups, layerTracks, {}, 60);
+
+    assert.ok(layerTracks.layer_1.surface_blur, 'should have surface_blur track');
+    assert.equal(layerTracks.layer_1.surface_blur[1].value, 8);
+  });
+
+  it('background_bloom compiles to track', () => {
+    const groups = [{
+      targets: ['layer_1'],
+      effects: [
+        { type: 'background_bloom', from: 0, to: 1, duration_ms: 300 },
+      ],
+    }];
+    const layerTracks = { layer_1: {} };
+    compileEffects(groups, layerTracks, {}, 60);
+
+    assert.ok(layerTracks.layer_1.background_bloom, 'should have background_bloom track');
+    assert.equal(layerTracks.layer_1.background_bloom[1].value, 1);
+  });
+});
+
+// ── compileAllScenes — batch compilation for sequences (ANI-72) ─────────────
+
+describe('compileAllScenes', () => {
+  function makeV2Scene(id) {
+    return {
+      scene_id: id,
+      duration_s: 3,
+      fps: 60,
+      format_version: 2,
+      layers: [
+        { id: 'title', type: 'text', content: 'Hello' },
+      ],
+      motion: {
+        groups: [
+          { id: 'grp_title', targets: ['title'], primitive: 'fade_in', duration_ms: 600 },
+        ],
+        camera: { move: 'push_in', easing: 'ease-out' },
+      },
+    };
+  }
+
+  function makeV3Scene(id) {
+    return {
+      scene_id: id,
+      duration_s: 4,
+      fps: 60,
+      format_version: 3,
+      personality: 'cinematic-dark',
+      semantic: {
+        components: [
+          { id: 'cmp_hero', type: 'headline', role: 'hero' },
+        ],
+        interactions: [
+          { id: 'int_enter', target: 'cmp_hero', kind: 'entrance' },
+        ],
+      },
+    };
+  }
+
+  function makeV1Scene(id) {
+    return {
+      scene_id: id,
+      duration_s: 3,
+      layers: [
+        { id: 'bg', type: 'html', content: '<div>v1</div>' },
+      ],
+      camera: { move: 'static' },
+    };
+  }
+
+  function makeManifest(sceneEntries) {
+    return {
+      sequence_id: 'seq_test',
+      fps: 60,
+      scenes: sceneEntries,
+    };
+  }
+
+  it('compiles v2 scene and produces timeline', () => {
+    const manifest = makeManifest([{ scene: 'sc_a', duration_s: 3 }]);
+    const sceneDefs = { sc_a: makeV2Scene('sc_a') };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_a, 'compiled scene should exist');
+    assert.ok(timelines.sc_a, 'timeline should exist for v2 scene');
+    assert.equal(timelines.sc_a.scene_id, 'sc_a');
+    assert.ok(timelines.sc_a.tracks.layers, 'timeline should have layer tracks');
+  });
+
+  it('compiles v3 semantic scene — timeline + generated layers', () => {
+    const manifest = makeManifest([{ scene: 'sc_v3', duration_s: 4 }]);
+    const sceneDefs = { sc_v3: makeV3Scene('sc_v3') };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_v3, 'compiled scene should exist');
+    assert.ok(compiled.sc_v3.layers.length > 0, 'v3 scene should have generated layers');
+    assert.ok(timelines.sc_v3, 'timeline should exist for v3 scene');
+  });
+
+  it('v1 scene (no motion) — null timeline, sceneDef preserved', () => {
+    const manifest = makeManifest([{ scene: 'sc_v1', duration_s: 3 }]);
+    const sceneDefs = { sc_v1: makeV1Scene('sc_v1') };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_v1, 'compiled scene should exist');
+    assert.equal(timelines.sc_v1, undefined, 'v1 scene should have no timeline');
+    assert.deepEqual(compiled.sc_v1.layers, makeV1Scene('sc_v1').layers, 'v1 layers unchanged');
+  });
+
+  it('mixed manifest (v1 + v2 + v3) — correct timelines map', () => {
+    const manifest = makeManifest([
+      { scene: 'sc_v1', duration_s: 3 },
+      { scene: 'sc_v2', duration_s: 3 },
+      { scene: 'sc_v3', duration_s: 4 },
+    ]);
+    const sceneDefs = {
+      sc_v1: makeV1Scene('sc_v1'),
+      sc_v2: makeV2Scene('sc_v2'),
+      sc_v3: makeV3Scene('sc_v3'),
+    };
+    const { timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.equal(timelines.sc_v1, undefined, 'v1 should have no timeline');
+    assert.ok(timelines.sc_v2, 'v2 should have timeline');
+    assert.ok(timelines.sc_v3, 'v3 should have timeline');
+  });
+
+  it('duplicate scene_id — compiled only once', () => {
+    const manifest = makeManifest([
+      { scene: 'sc_a', duration_s: 3 },
+      { scene: 'sc_a', duration_s: 3 },
+    ]);
+    const v2 = makeV2Scene('sc_a');
+    const sceneDefs = { sc_a: v2 };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_a, 'scene compiled');
+    assert.ok(timelines.sc_a, 'timeline exists');
+    // Original should not be mutated (deep clone protects it)
+    assert.notEqual(compiled.sc_a, v2, 'should be a clone, not the original');
+  });
+
+  it('missing sceneDef — skipped gracefully', () => {
+    const manifest = makeManifest([
+      { scene: 'sc_exists', duration_s: 3 },
+      { scene: 'sc_missing', duration_s: 3 },
+    ]);
+    const sceneDefs = { sc_exists: makeV2Scene('sc_exists') };
+    const { sceneDefs: compiled, timelines } = compileAllScenes(manifest, sceneDefs);
+
+    assert.ok(compiled.sc_exists, 'existing scene compiled');
+    assert.equal(compiled.sc_missing, undefined, 'missing scene skipped');
+    assert.equal(timelines.sc_missing, undefined, 'no timeline for missing scene');
   });
 });

@@ -375,7 +375,7 @@ const HtmlFileLayer = ({ style, src }) => {
  * Used by TimelineLayer in v2 path. TimelineLayer handles positioning,
  * opacity, transform, and effects; LayerContent handles media rendering.
  */
-const LayerContent = ({ layer, assets, frame, fps, textChars }) => {
+const LayerContent = ({ layer, assets, frame, fps, textChars, semanticValues }) => {
   const asset = layer.asset ? assets[layer.asset] : null;
   const fillStyle = { width: '100%', height: '100%' };
 
@@ -407,11 +407,15 @@ const LayerContent = ({ layer, assets, frame, fps, textChars }) => {
       );
     }
     case 'text':
+      if (semanticValues?.text_chars != null) {
+        const totalChars = (layer.content || '').length;
+        return <TextLayer layer={layer} style={fillStyle} entrance={{ mode: 'typewriter', progress: totalChars > 0 ? semanticValues.text_chars / totalChars : 1 }} semanticValues={semanticValues} />;
+      }
       if (textChars != null) {
         const totalChars = (layer.content || '').length;
         return <TextLayer layer={layer} style={fillStyle} entrance={{ mode: 'typewriter', progress: totalChars > 0 ? textChars / totalChars : 1 }} />;
       }
-      return <TextLayer layer={layer} style={fillStyle} entrance={{ mode: 'style', opacity: 1, filter: 'none', transform: 'none' }} />;
+      return <TextLayer layer={layer} style={fillStyle} entrance={{ mode: 'style', opacity: 1, filter: 'none', transform: 'none' }} semanticValues={semanticValues} />;
     case 'html':
       if (layer.content) {
         return (

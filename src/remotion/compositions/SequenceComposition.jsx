@@ -16,7 +16,7 @@ import { getDefaultTransitionDuration, calculateLayout } from '../lib.js';
  * @param {object} props.manifest - Sequence manifest JSON
  * @param {object} props.sceneDefs - Scene definitions keyed by scene_id
  */
-export const SequenceComposition = ({ manifest, sceneDefs = {} }) => {
+export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }) => {
   const { fps } = useVideoConfig();
   const scenes = manifest.scenes || [];
 
@@ -30,7 +30,7 @@ export const SequenceComposition = ({ manifest, sceneDefs = {} }) => {
     : 0;
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#0a0a0a' }}>
+    <AbsoluteFill style={{ backgroundColor: manifest.background || '#0a0a0a' }}>
       {/* Global background audio track */}
       {manifest.audio?.src && (
         <Audio
@@ -81,7 +81,7 @@ export const SequenceComposition = ({ manifest, sceneDefs = {} }) => {
             >
               {/* Incoming transition wrapper (handles entrance from previous scene) */}
               <TransitionWrapper transition={transition} transitionFrames={transitionFrames}>
-                <SceneComposition scene={sceneWithOverrides} />
+                <SceneComposition scene={sceneWithOverrides} timeline={timelines[entry.scene] || null} />
               </TransitionWrapper>
             </TransitionOutWrapper>
 

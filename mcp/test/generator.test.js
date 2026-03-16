@@ -1066,7 +1066,7 @@ describe('attachSemanticBlock', () => {
     return { scene, planEntry };
   }
 
-  it('typography → prompt_card component + focus + type_text for hero intent', () => {
+  it('typography → prompt_card component + focus + type_text + settle for hero intent (recipe)', () => {
     const { scene, planEntry } = makeSceneWithPlan('typography', ['opening', 'hero']);
     const result = attachSemanticBlock(scene, 'cinematic-dark', planEntry);
     assert.equal(result, true);
@@ -1076,6 +1076,8 @@ describe('attachSemanticBlock', () => {
     assert.ok(cmp, 'should have prompt_card component');
     assert.ok(scene.semantic.interactions.some(i => i.kind === 'focus'));
     assert.ok(scene.semantic.interactions.some(i => i.kind === 'type_text'));
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'settle'));
+    assert.equal(scene.semantic.interactions.length, 3);
     const typeText = scene.semantic.interactions.find(i => i.kind === 'type_text');
     assert.equal(typeText.params.speed, 45);
   });
@@ -1088,13 +1090,12 @@ describe('attachSemanticBlock', () => {
     assert.ok(!scene.semantic.interactions.some(i => i.kind === 'pulse_focus'));
   });
 
-  it('typography closing → prompt_card + focus + pulse_focus', () => {
+  it('typography closing → prompt_card + replace_text + settle (fade-and-swap recipe)', () => {
     const { scene, planEntry } = makeSceneWithPlan('typography', ['closing']);
     attachSemanticBlock(scene, 'editorial', planEntry);
-    assert.ok(scene.semantic.interactions.some(i => i.kind === 'focus'));
-    assert.ok(scene.semantic.interactions.some(i => i.kind === 'pulse_focus'));
-    const pulse = scene.semantic.interactions.find(i => i.kind === 'pulse_focus');
-    assert.equal(pulse.params.count, 1);
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'replace_text'));
+    assert.ok(scene.semantic.interactions.some(i => i.kind === 'settle'));
+    assert.equal(scene.semantic.interactions.length, 2);
   });
 
   it('brand_mark → icon_label_row + focus + pulse_focus', () => {
@@ -1124,7 +1125,7 @@ describe('attachSemanticBlock', () => {
     assert.ok(scene.semantic.interactions.some(i => i.kind === 'focus'));
   });
 
-  it('collage → stacked_cards + fan_stack + settle', () => {
+  it('collage → stacked_cards + fan_stack + settle (fan-and-settle recipe)', () => {
     const planEntry = {
       label: 'Grid', text: '', emphasis: 'normal',
       content_type: 'collage', layout: 'masonry-grid',

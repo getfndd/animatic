@@ -14,6 +14,8 @@
  */
 
 import { resolveEntrancePrimitive, CAMERA_CONSTANTS } from '../../src/remotion/lib.js';
+import { resolveStateOverrides } from './state-machines.js';
+import { resolveComponentLayout } from './layout-constraints.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -47,6 +49,31 @@ const ANIMATABLE_DEFAULTS = {
   path_length: 0,
   // Text-specific properties
   text_chars: 0,
+  text_replace_progress: 0,
+  caret_opacity: 0,
+  selection_start: 0,
+  selection_end: 0,
+  // List-specific properties
+  list_insert_progress: 0,
+  list_remove_progress: 0,
+  list_reorder_progress: 0,
+  // Counter properties
+  counter_value: 0,
+  // Surface effect properties
+  surface_shadow: 0,
+  surface_blur: 0,
+  background_bloom: 0,
+  // Compositing properties (ANI-75)
+  shadow_offset_x: 0,
+  shadow_offset_y: 0,
+  shadow_blur_radius: 0,
+  shadow_spread: 0,
+  shadow_opacity: 0,
+  inner_glow_spread: 0,
+  inner_glow_opacity: 0,
+  mask_gradient_start: 0,
+  mask_gradient_end: 1,
+  mask_gradient_angle: 180,
 };
 
 // ── Main Entry Point ─────────────────────────────────────────────────────────
@@ -606,6 +633,25 @@ function compileEffects(groups, layerTracks, cues, fps) {
       const endFrame = startFrame + durationFrames;
       const easing = primitiveEasingToCubicBezier(effect.easing || 'ease_out');
 
+      // Selection emits paired tracks (selection_start + selection_end)
+      if (effect.type === 'selection') {
+        const startTrack = [
+          { frame: startFrame, value: effect.from_start ?? 0 },
+          { frame: endFrame, value: effect.to_start ?? 0, easing },
+        ];
+        const endTrack = [
+          { frame: startFrame, value: effect.from_end ?? 0 },
+          { frame: endFrame, value: effect.to_end ?? 0, easing },
+        ];
+        for (const targetId of targets) {
+          layerTracks[targetId] = mergeTracksInto(layerTracks[targetId] || {}, {
+            selection_start: startTrack,
+            selection_end: endTrack,
+          });
+        }
+        continue;
+      }
+
       const track = [
         { frame: startFrame, value: effect.from },
         { frame: endFrame, value: effect.to, easing },
@@ -641,6 +687,30 @@ function effectTypeToProperty(type) {
     case 'stroke_opacity': return 'stroke_opacity';
     // Text-specific effect types
     case 'typewriter': return 'text_chars';
+    case 'text_replace': return 'text_replace_progress';
+    case 'caret': return 'caret_opacity';
+    case 'selection': return 'selection_start'; // paired track, see compileEffects
+    // List-specific effect types
+    case 'list_insert': return 'list_insert_progress';
+    case 'list_remove': return 'list_remove_progress';
+    case 'list_reorder': return 'list_reorder_progress';
+    // Surface effect types
+    case 'surface_shadow': return 'surface_shadow';
+    case 'surface_blur': return 'surface_blur';
+    case 'background_bloom': return 'background_bloom';
+    // Compositing effect types (ANI-75)
+    case 'shadow_offset_x': return 'shadow_offset_x';
+    case 'shadow_offset_y': return 'shadow_offset_y';
+    case 'shadow_blur_radius': return 'shadow_blur_radius';
+    case 'shadow_spread': return 'shadow_spread';
+    case 'shadow_opacity': return 'shadow_opacity';
+    case 'inner_glow_spread': return 'inner_glow_spread';
+    case 'inner_glow_opacity': return 'inner_glow_opacity';
+    case 'mask_gradient_start': return 'mask_gradient_start';
+    case 'mask_gradient_end': return 'mask_gradient_end';
+    case 'mask_gradient_angle': return 'mask_gradient_angle';
+    // Counter effect type
+    case 'counter': return 'counter_value';
     // Pass-through property types (used by semantic compiler)
     case 'opacity': return 'opacity';
     case 'translateX': return 'translateX';
@@ -771,6 +841,14 @@ function compileSemantic(scene, options = {}) {
   // Semantic groups come first, then explicit groups (explicit take precedence on cue conflicts)
   const existingGroups = scene.motion.groups || [];
   scene.motion.groups = [...semanticGroups, ...existingGroups];
+
+  // Step 6: Resolve layout constraints → layer positions (ANI-74)
+  const positionMap = resolveComponentLayout(components, 1920, 1080);
+  for (const [cmpId, pos] of positionMap) {
+    const layerId = componentMap.get(cmpId)?.layer_ref || cmpId;
+    const layer = scene.layers.find(l => l.id === layerId);
+    if (layer) layer.position = pos;
+  }
 }
 
 /**
@@ -796,6 +874,111 @@ function interactionToGroup(interaction, componentMap, personality, fps = 60) {
     ...timingFields,
     ...(on_complete ? { on_complete } : {}),
   };
+
+  // ── Component-local state machine overrides (ANI-76) ───────────────────
+  const override = resolveStateOverrides(component?.type, kind, params);
+
+  if (override && kind === 'fan_stack') {
+    // fan_stack special path: use override spread/easing but keep per-card loop
+    const spread = override.fan_spread || params.spread || 15;
+    const fanEasing = override.fan_easing || 'spring';
+    const dur = duration_ms || 600;
+    const items = component?.props?.items || [];
+    const count = Math.max(items.length, 3);
+    const itemTargets = Array.from({ length: count }, (_, i) => `${layerId}_card_${i}`);
+
+    const groups = [];
+    for (let i = 0; i < count; i++) {
+      const centerOffset = i - (count - 1) / 2;
+      const angle = centerOffset * (spread / (count - 1 || 1));
+      const tx = centerOffset * 30;
+      groups.push({
+        id: `${id}_card_${i}`,
+        targets: [itemTargets[i]],
+        ...timingFields,
+        effects: [
+          { type: 'rotate', from: 0, to: angle, duration_ms: dur, easing: fanEasing },
+          { type: 'translateX', from: 0, to: tx, duration_ms: dur, easing: fanEasing },
+        ],
+      });
+    }
+    if (on_complete && groups.length > 0) {
+      groups[groups.length - 1].on_complete = on_complete;
+      for (let i = 0; i < groups.length - 1; i++) {
+        delete groups[i].on_complete;
+      }
+    }
+    return groups;
+  }
+
+  if (override && override.effects) {
+    // Resolve null easing to personality default
+    const defaultEasing = personality === 'cinematic-dark' ? 'spring' : 'ease_out';
+    const effects = override.effects.map(e => ({
+      ...e,
+      easing: e.easing === null ? defaultEasing : e.easing,
+    }));
+
+    // Use override duration if provided, else interaction-level, else effect-level
+    const dur = duration_ms || override.duration_ms;
+    if (dur) {
+      for (const e of effects) {
+        // Scale effect durations proportionally if override has a base duration
+        if (override.duration_ms && e.duration_ms) {
+          const ratio = e.duration_ms / override.duration_ms;
+          e.duration_ms = Math.round(dur * ratio);
+          if (e.delay_ms != null) {
+            e.delay_ms = Math.round(dur * (e.delay_ms / override.duration_ms));
+          }
+        }
+      }
+    }
+
+    if (kind === 'focus') {
+      // Focus path: build target group + sibling dim group
+      const groups = [{ ...baseGroup, effects }];
+
+      const siblingIds = [];
+      for (const [cmpId, cmp] of componentMap) {
+        if (cmpId !== target) {
+          siblingIds.push(cmp.layer_ref || cmpId);
+        }
+      }
+      if (siblingIds.length > 0) {
+        const dimOpacity = override.sibling_dim_opacity != null
+          ? override.sibling_dim_opacity
+          : (personality === 'editorial' ? 0.4 : 0.2);
+        const halfDur = (dur || 300) / 2;
+        groups.push({
+          id: `${id}_sibling_dim`,
+          targets: siblingIds,
+          ...timingFields,
+          effects: [
+            { type: 'opacity', from: 1, to: dimOpacity, duration_ms: halfDur, easing: defaultEasing },
+            { type: 'opacity', from: dimOpacity, to: 1, duration_ms: halfDur, delay_ms: halfDur, easing: defaultEasing },
+          ],
+        });
+      }
+      return groups;
+    }
+
+    if (kind === 'insert_items') {
+      // insert_items path: keep stagger structure, use override effects
+      const items = params.items || [];
+      const staggerMs = params.stagger_ms || 120;
+      const itemTargets = items.map((_, i) => `${layerId}_item_${i}`);
+      return [{
+        ...baseGroup,
+        targets: itemTargets.length > 0 ? itemTargets : [layerId],
+        stagger: { interval_ms: staggerMs, order: 'sequential' },
+        effects,
+      }];
+    }
+
+    // Generic override path (settle, open_menu, select_item, etc.)
+    return [{ ...baseGroup, effects }];
+  }
+  // ── End state machine overrides ────────────────────────────────────────
 
   switch (kind) {
     case 'focus': {
@@ -841,6 +1024,8 @@ function interactionToGroup(interaction, componentMap, personality, fps = 60) {
         ...baseGroup,
         effects: [
           { type: 'typewriter', from: 0, to: text.length, duration_ms: dur, easing: 'linear' },
+          { type: 'caret', from: 1, to: 1, duration_ms: dur, easing: 'linear' },
+          { type: 'caret', from: 1, to: 0, duration_ms: 1, delay_ms: dur, easing: 'linear' },
         ],
       }];
     }
@@ -850,8 +1035,9 @@ function interactionToGroup(interaction, componentMap, personality, fps = 60) {
       return [{
         ...baseGroup,
         effects: [
-          { type: 'opacity', from: 1, to: 0, duration_ms: dur / 2, easing: 'ease_out' },
-          { type: 'opacity', from: 0, to: 1, duration_ms: dur / 2, delay_ms: dur / 2, easing: 'ease_out' },
+          { type: 'text_replace', from: 0, to: 1, duration_ms: dur, easing: 'ease_out' },
+          { type: 'caret', from: 1, to: 1, duration_ms: dur, easing: 'linear' },
+          { type: 'caret', from: 1, to: 0, duration_ms: 1, delay_ms: dur, easing: 'linear' },
         ],
       }];
     }
@@ -1049,10 +1235,20 @@ function applySemanticConstraints(groups, personality) {
           if (effect.type === 'rotate' && Math.abs(effect.to) > 10) {
             effect.to = Math.sign(effect.to) * 10;
           }
+          // Cap shadow_opacity at 0.1 for editorial
+          if (effect.type === 'shadow_opacity' && effect.to > 0.1) {
+            effect.to = 0.1;
+          }
         }
         break;
 
       case 'neutral-light':
+        // Strip shadow and glow effects for neutral-light
+        group.effects = group.effects.filter(e =>
+          !['shadow_offset_x', 'shadow_offset_y', 'shadow_blur_radius',
+            'shadow_spread', 'shadow_opacity', 'inner_glow_spread',
+            'inner_glow_opacity'].includes(e.type)
+        );
         for (const effect of group.effects) {
           // fan_stack → slide fallback: convert rotate to translateX
           if (effect.type === 'rotate') {
@@ -1079,6 +1275,47 @@ function applySemanticConstraints(groups, personality) {
         break;
     }
   }
+}
+
+// ── Batch Compilation ────────────────────────────────────────────────────────
+
+/**
+ * Compile all scenes referenced by a sequence manifest.
+ *
+ * Deep-clones each scene before compilation (compileSemantic mutates in place),
+ * then runs compileMotion on the clone. Returns post-mutation sceneDefs
+ * (with generated layers) and the compiled timelines map.
+ *
+ * Duplicate scene references are compiled only once.
+ * Scenes without a matching definition are skipped.
+ * v1 scenes (no motion/semantic block) produce null timelines.
+ *
+ * @param {object} manifest - Sequence manifest with `scenes` array
+ * @param {object} sceneDefs - Scene definitions keyed by scene_id
+ * @param {object} [catalogs] - { recipes, primitives } for compiler
+ * @param {object} [options] - { personality?: string }
+ * @returns {{ sceneDefs: object, timelines: object }}
+ */
+export function compileAllScenes(manifest, sceneDefs, catalogs = {}, options = {}) {
+  const compiledSceneDefs = {};
+  const timelines = {};
+  const scenes = manifest.scenes || [];
+
+  for (const entry of scenes) {
+    const sceneId = entry.scene;
+    if (compiledSceneDefs[sceneId]) continue; // already compiled (duplicate refs)
+    const original = sceneDefs[sceneId];
+    if (!original) continue;
+
+    const scene = structuredClone(original);
+    const personality = options.personality || scene.personality;
+    const timeline = compileMotion(scene, catalogs, { personality });
+
+    compiledSceneDefs[sceneId] = scene;  // post-mutation (has generated layers)
+    if (timeline) timelines[sceneId] = timeline;
+  }
+
+  return { sceneDefs: compiledSceneDefs, timelines };
 }
 
 // ── Exports for testing ──────────────────────────────────────────────────────

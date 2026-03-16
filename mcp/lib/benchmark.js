@@ -9,7 +9,7 @@
  */
 
 import { compileMotion } from './compiler.js';
-import { critiqueTimeline } from './critic.js';
+import { critiqueScene } from './critic.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -89,7 +89,7 @@ function runSingleBenchmark(scene, catalogs) {
   result.orphanLayers = layerIds.filter(id => !trackedIds.includes(id));
 
   // Step 3: Run critic
-  const critique = critiqueTimeline(timeline, scene);
+  const critique = critiqueScene(timeline, scene);
   result.score = critique.score;
   result.issues = critique.issues;
 

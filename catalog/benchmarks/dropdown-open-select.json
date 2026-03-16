@@ -1,0 +1,57 @@
+{
+  "scene_id": "bench_dropdown_open_select",
+  "duration_s": 4,
+  "fps": 60,
+  "format_version": 3,
+  "personality": "editorial",
+  "layers": [],
+  "semantic": {
+    "components": [
+      {
+        "id": "cmp_dropdown",
+        "type": "dropdown_menu",
+        "role": "hero",
+        "props": { "items": ["Option A", "Option B", "Option C"] }
+      },
+      {
+        "id": "cmp_input",
+        "type": "input_field",
+        "role": "supporting",
+        "props": { "placeholder": "Search..." }
+      }
+    ],
+    "interactions": [
+      {
+        "id": "int_focus_dropdown",
+        "target": "cmp_dropdown",
+        "kind": "focus",
+        "timing": { "at_ms": 0 },
+        "on_complete": { "emit": "focus_done" }
+      },
+      {
+        "id": "int_open_dropdown",
+        "target": "cmp_dropdown",
+        "kind": "open_menu",
+        "timing": { "delay": { "after": "focus_done", "offset_ms": 200 } },
+        "on_complete": { "emit": "open_done" }
+      },
+      {
+        "id": "int_select_dropdown",
+        "target": "cmp_dropdown",
+        "kind": "select_item",
+        "params": { "index": 1 },
+        "timing": { "delay": { "after": "open_done", "offset_ms": 400 } },
+        "on_complete": { "emit": "select_done" }
+      },
+      {
+        "id": "int_settle_dropdown",
+        "target": "cmp_dropdown",
+        "kind": "settle",
+        "timing": { "delay": { "after": "select_done", "offset_ms": 200 } }
+      }
+    ],
+    "camera_behavior": {
+      "mode": "ambient"
+    }
+  }
+}

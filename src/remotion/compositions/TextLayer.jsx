@@ -22,7 +22,7 @@ import {
  * @param {object} props.style - Container style from SceneLayer (entrance, blend, position)
  * @param {object} props.entrance - Resolved entrance primitive state
  */
-export const TextLayer = ({ layer, style, entrance }) => {
+export const TextLayer = ({ layer, style, entrance, semanticValues }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, height } = useVideoConfig();
 
@@ -44,8 +44,10 @@ export const TextLayer = ({ layer, style, entrance }) => {
 
   const content = layer.content || '';
 
-  if (entrance?.mode === 'typewriter') {
+  // Timeline-driven text replace
+  if (semanticValues?.text_replace_progress != null) {
     const align = textStyle.textAlign || 'center';
+    const caretOpacity = semanticValues.caret_opacity ?? null;
     return (
       <div style={{
         ...style,
@@ -54,7 +56,29 @@ export const TextLayer = ({ layer, style, entrance }) => {
         justifyContent: align === 'left' ? 'flex-start' : 'center',
         padding: align === 'left' ? '0 0 4px 4px' : 0,
       }}>
-        <TypewriterRenderer content={content} progress={entrance.progress} textStyle={textStyle} />
+        <TextReplaceRenderer
+          oldContent={layer.replace_from || content}
+          newContent={layer.replace_to || content}
+          progress={semanticValues.text_replace_progress}
+          caretOpacity={caretOpacity}
+          textStyle={textStyle}
+        />
+      </div>
+    );
+  }
+
+  if (entrance?.mode === 'typewriter') {
+    const align = textStyle.textAlign || 'center';
+    const caretOpacity = semanticValues?.caret_opacity ?? null;
+    return (
+      <div style={{
+        ...style,
+        display: 'flex',
+        alignItems: align === 'left' ? 'flex-end' : 'center',
+        justifyContent: align === 'left' ? 'flex-start' : 'center',
+        padding: align === 'left' ? '0 0 4px 4px' : 0,
+      }}>
+        <TypewriterRenderer content={content} progress={entrance.progress} textStyle={textStyle} caretOpacity={caretOpacity} />
       </div>
     );
   }
@@ -98,16 +122,44 @@ export const TextLayer = ({ layer, style, entrance }) => {
   }
 };
 
-const TypewriterRenderer = ({ content, progress, textStyle }) => {
+const TypewriterRenderer = ({ content, progress, textStyle, caretOpacity }) => {
   const totalChars = content.length;
   const visibleChars = Math.max(0, Math.min(totalChars, Math.round(totalChars * progress)));
   const visibleText = content.slice(0, visibleChars);
-  const cursorVisible = progress < 1 && Math.floor(progress * 16) % 2 === 0;
+
+  // Use timeline-driven caret opacity when available, otherwise fall back to blink logic
+  const cursorVisible = caretOpacity != null
+    ? caretOpacity > 0
+    : (progress < 1 && Math.floor(progress * 16) % 2 === 0);
+  const cursorOpacity = caretOpacity != null ? caretOpacity : 0.8;
 
   return (
     <span style={{ ...textStyle, whiteSpace: 'pre-wrap' }}>
       {visibleText}
-      {cursorVisible && <span style={{ opacity: 0.8 }}>|</span>}
+      {cursorVisible && <span style={{ opacity: cursorOpacity }}>|</span>}
+    </span>
+  );
+};
+
+/**
+ * TextReplaceRenderer — Cross-fades old text to new text using text_replace_progress.
+ *
+ * progress < 0.5: old text fading out (opacity 1 → 0)
+ * progress >= 0.5: new text fading in (opacity 0 → 1)
+ */
+const TextReplaceRenderer = ({ oldContent, newContent, progress, caretOpacity, textStyle }) => {
+  const isFirstHalf = progress < 0.5;
+  const displayText = isFirstHalf ? oldContent : newContent;
+  const textOpacity = isFirstHalf
+    ? 1 - (progress * 2)   // 1 → 0 over first half
+    : (progress - 0.5) * 2; // 0 → 1 over second half
+
+  const showCaret = caretOpacity != null && caretOpacity > 0;
+
+  return (
+    <span style={{ ...textStyle, whiteSpace: 'pre-wrap' }}>
+      <span style={{ opacity: textOpacity }}>{displayText}</span>
+      {showCaret && <span style={{ opacity: caretOpacity }}>|</span>}
     </span>
   );
 };

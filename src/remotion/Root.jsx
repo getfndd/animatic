@@ -98,6 +98,7 @@ export const RemotionRoot = () => {
             audio: null,
           },
           sceneDefs: {},
+          timelines: {},
         }}
       />
     </>

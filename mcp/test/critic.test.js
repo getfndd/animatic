@@ -12,6 +12,9 @@ import assert from 'node:assert/strict';
 
 import {
   critiqueTimeline,
+  critiqueScene,
+  computeScore,
+  buildSummary,
   detectDeadHolds,
   detectFlatMotion,
   detectMissingHierarchy,
@@ -521,6 +524,90 @@ describe('clean timeline scoring', () => {
     const result = critiqueTimeline(timeline, scene);
 
     assert.ok(result.score >= 80, `expected score >= 80, got ${result.score}`);
+  });
+});
+
+// ── critiqueScene — combined orchestrator ─────────────────────────────────────
+
+describe('critiqueScene', () => {
+  it('v2 scene delegates to critiqueTimeline only', () => {
+    const layers = {
+      title: {
+        opacity: [
+          { frame: 0, value: 0 },
+          { frame: 36, value: 1, easing: 'cubic-bezier(0.16,1,0.3,1)' },
+        ],
+      },
+    };
+    const scene = makeScene([
+      { id: 'title', type: 'text', depth_class: 'foreground' },
+    ]);
+    const timeline = makeTimeline(layers, {}, 240);
+
+    const combined = critiqueScene(timeline, scene);
+    const baseline = critiqueTimeline(timeline, scene);
+
+    assert.equal(combined.score, baseline.score);
+    assert.equal(combined.issues.length, baseline.issues.length);
+  });
+
+  it('v3 scene merges timeline + semantic issues', () => {
+    const layers = {
+      cmp_0: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 24, value: 1 }],
+      },
+      cmp_1: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 24, value: 1 }],
+      },
+    };
+    const scene = {
+      scene_id: 'sc_test',
+      duration_s: 4,
+      fps: 60,
+      layers: [
+        { id: 'cmp_0', type: 'html', depth_class: 'foreground' },
+        { id: 'cmp_1', type: 'html', depth_class: 'midground' },
+      ],
+      semantic: {
+        components: [
+          { id: 'cmp_0', type: 'prompt_card', role: 'supporting' },
+          { id: 'cmp_1', type: 'result_stack', role: 'supporting' },
+        ],
+        interactions: [],
+      },
+    };
+    const timeline = makeTimeline(layers, {}, 240);
+
+    const result = critiqueScene(timeline, scene);
+    // Should have timeline issues (flat_motion) + semantic issues (missing_focal)
+    const rules = result.issues.map(i => i.rule);
+    assert.ok(rules.includes('flat_motion'), 'should include timeline issue');
+    assert.ok(rules.includes('semantic_missing_focal'), 'should include semantic issue');
+  });
+
+  it('recomputes score from combined issues', () => {
+    const scene = {
+      scene_id: 'sc_test',
+      duration_s: 4,
+      fps: 60,
+      layers: [],
+      semantic: {
+        components: [
+          { id: 'cmp_0', type: 'prompt_card', role: 'supporting' },
+          { id: 'cmp_1', type: 'result_stack', role: 'supporting' },
+        ],
+        interactions: [
+          { id: 'int_0', target: 'cmp_0', kind: 'type_text', timing: { at_ms: 0 }, params: { speed: 10 } },
+        ],
+      },
+    };
+    const timeline = makeTimeline({}, {}, 240);
+
+    const result = critiqueScene(timeline, scene);
+    // Score should reflect deductions from semantic issues
+    assert.ok(result.score < 100, 'score should be reduced');
+    const expectedScore = computeScore(result.issues);
+    assert.equal(result.score, expectedScore, 'score should match recomputed value');
   });
 });
 

@@ -77,6 +77,8 @@ export const TimelineLayer = ({ layer, tracks, children, style: parentStyle }) =
     // Surface effect CSS
     ...(trackCSS.boxShadow ? { boxShadow: trackCSS.boxShadow } : {}),
     ...(trackCSS.backdropFilter ? { backdropFilter: trackCSS.backdropFilter } : {}),
+    // Gradient mask (ANI-75)
+    ...(trackCSS.maskImage ? { maskImage: trackCSS.maskImage, WebkitMaskImage: trackCSS.WebkitMaskImage } : {}),
     // SVG-specific CSS custom properties for inline SVG animation
     ...(trackCSS.svgProperties || {}),
     ...parentStyle,

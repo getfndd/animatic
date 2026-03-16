@@ -15,6 +15,7 @@
 
 import { resolveEntrancePrimitive, CAMERA_CONSTANTS } from '../../src/remotion/lib.js';
 import { resolveStateOverrides } from './state-machines.js';
+import { resolveComponentLayout } from './layout-constraints.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -62,6 +63,17 @@ const ANIMATABLE_DEFAULTS = {
   surface_shadow: 0,
   surface_blur: 0,
   background_bloom: 0,
+  // Compositing properties (ANI-75)
+  shadow_offset_x: 0,
+  shadow_offset_y: 0,
+  shadow_blur_radius: 0,
+  shadow_spread: 0,
+  shadow_opacity: 0,
+  inner_glow_spread: 0,
+  inner_glow_opacity: 0,
+  mask_gradient_start: 0,
+  mask_gradient_end: 1,
+  mask_gradient_angle: 180,
 };
 
 // ── Main Entry Point ─────────────────────────────────────────────────────────
@@ -686,6 +698,17 @@ function effectTypeToProperty(type) {
     case 'surface_shadow': return 'surface_shadow';
     case 'surface_blur': return 'surface_blur';
     case 'background_bloom': return 'background_bloom';
+    // Compositing effect types (ANI-75)
+    case 'shadow_offset_x': return 'shadow_offset_x';
+    case 'shadow_offset_y': return 'shadow_offset_y';
+    case 'shadow_blur_radius': return 'shadow_blur_radius';
+    case 'shadow_spread': return 'shadow_spread';
+    case 'shadow_opacity': return 'shadow_opacity';
+    case 'inner_glow_spread': return 'inner_glow_spread';
+    case 'inner_glow_opacity': return 'inner_glow_opacity';
+    case 'mask_gradient_start': return 'mask_gradient_start';
+    case 'mask_gradient_end': return 'mask_gradient_end';
+    case 'mask_gradient_angle': return 'mask_gradient_angle';
     // Counter effect type
     case 'counter': return 'counter_value';
     // Pass-through property types (used by semantic compiler)
@@ -818,6 +841,14 @@ function compileSemantic(scene, options = {}) {
   // Semantic groups come first, then explicit groups (explicit take precedence on cue conflicts)
   const existingGroups = scene.motion.groups || [];
   scene.motion.groups = [...semanticGroups, ...existingGroups];
+
+  // Step 6: Resolve layout constraints → layer positions (ANI-74)
+  const positionMap = resolveComponentLayout(components, 1920, 1080);
+  for (const [cmpId, pos] of positionMap) {
+    const layerId = componentMap.get(cmpId)?.layer_ref || cmpId;
+    const layer = scene.layers.find(l => l.id === layerId);
+    if (layer) layer.position = pos;
+  }
 }
 
 /**
@@ -1204,10 +1235,20 @@ function applySemanticConstraints(groups, personality) {
           if (effect.type === 'rotate' && Math.abs(effect.to) > 10) {
             effect.to = Math.sign(effect.to) * 10;
           }
+          // Cap shadow_opacity at 0.1 for editorial
+          if (effect.type === 'shadow_opacity' && effect.to > 0.1) {
+            effect.to = 0.1;
+          }
         }
         break;
 
       case 'neutral-light':
+        // Strip shadow and glow effects for neutral-light
+        group.effects = group.effects.filter(e =>
+          !['shadow_offset_x', 'shadow_offset_y', 'shadow_blur_radius',
+            'shadow_spread', 'shadow_opacity', 'inner_glow_spread',
+            'inner_glow_opacity'].includes(e.type)
+        );
         for (const effect of group.effects) {
           // fan_stack → slide fallback: convert rotate to translateX
           if (effect.type === 'rotate') {

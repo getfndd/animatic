@@ -1431,11 +1431,38 @@ export function trackValuesToCSS(values) {
     const bloomBlur = Math.round(values.background_bloom * 12);
     boxShadows.push(`0 0 ${bloomBlur}px rgba(255,255,255,${(values.background_bloom * 0.4).toFixed(2)})`);
   }
+  // Directional shadow (ANI-75)
+  if (values.shadow_opacity != null && values.shadow_opacity > 0) {
+    const ox = Math.round(values.shadow_offset_x ?? 0);
+    const oy = Math.round(values.shadow_offset_y ?? 0);
+    const br = Math.round(values.shadow_blur_radius ?? 0);
+    const sp = Math.round(values.shadow_spread ?? 0);
+    boxShadows.push(`${ox}px ${oy}px ${br}px ${sp}px rgba(0,0,0,${values.shadow_opacity.toFixed(2)})`);
+  }
+  // Inner glow (ANI-75)
+  if (values.inner_glow_opacity != null && values.inner_glow_opacity > 0) {
+    const gs = Math.round(values.inner_glow_spread ?? 0);
+    boxShadows.push(`inset 0 0 ${gs}px rgba(255,255,255,${values.inner_glow_opacity.toFixed(2)})`);
+  }
   if (boxShadows.length > 0) {
     style.boxShadow = boxShadows.join(', ');
   }
   if (values.surface_blur != null && values.surface_blur > 0) {
     style.backdropFilter = `blur(${values.surface_blur}px)`;
+  }
+
+  // Gradient mask (ANI-75)
+  if (values.mask_gradient_start != null || values.mask_gradient_end != null) {
+    const start = values.mask_gradient_start ?? 0;
+    const end = values.mask_gradient_end ?? 1;
+    const angle = values.mask_gradient_angle ?? 180;
+    if (start > 0 || end < 1) {
+      const startPct = (start * 100).toFixed(1);
+      const endPct = (end * 100).toFixed(1);
+      const gradient = `linear-gradient(${angle}deg, black ${startPct}%, transparent ${endPct}%)`;
+      style.maskImage = gradient;
+      style.WebkitMaskImage = gradient;
+    }
   }
 
   // SVG-specific properties — exposed as CSS custom properties

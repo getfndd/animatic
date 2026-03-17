@@ -348,3 +348,84 @@ export function listReferenceDocs() {
 export function getProjectRoot() {
   return ROOT;
 }
+
+/**
+ * Create a loader bound to a specific root directory.
+ *
+ * Used by the @preset/animatic package to load catalogs relative to
+ * the package root rather than __dirname.
+ *
+ * @param {string} rootDir - Absolute path to project/package root
+ * @returns {object} - Loader functions bound to rootDir
+ */
+export function createLoader(rootDir) {
+  const catalogDir = resolve(rootDir, 'catalog');
+  const benchmarksDir = resolve(catalogDir, 'benchmarks');
+
+  function loadJSON(path) {
+    return JSON.parse(readFileSync(path, 'utf-8'));
+  }
+
+  return {
+    loadPrimitivesCatalog() {
+      const arr = loadJSON(resolve(catalogDir, 'primitives.json'));
+      const bySlug = new Map(arr.map(p => [p.slug, p]));
+      return { array: arr, bySlug };
+    },
+    loadPersonalitiesCatalog() {
+      const arr = loadJSON(resolve(catalogDir, 'personalities.json'));
+      const bySlug = new Map(arr.map(p => [p.slug, p]));
+      return { array: arr, bySlug };
+    },
+    loadIntentMappings() {
+      const arr = loadJSON(resolve(catalogDir, 'intent-mappings.json'));
+      const byIntent = new Map(arr.map(i => [i.intent, i]));
+      return { array: arr, byIntent };
+    },
+    loadCameraGuardrails() {
+      return loadJSON(resolve(catalogDir, 'camera-guardrails.json'));
+    },
+    loadShotGrammar() {
+      const data = loadJSON(resolve(catalogDir, 'shot-grammar.json'));
+      const sizeBySlug = new Map(data.shot_sizes.map(s => [s.slug, s]));
+      const angleBySlug = new Map(data.angles.map(a => [a.slug, a]));
+      const framingBySlug = new Map(data.framings.map(f => [f.slug, f]));
+      const affinityMap = new Map();
+      for (const size of data.shot_sizes) {
+        for (const ct of size.content_type_affinity) {
+          affinityMap.set(ct, size.slug);
+        }
+      }
+      return { ...data, sizeBySlug, angleBySlug, framingBySlug, affinityMap };
+    },
+    loadBriefTemplates() {
+      const arr = loadJSON(resolve(catalogDir, 'brief-templates.json'));
+      const byId = new Map(arr.map(t => [t.template_id, t]));
+      return { array: arr, byId };
+    },
+    loadStylePacks(personalitySlugs) {
+      const arr = loadJSON(resolve(catalogDir, 'style-packs.json'));
+      const byName = new Map();
+      for (const pack of arr) {
+        if (personalitySlugs && !personalitySlugs.includes(pack.personality)) {
+          throw new Error(`Style pack "${pack.name}" references unknown personality "${pack.personality}"`);
+        }
+        byName.set(pack.name, pack);
+      }
+      return { array: arr, byName };
+    },
+    loadRecipes() {
+      const arr = loadJSON(resolve(catalogDir, 'recipes.json'));
+      const byId = new Map(arr.map(r => [r.id, r]));
+      return { array: arr, byId };
+    },
+    loadBenchmarks() {
+      try {
+        const files = readdirSync(benchmarksDir).filter(f => f.endsWith('.json')).sort();
+        return files.map(f => loadJSON(resolve(benchmarksDir, f)));
+      } catch {
+        return [];
+      }
+    },
+  };
+}

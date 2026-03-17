@@ -15,7 +15,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { validateScene } from '../../src/remotion/lib.js';
+import { validateScene } from './scene-utils.js';
 
 // ── Client ──────────────────────────────────────────────────────────────────
 

@@ -10,7 +10,7 @@
  * Camera overrides validated against personality catalog.
  */
 
-import { validateManifest } from '../../src/remotion/lib.js';
+import { validateManifest } from './scene-utils.js';
 import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar } from '../data/loader.js';
 import { validateShotGrammar } from './shot-grammar.js';
 import { syncToBeats, matchEnergyToScenes } from './beats.js';

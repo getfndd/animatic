@@ -10,7 +10,7 @@
  */
 
 import { loadCameraGuardrails } from '../data/loader.js';
-import { CAMERA_CONSTANTS, getShotGrammarCSS } from '../../src/remotion/lib.js';
+import { CAMERA_CONSTANTS, getShotGrammarCSS } from './scene-utils.js';
 
 const guardrails = loadCameraGuardrails();
 

@@ -30,7 +30,7 @@ import {
   MOOD_TO_STYLES,
 } from '../lib/generator.js';
 
-import { validateScene } from '../../src/remotion/lib.js';
+import { validateScene } from '../lib/scene-utils.js';
 import { analyzeScene } from '../lib/analyze.js';
 
 // ── Fixture helper ───────────────────────────────────────────────────────────

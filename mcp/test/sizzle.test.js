@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 
 import { loadScenes, analyzeAll, assembleProps, evaluateManifest, validateManifestGuardrails } from '../../scripts/sizzle.mjs';
 import { planSequence, STYLE_PACKS, STYLE_TO_PERSONALITY } from '../lib/planner.js';
-import { validateManifest } from '../../src/remotion/lib.js';
+import { validateManifest } from '../lib/scene-utils.js';
 import { generateScenes } from '../lib/generator.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

@@ -28,7 +28,7 @@ import {
 
 import { analyzeScene } from '../lib/analyze.js';
 import { evaluateSequence } from '../lib/evaluate.js';
-import { validateManifest } from '../../src/remotion/lib.js';
+import { validateManifest } from '../lib/scene-utils.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');

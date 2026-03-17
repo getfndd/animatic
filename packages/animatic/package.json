@@ -1,0 +1,30 @@
+{
+  "name": "@preset/animatic",
+  "version": "0.1.0",
+  "description": "AI cinematography engine — compile, critique, and plan animated video from code",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "data.js",
+    "../../catalog/",
+    "../../mcp/lib/",
+    "../../mcp/lib.js",
+    "../../mcp/data/"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@anthropic-ai/sdk": ">=0.50.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    }
+  }
+}

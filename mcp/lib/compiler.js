@@ -13,7 +13,7 @@
  * Pure functions. Catalog data passed in, no side effects.
  */
 
-import { resolveEntrancePrimitive, CAMERA_CONSTANTS } from '../../src/remotion/lib.js';
+import { resolveEntrancePrimitive, CAMERA_CONSTANTS } from './scene-utils.js';
 import { resolveStateOverrides } from './state-machines.js';
 import { resolveComponentLayout } from './layout-constraints.js';
 

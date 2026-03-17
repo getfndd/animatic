@@ -10,7 +10,7 @@
  * Rule-based core with optional LLM enhancement (ANI-36).
  */
 
-import { validateScene } from '../../src/remotion/lib.js';
+import { validateScene } from './scene-utils.js';
 import { loadBriefTemplates, loadStylePacks, loadPersonalitiesCatalog, loadRecipes } from '../data/loader.js';
 import { isLLMAvailable, enhanceScenePlan, enrichSceneContent } from './llm.js';
 import { expandRecipe, lookupRecipe } from './interaction-recipes.js';

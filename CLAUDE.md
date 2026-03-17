@@ -14,15 +14,15 @@ When I mention `@name`, invoke the corresponding skill. Each persona's full defi
 |---------|------|-------|
 | Maya | UI Design Lead | `@maya` |
 | Rams | UX Strategist | `@rams` |
-| Hicks | Frontend Engineer | (inline) |
-| Steve | Accessibility | (inline) |
+| Hicks | Frontend Engineer | `@hicks` |
+| Steve | Accessibility | `@steve` |
 | Eames | Product Strategist | (inline) |
-| Bobby | UX Writer | (inline) |
+| Bobby | UX Writer | `@bobby` |
 | Alan | AI/ML Architect | (inline) |
 | Dex | DevOps & Docs | `@dex` |
 | Saul | Animation Design | See `.claude/skills/animate/SAUL.md` |
-| Ogilvy | Product Marketing | (inline) |
-| Rand | Design System Guardian | (inline) |
+| Ogilvy | Product Marketing | `@ogilvy` |
+| Rand | Design System Guardian | `@rand` |
 
 Multi-persona: `@maya + @hicks design this component`
 

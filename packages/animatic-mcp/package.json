@@ -1,5 +1,5 @@
 {
-  "name": "@presetai/animatic-mcp",
+  "name": "animatic-mcp",
   "version": "0.1.0",
   "description": "Animatic MCP server — AI cinematography engine for Claude, Cursor, and VS Code",
   "type": "module",

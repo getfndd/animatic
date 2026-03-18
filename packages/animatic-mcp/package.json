@@ -1,0 +1,40 @@
+{
+  "name": "@presetai/animatic-mcp",
+  "version": "0.1.0",
+  "description": "Animatic MCP server — AI cinematography engine for Claude, Cursor, and VS Code",
+  "type": "module",
+  "scripts": {
+    "prepack": "bash scripts/prepack.sh"
+  },
+  "bin": {
+    "animatic-mcp": "./bin/animatic-mcp.js"
+  },
+  "files": [
+    "bin/",
+    "mcp/",
+    "catalog/",
+    "reference/",
+    "src/remotion/lib.js"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": ">=0.50.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    }
+  },
+  "keywords": ["mcp", "animation", "cinematography", "remotion", "ai", "claude"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getfndd/animatic.git",
+    "directory": "packages/animatic-mcp"
+  }
+}

@@ -1,0 +1,5 @@
+# Build artifacts from prepack (copied from repo root at publish time)
+mcp/
+catalog/
+reference/
+src/

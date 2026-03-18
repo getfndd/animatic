@@ -5,7 +5,7 @@
  * and parses breakdown INDEX.md into queryable in-memory data.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,7 +15,13 @@ const ROOT = resolve(__dirname, '../..');
 // ── Path helpers ────────────────────────────────────────────────────────────
 
 const CATALOG_DIR = resolve(ROOT, 'catalog');
-const REFERENCE_DIR = resolve(ROOT, '.claude/skills/animate/reference');
+
+// Support both repo layout (.claude/skills/animate/reference/) and
+// npm package layout (reference/) for the published @presetai/animatic-mcp.
+// Detect by checking for the primitives/REGISTRY.md file specifically.
+const REFERENCE_DIR = existsSync(resolve(ROOT, 'reference/primitives/REGISTRY.md'))
+  ? resolve(ROOT, 'reference')
+  : resolve(ROOT, '.claude/skills/animate/reference');
 const PRIMITIVES_DIR = resolve(REFERENCE_DIR, 'primitives');
 const BREAKDOWNS_DIR = resolve(REFERENCE_DIR, 'breakdowns');
 const BENCHMARKS_DIR = resolve(CATALOG_DIR, 'benchmarks');

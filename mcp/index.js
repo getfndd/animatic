@@ -48,6 +48,7 @@ import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, g
 import { compileMotion } from './lib/compiler.js';
 import { critiqueTimeline } from './lib/critic.js';
 import { runBenchmarks, QUALITY_THRESHOLD } from './lib/benchmark.js';
+import { generateVideo } from './lib/video.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -676,6 +677,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {},
       },
     },
+    {
+      name: 'generate_video',
+      description:
+        'One-shot video pipeline: natural language prompt → scenes + manifest + timelines + quality scores. Runs the full brief → generate → analyze → plan → compile → critique → evaluate pipeline in a single call. Returns everything needed to render with Remotion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          prompt: {
+            type: 'string',
+            description:
+              'Natural language video description, e.g. "30-second promo for an AI finance dashboard, cinematic-dark, prestige style"',
+          },
+          style: {
+            type: 'string',
+            description: 'Override auto-detected style pack',
+            enum: ['prestige', 'energy', 'dramatic', 'minimal', 'intimate', 'corporate', 'kinetic', 'fade'],
+          },
+          personality: {
+            type: 'string',
+            description: 'Override auto-detected personality',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+          },
+          enhance: {
+            type: 'boolean',
+            description: 'Enable LLM enhancement (requires ANTHROPIC_API_KEY). Default: false.',
+          },
+        },
+        required: ['prompt'],
+      },
+    },
   ],
 }));
 
@@ -733,6 +764,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleCritiqueMotion(args);
     case 'run_benchmarks':
       return handleRunBenchmarks(args);
+    case 'generate_video':
+      return handleGenerateVideo(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -2499,6 +2532,75 @@ function handleRunBenchmarks() {
       isError: true,
     };
   }
+}
+
+// ── generate_video ───────────────────────────────────────────────────────
+
+async function handleGenerateVideo(args) {
+  const { prompt, style, personality, enhance } = args;
+
+  if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+    return {
+      content: [{ type: 'text', text: 'A `prompt` string is required. Example: "30-second promo for an AI dashboard, cinematic-dark style"' }],
+      isError: true,
+    };
+  }
+
+  const result = await generateVideo(prompt.trim(), { style, personality, enhance });
+
+  if (result.error) {
+    return {
+      content: [{ type: 'text', text: `Pipeline failed at **${result.stage}** stage:\n\n${result.error}` }],
+      isError: true,
+    };
+  }
+
+  const { scenes, manifest, scores, evaluation, summary } = result;
+
+  let out = `# Video Generated\n\n`;
+  out += `**Prompt:** ${summary.prompt}\n`;
+  out += `**Style:** ${summary.style} (${summary.personality})\n`;
+  out += `**Scenes:** ${summary.scene_count} | **Compiled:** ${summary.compiled}\n`;
+  out += `**Duration:** ${summary.duration_s.toFixed(1)}s\n`;
+  out += `**Avg Critique:** ${summary.avg_critique_score}/100\n`;
+  if (summary.sequence_score != null) {
+    out += `**Sequence Score:** ${summary.sequence_score}/100\n`;
+  }
+  out += '\n';
+
+  // Scene scores
+  if (scores.length > 0) {
+    out += `## Scene Scores\n\n`;
+    out += `| Scene | Score | Status |\n|-------|-------|--------|\n`;
+    for (const s of scores) {
+      out += `| ${s.scene_id} | ${s.score}/100 | ${s.pass ? 'PASS' : 'WARN'} |\n`;
+    }
+    out += '\n';
+  }
+
+  // Warnings
+  if (summary.warnings.length > 0) {
+    out += `## Warnings\n\n`;
+    for (const w of summary.warnings) out += `- ${w}\n`;
+    out += '\n';
+  }
+
+  // Errors
+  if (summary.errors.length > 0) {
+    out += `## Errors\n\n`;
+    for (const e of summary.errors) out += `- ${e}\n`;
+    out += '\n';
+  }
+
+  // Manifest
+  out += `## Sequence Manifest\n\n`;
+  out += '```json\n' + JSON.stringify(manifest, null, 2) + '\n```\n\n';
+
+  // Scenes JSON
+  out += `## Scenes\n\n`;
+  out += '```json\n' + JSON.stringify(scenes, null, 2) + '\n```\n';
+
+  return { content: [{ type: 'text', text: out }] };
 }
 
 async function main() {

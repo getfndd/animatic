@@ -859,5 +859,88 @@
     "ai_guidance": "Editorial-safe continuous ambient motion. Max displacement 0.5px per camera-guardrails.json. Sinusoidal oscillation via rAF. Almost imperceptible but adds organic feel. Only use on scenes >10s per editorial personality boundaries.",
     "personality_affinity": ["editorial"],
     "source": "research"
+  },
+  {
+    "name": "Bar Chart Grow",
+    "slug": "cd-bar-grow",
+    "category": "entrance",
+    "description": "Bar chart bars grow from baseline with scaleY(0→1). Transform-origin bottom center. 500ms per bar with 120ms stagger between siblings. Bars start at 60% opacity and reach full opacity at peak height.",
+    "default_duration": "500ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "120ms",
+    "css_class": "anim-cd-bar-grow",
+    "keyframes": {
+      "bar-grow": {
+        "0%": { "opacity": "0.6", "transform": "scaleY(0)" },
+        "100%": { "opacity": "1", "transform": "scaleY(1)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0.6; transform: scaleY(0); transform-origin: bottom center",
+      "visible": "opacity: 1; transform: scaleY(1); transform-origin: bottom center"
+    },
+    "when_to_use": ["Bar chart animations", "Data visualization reveals", "Dashboard metric entrances", "SaaS product demos with charts"],
+    "when_to_avoid": ["Non-chart contexts", "Horizontal bar charts (use scaleX variant)", "Neutral-light personality"],
+    "ai_guidance": "Use with transform-origin: bottom center on each bar element. Pair with cd-bar-chart-reveal recipe for complete chart animation including title. Stagger left-to-right for standard bar charts. Inspired by Mercury Insights sizzle reel.",
+    "personality_affinity": ["cinematic-dark", "editorial"],
+    "source": "engine"
+  },
+  {
+    "name": "Insight Card Cascade",
+    "slug": "cd-card-cascade",
+    "category": "entrance",
+    "description": "Dark insight cards stagger top-to-bottom with 3-keyframe settle. Cards enter with translateY(16px) and opacity 0, reach near-final position at 70%, then settle to rest at 100%. 400ms per card with 180ms stagger interval.",
+    "default_duration": "400ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": true,
+    "stagger_offset": "180ms",
+    "css_class": "anim-cd-card-cascade",
+    "keyframes": {
+      "card-cascade": {
+        "0%": { "opacity": "0", "transform": "translateY(16px)" },
+        "70%": { "opacity": "1", "transform": "translateY(2px)" },
+        "100%": { "opacity": "1", "transform": "translateY(0)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0; transform: translateY(16px)",
+      "visible": "opacity: 1; transform: translateY(0)"
+    },
+    "when_to_use": ["Insight/metric card lists", "Notification feeds", "Result stacks", "Any staggered vertical card list on dark backgrounds"],
+    "when_to_avoid": ["Horizontal card layouts", "Light backgrounds (use editorial variant)", "Single card reveals"],
+    "ai_guidance": "The 3-keyframe settle (16→2→0px) creates a subtle overshoot that distinguishes this from a simple fadeInUp. Use cd-insight-card-cascade recipe for hero+supporting pattern. Pair with trend icons (↗/↘) and data content for fintech/SaaS demos. Inspired by Mercury Insights.",
+    "personality_affinity": ["cinematic-dark", "editorial"],
+    "source": "engine"
+  },
+  {
+    "name": "Panel Drilldown Slide",
+    "slug": "cd-panel-drilldown",
+    "category": "entrance",
+    "description": "Elevated overlay panel entrance with scale(0.97→1) + translateY(20→0px). 500ms expo-out. For dashboard detail views, modal overlays, and drilldown patterns. Dark surface with deep shadow.",
+    "default_duration": "500ms",
+    "default_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "composable": true,
+    "stagger_compatible": false,
+    "stagger_offset": null,
+    "css_class": "anim-cd-panel-drilldown",
+    "keyframes": {
+      "panel-drilldown": {
+        "0%": { "opacity": "0", "transform": "translateY(20px) scale(0.97)" },
+        "100%": { "opacity": "1", "transform": "translateY(0) scale(1)" }
+      }
+    },
+    "css_properties": {
+      "initial": "opacity: 0; transform: translateY(20px) scale(0.97)",
+      "visible": "opacity: 1; transform: translateY(0) scale(1)",
+      "scene": "border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 80px rgba(0,0,0,0.6)"
+    },
+    "when_to_use": ["Dashboard drilldowns", "Detail panels", "Modal overlays", "Chart expansion views"],
+    "when_to_avoid": ["Small tooltips (too dramatic)", "Neutral-light contexts", "Inline content reveals"],
+    "ai_guidance": "Use cd-panel-drilldown recipe for panel + staggered content inside. The scale(0.97) start gives a subtle 'growing into place' feel without being as dramatic as a full zoom. Pair with a background scrim. Inspired by Mercury Insights.",
+    "personality_affinity": ["cinematic-dark", "editorial"],
+    "source": "engine"
   }
 ]

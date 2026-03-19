@@ -38,6 +38,9 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `mo-scale-entrance` | Scale Entrance | 100ms interval | montage | engine |
 | `mo-text-hero` | Text Hero Entrance | 400ms | montage | engine |
 | `mo-stat-reveal` | Stat Reveal Pop | 150ms interval | montage | engine |
+| `cd-bar-grow` | Bar Chart Grow | 500ms + 120ms stagger | cinematic-dark, editorial | engine |
+| `cd-card-cascade` | Insight Card Cascade | 400ms + 180ms stagger | cinematic-dark, editorial | engine |
+| `cd-panel-drilldown` | Panel Drilldown Slide | 500ms | cinematic-dark, editorial | engine |
 
 ### Exits
 

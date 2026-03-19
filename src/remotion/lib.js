@@ -799,6 +799,31 @@ const ENTRANCE_PRIMITIVES = {
       { at: 1, opacity: 1, scale: 1 },
     ],
   },
+  'cd-bar-grow': {
+    durationMs: 500,
+    easing: 'expo_out',
+    keyframes: [
+      { at: 0, opacity: 0.6, scale: 0 },
+      { at: 1, opacity: 1, scale: 1 },
+    ],
+  },
+  'cd-card-cascade': {
+    durationMs: 400,
+    easing: 'expo_out',
+    keyframes: [
+      { at: 0, opacity: 0, translateY: 16 },
+      { at: 0.7, opacity: 1, translateY: 2 },
+      { at: 1, opacity: 1, translateY: 0 },
+    ],
+  },
+  'cd-panel-drilldown': {
+    durationMs: 500,
+    easing: 'expo_out',
+    keyframes: [
+      { at: 0, opacity: 0, translateY: 20, scale: 0.97 },
+      { at: 1, opacity: 1, translateY: 0, scale: 1 },
+    ],
+  },
 };
 
 /**

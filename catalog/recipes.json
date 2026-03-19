@@ -276,5 +276,96 @@
     ],
     "camera_sync": null,
     "default_camera": { "move": "static" }
+  },
+  {
+    "id": "cd-bar-chart-reveal",
+    "name": "Bar Chart Grow Reveal",
+    "personality": "cinematic-dark",
+    "description": "Bar chart bars grow from baseline with stagger, labels fade in after. Inspired by Mercury Insights sizzle reel.",
+    "groups": [
+      {
+        "role": "supporting",
+        "primitive": "cd-bar-grow",
+        "stagger": {
+          "interval_ms": 120,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.8 }
+        }
+      },
+      {
+        "role": "hero",
+        "primitive": "fade-in",
+        "delay_after_hero_ms": 600
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "static" }
+  },
+  {
+    "id": "cd-insight-card-cascade",
+    "name": "Insight Card Cascade",
+    "personality": "cinematic-dark",
+    "description": "Dark insight cards stagger top-to-bottom with content sub-timing. Hero card enters first, supporting cards follow with descending amplitude. Inspired by Mercury Insights sizzle reel.",
+    "groups": [
+      {
+        "role": "hero",
+        "primitive": "cd-card-cascade",
+        "stagger": null
+      },
+      {
+        "role": "supporting",
+        "primitive": "cd-card-cascade",
+        "delay_after_hero_ms": 180,
+        "stagger": {
+          "interval_ms": 180,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.7 }
+        }
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "push_in", "intensity": 0.15 }
+  },
+  {
+    "id": "cd-tagline-sequence",
+    "name": "Tagline Crossfade Sequence",
+    "personality": "cinematic-dark",
+    "description": "Centered tagline text fades in, holds, fades to next. For sizzle reel bookends and brand moments. Use with crossfade transitions between text-only scenes.",
+    "groups": [
+      {
+        "role": "hero",
+        "primitive": "fade-in",
+        "stagger": null
+      }
+    ],
+    "camera_sync": null,
+    "default_camera": { "move": "static" }
+  },
+  {
+    "id": "cd-panel-drilldown",
+    "name": "Panel Drilldown Reveal",
+    "personality": "cinematic-dark",
+    "description": "Elevated panel enters with scale+translate, content staggers inside. For dashboard detail views, modal overlays, and drilldown patterns.",
+    "groups": [
+      {
+        "role": "hero",
+        "primitive": "cd-panel-drilldown",
+        "stagger": null,
+        "on_complete_cue": "panel_open"
+      },
+      {
+        "role": "supporting",
+        "primitive": "cd-card-cascade",
+        "delay_after_cue": "panel_open",
+        "delay_offset_ms": 100,
+        "stagger": {
+          "interval_ms": 120,
+          "order": "sequential",
+          "amplitude": { "curve": "descending", "start": 1.0, "end": 0.6 }
+        }
+      }
+    ],
+    "camera_sync": { "peak_at": 0.4, "cue": "panel_open" },
+    "default_camera": { "move": "push_in", "intensity": 0.2 }
   }
 ]

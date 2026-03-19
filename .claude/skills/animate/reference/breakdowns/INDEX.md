@@ -26,6 +26,7 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | [liquid-metaball-merge](liquid-metaball-merge.md) | Liquid Metaball Merge — Gooey Color Blob Chain | gif | cinematic-dark | exemplary | metaball, liquid, gooey, svg-filter, blob, color, continuous, ambient, generative, brand |
 | [grainy-organic-blob](grainy-organic-blob.md) | Grainy Organic Blob — Stippled Morphing Mass | gif | cinematic-dark | exemplary | blob, grain, noise, morph, organic, texture, ambient, continuous, generative, brand, stipple |
 | [concentric-depth-pulse](concentric-depth-pulse.md) | Concentric Depth Pulse — Layered Ring Breathing | gif | universal | strong | concentric, rings, pulse, breathing, depth, scale, ambient, continuous, brand, minimal, tunnel |
+| [mercury-insights-sizzle](mercury-insights-sizzle.md) | Mercury Insights — AI Finance Dashboard Sizzle Reel | video | cinematic-dark | exemplary | sizzle, particle, dissolve, dashboard, ai, chat, typewriter, chart, bar-chart, timeline, date-picker, card-cascade, input-field, drilldown, panel-slide, product-demo, fintech, brand, tagline, logo-lockup |
 
 ---
 

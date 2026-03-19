@@ -239,6 +239,62 @@ New animation primitives discovered through reference analysis. Each links back 
 - **Personality:** editorial (primary), universal
 - **Key mechanism:** GSAP ScrollTrigger `once: true` fires → GSAP cursor blink (repeat: 1, yoyo) → `onComplete` triggers `new Typed()` → Typed `onComplete` starts infinite cursor blink. Three chained animation layers.
 
+## From `mercury-insights-sizzle`
+
+### `bk-particle-dissolve` — Particle Dissolve Transition
+- **Category:** Transitions
+- **Duration:** 2000ms
+- **Easing:** expo-in (scatter phase), expo-out (converge phase)
+- **Description:** Full-screen pixel-to-particle decomposition/recomposition. Every pixel of a rendered UI or image becomes an independent colored dot. Particles scatter outward with randomized velocity, then reconverge on a target image. During transition, particles carry their source color, creating chromatic chaos. Three phases: scatter (0–30%), free drift (30–70%), spring settle (70–100%). Requires WebGL/canvas — not CSS-achievable.
+- **Parameters:** particle density (sample every Nth pixel), scatter radius, spring stiffness, source frame, target frame
+- **Personality:** cinematic-dark (primary)
+- **Key mechanism:** html2canvas captures source/target as images → sample pixels → WebGL shader animates position/color per particle per frame. Spring physics for the settle phase.
+
+### `bk-bar-grow` — Bar Chart Grow
+- **Category:** Data Viz
+- **Duration:** 500ms + 120ms stagger per bar
+- **Easing:** expo-out per bar
+- **Description:** Bars grow upward from a zero baseline with scaleY(0→1). Transform-origin set to bottom center. Each bar staggers from left to right. Works with SVG `<rect>` or HTML `<div>` bars. Y-axis labels and bar labels can fade in after bars settle.
+- **Parameters:** bar count, stagger interval, bar color, max height
+- **Personality:** cinematic-dark (primary), editorial (compatible)
+- **CSS pattern:** `.bar { transform-origin: bottom; transform: scaleY(0); animation: bar-grow 500ms expo-out forwards; animation-delay: calc(var(--bar-index) * 120ms); }`
+
+### `bk-panel-drilldown` — Panel Drilldown Slide
+- **Category:** Overlays
+- **Duration:** 500ms
+- **Easing:** expo-out
+- **Description:** Elevated panel enters center-screen with translateY(20px)+scale(0.97)→identity + opacity 0→1. Dark surface (#1c1c2e), rounded corners (16px), deep shadow (0 24px 80px rgba(0,0,0,0.6)), subtle border. Contains header with close button, scrollable content, optional bottom input field. Pairs with a scrim (background dim) that fades in simultaneously.
+- **Parameters:** panel width, panel height, border radius, shadow depth
+- **Personality:** cinematic-dark (primary), editorial (compatible)
+- **CSS pattern:** `transform: translateY(20px) scale(0.97); opacity: 0; → identity at 500ms expo-out`
+
+### `bk-insight-card-cascade` — Insight Card Cascade
+- **Category:** Cards / Stagger
+- **Duration:** 400ms per card + 180ms stagger interval
+- **Easing:** expo-out per card
+- **Description:** Dark insight cards stagger top-to-bottom. Each card enters with translateY(16px→0) + opacity 0→1. Content reveals within each card in two phases: title (bold, with trend icon ↗/↘) appears with the card, then description text fades in 120ms after. A partial card peeking from below implies scroll continuation. Trend icons use semantic colors (green for up, slate for down).
+- **Parameters:** card count, stagger interval, content sub-delay
+- **Personality:** cinematic-dark (primary), editorial (compatible)
+- **Key mechanism:** Two-phase content reveal within each card creates a micro-stagger inside the macro-stagger. The peek card at bottom is a scroll affordance.
+
+### `bk-timeline-range-select` — Timeline Range Select
+- **Category:** Interactions
+- **Duration:** 1200ms (full drag simulation)
+- **Easing:** ease-in-out (drag), ease-out (labels)
+- **Description:** Horizontal date/month timeline with animated range selection. Blue highlight rectangle grows from start point to end point, simulating a click-drag. Month labels are evenly spaced. A resize cursor appears at the selection edge. Date label tooltip fades in below the end point. Dark background with subtle grid lines.
+- **Parameters:** start date, end date, timeline range, highlight color
+- **Personality:** cinematic-dark (primary)
+- **Key mechanism:** Selection bar width animates from 0 to target width. Cursor icon appears at leading edge. Label tooltip enters with opacity 0→1 + translateY(-4→0) at 80% progress.
+
+### `bk-tagline-crossfade` — Tagline Crossfade Sequence
+- **Category:** Typography
+- **Duration:** 400ms per crossfade, 2000ms hold per tagline
+- **Easing:** ease-out (fade in), ease-in (fade out)
+- **Description:** Centered tagline text crossfades through multiple lines. Large sans-serif type, warm off-white (#e8e0d4) on dark background (#1a1a2e). Each tagline holds for ~2 seconds, then crossfades to the next. Final tagline crossfades to logo lockup. Simple but effective for sizzle reel bookends.
+- **Parameters:** tagline array, hold duration, crossfade duration, font size, color
+- **Personality:** cinematic-dark (primary), editorial (compatible)
+- **Key mechanism:** Stacked absolutely-positioned text elements. Sequential `opacity: 0→1→0` with timing offsets. Already achievable with our existing crossfade transitions between text-only scenes.
+
 ---
 
 ## Summary
@@ -291,3 +347,9 @@ New animation primitives discovered through reference analysis. Each links back 
 | `bk-displacement-warp` | Displacement Warp Pulse | SVG Filters / Generative | liquid-metaball-merge |
 | `bk-blob-morph` | Blob Shape Morph | SVG Filters / Generative | grainy-organic-blob |
 | `bk-concentric-pulse` | Concentric Ring Pulse | SVG Filters / Generative | concentric-depth-pulse |
+| `bk-particle-dissolve` | Particle Dissolve Transition | Transitions | mercury-insights-sizzle |
+| `bk-bar-grow` | Bar Chart Grow | Data Viz | mercury-insights-sizzle |
+| `bk-panel-drilldown` | Panel Drilldown Slide | Overlays | mercury-insights-sizzle |
+| `bk-insight-card-cascade` | Insight Card Cascade | Cards / Stagger | mercury-insights-sizzle |
+| `bk-timeline-range-select` | Timeline Range Select | Interactions | mercury-insights-sizzle |
+| `bk-tagline-crossfade` | Tagline Crossfade Sequence | Typography | mercury-insights-sizzle |

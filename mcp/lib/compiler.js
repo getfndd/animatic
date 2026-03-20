@@ -190,6 +190,22 @@ function resolveRecipes(motion, recipeCatalog) {
  * - { at: 0.5 } → proportional
  * - { at_ms: 2000 } → absolute ms
  * - on_complete on groups → computed from group timing
+ *
+ * Position parameters (GSAP-inspired):
+ * Groups may specify a `position` string that controls when they start
+ * relative to the previous group or a named cue:
+ *
+ *   "<"       → start at previous group's start
+ *   ">"       → start at previous group's end
+ *   "<200"    → 200ms after previous group's start
+ *   ">200"    → 200ms after previous group's end
+ *   "<-200"   → 200ms before previous group's start
+ *   ">-200"   → 200ms before previous group's end (overlap)
+ *   "label"   → start at named cue
+ *   "label+200" → 200ms after named cue
+ *   "label-200" → 200ms before named cue
+ *
+ * Falls back to legacy delay/delay_after_hero_ms if no position is set.
  */
 function buildCueGraph(groups, motion, durationFrames, fps) {
   const cues = {
@@ -205,7 +221,7 @@ function buildCueGraph(groups, motion, durationFrames, fps) {
     }
   }
 
-  // Estimate group completion frames for on_complete cues
+  // First pass: estimate group completion frames for on_complete cues
   for (const group of groups) {
     if (!group.on_complete?.emit && !group.on_complete_cue) continue;
 
@@ -214,15 +230,109 @@ function buildCueGraph(groups, motion, durationFrames, fps) {
     cues[cueName] = groupEndFrame;
   }
 
-  // Resolve delay references (after: cueName)
+  // Second pass: resolve position parameters and legacy delays sequentially.
+  // Each group records _resolvedStartFrame and _resolvedEndFrame so subsequent
+  // groups can reference them via "<" and ">".
+  let prevStart = 0;
+  let prevEnd = 0;
+
   for (const group of groups) {
-    if (group.delay?.after && cues[group.delay.after] != null) {
-      const offsetMs = group.delay.offset_ms || 0;
-      group._resolvedDelayFrame = cues[group.delay.after] + Math.round((offsetMs / 1000) * fps);
+    let startFrame = null;
+
+    // Position parameter takes precedence
+    if (group.position != null) {
+      startFrame = resolvePositionParam(group.position, prevStart, prevEnd, cues, fps);
     }
+
+    // Legacy: delay.after
+    if (startFrame == null && group.delay?.after && cues[group.delay.after] != null) {
+      const offsetMs = group.delay.offset_ms || 0;
+      startFrame = cues[group.delay.after] + Math.round((offsetMs / 1000) * fps);
+    }
+
+    // Legacy: delay_after_hero_ms
+    if (startFrame == null && group.delay_after_hero_ms) {
+      startFrame = Math.round((group.delay_after_hero_ms / 1000) * fps);
+    }
+
+    if (startFrame != null) {
+      startFrame = Math.max(0, startFrame);
+      group._resolvedDelayFrame = startFrame;
+    }
+
+    // Track this group's start/end for next group's "<" / ">" references
+    const actualStart = startFrame ?? 0;
+    const groupDuration = estimateGroupDurationFrames(group, fps);
+    prevStart = actualStart;
+    prevEnd = actualStart + groupDuration;
+
+    // Update on_complete cues with resolved position
+    if (group.on_complete?.emit || group.on_complete_cue) {
+      const cueName = group.on_complete?.emit || group.on_complete_cue;
+      cues[cueName] = Math.min(durationFrames, prevEnd);
+    }
+
+    group._resolvedStartFrame = actualStart;
+    group._resolvedEndFrame = Math.min(durationFrames, prevEnd);
   }
 
   return cues;
+}
+
+/**
+ * Parse a GSAP-inspired position parameter string.
+ *
+ * @param {string|number} position - Position expression
+ * @param {number} prevStart - Previous group's start frame
+ * @param {number} prevEnd - Previous group's end frame
+ * @param {object} cues - Named cue → frame map
+ * @param {number} fps - Frames per second
+ * @returns {number|null} Resolved frame number, or null if invalid
+ */
+function resolvePositionParam(position, prevStart, prevEnd, cues, fps) {
+  // Numeric → absolute ms
+  if (typeof position === 'number') {
+    return Math.round((position / 1000) * fps);
+  }
+
+  const str = String(position).trim();
+
+  // "<" or ">" with optional offset
+  const relMatch = str.match(/^([<>])\s*([+-]?\d+)?$/);
+  if (relMatch) {
+    const anchor = relMatch[1] === '<' ? prevStart : prevEnd;
+    const offsetMs = relMatch[2] ? parseInt(relMatch[2], 10) : 0;
+    return anchor + Math.round((offsetMs / 1000) * fps);
+  }
+
+  // "label", "label+200", "label-200"
+  const labelMatch = str.match(/^([a-zA-Z_]\w*)(?:\s*([+-]\d+))?$/);
+  if (labelMatch) {
+    const label = labelMatch[1];
+    if (cues[label] != null) {
+      const offsetMs = labelMatch[2] ? parseInt(labelMatch[2], 10) : 0;
+      return cues[label] + Math.round((offsetMs / 1000) * fps);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Estimate a group's total duration in frames (primitive + stagger spread).
+ * Used for computing _resolvedEndFrame for position references.
+ */
+function estimateGroupDurationFrames(group, fps) {
+  const primitive = resolveEntrancePrimitive(group.primitive);
+  const durationMs = primitive.durationMs || 400;
+  const durationF = Math.round((durationMs / 1000) * fps);
+
+  const targets = group.targets || [];
+  const staggerMs = group.stagger?.interval_ms || 0;
+  const staggerTotal = Math.max(0, targets.length - 1) * staggerMs;
+  const staggerFrames = Math.round((staggerTotal / 1000) * fps);
+
+  return durationF + staggerFrames;
 }
 
 /**
@@ -273,14 +383,15 @@ function expandGroups(groups, cues, durationFrames, fps) {
       groupStartFrame = Math.round((group.delay_after_hero_ms / 1000) * fps);
     }
 
-    // Sort targets by stagger order
-    const ordered = applyStaggerOrder(targets, stagger?.order);
+    // Sort targets by stagger order (supports legacy `order` and new `from`)
+    const ordered = applyStaggerOrder(targets, stagger?.order, stagger?.from);
+
+    // Compute per-element stagger delays
+    const delays = computeStaggerDelays(ordered.length, stagger, fps);
 
     for (let i = 0; i < ordered.length; i++) {
       const targetId = ordered[i];
-      const staggerMs = stagger?.interval_ms || 0;
-      const elementDelay = Math.round((i * staggerMs / 1000) * fps);
-      const startFrame = groupStartFrame + elementDelay;
+      const startFrame = groupStartFrame + delays[i];
 
       // Apply amplitude curve
       const amplitude = computeAmplitude(i, ordered.length, stagger?.amplitude);
@@ -296,31 +407,153 @@ function expandGroups(groups, cues, durationFrames, fps) {
 
 /**
  * Reorder targets based on stagger order.
+ *
+ * Supports legacy `order` values and new GSAP-inspired `from` values:
+ *   order: "sequential" | "reverse" | "random" | "center_out"
+ *   from:  "start" | "end" | "center" | "edges" | "random" | <number> (index)
+ *
+ * `from` takes precedence over `order` when both are set.
  */
-function applyStaggerOrder(targets, order) {
+function applyStaggerOrder(targets, order, from) {
+  // New `from` parameter takes precedence
+  if (from != null) {
+    if (from === 'start' || from === 'sequential') return [...targets];
+    if (from === 'end' || from === 'reverse') return [...targets].reverse();
+    if (from === 'random') return shuffleArray([...targets]);
+    if (from === 'center') return centerOutOrder(targets);
+    if (from === 'edges') return edgesInOrder(targets);
+    if (typeof from === 'number') return fromIndexOrder(targets, from);
+    // Unknown from value → sequential
+    return [...targets];
+  }
+
+  // Legacy `order` parameter
   if (!order || order === 'sequential') return [...targets];
   if (order === 'reverse') return [...targets].reverse();
-  if (order === 'random') {
-    const shuffled = [...targets];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  }
-  if (order === 'center_out') {
-    const result = [];
-    const mid = Math.floor(targets.length / 2);
-    let left = mid - 1;
-    let right = targets.length % 2 === 0 ? mid : mid + 1;
-    result.push(targets[mid]);
-    while (left >= 0 || right < targets.length) {
-      if (left >= 0) result.push(targets[left--]);
-      if (right < targets.length) result.push(targets[right++]);
-    }
-    return result;
-  }
+  if (order === 'random') return shuffleArray([...targets]);
+  if (order === 'center_out') return centerOutOrder(targets);
   return [...targets]; // 'distance' and unknown → sequential
+}
+
+/** Fisher-Yates shuffle. */
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/** Center-out ordering: middle element first, alternating outward. */
+function centerOutOrder(targets) {
+  const result = [];
+  const mid = Math.floor(targets.length / 2);
+  let left = mid - 1;
+  let right = targets.length % 2 === 0 ? mid : mid + 1;
+  result.push(targets[mid]);
+  while (left >= 0 || right < targets.length) {
+    if (left >= 0) result.push(targets[left--]);
+    if (right < targets.length) result.push(targets[right++]);
+  }
+  return result;
+}
+
+/** Edges-in ordering: outermost elements first, converging to center. */
+function edgesInOrder(targets) {
+  const result = [];
+  let left = 0;
+  let right = targets.length - 1;
+  while (left <= right) {
+    result.push(targets[left]);
+    if (left !== right) result.push(targets[right]);
+    left++;
+    right--;
+  }
+  return result;
+}
+
+/** From-index ordering: elements sorted by distance from a given index. */
+function fromIndexOrder(targets, fromIndex) {
+  const idx = Math.max(0, Math.min(fromIndex, targets.length - 1));
+  const indexed = targets.map((t, i) => ({ target: t, dist: Math.abs(i - idx) }));
+  indexed.sort((a, b) => a.dist - b.dist);
+  return indexed.map(x => x.target);
+}
+
+/**
+ * Compute per-element stagger delay in frames.
+ *
+ * Supports:
+ * - interval_ms: fixed ms between elements (default behavior)
+ * - amount_ms: total stagger time distributed across all elements
+ * - ease: easing curve on the stagger distribution (default: linear)
+ *
+ * The stagger ease controls how delays are distributed — e.g., "power2_in"
+ * means early elements bunch together and later ones spread out.
+ *
+ * @param {number} count - Number of elements
+ * @param {object} stagger - Stagger config
+ * @param {number} fps - Frames per second
+ * @returns {number[]} Array of delay-in-frames per element index
+ */
+function computeStaggerDelays(count, stagger, fps) {
+  if (!stagger || count <= 0) return new Array(Math.max(0, count)).fill(0);
+  if (count === 1) return [0];
+
+  // Determine total stagger span in ms
+  let totalMs;
+  if (stagger.amount_ms != null) {
+    totalMs = stagger.amount_ms;
+  } else {
+    const intervalMs = stagger.interval_ms || 0;
+    totalMs = intervalMs * (count - 1);
+  }
+
+  if (totalMs <= 0) return new Array(count).fill(0);
+
+  const ease = stagger.ease || 'linear';
+  const delays = [];
+
+  for (let i = 0; i < count; i++) {
+    // Linear progress through the stagger [0..1]
+    const t = i / (count - 1);
+    // Apply stagger ease to redistribute timing
+    const eased = applyStaggerEase(t, ease);
+    const delayMs = eased * totalMs;
+    delays.push(Math.round((delayMs / 1000) * fps));
+  }
+
+  return delays;
+}
+
+/**
+ * Apply an easing curve to a stagger distribution value [0..1] → [0..1].
+ *
+ * Eases:
+ * - "linear"     → no change
+ * - "power1_in"  → t^2 (slow start, fast end — elements bunch early)
+ * - "power1_out" → 1-(1-t)^2 (fast start, slow end — elements spread early)
+ * - "power2_in"  → t^3
+ * - "power2_out" → 1-(1-t)^3
+ * - "power3_in"  → t^4
+ * - "power3_out" → 1-(1-t)^4
+ * - "center"     → ease-in-out cubic (elements bunch at edges, spread in middle)
+ */
+function applyStaggerEase(t, ease) {
+  if (!ease || ease === 'linear') return t;
+
+  switch (ease) {
+    case 'power1_in':  return t * t;
+    case 'power1_out': return 1 - (1 - t) * (1 - t);
+    case 'power2_in':  return t * t * t;
+    case 'power2_out': return 1 - Math.pow(1 - t, 3);
+    case 'power3_in':  return t * t * t * t;
+    case 'power3_out': return 1 - Math.pow(1 - t, 4);
+    case 'center':     return t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    default: return t;
+  }
 }
 
 /**

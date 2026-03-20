@@ -651,20 +651,54 @@ Each group targets a set of layers sharing an animation primitive and timing:
   "id": "cards",
   "targets": ["card-0", "card-1", "card-2"],
   "primitive": "ed-slide-stagger",
+  "position": ">200",
   "stagger": {
     "interval_ms": 120,
-    "order": "sequential",
+    "from": "center",
+    "ease": "power1_out",
     "amplitude": { "curve": "descending", "start": 1.0, "end": 0.6 },
     "settle": { "easing": "spring", "duration_ms": 600 }
   },
-  "delay": { "after": "headline_done", "offset_ms": 200 },
   "on_complete": { "emit": "cards_done" }
 }
 ```
 
+### Position Parameter
+
+Controls when a group starts relative to the previous group or a named cue.
+Inspired by GSAP's position parameter. Takes precedence over legacy `delay` / `delay_after_hero_ms`.
+
+| Syntax | Meaning |
+|--------|---------|
+| `">"` | Start at previous group's end |
+| `"<"` | Start at previous group's start |
+| `">200"` | 200ms after previous group's end |
+| `">-200"` | 200ms before previous group's end (overlap) |
+| `"<200"` | 200ms after previous group's start |
+| `"label"` | Start at named cue |
+| `"label+300"` | 300ms after named cue |
+| `"label-100"` | 100ms before named cue |
+
+Legacy fields `delay: { after, offset_ms }` and `delay_after_hero_ms` still work but
+`position` is preferred for new scenes.
+
 **Stagger directive fields:**
 - `interval_ms` — time between element starts (>= 0)
-- `order` — `sequential`, `reverse`, `center_out`, `random`, `distance`
+- `amount_ms` — total stagger time distributed across all elements (alternative to `interval_ms`)
+- `order` — `sequential`, `reverse`, `center_out`, `random`, `distance` (legacy)
+- `from` — distribution origin, takes precedence over `order`:
+  - `"start"` — first element animates first (default)
+  - `"end"` — last element animates first
+  - `"center"` — middle element first, expanding outward
+  - `"edges"` — outer elements first, converging to center
+  - `"random"` — random order
+  - `<number>` — from specific index outward
+- `ease` — easing curve on the stagger delay distribution:
+  - `"linear"` — even spacing (default)
+  - `"power1_in"` / `"power1_out"` — quadratic acceleration/deceleration
+  - `"power2_in"` / `"power2_out"` — cubic
+  - `"power3_in"` / `"power3_out"` — quartic
+  - `"center"` — ease-in-out (elements bunch at edges, spread in middle)
 - `amplitude.curve` — `uniform`, `descending`, `ascending`, `wave`
 - `amplitude.start` / `amplitude.end` — multiplier range
 - `settle` — shared settle curve for "landing together" feel

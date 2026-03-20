@@ -1,0 +1,95 @@
+{
+  "brand_id": "_default",
+  "name": "Default",
+  "description": "Animatic default brand tokens — dark neutral",
+  "personality": "cinematic-dark",
+  "style": "prestige",
+
+  "colors": {
+    "bg_primary": "#0a0a0a",
+    "bg_surface": "rgba(255,255,255,0.04)",
+    "bg_elevated": "#141414",
+    "text_primary": "#ffffff",
+    "text_secondary": "rgba(255,255,255,0.6)",
+    "text_muted": "rgba(255,255,255,0.4)",
+    "accent": "#6366f1",
+    "accent_hover": "#818cf8",
+    "trend_up": "#4ade80",
+    "trend_down": "#f87171",
+    "border": "rgba(255,255,255,0.08)",
+    "border_active": "rgba(255,255,255,0.16)",
+    "shadow": "rgba(0,0,0,0.5)"
+  },
+
+  "typography": {
+    "font_family": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    "font_mono": "'JetBrains Mono', monospace",
+    "hero": {
+      "size": "48px",
+      "weight": "500",
+      "line_height": "1.1",
+      "letter_spacing": "-0.02em"
+    },
+    "tagline": {
+      "size": "36px",
+      "weight": "400",
+      "line_height": "1.2",
+      "letter_spacing": "-0.01em"
+    },
+    "heading": {
+      "size": "20px",
+      "weight": "600",
+      "line_height": "1.3"
+    },
+    "body": {
+      "size": "16px",
+      "weight": "400",
+      "line_height": "1.5"
+    },
+    "caption": {
+      "size": "13px",
+      "weight": "400",
+      "line_height": "1.4"
+    },
+    "label": {
+      "size": "14px",
+      "weight": "500",
+      "line_height": "1.3"
+    }
+  },
+
+  "surfaces": {
+    "card": {
+      "background": "rgba(255,255,255,0.04)",
+      "border": "1px solid rgba(255,255,255,0.08)",
+      "border_radius": "12px",
+      "padding": "20px 24px"
+    },
+    "panel": {
+      "background": "#141414",
+      "border": "1px solid rgba(255,255,255,0.1)",
+      "border_radius": "16px",
+      "shadow": "0 24px 64px rgba(0,0,0,0.5)"
+    },
+    "input": {
+      "background": "rgba(255,255,255,0.06)",
+      "border": "1px solid rgba(255,255,255,0.1)",
+      "border_radius": "24px",
+      "padding": "16px 20px"
+    }
+  },
+
+  "chart": {
+    "bar_color": "rgba(255,255,255,0.3)",
+    "bar_active": "#6366f1",
+    "axis_color": "rgba(255,255,255,0.2)",
+    "label_color": "rgba(255,255,255,0.5)",
+    "grid_color": "rgba(255,255,255,0.05)"
+  },
+
+  "logo": {
+    "src": null,
+    "width": "200px",
+    "disclaimer": null
+  }
+}

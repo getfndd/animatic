@@ -11,7 +11,7 @@
  */
 
 import { validateScene } from '../../src/remotion/lib.js';
-import { loadBriefTemplates, loadStylePacks, loadPersonalitiesCatalog, loadRecipes } from '../data/loader.js';
+import { loadBriefTemplates, loadStylePacks, loadPersonalitiesCatalog, loadRecipes, loadBrands } from '../data/loader.js';
 import { isLLMAvailable, enhanceScenePlan, enrichSceneContent } from './llm.js';
 import { expandRecipe, lookupRecipe } from './interaction-recipes.js';
 
@@ -23,6 +23,7 @@ const stylePacksCatalog = loadStylePacks(
 );
 const briefTemplatesCatalog = loadBriefTemplates();
 const recipesCatalog = loadRecipes();
+const brandsCatalog = loadBrands();
 
 // ── Constants & Maps ─────────────────────────────────────────────────────────
 
@@ -186,6 +187,99 @@ const EXTENSION_TO_CONTENT_TYPE = {
  * @param {object} brief
  * @returns {{ valid: boolean, errors: string[] }}
  */
+
+// ── Brand Resolution ─────────────────────────────────────────────────────────
+
+/**
+ * Resolve brand tokens from brief.brand_id or brief.brand inline object.
+ * Maps structured brand tokens to the flat colors/font format the scene
+ * builders already use. Also produces a CSS custom properties string for
+ * injection into background layers.
+ *
+ * @param {object} brief
+ * @returns {{ colors: object, font: string|null, brand: object|null, cssVars: string }}
+ */
+export function resolveBrand(brief) {
+  let brand = null;
+
+  // Priority: inline brief.brand object > brief.brand_id lookup > default
+  if (brief.brand && typeof brief.brand === 'object' && brief.brand.colors) {
+    brand = brief.brand;
+  } else if (brief.brand_id && brandsCatalog.byId.has(brief.brand_id)) {
+    brand = brandsCatalog.byId.get(brief.brand_id);
+  } else if (typeof brief.brand === 'string' && brandsCatalog.byId.has(brief.brand)) {
+    brand = brandsCatalog.byId.get(brief.brand);
+  }
+
+  if (!brand) {
+    brand = brandsCatalog.default;
+  }
+
+  if (!brand) {
+    return {
+      colors: brief.brand?.colors || {},
+      font: brief.brand?.font || null,
+      brand: null,
+      cssVars: '',
+    };
+  }
+
+  // Map structured brand tokens → flat colors object for scene builders
+  const colors = {
+    background: brand.colors.bg_primary,
+    primary: brand.colors.bg_primary,
+    text: brand.colors.text_primary,
+    accent: brand.colors.accent,
+    surface: brand.colors.bg_surface,
+    elevated: brand.colors.bg_elevated,
+    secondary: brand.colors.text_secondary,
+    muted: brand.colors.text_muted,
+    border: brand.colors.border,
+    trend_up: brand.colors.trend_up,
+    trend_down: brand.colors.trend_down,
+    ...brand.colors,
+  };
+
+  const font = brand.typography?.font_family || null;
+
+  // Build CSS custom properties string
+  const vars = [];
+  if (brand.colors) {
+    for (const [key, value] of Object.entries(brand.colors)) {
+      vars.push(`--brand-${key.replace(/_/g, '-')}: ${value}`);
+    }
+  }
+  if (brand.typography) {
+    vars.push(`--brand-font: ${brand.typography.font_family}`);
+    if (brand.typography.font_mono) {
+      vars.push(`--brand-font-mono: ${brand.typography.font_mono}`);
+    }
+    for (const [scale, props] of Object.entries(brand.typography)) {
+      if (typeof props === 'object' && props.size) {
+        vars.push(`--brand-${scale}-size: ${props.size}`);
+        vars.push(`--brand-${scale}-weight: ${props.weight || '400'}`);
+        vars.push(`--brand-${scale}-lh: ${props.line_height || '1.4'}`);
+        if (props.letter_spacing) {
+          vars.push(`--brand-${scale}-ls: ${props.letter_spacing}`);
+        }
+      }
+    }
+  }
+  if (brand.surfaces) {
+    for (const [name, surface] of Object.entries(brand.surfaces)) {
+      if (surface.background) vars.push(`--brand-${name}-bg: ${surface.background}`);
+      if (surface.border) vars.push(`--brand-${name}-border: ${surface.border}`);
+      if (surface.border_radius) vars.push(`--brand-${name}-radius: ${surface.border_radius}`);
+      if (surface.shadow) vars.push(`--brand-${name}-shadow: ${surface.shadow}`);
+      if (surface.padding) vars.push(`--brand-${name}-padding: ${surface.padding}`);
+    }
+  }
+
+  const cssVars = vars.length > 0 ? `:root { ${vars.join('; ')} }` : '';
+
+  return { colors, font, brand, cssVars };
+}
+
 export function validateBrief(brief) {
   const errors = [];
 
@@ -743,10 +837,10 @@ function findBestSceneForAsset(asset, plan) {
  * @param {object[]} classifiedAssets — all classified assets
  * @returns {object} — scene JSON conforming to scene-format spec
  */
-export function generateScene(planEntry, index, brief) {
+export function generateScene(planEntry, index, brief, resolvedBrand) {
   const sceneId = makeSceneId(planEntry.label, index);
-  const brandColors = brief.brand?.colors || {};
-  const brandFont = brief.brand?.font;
+  const brandColors = resolvedBrand?.colors || brief.brand?.colors || {};
+  const brandFont = resolvedBrand?.font || brief.brand?.font;
 
   const scene = {
     scene_id: sceneId,
@@ -1299,6 +1393,9 @@ export async function generateScenes(brief, options = {}) {
     throw new Error(`Brief validation failed: ${validation.errors.join('; ')}`);
   }
 
+  // Stage 1b: Resolve brand tokens
+  const resolvedBrand = resolveBrand(brief);
+
   // Stage 2: Classify assets
   const classifiedAssets = classifyAssets(brief);
 
@@ -1326,12 +1423,24 @@ export async function generateScenes(brief, options = {}) {
   const emphases = plan.map(p => p.emphasis);
   const durations = allocateDurationsWeighted(total, emphases);
 
-  // Stage 6-7: Generate scenes
+  // Stage 6-7: Generate scenes (with resolved brand tokens)
   let scenes = plan.map((entry, i) => {
-    const scene = generateScene(entry, i, brief);
+    const scene = generateScene(entry, i, brief, resolvedBrand);
     scene.duration_s = durations[i] || 3;
     return scene;
   });
+
+  // Inject brand CSS custom properties into the first scene's background layer
+  if (resolvedBrand.cssVars && scenes.length > 0) {
+    const firstBgLayer = scenes[0].layers?.find(l => l.depth_class === 'background' && l.type === 'html');
+    if (firstBgLayer && firstBgLayer.content) {
+      firstBgLayer.content = `<style>${resolvedBrand.cssVars}</style>${firstBgLayer.content}`;
+    }
+    // Store brand metadata on each scene for downstream consumers (Preset renderer)
+    for (const scene of scenes) {
+      scene.brand = resolvedBrand.brand?.brand_id || null;
+    }
+  }
 
   // LLM Stage B: Enrich scene content — camera suggestions (ANI-36)
   if (options.enhance && isLLMAvailable()) {

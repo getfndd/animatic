@@ -110,6 +110,19 @@ export function loadRecipes() {
   return { array: arr, byId };
 }
 
+/** Load catalog/brands/*.json → brand_id map + default brand */
+export function loadBrands() {
+  const BRANDS_DIR = resolve(CATALOG_DIR, 'brands');
+  try {
+    const files = readdirSync(BRANDS_DIR).filter(f => f.endsWith('.json')).sort();
+    const brands = files.map(f => loadJSON(resolve(BRANDS_DIR, f)));
+    const byId = new Map(brands.map(b => [b.brand_id, b]));
+    return { array: brands, byId, default: byId.get('_default') || null };
+  } catch {
+    return { array: [], byId: new Map(), default: null };
+  }
+}
+
 /** Load catalog/benchmarks/*.json → array of benchmark scenes */
 export function loadBenchmarks() {
   try {

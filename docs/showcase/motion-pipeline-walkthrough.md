@@ -201,6 +201,114 @@ scene_start → hero group starts
 - `peak_at: 0.6` -- camera reaches maximum push-in at 60% of scene duration
 - `cue: "headline_done"` -- alternatively, peak aligns with when the headline finishes entering
 
+### Position parameters (GSAP-inspired)
+
+The `position` field on groups replaces verbose `delay: { after: "cue", offset_ms: N }` objects with a compact GSAP-inspired syntax. It controls when a group starts relative to the previous group or a named cue.
+
+| Syntax | Meaning | Example |
+|--------|---------|---------|
+| `"<"` | Same start time as previous group | Groups a and b start together |
+| `">"` | After previous group finishes | b starts when a ends (default sequential) |
+| `">200"` | After previous group + 200ms gap | b starts 200ms after a ends |
+| `">-200"` | Before previous group finishes (overlap) | b starts 200ms before a ends |
+| `"cue+200"` | After named cue + 200ms | b starts 200ms after the `hero_done` cue |
+| `"cue-100"` | Before named cue resolves | b starts 100ms before `hero_done` |
+
+**Before (verbose):**
+
+```json
+{
+  "groups": [
+    { "id": "hero", "primitive": "cd-focus-stagger", "targets": ["product"] },
+    { "id": "title", "primitive": "as-fadeInUp", "targets": ["headline"],
+      "delay": { "after": "hero_done", "offset_ms": 200 } },
+    { "id": "cards", "primitive": "ed-slide-stagger", "targets": ["card-0", "card-1", "card-2"],
+      "delay": { "after": "headline_done", "offset_ms": -200 } }
+  ]
+}
+```
+
+**After (position syntax):**
+
+```json
+{
+  "groups": [
+    { "id": "hero", "primitive": "cd-focus-stagger", "targets": ["product"] },
+    { "id": "title", "primitive": "as-fadeInUp", "targets": ["headline"],
+      "position": "hero_done+200" },
+    { "id": "cards", "primitive": "ed-slide-stagger", "targets": ["card-0", "card-1", "card-2"],
+      "position": ">-200" }
+  ]
+}
+```
+
+The third group uses `">-200"` — it starts 200ms before the title group finishes, creating an overlap that makes the sequence feel connected rather than sequential.
+
+**Three-group chain example:**
+
+```
+a (hero entrance)     |████████████|
+b (title, ">")                      |████████|
+c (cards, ">-200")              |████████████████|
+                                ↑ overlap
+```
+
+Group b starts when a ends. Group c starts 200ms before b ends, creating a 200ms overlap where both b and c are animating simultaneously.
+
+### Enhanced stagger
+
+Stagger controls per-element timing within a group. The enhanced stagger system adds `from` patterns, `amount_ms` as an alternative to `interval_ms`, and easing curves that redistribute timing.
+
+**`from` patterns** control which element starts first:
+
+| Pattern | Behavior |
+|---------|----------|
+| `"start"` | First element starts first (default) |
+| `"end"` | Last element starts first |
+| `"center"` | Center element starts first, spreads outward |
+| `"edges"` | Edge elements start first, converges to center |
+| `index` (number) | Specific element index starts first |
+
+**`amount_ms`** defines the total stagger spread instead of per-element interval. With 5 elements and `amount_ms: 800`, the system divides 800ms across 4 gaps = 200ms per gap. This is easier to reason about when element count varies.
+
+**`ease`** redistributes timing within the stagger window. Without ease, elements are evenly spaced. With ease, they bunch toward the start or end.
+
+| Ease | Effect |
+|------|--------|
+| `"linear"` | Even spacing (default) |
+| `"power1_in"` | Elements bunch at the start, spread at the end |
+| `"power1_out"` | Elements spread at the start, bunch at the end |
+| `"power2_in"` | Stronger bunching at start |
+| `"power2_out"` | Stronger bunching at end |
+
+**Bar chart example:**
+
+```json
+{
+  "id": "metrics",
+  "primitive": "cd-bar-grow",
+  "targets": ["bar-0", "bar-1", "bar-2", "bar-3", "bar-4"],
+  "stagger": {
+    "amount_ms": 800,
+    "from": "edges",
+    "ease": "power1_out"
+  }
+}
+```
+
+This produces a bar chart where the outer bars grow first and the center bar grows last, with the timing weighted toward the end (bars bunch together at the start, spread at the end). The visual effect: a wave that converges to the center with natural deceleration.
+
+**Comparison — interval_ms vs amount_ms:**
+
+| Setting | 3 elements | 5 elements | 10 elements |
+|---------|-----------|-----------|------------|
+| `interval_ms: 120` | 240ms total | 480ms total | 1080ms total |
+| `amount_ms: 600` | 300ms/gap | 150ms/gap | 67ms/gap |
+
+`interval_ms` keeps per-element spacing constant. `amount_ms` keeps total duration constant. Use `amount_ms` when you want consistent visual density regardless of element count.
+
+> See [Scene Format Spec](../cinematography/specs/scene-format.md) for the full position and stagger syntax reference.
+
 ---
 
 ## Step 3: Compile Motion

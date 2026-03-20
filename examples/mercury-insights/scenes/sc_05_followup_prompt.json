@@ -1,0 +1,60 @@
+{
+  "scene_id": "sc_05_followup_prompt",
+  "format_version": 2,
+  "duration_s": 3.5,
+  "brand": "mercury",
+  "camera": { "move": "static" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+      "depth_class": "background",
+      "slot": "background"
+    },
+    {
+      "id": "chart_context",
+      "type": "html",
+      "content": "<div style=\"max-width:640px;margin:0 auto 24px;opacity:0.4\"><div style=\"font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#e8e0d4;margin-bottom:12px\">Top software vendors</div><div style=\"display:flex;gap:16px;align-items:flex-end;justify-content:center;height:80px\"><div style=\"width:60px;height:70px;background:rgba(255,255,255,0.2);border-radius:3px 3px 0 0\"></div><div style=\"width:60px;height:55px;background:rgba(255,255,255,0.2);border-radius:3px 3px 0 0\"></div><div style=\"width:60px;height:42px;background:rgba(255,255,255,0.2);border-radius:3px 3px 0 0\"></div><div style=\"width:60px;height:35px;background:rgba(255,255,255,0.2);border-radius:3px 3px 0 0\"></div></div></div>",
+      "depth_class": "midground",
+      "slot": "center"
+    },
+    {
+      "id": "input_field",
+      "type": "html",
+      "content": "<div style=\"max-width:640px;margin:0 auto;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:16px 20px;display:flex;align-items:center;gap:12px\"><div style=\"flex:1\"></div><div style=\"width:20px;height:20px;opacity:0.4\">⬆</div><div style=\"width:36px;height:36px;background:rgba(99,102,241,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px\">↵</div></div>",
+      "depth_class": "foreground"
+    },
+    {
+      "id": "typed_text",
+      "type": "text",
+      "content": "Show me my largest transactions overall in March",
+      "depth_class": "foreground",
+      "style": {
+        "color": "#e8e0d4",
+        "fontFamily": "'Inter', sans-serif",
+        "fontSize": "16px"
+      }
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": ["chart_context"],
+        "primitive": "fade-in"
+      },
+      {
+        "targets": ["input_field"],
+        "primitive": "cd-card-cascade",
+        "delay_after_hero_ms": 200
+      },
+      {
+        "targets": ["typed_text"],
+        "primitive": "cd-typewriter",
+        "delay_after_hero_ms": 800
+      }
+    ]
+  }
+}

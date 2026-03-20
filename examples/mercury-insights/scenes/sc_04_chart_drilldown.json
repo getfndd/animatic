@@ -1,0 +1,80 @@
+{
+  "scene_id": "sc_04_chart_drilldown",
+  "format_version": 2,
+  "duration_s": 5,
+  "brand": "mercury",
+  "camera": { "move": "push_in", "intensity": 0.1, "easing": "ease_out" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+      "depth_class": "background",
+      "slot": "background"
+    },
+    {
+      "id": "panel",
+      "type": "html",
+      "content": "<div style=\"max-width:640px;margin:0 auto;background:#1c1c2e;border:1px solid rgba(255,255,255,0.08);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,0.6);padding:24px\"><div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:16px\"><span style=\"font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:#e8e0d4\">Increased software spend</span><div style=\"display:flex;gap:8px\"><span style=\"color:rgba(232,224,212,0.4);font-size:18px\">+</span><span style=\"color:rgba(232,224,212,0.4);font-size:18px\">☺</span><span style=\"color:rgba(232,224,212,0.4);font-size:18px\">✕</span></div></div><div style=\"font-family:'Inter',sans-serif;font-size:14px;color:rgba(232,224,212,0.6);margin-bottom:20px\">Your software spend increase was driven by these 4 vendors</div><div style=\"font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#e8e0d4;margin-bottom:4px\">Top software vendors</div></div>",
+      "depth_class": "foreground",
+      "slot": "center"
+    },
+    {
+      "id": "bar_anthropic",
+      "type": "html",
+      "content": "<div style=\"width:100px;height:120px;background:rgba(255,255,255,0.3);border-radius:4px 4px 0 0;transform-origin:bottom center\"></div>",
+      "depth_class": "foreground"
+    },
+    {
+      "id": "bar_cloudflare",
+      "type": "html",
+      "content": "<div style=\"width:100px;height:95px;background:rgba(255,255,255,0.3);border-radius:4px 4px 0 0;transform-origin:bottom center\"></div>",
+      "depth_class": "foreground"
+    },
+    {
+      "id": "bar_zoom",
+      "type": "html",
+      "content": "<div style=\"width:100px;height:75px;background:rgba(255,255,255,0.3);border-radius:4px 4px 0 0;transform-origin:bottom center\"></div>",
+      "depth_class": "foreground"
+    },
+    {
+      "id": "bar_notion",
+      "type": "html",
+      "content": "<div style=\"width:100px;height:60px;background:rgba(255,255,255,0.3);border-radius:4px 4px 0 0;transform-origin:bottom center\"></div>",
+      "depth_class": "foreground"
+    },
+    {
+      "id": "chart_labels",
+      "type": "html",
+      "content": "<div style=\"display:flex;gap:40px;justify-content:center;font-family:'Inter',sans-serif;font-size:13px;color:rgba(232,224,212,0.6)\"><span>Anthropic</span><span>Cloudflare</span><span>Zoom</span><span>Notion</span></div>",
+      "depth_class": "foreground"
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": ["panel"],
+        "primitive": "cd-panel-drilldown",
+        "on_complete": { "emit": "panel_open" }
+      },
+      {
+        "targets": ["bar_anthropic", "bar_cloudflare", "bar_zoom", "bar_notion"],
+        "primitive": "cd-bar-grow",
+        "delay_after_hero_ms": 600,
+        "stagger": { "interval_ms": 120, "order": "sequential" }
+      },
+      {
+        "targets": ["chart_labels"],
+        "primitive": "fade-in",
+        "delay_after_hero_ms": 1200
+      }
+    ],
+    "camera": {
+      "move": "push_in",
+      "intensity": 0.1,
+      "sync": { "peak_at": 0.5, "cue": "panel_open" }
+    }
+  }
+}

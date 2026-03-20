@@ -1,0 +1,40 @@
+{
+  "scene_id": "sc_08_tagline_close",
+  "format_version": 2,
+  "duration_s": 2.5,
+  "brand": "mercury",
+  "camera": { "move": "static" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+      "depth_class": "background",
+      "slot": "background"
+    },
+    {
+      "id": "tagline",
+      "type": "text",
+      "content": "Radically different banking.",
+      "depth_class": "foreground",
+      "slot": "center",
+      "style": {
+        "color": "#e8e0d4",
+        "fontFamily": "'Inter', sans-serif",
+        "fontSize": "42px",
+        "fontWeight": "400",
+        "letterSpacing": "-0.02em"
+      }
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": ["tagline"],
+        "primitive": "fade-in"
+      }
+    ]
+  }
+}

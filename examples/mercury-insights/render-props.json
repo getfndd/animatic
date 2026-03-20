@@ -1,0 +1,1299 @@
+{
+  "manifest": {
+    "sequence_id": "seq_mercury_insights",
+    "resolution": {
+      "w": 1920,
+      "h": 1080
+    },
+    "fps": 60,
+    "style": "prestige",
+    "scenes": [
+      {
+        "scene": "sc_01_tagline_open",
+        "duration_s": 3
+      },
+      {
+        "scene": "sc_02_insight_cards",
+        "duration_s": 5,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 600
+        }
+      },
+      {
+        "scene": "sc_03_prompt_input",
+        "duration_s": 4,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 400
+        }
+      },
+      {
+        "scene": "sc_04_chart_drilldown",
+        "duration_s": 5,
+        "transition_in": {
+          "type": "hard_cut"
+        }
+      },
+      {
+        "scene": "sc_05_followup_prompt",
+        "duration_s": 3.5,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 400
+        }
+      },
+      {
+        "scene": "sc_06_dashboard_reveal",
+        "duration_s": 5,
+        "transition_in": {
+          "type": "hard_cut"
+        }
+      },
+      {
+        "scene": "sc_07_tagline_intro",
+        "duration_s": 3,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 600
+        }
+      },
+      {
+        "scene": "sc_08_tagline_close",
+        "duration_s": 2.5,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 400
+        }
+      },
+      {
+        "scene": "sc_09_logo",
+        "duration_s": 2.5,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 400
+        }
+      }
+    ]
+  },
+  "sceneDefs": {
+    "sc_01_tagline_open": {
+      "scene_id": "sc_01_tagline_open",
+      "format_version": 2,
+      "duration_s": 3,
+      "brand": "mercury",
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<style>:root { --brand-bg: #1a1a2e; --brand-text: #e8e0d4; --brand-font: 'Inter', sans-serif }</style><div style=\"width:100%;height:100%;background:var(--brand-bg, #1a1a2e)\"></div>",
+          "depth_class": "background",
+          "slot": "background"
+        },
+        {
+          "id": "tagline",
+          "type": "text",
+          "content": "Clarity takes craft.",
+          "depth_class": "foreground",
+          "slot": "center",
+          "style": {
+            "color": "#e8e0d4",
+            "fontFamily": "'Inter', sans-serif",
+            "fontSize": "36px",
+            "fontWeight": "400",
+            "letterSpacing": "-0.01em"
+          }
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "tagline"
+            ],
+            "primitive": "fade-in"
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "subtle",
+        "intent_tags": [
+          "opening"
+        ]
+      }
+    },
+    "sc_02_insight_cards": {
+      "scene_id": "sc_02_insight_cards",
+      "format_version": 2,
+      "duration_s": 5,
+      "brand": "mercury",
+      "camera": {
+        "move": "push_in",
+        "intensity": 0.15,
+        "easing": "ease_out"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+          "depth_class": "background",
+          "slot": "background"
+        },
+        {
+          "id": "card_revenue",
+          "type": "html",
+          "content": "<div style=\"background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px 24px;max-width:600px;margin:0 auto 16px\"><div style=\"display:flex;align-items:center;gap:8px;margin-bottom:4px\"><span style=\"color:#4ade80\">↗</span><span style=\"font-family:'Inter',sans-serif;font-size:16px;font-weight:600;color:#e8e0d4\">12% revenue growth</span></div><div style=\"font-family:'Inter',sans-serif;font-size:14px;color:rgba(232,224,212,0.6);line-height:1.5\">From August to September revenue increased from $12,459 to $12,950</div></div>",
+          "depth_class": "foreground",
+          "slot": "center"
+        },
+        {
+          "id": "card_credit",
+          "type": "html",
+          "content": "<div style=\"background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px 24px;max-width:600px;margin:0 auto 16px\"><div style=\"display:flex;align-items:center;gap:8px;margin-bottom:4px\"><span style=\"color:#94a3b8\">↘</span><span style=\"font-family:'Inter',sans-serif;font-size:16px;font-weight:600;color:#e8e0d4\">Decreased Credit spend</span></div><div style=\"font-family:'Inter',sans-serif;font-size:14px;color:rgba(232,224,212,0.6);line-height:1.5\">Credit card spend saw a decrease of 8% from $3,490 in August to $3,210 in September</div></div>",
+          "depth_class": "foreground"
+        },
+        {
+          "id": "card_software",
+          "type": "html",
+          "content": "<div style=\"background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px 24px;max-width:600px;margin:0 auto 16px\"><div style=\"display:flex;align-items:center;gap:8px;margin-bottom:4px\"><span style=\"color:#94a3b8\">↗</span><span style=\"font-family:'Inter',sans-serif;font-size:16px;font-weight:600;color:#e8e0d4\">Increased software spend</span></div><div style=\"font-family:'Inter',sans-serif;font-size:14px;color:rgba(232,224,212,0.6);line-height:1.5\">Software spend saw an increase of 16% from $3,283 in February to $3,808 in March</div></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "recipe": "cd-insight-card-cascade",
+        "target_map": {
+          "hero": [
+            "card_revenue"
+          ],
+          "supporting": [
+            "card_credit",
+            "card_software"
+          ]
+        }
+      },
+      "metadata": {
+        "motion_energy": "high",
+        "intent_tags": [
+          "hero",
+          "detail"
+        ]
+      }
+    },
+    "sc_03_prompt_input": {
+      "scene_id": "sc_03_prompt_input",
+      "format_version": 2,
+      "duration_s": 4,
+      "brand": "mercury",
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+          "depth_class": "background",
+          "slot": "background"
+        },
+        {
+          "id": "input_field",
+          "type": "html",
+          "content": "<div style=\"max-width:640px;margin:0 auto;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:16px 20px;display:flex;align-items:center;gap:12px\"><div style=\"flex:1;font-family:'Inter',sans-serif;font-size:16px;color:#e8e0d4\"></div><div style=\"width:20px;height:20px;opacity:0.4\">⬆</div><div style=\"width:36px;height:36px;background:#6366f1;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px\">↵</div></div>",
+          "depth_class": "foreground",
+          "slot": "center"
+        },
+        {
+          "id": "typed_text",
+          "type": "text",
+          "content": "Tell me more about: Increased software spend.",
+          "depth_class": "foreground",
+          "style": {
+            "color": "#e8e0d4",
+            "fontFamily": "'Inter', sans-serif",
+            "fontSize": "16px"
+          }
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "input_field"
+            ],
+            "primitive": "cd-panel-drilldown"
+          },
+          {
+            "targets": [
+              "typed_text"
+            ],
+            "primitive": "cd-typewriter",
+            "delay_after_hero_ms": 600
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "moderate",
+        "intent_tags": [
+          "detail"
+        ]
+      }
+    },
+    "sc_04_chart_drilldown": {
+      "scene_id": "sc_04_chart_drilldown",
+      "format_version": 2,
+      "duration_s": 5,
+      "brand": "mercury",
+      "camera": {
+        "move": "push_in",
+        "intensity": 0.1,
+        "easing": "ease_out"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+          "depth_class": "background",
+          "slot": "background"
+        },
+        {
+          "id": "panel",
+          "type": "html",
+          "content": "<div style=\"max-width:640px;margin:0 auto;background:#1c1c2e;border:1px solid rgba(255,255,255,0.08);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,0.6);padding:24px\"><div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:16px\"><span style=\"font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:#e8e0d4\">Increased software spend</span><div style=\"display:flex;gap:8px\"><span style=\"color:rgba(232,224,212,0.4);font-size:18px\">+</span><span style=\"color:rgba(232,224,212,0.4);font-size:18px\">☺</span><span style=\"color:rgba(232,224,212,0.4);font-size:18px\">✕</span></div></div><div style=\"font-family:'Inter',sans-serif;font-size:14px;color:rgba(232,224,212,0.6);margin-bottom:20px\">Your software spend increase was driven by these 4 vendors</div><div style=\"font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#e8e0d4;margin-bottom:4px\">Top software vendors</div></div>",
+          "depth_class": "foreground",
+          "slot": "center"
+        },
+        {
+          "id": "bar_anthropic",
+          "type": "html",
+          "content": "<div style=\"width:100px;height:120px;background:rgba(255,255,255,0.3);border-radius:4px 4px 0 0;transform-origin:bottom center\"></div>",
+          "depth_class": "foreground"
+        },
+        {
+          "id": "bar_cloudflare",
+          "type": "html",
+          "content": "<div style=\"width:100px;height:95px;background:rgba(255,255,255,0.3);border-radius:4px 4px 0 0;transform-origin:bottom center\"></div>",
+          "depth_class": "foreground"
+        },
+        {
+          "id": "bar_zoom",
+          "type": "html",
+          "content": "<div style=\"width:100px;height:75px;background:rgba(255,255,255,0.3);border-radius:4px 4px 0 0;transform-origin:bottom center\"></div>",
+          "depth_class": "foreground"
+        },
+        {
+          "id": "bar_notion",
+          "type": "html",
+          "content": "<div style=\"width:100px;height:60px;background:rgba(255,255,255,0.3);border-radius:4px 4px 0 0;transform-origin:bottom center\"></div>",
+          "depth_class": "foreground"
+        },
+        {
+          "id": "chart_labels",
+          "type": "html",
+          "content": "<div style=\"display:flex;gap:40px;justify-content:center;font-family:'Inter',sans-serif;font-size:13px;color:rgba(232,224,212,0.6)\"><span>Anthropic</span><span>Cloudflare</span><span>Zoom</span><span>Notion</span></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "panel"
+            ],
+            "primitive": "cd-panel-drilldown",
+            "on_complete": {
+              "emit": "panel_open"
+            }
+          },
+          {
+            "targets": [
+              "bar_anthropic",
+              "bar_cloudflare",
+              "bar_zoom",
+              "bar_notion"
+            ],
+            "primitive": "cd-bar-grow",
+            "delay_after_hero_ms": 600,
+            "stagger": {
+              "interval_ms": 120,
+              "order": "sequential"
+            }
+          },
+          {
+            "targets": [
+              "chart_labels"
+            ],
+            "primitive": "fade-in",
+            "delay_after_hero_ms": 1200
+          }
+        ],
+        "camera": {
+          "move": "push_in",
+          "intensity": 0.1,
+          "sync": {
+            "peak_at": 0.5,
+            "cue": "panel_open"
+          }
+        }
+      },
+      "metadata": {
+        "motion_energy": "high",
+        "intent_tags": [
+          "detail"
+        ]
+      }
+    },
+    "sc_05_followup_prompt": {
+      "scene_id": "sc_05_followup_prompt",
+      "format_version": 2,
+      "duration_s": 3.5,
+      "brand": "mercury",
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+          "depth_class": "background",
+          "slot": "background"
+        },
+        {
+          "id": "chart_context",
+          "type": "html",
+          "content": "<div style=\"max-width:640px;margin:0 auto 24px;opacity:0.4\"><div style=\"font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#e8e0d4;margin-bottom:12px\">Top software vendors</div><div style=\"display:flex;gap:16px;align-items:flex-end;justify-content:center;height:80px\"><div style=\"width:60px;height:70px;background:rgba(255,255,255,0.2);border-radius:3px 3px 0 0\"></div><div style=\"width:60px;height:55px;background:rgba(255,255,255,0.2);border-radius:3px 3px 0 0\"></div><div style=\"width:60px;height:42px;background:rgba(255,255,255,0.2);border-radius:3px 3px 0 0\"></div><div style=\"width:60px;height:35px;background:rgba(255,255,255,0.2);border-radius:3px 3px 0 0\"></div></div></div>",
+          "depth_class": "midground",
+          "slot": "center"
+        },
+        {
+          "id": "input_field",
+          "type": "html",
+          "content": "<div style=\"max-width:640px;margin:0 auto;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:16px 20px;display:flex;align-items:center;gap:12px\"><div style=\"flex:1\"></div><div style=\"width:20px;height:20px;opacity:0.4\">⬆</div><div style=\"width:36px;height:36px;background:rgba(99,102,241,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px\">↵</div></div>",
+          "depth_class": "foreground"
+        },
+        {
+          "id": "typed_text",
+          "type": "text",
+          "content": "Show me my largest transactions overall in March",
+          "depth_class": "foreground",
+          "style": {
+            "color": "#e8e0d4",
+            "fontFamily": "'Inter', sans-serif",
+            "fontSize": "16px"
+          }
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "chart_context"
+            ],
+            "primitive": "fade-in"
+          },
+          {
+            "targets": [
+              "input_field"
+            ],
+            "primitive": "cd-card-cascade",
+            "delay_after_hero_ms": 200
+          },
+          {
+            "targets": [
+              "typed_text"
+            ],
+            "primitive": "cd-typewriter",
+            "delay_after_hero_ms": 800
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "moderate",
+        "intent_tags": [
+          "detail"
+        ]
+      }
+    },
+    "sc_06_dashboard_reveal": {
+      "scene_id": "sc_06_dashboard_reveal",
+      "format_version": 2,
+      "duration_s": 5,
+      "brand": "mercury",
+      "camera": {
+        "move": "pull_out",
+        "intensity": 0.4,
+        "easing": "cinematic_scurve"
+      },
+      "layout": {
+        "template": "split-panel",
+        "config": {
+          "ratio": 0.18,
+          "gap": 0
+        }
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+          "depth_class": "background",
+          "slot": "background"
+        },
+        {
+          "id": "sidebar",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#141428;border-right:1px solid rgba(255,255,255,0.06);padding:24px 16px;box-sizing:border-box\"><div style=\"font-family:'Inter',sans-serif;margin-bottom:32px\"><div style=\"display:flex;align-items:center;gap:8px;margin-bottom:24px\"><div style=\"width:24px;height:24px;background:rgba(255,255,255,0.1);border-radius:50%\"></div><span style=\"font-size:14px;font-weight:600;color:#e8e0d4\">Mercury</span></div><div style=\"display:flex;flex-direction:column;gap:4px\"><div style=\"padding:8px 12px;border-radius:8px;font-size:13px;color:rgba(232,224,212,0.5)\">Home</div><div style=\"padding:8px 12px;border-radius:8px;font-size:13px;color:rgba(232,224,212,0.5)\">Tasks <span style=\"background:rgba(99,102,241,0.3);color:#818cf8;padding:2px 8px;border-radius:10px;font-size:11px;margin-left:4px\">10</span></div><div style=\"padding:8px 12px;border-radius:8px;font-size:13px;color:rgba(232,224,212,0.5)\">Transactions</div><div style=\"padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.06);font-size:13px;color:#e8e0d4;font-weight:500\">Insights</div></div></div></div>",
+          "depth_class": "midground",
+          "slot": "left"
+        },
+        {
+          "id": "main_content",
+          "type": "html",
+          "content": "<div style=\"padding:24px 32px;font-family:'Inter',sans-serif\"><div style=\"font-size:24px;font-weight:600;color:#e8e0d4;margin-bottom:16px\">Insights</div><div style=\"display:flex;gap:8px;margin-bottom:24px\"><span style=\"padding:6px 16px;border-radius:8px;background:rgba(255,255,255,0.08);font-size:13px;font-weight:500;color:#e8e0d4\">Overview</span><span style=\"padding:6px 16px;border-radius:8px;font-size:13px;color:rgba(232,224,212,0.5)\">Money In</span><span style=\"padding:6px 16px;border-radius:8px;font-size:13px;color:rgba(232,224,212,0.5)\">Money Out</span></div><div style=\"display:flex;gap:24px;margin-bottom:24px\"><div><div style=\"font-size:13px;color:rgba(232,224,212,0.5);margin-bottom:4px\">Net Cashflow</div><div style=\"font-size:28px;font-weight:600;color:#e8e0d4\">$11,007</div></div><div><div style=\"font-size:13px;color:rgba(232,224,212,0.5);margin-bottom:4px\">Money In</div><div style=\"font-size:18px;font-weight:500;color:#e8e0d4\">$56,102</div></div><div><div style=\"font-size:13px;color:rgba(232,224,212,0.5);margin-bottom:4px\">Money Out</div><div style=\"font-size:18px;font-weight:500;color:rgba(232,224,212,0.5)\">−$45,100</div></div></div><div style=\"display:flex;align-items:flex-start;gap:16px\"><div style=\"flex:1\"><div style=\"display:flex;align-items:center;gap:6px;margin-bottom:8px\"><span style=\"color:#4ade80;font-size:14px\">↗</span><span style=\"font-size:14px;font-weight:500;color:#e8e0d4\">12% revenue growth</span></div><div style=\"font-size:13px;color:rgba(232,224,212,0.5);margin-bottom:12px\">From January to June revenue increased from $12,460 to $13,954</div><div style=\"display:flex;align-items:center;gap:6px\"><span style=\"color:#94a3b8;font-size:14px\">↗</span><span style=\"font-size:14px;font-weight:500;color:#e8e0d4\">Increase Software spend</span></div></div></div></div>",
+          "depth_class": "foreground",
+          "slot": "right"
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "main_content"
+            ],
+            "primitive": "cd-card-cascade"
+          },
+          {
+            "targets": [
+              "sidebar"
+            ],
+            "primitive": "fade-in",
+            "delay_after_hero_ms": 300
+          }
+        ],
+        "camera": {
+          "move": "pull_out",
+          "intensity": 0.4,
+          "sync": {
+            "peak_at": 0.8
+          }
+        }
+      },
+      "metadata": {
+        "motion_energy": "high",
+        "intent_tags": [
+          "hero"
+        ]
+      }
+    },
+    "sc_07_tagline_intro": {
+      "scene_id": "sc_07_tagline_intro",
+      "format_version": 2,
+      "duration_s": 3,
+      "brand": "mercury",
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+          "depth_class": "background",
+          "slot": "background"
+        },
+        {
+          "id": "tagline_1",
+          "type": "text",
+          "content": "Introducing Insights.",
+          "depth_class": "foreground",
+          "slot": "center",
+          "style": {
+            "color": "#e8e0d4",
+            "fontFamily": "'Inter', sans-serif",
+            "fontSize": "42px",
+            "fontWeight": "400",
+            "letterSpacing": "-0.02em",
+            "lineHeight": "1.2"
+          }
+        },
+        {
+          "id": "tagline_2",
+          "type": "text",
+          "content": "An intelligent view of your finances.",
+          "depth_class": "foreground",
+          "style": {
+            "color": "#e8e0d4",
+            "fontFamily": "'Inter', sans-serif",
+            "fontSize": "42px",
+            "fontWeight": "400",
+            "letterSpacing": "-0.02em",
+            "lineHeight": "1.2"
+          }
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "tagline_1"
+            ],
+            "primitive": "fade-in"
+          },
+          {
+            "targets": [
+              "tagline_2"
+            ],
+            "primitive": "fade-in",
+            "delay_after_hero_ms": 200
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "subtle",
+        "intent_tags": [
+          "closing"
+        ]
+      }
+    },
+    "sc_08_tagline_close": {
+      "scene_id": "sc_08_tagline_close",
+      "format_version": 2,
+      "duration_s": 2.5,
+      "brand": "mercury",
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+          "depth_class": "background",
+          "slot": "background"
+        },
+        {
+          "id": "tagline",
+          "type": "text",
+          "content": "Radically different banking.",
+          "depth_class": "foreground",
+          "slot": "center",
+          "style": {
+            "color": "#e8e0d4",
+            "fontFamily": "'Inter', sans-serif",
+            "fontSize": "42px",
+            "fontWeight": "400",
+            "letterSpacing": "-0.02em"
+          }
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "tagline"
+            ],
+            "primitive": "fade-in"
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "subtle",
+        "intent_tags": [
+          "closing"
+        ]
+      }
+    },
+    "sc_09_logo": {
+      "scene_id": "sc_09_logo",
+      "format_version": 2,
+      "duration_s": 2.5,
+      "brand": "mercury",
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#1a1a2e\"></div>",
+          "depth_class": "background",
+          "slot": "background"
+        },
+        {
+          "id": "logo",
+          "type": "html",
+          "content": "<div style=\"display:flex;align-items:center;justify-content:center;gap:16px\"><div style=\"width:56px;height:56px;border:2px solid #e8e0d4;border-radius:50%;display:flex;align-items:center;justify-content:center\"><div style=\"font-size:24px;color:#e8e0d4\">⊛</div></div><span style=\"font-family:'Inter',sans-serif;font-size:28px;font-weight:400;letter-spacing:0.2em;color:#e8e0d4\">MERCURY</span></div>",
+          "depth_class": "foreground",
+          "slot": "center"
+        },
+        {
+          "id": "disclaimer",
+          "type": "text",
+          "content": "Mercury is a fintech company, not an FDIC-insured bank.",
+          "depth_class": "foreground",
+          "style": {
+            "color": "rgba(232,224,212,0.4)",
+            "fontFamily": "'Inter', sans-serif",
+            "fontSize": "12px"
+          }
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "logo"
+            ],
+            "primitive": "fade-in"
+          },
+          {
+            "targets": [
+              "disclaimer"
+            ],
+            "primitive": "fade-in",
+            "delay_after_hero_ms": 400
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "static",
+        "intent_tags": [
+          "closing"
+        ]
+      }
+    }
+  },
+  "timelines": {
+    "sc_01_tagline_open": {
+      "scene_id": "sc_01_tagline_open",
+      "duration_frames": 180,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "tagline": {
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0
+              },
+              {
+                "frame": 24,
+                "value": 1,
+                "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "sc_02_insight_cards": {
+      "scene_id": "sc_02_insight_cards",
+      "duration_frames": 300,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "card_revenue": {
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0
+              },
+              {
+                "frame": 17,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 24,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "translateY": [
+              {
+                "frame": 0,
+                "value": 16
+              },
+              {
+                "frame": 17,
+                "value": 2,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 24,
+                "value": 0,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "card_credit": {
+            "opacity": [
+              {
+                "frame": 11,
+                "value": 0
+              },
+              {
+                "frame": 28,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 35,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "translateY": [
+              {
+                "frame": 11,
+                "value": 16
+              },
+              {
+                "frame": 28,
+                "value": 2,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 35,
+                "value": 0,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "card_software": {
+            "opacity": [
+              {
+                "frame": 22,
+                "value": 0
+              },
+              {
+                "frame": 39,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 46,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "translateY": [
+              {
+                "frame": 22,
+                "value": 11.2
+              },
+              {
+                "frame": 39,
+                "value": 1.4,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 46,
+                "value": 0,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "sc_03_prompt_input": {
+      "scene_id": "sc_03_prompt_input",
+      "duration_frames": 240,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "input_field": {
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0
+              },
+              {
+                "frame": 30,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "translateY": [
+              {
+                "frame": 0,
+                "value": 20
+              },
+              {
+                "frame": 30,
+                "value": 0,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "scale": [
+              {
+                "frame": 0,
+                "value": 0.97
+              },
+              {
+                "frame": 30,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "typed_text": {
+            "opacity": [
+              {
+                "frame": 36,
+                "value": 0
+              },
+              {
+                "frame": 38,
+                "value": 1,
+                "easing": "linear"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "sc_04_chart_drilldown": {
+      "scene_id": "sc_04_chart_drilldown",
+      "duration_frames": 300,
+      "fps": 60,
+      "tracks": {
+        "camera": {
+          "scale": [
+            {
+              "frame": 0,
+              "value": 1
+            },
+            {
+              "frame": 30,
+              "value": 1.014,
+              "easing": "cubic-bezier(0.33,0,0.2,1)"
+            }
+          ]
+        },
+        "layers": {
+          "panel": {
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0
+              },
+              {
+                "frame": 30,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "translateY": [
+              {
+                "frame": 0,
+                "value": 20
+              },
+              {
+                "frame": 30,
+                "value": 0,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "scale": [
+              {
+                "frame": 0,
+                "value": 0.97
+              },
+              {
+                "frame": 30,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "bar_anthropic": {
+            "opacity": [
+              {
+                "frame": 36,
+                "value": 0.6
+              },
+              {
+                "frame": 66,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "scale": [
+              {
+                "frame": 36,
+                "value": 0
+              },
+              {
+                "frame": 66,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "bar_cloudflare": {
+            "opacity": [
+              {
+                "frame": 43,
+                "value": 0.6
+              },
+              {
+                "frame": 73,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "scale": [
+              {
+                "frame": 43,
+                "value": 0
+              },
+              {
+                "frame": 73,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "bar_zoom": {
+            "opacity": [
+              {
+                "frame": 50,
+                "value": 0.6
+              },
+              {
+                "frame": 80,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "scale": [
+              {
+                "frame": 50,
+                "value": 0
+              },
+              {
+                "frame": 80,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "bar_notion": {
+            "opacity": [
+              {
+                "frame": 58,
+                "value": 0.6
+              },
+              {
+                "frame": 88,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "scale": [
+              {
+                "frame": 58,
+                "value": 0
+              },
+              {
+                "frame": 88,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "chart_labels": {
+            "opacity": [
+              {
+                "frame": 72,
+                "value": 0
+              },
+              {
+                "frame": 96,
+                "value": 1,
+                "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "sc_05_followup_prompt": {
+      "scene_id": "sc_05_followup_prompt",
+      "duration_frames": 210,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "chart_context": {
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0
+              },
+              {
+                "frame": 24,
+                "value": 1,
+                "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+              }
+            ]
+          },
+          "input_field": {
+            "opacity": [
+              {
+                "frame": 12,
+                "value": 0
+              },
+              {
+                "frame": 29,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 36,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "translateY": [
+              {
+                "frame": 12,
+                "value": 16
+              },
+              {
+                "frame": 29,
+                "value": 2,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 36,
+                "value": 0,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "typed_text": {
+            "opacity": [
+              {
+                "frame": 48,
+                "value": 0
+              },
+              {
+                "frame": 50,
+                "value": 1,
+                "easing": "linear"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "sc_06_dashboard_reveal": {
+      "scene_id": "sc_06_dashboard_reveal",
+      "duration_frames": 300,
+      "fps": 60,
+      "tracks": {
+        "camera": {
+          "scale": [
+            {
+              "frame": 0,
+              "value": 1.056
+            },
+            {
+              "frame": 240,
+              "value": 1,
+              "easing": "cubic-bezier(0.33,0,0.2,1)"
+            }
+          ]
+        },
+        "layers": {
+          "main_content": {
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0
+              },
+              {
+                "frame": 17,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 24,
+                "value": 1,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ],
+            "translateY": [
+              {
+                "frame": 0,
+                "value": 16
+              },
+              {
+                "frame": 17,
+                "value": 2,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              },
+              {
+                "frame": 24,
+                "value": 0,
+                "easing": "cubic-bezier(0.16,1,0.3,1)"
+              }
+            ]
+          },
+          "sidebar": {
+            "opacity": [
+              {
+                "frame": 18,
+                "value": 0
+              },
+              {
+                "frame": 42,
+                "value": 1,
+                "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "sc_07_tagline_intro": {
+      "scene_id": "sc_07_tagline_intro",
+      "duration_frames": 180,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "tagline_1": {
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0
+              },
+              {
+                "frame": 24,
+                "value": 1,
+                "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+              }
+            ]
+          },
+          "tagline_2": {
+            "opacity": [
+              {
+                "frame": 12,
+                "value": 0
+              },
+              {
+                "frame": 36,
+                "value": 1,
+                "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "sc_08_tagline_close": {
+      "scene_id": "sc_08_tagline_close",
+      "duration_frames": 150,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "tagline": {
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0
+              },
+              {
+                "frame": 24,
+                "value": 1,
+                "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "sc_09_logo": {
+      "scene_id": "sc_09_logo",
+      "duration_frames": 150,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "logo": {
+            "opacity": [
+              {
+                "frame": 0,
+                "value": 0
+              },
+              {
+                "frame": 24,
+                "value": 1,
+                "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+              }
+            ]
+          },
+          "disclaimer": {
+            "opacity": [
+              {
+                "frame": 24,
+                "value": 0
+              },
+              {
+                "frame": 48,
+                "value": 1,
+                "easing": "cubic-bezier(0.25,0.46,0.45,0.94)"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

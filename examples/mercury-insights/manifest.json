@@ -1,9 +1,6 @@
 {
-  "sequence_id": "seq_planned_1774015348695",
-  "resolution": {
-    "w": 1920,
-    "h": 1080
-  },
+  "sequence_id": "seq_mercury_insights",
+  "resolution": { "w": 1920, "h": 1080 },
   "fps": 60,
   "style": "prestige",
   "scenes": [
@@ -13,90 +10,43 @@
     },
     {
       "scene": "sc_02_insight_cards",
-      "duration_s": 3,
-      "transition_in": {
-        "type": "hard_cut"
-      }
+      "duration_s": 5,
+      "transition_in": { "type": "crossfade", "duration_ms": 600 }
     },
     {
       "scene": "sc_03_prompt_input",
-      "duration_s": 3,
-      "transition_in": {
-        "type": "hard_cut"
-      }
+      "duration_s": 4,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 }
     },
     {
       "scene": "sc_04_chart_drilldown",
-      "duration_s": 3,
-      "transition_in": {
-        "type": "hard_cut"
-      }
+      "duration_s": 5,
+      "transition_in": { "type": "hard_cut" }
     },
     {
       "scene": "sc_05_followup_prompt",
-      "duration_s": 3,
-      "transition_in": {
-        "type": "hard_cut"
-      }
+      "duration_s": 3.5,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 }
     },
     {
       "scene": "sc_06_dashboard_reveal",
-      "duration_s": 3,
-      "transition_in": {
-        "type": "hard_cut"
-      }
+      "duration_s": 5,
+      "transition_in": { "type": "hard_cut" }
     },
     {
       "scene": "sc_07_tagline_intro",
       "duration_s": 3,
-      "transition_in": {
-        "type": "hard_cut"
-      }
+      "transition_in": { "type": "crossfade", "duration_ms": 600 }
     },
     {
       "scene": "sc_08_tagline_close",
-      "duration_s": 3,
-      "transition_in": {
-        "type": "hard_cut"
-      }
+      "duration_s": 2.5,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 }
     },
     {
       "scene": "sc_09_logo",
-      "duration_s": 3,
-      "transition_in": {
-        "type": "hard_cut"
-      }
+      "duration_s": 2.5,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 }
     }
-  ],
-  "direction": {
-    "energy_arc": {
-      "shape": "front_loaded",
-      "peak_scene": 0,
-      "intensity_curve": [
-        0.6,
-        0.6,
-        0.6,
-        0.6,
-        0.6,
-        0.6,
-        0.6,
-        0.6,
-        0.6
-      ]
-    },
-    "camera_arc": {
-      "progression": [
-        "static",
-        "static",
-        "static",
-        "static",
-        "static",
-        "static",
-        "static",
-        "static",
-        "static"
-      ],
-      "intensity_follows_energy": true
-    }
-  }
+  ]
 }

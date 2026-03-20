@@ -3,8 +3,12 @@
   "format_version": 2,
   "duration_s": 4,
   "brand": "mercury",
-  "camera": { "move": "static" },
-  "layout": { "template": "hero-center" },
+  "camera": {
+    "move": "static"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
   "assets": [],
   "layers": [
     {
@@ -36,14 +40,24 @@
   "motion": {
     "groups": [
       {
-        "targets": ["input_field"],
+        "targets": [
+          "input_field"
+        ],
         "primitive": "cd-panel-drilldown"
       },
       {
-        "targets": ["typed_text"],
+        "targets": [
+          "typed_text"
+        ],
         "primitive": "cd-typewriter",
         "delay_after_hero_ms": 600
       }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "moderate",
+    "intent_tags": [
+      "detail"
     ]
   }
 }

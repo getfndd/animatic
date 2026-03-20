@@ -3,8 +3,14 @@
   "format_version": 2,
   "duration_s": 5,
   "brand": "mercury",
-  "camera": { "move": "push_in", "intensity": 0.1, "easing": "ease_out" },
-  "layout": { "template": "hero-center" },
+  "camera": {
+    "move": "push_in",
+    "intensity": 0.1,
+    "easing": "ease_out"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
   "assets": [],
   "layers": [
     {
@@ -55,18 +61,32 @@
   "motion": {
     "groups": [
       {
-        "targets": ["panel"],
+        "targets": [
+          "panel"
+        ],
         "primitive": "cd-panel-drilldown",
-        "on_complete": { "emit": "panel_open" }
+        "on_complete": {
+          "emit": "panel_open"
+        }
       },
       {
-        "targets": ["bar_anthropic", "bar_cloudflare", "bar_zoom", "bar_notion"],
+        "targets": [
+          "bar_anthropic",
+          "bar_cloudflare",
+          "bar_zoom",
+          "bar_notion"
+        ],
         "primitive": "cd-bar-grow",
         "delay_after_hero_ms": 600,
-        "stagger": { "interval_ms": 120, "order": "sequential" }
+        "stagger": {
+          "interval_ms": 120,
+          "order": "sequential"
+        }
       },
       {
-        "targets": ["chart_labels"],
+        "targets": [
+          "chart_labels"
+        ],
         "primitive": "fade-in",
         "delay_after_hero_ms": 1200
       }
@@ -74,7 +94,16 @@
     "camera": {
       "move": "push_in",
       "intensity": 0.1,
-      "sync": { "peak_at": 0.5, "cue": "panel_open" }
+      "sync": {
+        "peak_at": 0.5,
+        "cue": "panel_open"
+      }
     }
+  },
+  "metadata": {
+    "motion_energy": "high",
+    "intent_tags": [
+      "detail"
+    ]
   }
 }

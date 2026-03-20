@@ -3,8 +3,12 @@
   "format_version": 2,
   "duration_s": 3,
   "brand": "mercury",
-  "camera": { "move": "static" },
-  "layout": { "template": "hero-center" },
+  "camera": {
+    "move": "static"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
   "assets": [],
   "layers": [
     {
@@ -32,9 +36,17 @@
   "motion": {
     "groups": [
       {
-        "targets": ["tagline"],
+        "targets": [
+          "tagline"
+        ],
         "primitive": "fade-in"
       }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "subtle",
+    "intent_tags": [
+      "opening"
     ]
   }
 }

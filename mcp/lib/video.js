@@ -194,12 +194,13 @@ export async function generateVideo(prompt, options = {}) {
   }
 
   // ── Stage 4: Compile motion ─────────────────────────────────────────────
-  const timelines = [];
+  // Keyed by scene_id to match SequenceComposition.jsx + compileAllScenes() format
+  const timelines = {};
   for (const scene of scenes) {
     try {
       const timeline = compileMotion(scene, catalogs);
       if (timeline) {
-        timelines.push({ scene_id: scene.scene_id, timeline });
+        timelines[scene.scene_id] = timeline;
       } else {
         warnings.push(`${scene.scene_id}: no motion block (v1 scene)`);
       }
@@ -210,21 +211,21 @@ export async function generateVideo(prompt, options = {}) {
 
   // ── Stage 5: Critique scenes ────────────────────────────────────────────
   const scores = [];
-  for (const { scene_id, timeline } of timelines) {
-    const scene = scenes.find(s => s.scene_id === scene_id);
+  for (const [sceneId, timeline] of Object.entries(timelines)) {
+    const scene = scenes.find(s => s.scene_id === sceneId);
     try {
       const critique = critiqueScene(timeline, scene);
       scores.push({
-        scene_id,
+        scene_id: sceneId,
         score: critique.score,
         issues: critique.issues.length,
         pass: critique.score >= 70,
       });
       if (critique.score < 70) {
-        warnings.push(`${scene_id}: critique score ${critique.score}/100 (below 70 threshold)`);
+        warnings.push(`${sceneId}: critique score ${critique.score}/100 (below 70 threshold)`);
       }
     } catch (e) {
-      errors.push(`${scene_id}: critique error — ${e.message}`);
+      errors.push(`${sceneId}: critique error — ${e.message}`);
     }
   }
 
@@ -247,7 +248,7 @@ export async function generateVideo(prompt, options = {}) {
     personality,
     template: brief.template,
     scene_count: scenes.length,
-    compiled: timelines.length,
+    compiled: Object.keys(timelines).length,
     avg_critique_score: avgScore,
     sequence_score: evaluation?.score ?? null,
     duration_s: manifest.scenes.reduce((sum, s) => sum + (s.duration_s || 0), 0),

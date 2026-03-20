@@ -68,11 +68,12 @@ export const SceneComposition = ({ scene, timeline }) => {
           timelineTracks={timeline.tracks.camera}
         >
           {layers.map((layer) => {
-            // Skip layers used only as masks — they render inside MaskedLayer
+            // Skip layers used only as mask sources — they render inside MaskedLayer.
+            // Without this, the mask-source layer appears visibly as a normal layer
+            // in addition to being used as a mask.
             const isMaskOnly = layers.some(l => l.mask_layer === layer.id);
             if (isMaskOnly && !layer.mask_layer) {
-              // Render hidden so it exists in DOM but doesn't display standalone
-              // (only if this layer isn't itself masked)
+              return null;
             }
 
             const layerTracks = timeline.tracks.layers?.[layer.id];

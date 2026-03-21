@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storyboard — Fintech AI Insights</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0c10;
+      --bg-card: #12151c;
+      --bg-thumb: #111827;
+      --border: rgba(255,255,255,0.06);
+      --border-hover: rgba(255,255,255,0.12);
+      --text: #e5e7eb;
+      --text-secondary: rgba(229,231,235,0.55);
+      --text-muted: rgba(229,231,235,0.3);
+      --accent: #6366f1;
+      --accent-dim: rgba(99,102,241,0.15);
+      --green: #34d399;
+      --amber: #fbbf24;
+      --red: #f87171;
+      --slate: #64748b;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
+
+    /* ── Header ──────────────────────────────── */
+
+    .header {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 48px 48px 0;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    .header h1 span {
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .meta-pill {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 6px;
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .meta-text {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── Direction Block ─────────────────────── */
+
+    .direction {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .direction-cell {
+      background: var(--bg-card);
+      padding: 20px 24px;
+    }
+
+    .direction-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .direction-value {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ── Energy Arc ──────────────────────────── */
+
+    .energy-arc {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 48px 40px;
+    }
+
+    .arc-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .arc-track {
+      display: flex;
+      gap: 2px;
+      height: 48px;
+      align-items: flex-end;
+    }
+
+    .arc-bar {
+      flex: 1;
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      transition: opacity 0.2s;
+    }
+
+    .arc-bar:hover { opacity: 0.8; }
+
+    .arc-bar-label {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .arc-bar[data-energy="static"]  { height: 8px; background: var(--slate); opacity: 0.3; }
+    .arc-bar[data-energy="low"]     { height: 16px; background: var(--slate); opacity: 0.5; }
+    .arc-bar[data-energy="moderate"]{ height: 32px; background: var(--accent); opacity: 0.6; }
+    .arc-bar[data-energy="high"]    { height: 48px; background: var(--accent); opacity: 1; }
+
+    /* ── Panel Grid ──────────────────────────── */
+
+    .grid {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 48px 64px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    /* ── Panel Card ──────────────────────────── */
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .panel:hover { border-color: var(--border-hover); }
+
+    /* Thumbnail */
+    .panel-thumb {
+      aspect-ratio: 16/9;
+      background: var(--bg-thumb);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-thumb-content {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 20px;
+      max-width: 85%;
+      line-height: 1.5;
+    }
+
+    /* Panel badges */
+    .panel-badges {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 5px;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-panel {
+      background: rgba(0,0,0,0.6);
+      color: var(--text);
+      backdrop-filter: blur(8px);
+    }
+
+    .badge-act {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 9px;
+    }
+
+    .badge-act[data-act="open"]    { background: rgba(99,102,241,0.2); color: #818cf8; }
+    .badge-act[data-act="build"]   { background: rgba(52,211,153,0.15); color: #34d399; }
+    .badge-act[data-act="peak"]    { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .badge-act[data-act="resolve"] { background: rgba(148,163,184,0.15); color: #94a3b8; }
+    .badge-act[data-act="close"]   { background: rgba(148,163,184,0.1); color: #64748b; }
+
+    .badge-duration {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.6);
+      color: var(--text-secondary);
+      backdrop-filter: blur(8px);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Panel body */
+    .panel-body {
+      padding: 16px 18px 18px;
+    }
+
+    .panel-intent {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .panel-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    /* Meta row */
+    .panel-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .panel-meta-item {
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .panel-meta-label {
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .panel-meta-value {
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+    }
+
+    /* Expandable sections */
+    .panel-section {
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+
+    .panel-section-title {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .panel-section-text {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .panel-section-text strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* Visual direction grid */
+    .vd-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .vd-item {
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    .vd-label {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 10px;
+      margin-bottom: 2px;
+    }
+
+    .vd-value {
+      color: var(--text-secondary);
+    }
+
+    /* Motion notes */
+    .motion-list {
+      list-style: none;
+    }
+
+    .motion-list li {
+      font-size: 10px;
+      color: var(--text-secondary);
+      padding: 3px 0;
+      display: flex;
+      gap: 6px;
+    }
+
+    .motion-list li::before {
+      content: '→';
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* Transition indicator */
+    .transition-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(255,255,255,0.04);
+    }
+
+    .transition-arrow {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .transition-type {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Thumbnail Animations ────────────────── */
+
+    @keyframes fadeIn {
+      0%, 10% { opacity: 0; }
+      25%, 85% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes slideUp {
+      0%, 10% { opacity: 0; transform: translateY(12px); }
+      30%, 80% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(0); }
+    }
+
+    @keyframes scaleIn {
+      0%, 10% { opacity: 0; transform: scale(0.96) translateY(8px); }
+      30%, 80% { opacity: 1; transform: scale(1) translateY(0); }
+      100% { opacity: 0; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes pullOut {
+      0%, 10% { transform: scale(1.2); }
+      50%, 85% { transform: scale(1); }
+      100% { transform: scale(1); opacity: 0; }
+    }
+
+    .panel[data-anim="fade"] .panel-thumb-content {
+      animation: fadeIn 4s ease-out infinite;
+    }
+
+    .panel[data-anim="slide"] .panel-thumb-content {
+      animation: slideUp 5s cubic-bezier(0.16,1,0.3,1) infinite;
+    }
+
+    .panel[data-anim="scale"] .panel-thumb-content {
+      animation: scaleIn 5s cubic-bezier(0.16,1,0.3,1) infinite;
+    }
+
+    .panel[data-anim="pull"] .panel-thumb-content {
+      animation: pullOut 6s cubic-bezier(0.33,0,0.2,1) infinite;
+    }
+
+    /* Reference image in thumbnail */
+    .panel-thumb-ref {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.85;
+    }
+
+    .ref-label {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      font-size: 9px;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.5);
+      padding: 2px 6px;
+      border-radius: 4px;
+      backdrop-filter: blur(4px);
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1>Fintech AI Insights <span>— Product Sizzle</span></h1>
+      </div>
+      <div class="header-meta">
+        <span class="meta-pill">cinematic-dark</span>
+        <span class="meta-pill" style="background:rgba(52,211,153,0.1);color:#34d399">prestige</span>
+        <span class="meta-text">33.5s · 9 panels · v1</span>
+      </div>
+    </div>
+
+    <div class="direction">
+      <div class="direction-cell">
+        <div class="direction-label">Narrative</div>
+        <div class="direction-value">Open quiet, build through product demonstration, resolve with brand confidence</div>
+      </div>
+      <div class="direction-cell">
+        <div class="direction-label">Tone</div>
+        <div class="direction-value">Confident but not aggressive. Let the product speak. Restraint is the design.</div>
+      </div>
+      <div class="direction-cell">
+        <div class="direction-label">Brand</div>
+        <div class="direction-value">Dark navy (#111827), warm grey-white (#f3f4f6), indigo (#6366f1). Inter, weight 300 display. No pure white/black.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Energy Arc ═══ -->
+  <div class="energy-arc">
+    <div class="arc-label">Energy Arc</div>
+    <div class="arc-track">
+      <div class="arc-bar" data-energy="low" style="flex:3"><span class="arc-bar-label">p01</span></div>
+      <div class="arc-bar" data-energy="high" style="flex:5"><span class="arc-bar-label">p02</span></div>
+      <div class="arc-bar" data-energy="moderate" style="flex:4"><span class="arc-bar-label">p03</span></div>
+      <div class="arc-bar" data-energy="high" style="flex:5"><span class="arc-bar-label">p04</span></div>
+      <div class="arc-bar" data-energy="moderate" style="flex:3.5"><span class="arc-bar-label">p05</span></div>
+      <div class="arc-bar" data-energy="high" style="flex:5"><span class="arc-bar-label">p06</span></div>
+      <div class="arc-bar" data-energy="low" style="flex:3"><span class="arc-bar-label">p07</span></div>
+      <div class="arc-bar" data-energy="low" style="flex:2.5"><span class="arc-bar-label">p08</span></div>
+      <div class="arc-bar" data-energy="static" style="flex:2.5"><span class="arc-bar-label">p09</span></div>
+    </div>
+  </div>
+
+  <!-- ═══ Panel Grid ═══ -->
+  <div class="grid">
+
+    <!-- ── Panel 01 ─────────────────────────── -->
+    <div class="panel" data-anim="fade">
+      <div class="panel-thumb">
+        <div class="panel-badges">
+          <span class="badge badge-panel">01</span>
+          <span class="badge badge-act" data-act="open">Open</span>
+        </div>
+        <div class="panel-thumb-content" style="font-size:24px;font-weight:300;letter-spacing:-0.02em;color:rgba(243,244,246,0.8)">Clarity takes craft.</div>
+        <span class="badge badge-duration">3.0s</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-intent">Set the tone. Quiet confidence. Earn attention, don't grab it.</div>
+        <div class="panel-desc">Single tagline centered on dark field. No decoration. Just type and space.</div>
+        <div class="panel-meta">
+          <div class="panel-meta-item"><span class="panel-meta-label">Camera</span><span class="panel-meta-value">static</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Type</span><span class="panel-meta-value">typography</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Energy</span><span class="panel-meta-value">low</span></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Visual Direction</div>
+          <div class="vd-grid">
+            <div class="vd-item"><div class="vd-label">Type</div><div class="vd-value">38px / 300 / -0.02em</div></div>
+            <div class="vd-item"><div class="vd-label">Color</div><div class="vd-value">#f3f4f6 on #111827</div></div>
+            <div class="vd-item" style="grid-column:1/-1"><div class="vd-label">Ref</div><div class="vd-value">Mercury — study the restraint. No gradient, no glow.</div></div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Motion</div>
+          <ul class="motion-list">
+            <li>Fade in 400ms ease-out. Opacity only.</li>
+            <li>Hold 2s. Let audience read.</li>
+          </ul>
+        </div>
+        <div class="transition-indicator">
+          <span class="transition-arrow">↓</span>
+          <span class="transition-type">crossfade 600ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 02 ─────────────────────────── -->
+    <div class="panel" data-anim="slide">
+      <div class="panel-thumb">
+        <div class="panel-badges">
+          <span class="badge badge-panel">02</span>
+          <span class="badge badge-act" data-act="build">Build</span>
+        </div>
+        <div class="panel-thumb-content">
+          <div style="display:flex;flex-direction:column;gap:6px;text-align:left;width:100%">
+            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 12px">
+              <div style="display:flex;gap:4px;align-items:center;margin-bottom:2px"><span style="color:#34d399;font-size:10px">↗</span><span style="font-size:10px;font-weight:600;color:#f3f4f6">12% revenue growth</span></div>
+              <div style="font-size:8px;color:rgba(243,244,246,0.5)">Q3 to Q4: $12,459 → $12,950</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 12px">
+              <div style="display:flex;gap:4px;align-items:center;margin-bottom:2px"><span style="color:#94a3b8;font-size:10px">↘</span><span style="font-size:10px;font-weight:600;color:#f3f4f6">Decreased card spend</span></div>
+              <div style="font-size:8px;color:rgba(243,244,246,0.5)">Decreased 8%: $3,490 → $3,210</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 12px">
+              <div style="display:flex;gap:4px;align-items:center;margin-bottom:2px"><span style="color:#94a3b8;font-size:10px">↗</span><span style="font-size:10px;font-weight:600;color:#f3f4f6">Increased software spend</span></div>
+              <div style="font-size:8px;color:rgba(243,244,246,0.5)">Increased 16%: $3,283 → $3,808</div>
+            </div>
+          </div>
+        </div>
+        <span class="badge badge-duration">5.0s</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-intent">Show the AI generating actionable insights. Make the audience want this.</div>
+        <div class="panel-desc">Three insight cards stacked vertically with trend icons. Content is the hero, chrome is invisible.</div>
+        <div class="panel-meta">
+          <div class="panel-meta-item"><span class="panel-meta-label">Camera</span><span class="panel-meta-value">push_in 0.12</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Type</span><span class="panel-meta-value">insight_cards</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Energy</span><span class="panel-meta-value">high</span></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Visual Direction</div>
+          <div class="vd-grid">
+            <div class="vd-item"><div class="vd-label">Layout</div><div class="vd-value">560px max, 14px gap, centered</div></div>
+            <div class="vd-item"><div class="vd-label">Surface</div><div class="vd-value">3.5% white, 6% border, 14px radius</div></div>
+            <div class="vd-item"><div class="vd-label">Title</div><div class="vd-value">15px / 600</div></div>
+            <div class="vd-item"><div class="vd-label">Detail</div><div class="vd-value">13px / 400 / 55% opacity</div></div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Motion</div>
+          <ul class="motion-list">
+            <li>Container: translateY(16→0) + opacity, 400ms expo-out</li>
+            <li>Cards as unit — no individual stagger</li>
+            <li>Camera push_in begins after settle</li>
+          </ul>
+        </div>
+        <div class="transition-indicator">
+          <span class="transition-arrow">↓</span>
+          <span class="transition-type">crossfade 400ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 03 ─────────────────────────── -->
+    <div class="panel" data-anim="scale">
+      <div class="panel-thumb">
+        <div class="panel-badges">
+          <span class="badge badge-panel">03</span>
+          <span class="badge badge-act" data-act="build">Build</span>
+        </div>
+        <div class="panel-thumb-content">
+          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:10px 14px;display:flex;align-items:center;gap:8px;width:100%">
+            <span style="flex:1;font-size:10px;color:#f3f4f6;text-align:left">Tell me more about: Increased software spend.</span>
+            <span style="width:20px;height:20px;background:#6366f1;border-radius:50%"></span>
+          </div>
+        </div>
+        <span class="badge badge-duration">4.0s</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-intent">Show the conversational interface. Make it feel effortless.</div>
+        <div class="panel-desc">Chat input centered with typed text. Purple submit is the only accent color.</div>
+        <div class="panel-meta">
+          <div class="panel-meta-item"><span class="panel-meta-label">Camera</span><span class="panel-meta-value">static</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Type</span><span class="panel-meta-value">prompt_input</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Energy</span><span class="panel-meta-value">moderate</span></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Motion</div>
+          <ul class="motion-list">
+            <li>Input: scale(0.97→1) + translateY(20→0), 500ms</li>
+            <li>Typewriter ~40ms/char after 600ms delay</li>
+            <li>Hard cut out — AI responded instantly</li>
+          </ul>
+        </div>
+        <div class="transition-indicator">
+          <span class="transition-arrow">↓</span>
+          <span class="transition-type">hard_cut</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 04 ─────────────────────────── -->
+    <div class="panel" data-anim="scale">
+      <div class="panel-thumb">
+        <div class="panel-badges">
+          <span class="badge badge-panel">04</span>
+          <span class="badge badge-act" data-act="peak">Peak</span>
+        </div>
+        <div class="panel-thumb-content">
+          <div style="background:#1f2937;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;width:100%;text-align:left">
+            <div style="font-size:11px;font-weight:600;color:#f3f4f6;margin-bottom:4px">Increased software spend</div>
+            <div style="font-size:8px;color:rgba(243,244,246,0.5);margin-bottom:10px">Driven by these 4 vendors</div>
+            <div style="display:flex;align-items:flex-end;gap:6px;height:50px;margin-bottom:6px">
+              <div style="flex:1;height:85%;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+              <div style="flex:1;height:65%;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+              <div style="flex:1;height:48%;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+              <div style="flex:1;height:38%;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+            </div>
+            <div style="display:flex;gap:6px;font-size:7px;color:rgba(243,244,246,0.4)">
+              <span style="flex:1;text-align:center">Anthropic</span>
+              <span style="flex:1;text-align:center">Cloudflare</span>
+              <span style="flex:1;text-align:center">Zoom</span>
+              <span style="flex:1;text-align:center">Notion</span>
+            </div>
+          </div>
+        </div>
+        <span class="badge badge-duration">5.0s</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-intent">The AI delivered. This is the peak — the moment that sells the product.</div>
+        <div class="panel-desc">Elevated panel with chart drilldown. Header, explanation, bar chart, and input to continue.</div>
+        <div class="panel-meta">
+          <div class="panel-meta-item"><span class="panel-meta-label">Camera</span><span class="panel-meta-value">push_in 0.08</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Type</span><span class="panel-meta-value">chart_panel</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Energy</span><span class="panel-meta-value">high</span></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Visual Direction</div>
+          <div class="vd-grid">
+            <div class="vd-item"><div class="vd-label">Panel</div><div class="vd-value">#1f2937, 18px radius, deep shadow</div></div>
+            <div class="vd-item"><div class="vd-label">Bars</div><div class="vd-value">15% white, flex width, 4px radius</div></div>
+            <div class="vd-item"><div class="vd-label">Title</div><div class="vd-value">17px / 600</div></div>
+            <div class="vd-item"><div class="vd-label">Labels</div><div class="vd-value">11px / 50% opacity</div></div>
+          </div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Motion</div>
+          <ul class="motion-list">
+            <li>Panel: scale(0.97→1) + translateY, 500ms</li>
+            <li>Consider static bars vs grow — test both</li>
+            <li>Hold 3s for reading</li>
+          </ul>
+        </div>
+        <div class="transition-indicator">
+          <span class="transition-arrow">↓</span>
+          <span class="transition-type">crossfade 400ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 05 ─────────────────────────── -->
+    <div class="panel" data-anim="slide">
+      <div class="panel-thumb">
+        <div class="panel-badges">
+          <span class="badge badge-panel">05</span>
+          <span class="badge badge-act" data-act="build">Build</span>
+        </div>
+        <div class="panel-thumb-content">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%">
+            <div style="display:flex;gap:6px;align-items:flex-end;height:35px;opacity:0.35">
+              <div style="width:28px;height:30px;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+              <div style="width:28px;height:22px;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+              <div style="width:28px;height:16px;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+              <div style="width:28px;height:12px;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:8px 12px;display:flex;align-items:center;gap:6px;width:100%">
+              <span style="flex:1;font-size:9px;color:#f3f4f6;text-align:left">Show me my largest transactions in March</span>
+              <span style="width:18px;height:18px;background:rgba(99,102,241,0.6);border-radius:50%"></span>
+            </div>
+          </div>
+        </div>
+        <span class="badge badge-duration">3.5s</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-intent">Conversation continues. This isn't one-shot — it's a dialogue.</div>
+        <div class="panel-desc">Faded chart context above, new input below. Visual continuity without competition.</div>
+        <div class="panel-meta">
+          <div class="panel-meta-item"><span class="panel-meta-label">Camera</span><span class="panel-meta-value">static</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Type</span><span class="panel-meta-value">prompt_input</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Energy</span><span class="panel-meta-value">moderate</span></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Motion</div>
+          <ul class="motion-list">
+            <li>Chart residue fades in first (400ms)</li>
+            <li>Input: translateY(16→0) after 200ms</li>
+            <li>Typewriter after 800ms</li>
+          </ul>
+        </div>
+        <div class="transition-indicator">
+          <span class="transition-arrow">↓</span>
+          <span class="transition-type">hard_cut</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 06 ─────────────────────────── -->
+    <div class="panel" data-anim="pull">
+      <div class="panel-thumb">
+        <div class="panel-badges">
+          <span class="badge badge-panel">06</span>
+          <span class="badge badge-act" data-act="peak">Peak</span>
+        </div>
+        <div class="panel-thumb-content">
+          <img src="ref-dashboard.jpg" alt="Dashboard reference" class="panel-thumb-ref">
+        </div>
+        <span class="ref-label">Source reference</span>
+        <span class="badge badge-duration">5.0s</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-intent">The big reveal. Pull back to show the full product. Make them want to sign up.</div>
+        <div class="panel-desc">Full dashboard — sidebar nav, insights page, stats, trends, bar chart. Must look like a real product.</div>
+        <div class="panel-meta">
+          <div class="panel-meta-item"><span class="panel-meta-label">Camera</span><span class="panel-meta-value">pull_out 0.3</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Type</span><span class="panel-meta-value">dashboard</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Energy</span><span class="panel-meta-value">high</span></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Motion</div>
+          <ul class="motion-list">
+            <li>Content: translateY(16→0) + opacity, 400ms</li>
+            <li>Sidebar: fade-in 300ms later</li>
+            <li>Camera pull_out IS the animation — don't over-choreograph</li>
+          </ul>
+        </div>
+        <div class="transition-indicator">
+          <span class="transition-arrow">↓</span>
+          <span class="transition-type">crossfade 600ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 07 ─────────────────────────── -->
+    <div class="panel" data-anim="fade">
+      <div class="panel-thumb">
+        <div class="panel-badges">
+          <span class="badge badge-panel">07</span>
+          <span class="badge badge-act" data-act="resolve">Resolve</span>
+        </div>
+        <div class="panel-thumb-content" style="display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:18px;font-weight:300;letter-spacing:-0.025em;color:rgba(243,244,246,0.8)">Introducing Insights.</span>
+          <span style="font-size:18px;font-weight:300;letter-spacing:-0.025em;color:rgba(243,244,246,0.8)">An intelligent view of your finances.</span>
+        </div>
+        <span class="badge badge-duration">3.0s</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-intent">Name the thing. Two confident statements. Claim the territory.</div>
+        <div class="panel-desc">Two-line tagline, same size, no hierarchy. Periods not exclamation marks.</div>
+        <div class="panel-meta">
+          <div class="panel-meta-item"><span class="panel-meta-label">Camera</span><span class="panel-meta-value">static</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Type</span><span class="panel-meta-value">typography</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Energy</span><span class="panel-meta-value">low</span></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Motion</div>
+          <ul class="motion-list">
+            <li>Both lines fade in together, 400ms. No stagger.</li>
+            <li>Hold 2s.</li>
+          </ul>
+        </div>
+        <div class="transition-indicator">
+          <span class="transition-arrow">↓</span>
+          <span class="transition-type">crossfade 400ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 08 ─────────────────────────── -->
+    <div class="panel" data-anim="fade">
+      <div class="panel-thumb">
+        <div class="panel-badges">
+          <span class="badge badge-panel">08</span>
+          <span class="badge badge-act" data-act="resolve">Resolve</span>
+        </div>
+        <div class="panel-thumb-content" style="font-size:18px;font-weight:300;letter-spacing:-0.025em;color:rgba(243,244,246,0.8)">Radically different banking.</div>
+        <span class="badge badge-duration">2.5s</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-intent">The brand statement. Maximum confidence in minimum words.</div>
+        <div class="panel-desc">Single tagline. Period, not exclamation. Confidence doesn't shout.</div>
+        <div class="panel-meta">
+          <div class="panel-meta-item"><span class="panel-meta-label">Camera</span><span class="panel-meta-value">static</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Type</span><span class="panel-meta-value">typography</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Energy</span><span class="panel-meta-value">low</span></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Motion</div>
+          <ul class="motion-list">
+            <li>Fade in 400ms. Hold 1.5s.</li>
+          </ul>
+        </div>
+        <div class="transition-indicator">
+          <span class="transition-arrow">↓</span>
+          <span class="transition-type">crossfade 400ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel 09 ─────────────────────────── -->
+    <div class="panel" data-anim="fade">
+      <div class="panel-thumb">
+        <div class="panel-badges">
+          <span class="badge badge-panel">09</span>
+          <span class="badge badge-act" data-act="close">Close</span>
+        </div>
+        <div class="panel-thumb-content" style="display:flex;flex-direction:column;align-items:center;gap:20px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:24px;height:24px;border:1px solid rgba(243,244,246,0.4);border-radius:6px;display:flex;align-items:center;justify-content:center"><div style="width:10px;height:10px;background:rgba(99,102,241,0.5);border-radius:3px"></div></div>
+            <span style="font-size:13px;font-weight:400;letter-spacing:0.12em;color:#f3f4f6">ACME FINANCE</span>
+          </div>
+          <span style="font-size:7px;color:rgba(243,244,246,0.2)">Acme Finance is a technology company.</span>
+        </div>
+        <span class="badge badge-duration">2.5s</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-intent">Brand lockup. The signature. Then silence.</div>
+        <div class="panel-desc">Logo mark + wordmark centered. Legal below at 25% opacity. The video ends on the brand.</div>
+        <div class="panel-meta">
+          <div class="panel-meta-item"><span class="panel-meta-label">Camera</span><span class="panel-meta-value">static</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Type</span><span class="panel-meta-value">logo_lockup</span></div>
+          <div class="panel-meta-item"><span class="panel-meta-label">Energy</span><span class="panel-meta-value">static</span></div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-section-title">Motion</div>
+          <ul class="motion-list">
+            <li>Logo: fade in 600ms ease-out</li>
+            <li>Disclaimer: fade in after 400ms delay</li>
+            <li>No exit. Last frame is the logo.</li>
+          </ul>
+        </div>
+        <div class="transition-indicator">
+          <span class="transition-arrow">◼</span>
+          <span class="transition-type">end</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

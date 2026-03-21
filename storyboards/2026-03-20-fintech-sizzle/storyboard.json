@@ -1,0 +1,309 @@
+{
+  "storyboard_id": "sb_fintech_sizzle_v1",
+  "title": "Fintech AI Insights — Product Sizzle",
+  "version": 1,
+
+  "direction": {
+    "narrative": "Open quiet, build through product demonstration, resolve with brand confidence",
+    "tone": "Confident but not aggressive. Let the product speak. Restraint is the design.",
+    "energy_arc": "quiet → build → peak → resolve → quiet",
+    "total_duration_s": 33.5,
+    "personality": "cinematic-dark",
+    "style": "prestige"
+  },
+
+  "brand": {
+    "ref": "fintech-demo",
+    "palette_note": "Dark navy (#111827) backgrounds, warm grey-white (#f3f4f6) text, indigo (#6366f1) accents. No pure white. No pure black.",
+    "typography_note": "Inter or equivalent geometric sans. Weight 300 for display (taglines), 500 for UI labels, 600 for headings. Never bold (700+) for taglines — confidence whispers.",
+    "surface_note": "Card surfaces: 3.5% white opacity. Borders: 6-8% white. Elevated panels: #1f2937 solid. Shadows: deep but diffuse (32px blur, 50% black). Pill-shaped inputs: 28px radius."
+  },
+
+  "panels": [
+    {
+      "panel_id": "p_01",
+      "act": "open",
+      "intent": "Set the tone. Quiet confidence. Earn attention, don't grab it.",
+      "description": "Single tagline centered on dark field. No decoration. Just type and space. The restraint IS the design.",
+      "content": "Clarity takes craft.",
+      "duration_s": 3,
+      "transition_in": null,
+      "transition_out": { "type": "crossfade", "duration_ms": 600 },
+      "camera": "static",
+      "energy": "low",
+      "content_type": "typography",
+
+      "visual_direction": {
+        "composition": "Dead center, both axes. Generous negative space — the text should feel like it's floating in an ocean of dark navy.",
+        "typography": "38px, weight 300, letter-spacing -0.02em, line-height 1.2. Warm grey-white (#f3f4f6) on navy (#111827).",
+        "color": "Two colors only. Background navy. Text warm white. Nothing else exists.",
+        "reference": "Mercury 'Clarity takes craft.' — study the restraint. No gradient, no glow, no animation flair. Just perfect type on perfect space."
+      },
+
+      "motion_notes": {
+        "entrance": "Fade in over 400ms, ease-out. Opacity only — no translate, no scale. The text appears as if it was always there.",
+        "hold": "Static for 2s. Let the audience read. Respect their time.",
+        "exit": "Crossfade 600ms to next panel."
+      }
+    },
+
+    {
+      "panel_id": "p_02",
+      "act": "build",
+      "intent": "Show the AI generating actionable insights. This is the product moment — make the audience want this.",
+      "description": "Three insight cards stack vertically, each revealing a financial trend with a directional icon. Cards are dark surfaces with subtle borders — the content is the hero, the chrome is invisible.",
+      "content": [
+        { "trend": "up", "color": "#34d399", "title": "12% revenue growth", "detail": "Q3 to Q4 revenue increased from $12,459 to $12,950" },
+        { "trend": "down", "color": "#94a3b8", "title": "Decreased card spend", "detail": "Card spend decreased 8% from $3,490 to $3,210" },
+        { "trend": "up", "color": "#94a3b8", "title": "Increased software spend", "detail": "Software spend increased 16% from $3,283 to $3,808" }
+      ],
+      "duration_s": 5,
+      "transition_in": { "type": "crossfade", "duration_ms": 600 },
+      "transition_out": { "type": "crossfade", "duration_ms": 400 },
+      "camera": "push_in 0.12",
+      "energy": "high",
+      "content_type": "insight_cards",
+
+      "visual_direction": {
+        "composition": "Cards centered horizontally, vertically centered as a group. Max width 560px. 14px gap between cards. Each card is a self-contained unit — no visual dependency on its neighbors.",
+        "typography": "Trend icon: 15px, semantic color (green for up, slate for neutral/down). Title: 15px weight 600, full white. Detail: 13px weight 400, 55% opacity. Line-height 1.5 on detail text.",
+        "color": "Card background: rgba(255,255,255,0.035). Border: 1px solid rgba(255,255,255,0.06). No hover states, no gradients. Green: #34d399. Slate: #94a3b8.",
+        "surfaces": "Border radius: 14px. Padding: 18px vertical, 24px horizontal. No shadow on cards — they float by contrast alone.",
+        "reference": "Mercury insight cards — notice how cards don't compete. Equal visual weight, simple stack. The trend icon is small (15px) — it's a signal, not a decoration."
+      },
+
+      "motion_notes": {
+        "entrance": "Container enters with translateY(16px→0) + opacity, 400ms expo-out. Camera begins gentle push_in after entrance settles.",
+        "choreography": "Cards appear as a unit (single container entrance), not individually staggered. The content inside each card is visible immediately — no reveal sequencing within cards.",
+        "hold": "Cards visible for ~3s. Camera continues slow push_in through hold.",
+        "exit": "Crossfade 400ms to prompt input."
+      }
+    },
+
+    {
+      "panel_id": "p_03",
+      "act": "build",
+      "intent": "Show the conversational interface. The user asks a natural language question. Make it feel effortless.",
+      "description": "A chat input field appears center-screen with text already typed: 'Tell me more about: Increased software spend.' Purple submit button is the only color accent.",
+      "content": "Tell me more about: Increased software spend.",
+      "duration_s": 4,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 },
+      "transition_out": { "type": "hard_cut" },
+      "camera": "static",
+      "energy": "moderate",
+      "content_type": "prompt_input",
+
+      "visual_direction": {
+        "composition": "Input field centered both axes. 580px max width. Nothing else on screen. The isolation emphasizes the simplicity of the interaction.",
+        "typography": "Input text: 15px weight 400, full white. Placeholder (if visible): 35% white. The text should feel typed, not placed.",
+        "color": "Input bg: rgba(255,255,255,0.05). Border: 1px solid rgba(255,255,255,0.08). Submit button: #6366f1 circle with white ↵ icon. Upload icon: 30% white, 16px.",
+        "surfaces": "Input: 28px border radius (pill). 14px vertical, 20px horizontal padding. Submit button: 34px circle. No shadow on input.",
+        "reference": "Mercury prompt input — one input, one action, white space everywhere. The submit button is the only color."
+      },
+
+      "motion_notes": {
+        "entrance": "Input field enters with scale(0.97→1) + translateY(20→0) + opacity, 500ms expo-out.",
+        "interaction": "Text appears as if typed. cd-typewriter at ~40ms/char, starting 600ms after input appears.",
+        "hold": "Brief hold (600ms) after typing completes.",
+        "exit": "Hard cut to drilldown panel. Intentional — the AI responded instantly."
+      }
+    },
+
+    {
+      "panel_id": "p_04",
+      "act": "peak",
+      "intent": "The AI delivered. Show the answer: a rich data panel with a bar chart. This is the peak — the moment that sells the product.",
+      "description": "An elevated panel showing the drilldown response. Header with close/action controls. Explanatory text. Bar chart showing top 4 software vendors by spend. Input field at bottom to continue the conversation.",
+      "content": {
+        "header": "Increased software spend",
+        "controls": ["+", "☺", "✕"],
+        "explanation": "Your software spend increase was driven by these 4 vendors",
+        "chart_title": "Top software vendors",
+        "chart_legend": "— Money Out",
+        "chart_data": [
+          { "label": "Anthropic", "value": 85 },
+          { "label": "Cloudflare", "value": 65 },
+          { "label": "Zoom", "value": 48 },
+          { "label": "Notion", "value": 38 }
+        ],
+        "y_label": "~$1K",
+        "input_placeholder": "Ask anything..."
+      },
+      "duration_s": 5,
+      "transition_in": { "type": "hard_cut" },
+      "transition_out": { "type": "crossfade", "duration_ms": 400 },
+      "camera": "push_in 0.08",
+      "energy": "high",
+      "content_type": "chart_panel",
+
+      "visual_direction": {
+        "composition": "Elevated panel centered, 580px max width. Internal layout top-to-bottom: header bar (title + controls) → explanation paragraph → chart area (title + legend + bars + labels) → bottom divider → input field. 28px padding, 24px between major sections.",
+        "typography": "Panel title: 17px weight 600. Controls: 16px, 30% opacity. Explanation: 13px weight 400, 50% opacity. Chart title: 13px weight 500, full white. Legend: 11px, 35% opacity. Bar labels: 11px, 50% opacity. Y-axis: 11px, 25% opacity. Input placeholder: 13px, 35% opacity.",
+        "color": "Panel bg: #1f2937 (elevated surface). Border: 1px solid rgba(255,255,255,0.08). Shadow: 0 32px 80px rgba(0,0,0,0.5). Bar fill: rgba(255,255,255,0.15). Chart baseline: 1px solid rgba(255,255,255,0.06). Input submit: #6366f1 circle.",
+        "surfaces": "Panel: 18px border radius. Bars: flex-based width, 4px top-radius. Chart area height: ~140px. Input: 28px radius pill. Bottom input same style as p_03 but smaller (12px padding).",
+        "reference": "Mercury drilldown — the chart is simple. 4 bars, no gridlines, no animation flair. The data speaks. The header controls are barely visible (30% opacity) — they exist but don't compete."
+      },
+
+      "motion_notes": {
+        "entrance": "Panel enters with scale(0.97→1) + translateY(20→0), 500ms expo-out. Camera push_in synced to panel settle.",
+        "choreography": "Consider: should bars grow from baseline? Only if it doesn't distract from reading. Static bars may be more respectful of the content. Test both.",
+        "hold": "Hold 3s. Audience reads the chart.",
+        "exit": "Crossfade 400ms to follow-up prompt."
+      }
+    },
+
+    {
+      "panel_id": "p_05",
+      "act": "build",
+      "intent": "The conversation continues. Show this is an ongoing dialogue, not a one-shot. Create anticipation for the full reveal.",
+      "description": "Faded chart context above (connecting to previous panel), new input field below with second prompt. Visual continuity without visual competition.",
+      "content": "Show me my largest transactions overall in March",
+      "duration_s": 3.5,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 },
+      "transition_out": { "type": "hard_cut" },
+      "camera": "static",
+      "energy": "moderate",
+      "content_type": "prompt_input",
+
+      "visual_direction": {
+        "composition": "Upper third: faded mini-bars (35% opacity, ~70px tall) as context residue. No labels, just the bar shapes. Lower center: input field same spec as p_03. Vertical space between chart residue and input: ~28px.",
+        "typography": "Same as p_03. Prompt text fits on one line at 580px (check character count).",
+        "color": "Chart residue bars: rgba(255,255,255,0.12). Input submit: rgba(99,102,241,0.6) — slightly dimmer than p_03 to avoid repetition.",
+        "reference": "Mercury follow-up — the faded chart creates 'I was just here' continuity. Subtle, not explanatory."
+      },
+
+      "motion_notes": {
+        "entrance": "Chart residue fades in first (400ms, ease-out). Input field enters with translateY(16→0) after 200ms delay. Text types after 800ms total.",
+        "exit": "Hard cut to full dashboard. The transition should feel like a camera pulling back."
+      }
+    },
+
+    {
+      "panel_id": "p_06",
+      "act": "peak",
+      "intent": "The big reveal. Pull back to show the full product. 'Oh, this is a real product.' Make the audience want to sign up.",
+      "description": "Camera pulls out from detail view to reveal the complete dashboard: left sidebar with navigation, main content with Insights page (tabs, stats, trends, bar chart). This is the most complex visual — it must look like a shipping product.",
+      "content": {
+        "brand_name": "Acme Finance",
+        "nav": ["Home", "Tasks", "Transactions", "Insights", "Payments"],
+        "active_nav": "Insights",
+        "badge": { "item": "Tasks", "count": 10 },
+        "tabs": ["Overview", "Money In", "Money Out"],
+        "active_tab": "Overview",
+        "stats": [
+          { "label": "Net Cashflow", "value": "$11,007", "size": "large" },
+          { "label": "Money In", "value": "$56,102", "size": "medium" },
+          { "label": "Money Out", "value": "−$45,100", "size": "medium", "muted": true }
+        ],
+        "trends": [
+          { "direction": "up", "title": "12% revenue growth", "detail": "January to June: $12,460 → $13,954" },
+          { "direction": "neutral", "title": "Increased software spend" }
+        ]
+      },
+      "duration_s": 5,
+      "transition_in": { "type": "hard_cut" },
+      "transition_out": { "type": "crossfade", "duration_ms": 600 },
+      "camera": "pull_out 0.3 cinematic_scurve",
+      "energy": "high",
+      "content_type": "dashboard",
+
+      "visual_direction": {
+        "composition": "Full-width 1920px. Sidebar: 200px wide, darker navy (#0f172a), border-right. Main: flexible, 24px top/bottom padding, 32px horizontal. Stats row at top, then trends text on left, bar chart on right (roughly 50/50 split). Every element earns its pixels.",
+        "typography": "Brand name: 14px weight 600. Nav items: 12px weight 400, 40% opacity (except active: full white, weight 500). Badge: 10px on indigo-25% bg. Page title: 22px weight 600. Tab: 12px, active has 7% white bg. Stat label: 11px 40% opacity. Stat value: 26px weight 600 (primary), 17px weight 500 (secondary). Trend title: 13px weight 500. Trend detail: 12px, 40% opacity.",
+        "color": "Sidebar bg: #0f172a. Sidebar border: rgba(255,255,255,0.06). Active nav bg: rgba(255,255,255,0.06). Tab active bg: rgba(255,255,255,0.07). Chart bars: #6366f1 (income) + rgba(148,163,184,0.3) (expense). Money Out stat: 45% opacity.",
+        "surfaces": "Sidebar nav items: 7px radius, 7px/10px padding. Tabs: 7px radius, 5px/14px padding. Chart bars: 2px radius.",
+        "reference": "Mercury full dashboard — this is not a wireframe. It's a rendered product UI. Font rendering, spacing, alignment, color consistency — every detail matters. If it doesn't look like a screenshot of a real app, start over."
+      },
+
+      "motion_notes": {
+        "entrance": "Main content enters with translateY(16→0) + opacity, 400ms. Sidebar fades in 300ms later. Camera pull_out begins immediately.",
+        "choreography": "The camera pull_out IS the animation. Don't over-choreograph elements — let the reveal do the work. The audience is processing visual density, don't add motion complexity on top.",
+        "hold": "Full pull_out holds for 1.5s at widest view.",
+        "exit": "Crossfade 600ms to closing tagline. Slow crossfade — let the dashboard linger."
+      }
+    },
+
+    {
+      "panel_id": "p_07",
+      "act": "resolve",
+      "intent": "Name the thing. Two confident statements. The product has proven itself — now claim the territory.",
+      "description": "Two-line tagline centered on dark field. First line names the feature. Second line describes the value proposition. Both lines same size — equal weight, twin declarations.",
+      "content": ["Introducing Insights.", "An intelligent view of your finances."],
+      "duration_s": 3,
+      "transition_in": { "type": "crossfade", "duration_ms": 600 },
+      "transition_out": { "type": "crossfade", "duration_ms": 400 },
+      "camera": "static",
+      "energy": "low",
+      "content_type": "typography",
+
+      "visual_direction": {
+        "composition": "Two lines stacked with 8px gap. Centered both axes. Same generous space as p_01. The visual rhythm echoes the opening — bookend structure.",
+        "typography": "40px, weight 300, letter-spacing -0.025em. Both lines identical styling — no hierarchy between them, just two declarations.",
+        "color": "Same as p_01. Warm white on navy. Consistency is the point.",
+        "reference": "Mercury 'Introducing Insights.' — periods, not exclamation marks. Declarations, not announcements. The punctuation choice reveals the brand character."
+      },
+
+      "motion_notes": {
+        "entrance": "Both lines fade in together, 400ms ease-out. No stagger — they're one thought.",
+        "hold": "Hold 2s.",
+        "exit": "Crossfade 400ms."
+      }
+    },
+
+    {
+      "panel_id": "p_08",
+      "act": "resolve",
+      "intent": "The brand statement. Maximum confidence in minimum words.",
+      "description": "Single tagline centered. Shorter, punchier. This is the line that sticks.",
+      "content": "Radically different banking.",
+      "duration_s": 2.5,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 },
+      "transition_out": { "type": "crossfade", "duration_ms": 400 },
+      "camera": "static",
+      "energy": "low",
+      "content_type": "typography",
+
+      "visual_direction": {
+        "composition": "Same as p_01. Dead center. Maximum space.",
+        "typography": "40px weight 300. Same as p_07. Consistency across all tagline panels.",
+        "reference": "A period, not an exclamation mark. Confidence doesn't shout."
+      },
+
+      "motion_notes": {
+        "entrance": "Fade in 400ms.",
+        "hold": "Hold 1.5s.",
+        "exit": "Crossfade 400ms to logo."
+      }
+    },
+
+    {
+      "panel_id": "p_09",
+      "act": "close",
+      "intent": "Brand lockup. The signature. Then silence. Let the brand sit.",
+      "description": "Logo mark and wordmark centered with legal disclaimer below. Clean, quiet, authoritative.",
+      "content": {
+        "logo_mark": "Abstract square with rounded corners, indigo fill at 50% opacity",
+        "wordmark": "ACME FINANCE",
+        "disclaimer": "Acme Finance is a technology company. Banking services provided through partner institutions."
+      },
+      "duration_s": 2.5,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 },
+      "transition_out": null,
+      "camera": "static",
+      "energy": "static",
+      "content_type": "logo_lockup",
+
+      "visual_direction": {
+        "composition": "Logo group (mark + wordmark) centered, slightly above vertical center. Disclaimer centered below with 48px gap. The gap is important — the disclaimer is legally required but visually subordinate.",
+        "typography": "Wordmark: 24px weight 400, letter-spacing 0.15em. Disclaimer: 11px weight 400, 25% opacity, max-width 600px. The wide tracking on the wordmark creates authority.",
+        "color": "Logo mark: rounded-square container (1.5px border, 60% opacity white) with indigo (#6366f1) inner element at 50% opacity. Wordmark: full white. Disclaimer: barely visible.",
+        "reference": "Mercury logo lockup — the logo doesn't try to impress. It's there, quietly confident, with legal below in near-invisible type."
+      },
+
+      "motion_notes": {
+        "entrance": "Logo group fades in 600ms ease-out. Disclaimer fades in after 400ms delay — arrive separately but settle together.",
+        "hold": "Hold until end. No exit transition. The video ends on the brand. The last frame is the logo."
+      }
+    }
+  ]
+}

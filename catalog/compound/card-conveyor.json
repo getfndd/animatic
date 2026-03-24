@@ -1,0 +1,71 @@
+{
+  "name": "Card Conveyor — Z-Space Depth Rail",
+  "slug": "bd-card-conveyor",
+  "source": "compound",
+  "category": "compound-entrance",
+  "requires_js": true,
+  "description": "Cards travel forward through Z-space on a perspective rail, cycling like a depth carousel. Spawns cards at back, accelerates toward viewer, exits with tilt+fade, recycles content. Culminates in pick-pop selection with context recession.",
+  "default_duration": "3500ms",
+  "personality_affinity": ["editorial", "cinematic-dark"],
+  "entry_point": "src/remotion/physics/card-conveyor.js",
+  "remotion_component": "src/remotion/compositions/CardConveyorLayer.jsx",
+  "config_schema": {
+    "farZ": { "type": "number", "default": -1500, "description": "Z-position where cards spawn (back of rail)" },
+    "frontZ": { "type": "number", "default": 0, "description": "Z-position of the front of the conveyor" },
+    "exitZ": { "type": "number", "default": 260, "description": "Z-position where cards exit past the camera" },
+    "gap": { "type": "number", "default": 225, "description": "Z-distance between cards on the rail" },
+    "speed": { "type": "number", "default": 470, "description": "Base speed in Z-units per second" },
+    "backY": { "type": "number", "default": -128, "description": "Y offset for cards at the back" },
+    "frontY": { "type": "number", "default": 14, "description": "Y offset for cards at the front" },
+    "steadyCardCount": { "type": "number", "default": 8, "description": "Number of cards on rail at steady state" },
+    "introSpawnIntervalMs": { "type": "number", "default": 170, "description": "Interval between card spawns during intro" },
+    "loopDurationMs": { "type": "number", "default": 520, "description": "Duration of the loop phase before outro" },
+    "selectRemainingCount": { "type": "number", "default": 3, "description": "Cards remaining when hold triggers" },
+    "holdPopDurationMs": { "type": "number", "default": 280, "description": "Duration of the pick-pop animation" }
+  },
+  "content_schema": {
+    "stories": {
+      "type": "array",
+      "items": {
+        "title": "string",
+        "excerpt": "string",
+        "meta": "string",
+        "trend": "string (optional, e.g. ↗)",
+        "trendColor": "string (optional, CSS color)"
+      }
+    }
+  },
+  "sub_primitives": [
+    {
+      "id": "bd-pick-pop",
+      "name": "Pick Pop",
+      "extractable_as_css": true,
+      "description": "3-phase squeeze→overshoot→settle micro-interaction. 280ms.",
+      "css": "@keyframes pick-pop { 0%{transform:scale(1)} 16%{transform:scale(0.968)} 58%{transform:scale(1.072)} 100%{transform:scale(1)} }"
+    },
+    {
+      "id": "bd-exit-tilt",
+      "name": "Exit Tilt Fade",
+      "extractable_as_css": true,
+      "description": "Cards exiting get rotateX tilt (0→-18deg) + opacity fade.",
+      "css": "@keyframes exit-tilt { from{transform:rotateX(0);opacity:1} to{transform:rotateX(-18deg);opacity:0} }"
+    },
+    {
+      "id": "bd-context-recede",
+      "name": "Context Recession",
+      "extractable_as_css": true,
+      "description": "Non-selected items recede by rank: deeper items get more Z-push, scale reduction, opacity fade."
+    }
+  ],
+  "when_to_use": [
+    "Hero content reveal — cycling through options before selecting one",
+    "Feed/list entrances where content should feel live and dynamic",
+    "Product demos showing AI-generated content arriving in real-time"
+  ],
+  "when_to_avoid": [
+    "Simple list displays — this is a heavy animation for hero moments only",
+    "Scenes under 3 seconds — the intro→loop→outro→hold needs time",
+    "More than 10-12 content items — DOM performance degrades"
+  ],
+  "ai_guidance": "This is the first compound JS primitive. It requires usePhysicsEngine hook in Remotion. Use layer type 'card_conveyor' with a 'stories' array. Configure physics via conveyor_config overrides. The animation runs ~3.5s through intro→loop→outro→hold phases."
+}

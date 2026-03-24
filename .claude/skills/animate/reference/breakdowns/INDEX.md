@@ -27,6 +27,7 @@ Structured analyses of animation references. Each breakdown maps to the schema i
 | [grainy-organic-blob](grainy-organic-blob.md) | Grainy Organic Blob — Stippled Morphing Mass | gif | cinematic-dark | exemplary | blob, grain, noise, morph, organic, texture, ambient, continuous, generative, brand, stipple |
 | [concentric-depth-pulse](concentric-depth-pulse.md) | Concentric Depth Pulse — Layered Ring Breathing | gif | universal | strong | concentric, rings, pulse, breathing, depth, scale, ambient, continuous, brand, minimal, tunnel |
 | [mercury-insights-sizzle](mercury-insights-sizzle.md) | Mercury Insights — AI Finance Dashboard Sizzle Reel | video | cinematic-dark | exemplary | sizzle, particle, dissolve, dashboard, ai, chat, typewriter, chart, bar-chart, timeline, date-picker, card-cascade, input-field, drilldown, panel-slide, product-demo, fintech, brand, tagline, logo-lockup |
+| [card-conveyor-depth-rail](card-conveyor-depth-rail.md) | Card Conveyor — Z-Space Depth Rail with Selection Hold | prototype | editorial | exemplary | conveyor, z-rail, perspective, depth, card-stack, selection, physics, rAF, compound, js-animation, feed, editorial |
 
 ---
 

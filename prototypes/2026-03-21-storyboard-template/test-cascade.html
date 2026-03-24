@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Card Conveyor Study</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --stage-w: 960px;
+      --stage-h: 720px;
+      --card-w: 680px;
+      --card-left: 50%;
+      --card-shift: -340px;
+      --card-top: 318px;
+      --surface: #ffffff;
+      --bg: #f7f6f2;
+      --text: #1d1d1f;
+      --muted: #6f6f73;
+      --faint: #a9a9ae;
+      --border: rgba(17, 24, 39, 0.08);
+      --shadow: 0 3px 14px rgba(17, 24, 39, 0.05);
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    .stage {
+      position: relative;
+      width: var(--stage-w);
+      height: var(--stage-h);
+      overflow: hidden;
+      background: var(--surface);
+      border-radius: 18px;
+      box-shadow: 0 1px 4px rgba(17, 24, 39, 0.06);
+      perspective: 1900px;
+      perspective-origin: 50% 24%;
+    }
+
+    .rail {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+    }
+
+    .card {
+      position: absolute;
+      left: var(--card-left);
+      top: var(--card-top);
+      width: var(--card-w);
+      margin-left: var(--card-shift);
+      transform-origin: center 0%;
+      transform-style: preserve-3d;
+      will-change: transform, opacity;
+    }
+
+    .card-shell {
+      width: 100%;
+      padding: 16px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      color: var(--text);
+      transform-origin: center center;
+      will-change: transform, box-shadow, border-color;
+    }
+
+    .card.is-picked .card-shell {
+      border-color: rgba(17, 24, 39, 0.14);
+      box-shadow: 0 18px 42px rgba(17, 24, 39, 0.12);
+    }
+
+    .thumb {
+      width: 88px;
+      height: 88px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      background: linear-gradient(145deg, #d5cdc2 0%, #c1b3a0 100%);
+    }
+
+    .copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .excerpt {
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .meta {
+      font-size: 11px;
+      color: var(--faint);
+    }
+
+    .replay {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      padding: 10px 18px;
+      border: 1px solid #dddddd;
+      border-radius: 9px;
+      background: #f2f2f2;
+      color: #666666;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="rail" id="rail"></div>
+  </div>
+
+  <button class="replay" id="replay">Replay</button>
+
+  <script>
+    const rail = document.getElementById('rail');
+    const replayButton = document.getElementById('replay');
+
+    const stories = [
+      {
+        title: "Volvo outlines major model changes coming in 2026 and beyond",
+        excerpt: "From electric to petrol, here's what's coming from Volvo over the next two years.",
+        meta: "auto review · 2 days ago",
+        thumb: "linear-gradient(145deg,#d6d6d6 0%,#bdbdbd 100%)"
+      },
+      {
+        title: "Volvo Construction Equipment selects Eskilstuna for its new crawler line",
+        excerpt: "The Swedish site will become a strategic production hub for next-generation equipment.",
+        meta: "industry brief · 2 days ago",
+        thumb: "linear-gradient(145deg,#d7dbe6 0%,#b9c2d0 100%)"
+      },
+      {
+        title: "Zeekr outsells sister brand Volvo as it triples sales with Tesla Model Y rival",
+        excerpt: "Volvo is preparing to shake up Australia's premium EV market with its latest release.",
+        meta: "zeecar.com · 2 days ago",
+        thumb: "linear-gradient(145deg,#d8c8c3 0%,#c7aa9a 100%)"
+      },
+      {
+        title: "Volvo Buses to deliver 73 new electric buses to the city Boras in Sweden",
+        excerpt: "The order expands Volvo's zero-emission transit footprint across northern Europe.",
+        meta: "electrive · 2 days ago",
+        thumb: "linear-gradient(145deg,#b7bcc3 0%,#8f969f 100%)"
+      },
+      {
+        title: "Volvo ES90: Australia's First Electric Volvo Sedan Arrives",
+        excerpt: "From electric to petrol, here's what's coming from Volvo over the next two years for new buyers.",
+        meta: "drive.com.au · 2 days ago",
+        thumb: "linear-gradient(145deg,#d5cdc2 0%,#c1b3a0 100%)"
+      },
+      {
+        title: "Volvo to expand US car production with new EVs",
+        excerpt: "Volvo's top U.S. executive said the company will boost electric vehicle manufacturing plans.",
+        meta: "capitalbrief.com · 2 days ago",
+        thumb: "linear-gradient(145deg,#c9d4dd 0%,#96a6b5 100%)"
+      },
+      {
+        title: "Volvo CEO speaks openly about the 2035 gas car ban",
+        excerpt: "The brand signaled it still expects regulation and consumer demand to keep shifting toward EVs.",
+        meta: "insideevs.com · 2 days ago",
+        thumb: "linear-gradient(145deg,#d9cfc4 0%,#baa692 100%)"
+      },
+      {
+        title: "Volvo's EX90 launch ramps up alongside hybrid production",
+        excerpt: "The South Carolina plant is being positioned to support both premium EV and hybrid demand.",
+        meta: "industry briefing · 1 day ago",
+        thumb: "linear-gradient(145deg,#cfd8dc 0%,#a6b4bd 100%)"
+      }
+    ];
+
+    const PHYSICS = {
+      farZ: -1500,
+      frontZ: 0,
+      exitZ: 260,
+      gap: 225,
+      speed: 470,
+      backY: -128,
+      frontY: 14
+    };
+
+    const STEADY_CARD_COUNT = 8;
+    const INTRO_START_COUNT = 1;
+    const INTRO_SPAWN_INTERVAL_MS = 170;
+    const LOOP_DURATION_MS = 520;
+    const SELECT_REMAINING_COUNT = 3;
+    const FRONT_HOLD_EPSILON = -2;
+    const HOLD_POP_DURATION_MS = 280;
+    const FIRST_CARD_FADE_MS = 420;
+    let storyCursor = 0;
+    let cards = [];
+    let rafId = null;
+    let lastTimestamp = 0;
+    let timelineMs = 0;
+    let phase = 'intro';
+    let loopElapsed = 0;
+    let introSpawnElapsed = 0;
+    let targetCardId = null;
+    let nextCardId = 1;
+    let holdStartedAt = 0;
+    let smoothedPhaseMultiplier = 1.58;
+
+    function nextStory() {
+      const story = stories[storyCursor % stories.length];
+      storyCursor += 1;
+      return story;
+    }
+
+    function applyContent(card, story) {
+      card.querySelector('.thumb').style.background = story.thumb;
+      card.querySelector('.title').textContent = story.title;
+      card.querySelector('.excerpt').textContent = story.excerpt;
+      card.querySelector('.meta').textContent = story.meta;
+    }
+
+    function createCard(z = PHYSICS.farZ) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-shell">
+          <div class="thumb"></div>
+          <div class="copy">
+            <div class="title"></div>
+            <div class="excerpt"></div>
+            <div class="meta"></div>
+          </div>
+        </div>
+      `;
+      card.dataset.id = String(nextCardId++);
+      card.dataset.z = String(z);
+      card.dataset.createdAt = String(timelineMs);
+      applyContent(card, nextStory());
+      rail.appendChild(card);
+      return card;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function mix(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function easeInOutCubic(t) {
+      return t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function easeOutBack(t) {
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    }
+
+    function worldYForZ(z) {
+      const t = clamp((z - PHYSICS.farZ) / (PHYSICS.frontZ - PHYSICS.farZ), 0, 1);
+      return PHYSICS.backY + (PHYSICS.frontY - PHYSICS.backY) * Math.pow(t, 1.08);
+    }
+
+    function opacityForZ(z) {
+      if (z <= PHYSICS.frontZ) return 1;
+      if (z >= PHYSICS.exitZ) return 0;
+      const t = 1 - (z - PHYSICS.frontZ) / (PHYSICS.exitZ - PHYSICS.frontZ);
+      return clamp(t, 0, 1);
+    }
+
+    function tiltForZ(z) {
+      if (z <= PHYSICS.frontZ) return 0;
+      const t = clamp((z - PHYSICS.frontZ) / (PHYSICS.exitZ - PHYSICS.frontZ), 0, 1);
+      return Math.pow(t, 1.15) * -18;
+    }
+
+    function speedMultiplierForZ(z) {
+      if (z <= -900) return 0.92;
+      if (z <= -420) {
+        const t = clamp((z + 900) / 480, 0, 1);
+        return 0.92 + t * 0.26;
+      }
+      if (z <= -120) {
+        const t = clamp((z + 420) / 300, 0, 1);
+        return 1.18 + Math.pow(t, 1.05) * 0.44;
+      }
+      if (z <= PHYSICS.frontZ) {
+        const t = clamp((z + 120) / 120, 0, 1);
+        return 1.62 + Math.pow(t, 1.35) * 0.7;
+      }
+      const t = clamp((z - PHYSICS.frontZ) / (PHYSICS.exitZ - PHYSICS.frontZ), 0, 1);
+      return 2.32 + Math.pow(t, 1.2) * 0.34;
+    }
+
+    function phaseSpeedMultiplier() {
+      if (phase === 'intro') return 1.58;
+      if (phase === 'loop') return 1.24;
+      if (phase === 'outro') return 1.9;
+      return 0;
+    }
+
+    function pickPopScale(progress) {
+      if (progress <= 0.16) {
+        const t = easeOutCubic(progress / 0.16);
+        return mix(1, 0.968, t);
+      }
+      if (progress <= 0.58) {
+        const t = easeOutBack((progress - 0.16) / 0.42);
+        return mix(0.968, 1.072, t);
+      }
+      const t = easeInOutCubic((progress - 0.58) / 0.42);
+      return mix(1.072, 1, t);
+    }
+
+    function pickPopOffsetY(progress) {
+      if (progress <= 0.16) {
+        const t = easeOutCubic(progress / 0.16);
+        return mix(0, 3, t);
+      }
+      if (progress <= 0.58) {
+        const t = easeOutBack((progress - 0.16) / 0.42);
+        return mix(3, -4, t);
+      }
+      const t = easeInOutCubic((progress - 0.58) / 0.42);
+      return mix(-4, 0, t);
+    }
+
+    function renderCard(card) {
+      const shell = card.querySelector('.card-shell');
+      const z = Number(card.dataset.z);
+      const y = worldYForZ(z);
+      let opacity = opacityForZ(z);
+      let tilt = tiltForZ(z);
+      let extraY = 0;
+      let extraZ = 0;
+      let shellScale = 1;
+      let shellY = 0;
+      const ageMs = timelineMs - Number(card.dataset.createdAt || 0);
+
+      const isSelectionPhase = phase === 'hold';
+      if (isSelectionPhase && cards.length <= SELECT_REMAINING_COUNT) {
+        const progress = clamp((timelineMs - holdStartedAt) / HOLD_POP_DURATION_MS, 0, 1);
+        const holdOrder = [...cards]
+          .sort((a, b) => Number(b.dataset.z) - Number(a.dataset.z))
+          .map((item) => item.dataset.id);
+        const holdRank = holdOrder.indexOf(card.dataset.id);
+
+        if (card.dataset.id === targetCardId) {
+          shellScale = pickPopScale(progress);
+          shellY = pickPopOffsetY(progress);
+          extraZ = 10 * progress;
+          card.classList.add('is-picked');
+        } else {
+          const depthStep = holdRank === 1 ? 1 : 2;
+          extraY = (-18 - depthStep * 8) * progress;
+          extraZ = (-90 - depthStep * 65) * progress;
+          shellScale = 1 - (0.03 + depthStep * 0.015) * progress;
+          shellY = (-2 - depthStep) * progress;
+          opacity *= 1 - (0.38 + depthStep * 0.12) * progress;
+          card.classList.remove('is-picked');
+        }
+      } else {
+        card.classList.remove('is-picked');
+      }
+
+      if (card.dataset.id === '1' && phase === 'intro') {
+        const introFade = easeOutCubic(clamp(ageMs / FIRST_CARD_FADE_MS, 0, 1));
+        opacity *= introFade;
+      }
+
+      card.style.transform = `translate3d(0px, ${y + extraY}px, ${z + extraZ}px) rotateX(${tilt}deg)`;
+      shell.style.transform = `translate3d(0px, ${shellY}px, 0px) scale(${shellScale})`;
+      card.style.opacity = opacity;
+      if (isSelectionPhase && card.dataset.id === targetCardId) {
+        card.style.zIndex = '20000';
+      } else {
+        card.style.zIndex = String(10000 + Math.round(z));
+      }
+    }
+
+    function addCardAtBack(z = PHYSICS.farZ) {
+      const card = createCard(z);
+      renderCard(card);
+      cards.push(card);
+      return card;
+    }
+
+    function seedCards() {
+      rail.innerHTML = '';
+      cards = [];
+      storyCursor = 0;
+      nextCardId = 1;
+      timelineMs = 0;
+      phase = 'intro';
+      loopElapsed = 0;
+      introSpawnElapsed = 0;
+      targetCardId = null;
+      holdStartedAt = 0;
+      smoothedPhaseMultiplier = 1.58;
+
+      for (let i = 0; i < INTRO_START_COUNT; i += 1) {
+        addCardAtBack(PHYSICS.farZ - i * PHYSICS.gap);
+      }
+    }
+
+    function backMostZ() {
+      if (cards.length === 0) return PHYSICS.farZ;
+      return Math.min(...cards.map((card) => Number(card.dataset.z)));
+    }
+
+    function frontMostCard() {
+      return cards.reduce((best, card) => {
+        if (!best) return card;
+        return Number(card.dataset.z) > Number(best.dataset.z) ? card : best;
+      }, null);
+    }
+
+    function maybeSpawnIntroCard(dtMs) {
+      if (cards.length >= STEADY_CARD_COUNT) return;
+
+      introSpawnElapsed += dtMs;
+      while (introSpawnElapsed >= INTRO_SPAWN_INTERVAL_MS && cards.length < STEADY_CARD_COUNT) {
+        introSpawnElapsed -= INTRO_SPAWN_INTERVAL_MS;
+        addCardAtBack(PHYSICS.farZ);
+      }
+
+      if (cards.length === STEADY_CARD_COUNT) {
+        phase = 'loop';
+        loopElapsed = 0;
+      }
+    }
+
+    function beginOutro() {
+      phase = 'outro';
+      targetCardId = null;
+    }
+
+    function removeCard(card) {
+      cards = cards.filter((item) => item !== card);
+      card.remove();
+    }
+
+    function handleExitingCards() {
+      const exiting = cards.filter((card) => Number(card.dataset.z) > PHYSICS.exitZ);
+
+      exiting.forEach((card) => {
+        if (phase === 'loop') {
+          const backZ = backMostZ();
+          card.dataset.z = String(backZ - PHYSICS.gap);
+          applyContent(card, nextStory());
+          renderCard(card);
+          return;
+        }
+
+        if (card.dataset.id === targetCardId) {
+          card.dataset.z = String(PHYSICS.frontZ);
+          return;
+        }
+
+        removeCard(card);
+      });
+    }
+
+    function maybeStopOnTarget(timestamp) {
+      if (phase !== 'outro' || cards.length > SELECT_REMAINING_COUNT) return false;
+      const target = frontMostCard();
+      if (!target) return false;
+      targetCardId = target.dataset.id;
+      target.dataset.z = String(PHYSICS.frontZ);
+      phase = 'hold';
+      holdStartedAt = timelineMs;
+      return true;
+    }
+
+    function tick(timestamp) {
+      if (!lastTimestamp) {
+        lastTimestamp = timestamp;
+      }
+
+      const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.05);
+      lastTimestamp = timestamp;
+      timelineMs += dt * 1000;
+
+      const phaseTarget = phaseSpeedMultiplier();
+      const blend = Math.min(dt * 10, 1);
+      smoothedPhaseMultiplier += (phaseTarget - smoothedPhaseMultiplier) * blend;
+
+      if (phase === 'loop') {
+        loopElapsed += dt * 1000;
+        if (loopElapsed >= LOOP_DURATION_MS) {
+          beginOutro();
+        }
+      }
+
+      if (phase !== 'hold') {
+        cards.forEach((card) => {
+          const z = Number(card.dataset.z);
+          const nextZ = z + PHYSICS.speed * smoothedPhaseMultiplier * speedMultiplierForZ(z) * dt;
+          card.dataset.z = String(nextZ);
+        });
+      }
+
+      if (maybeStopOnTarget(timestamp)) {
+        cards.forEach((card) => renderCard(card));
+        if (timelineMs - holdStartedAt < HOLD_POP_DURATION_MS) {
+          rafId = window.requestAnimationFrame(tick);
+        }
+        return;
+      }
+
+      handleExitingCards();
+      if (phase === 'intro') {
+        maybeSpawnIntroCard(dt * 1000);
+      }
+
+      cards.forEach((card) => renderCard(card));
+
+      if (phase !== 'hold' || timelineMs - holdStartedAt < HOLD_POP_DURATION_MS) {
+        rafId = window.requestAnimationFrame(tick);
+      }
+    }
+
+    replayButton.addEventListener('click', () => {
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      lastTimestamp = 0;
+      seedCards();
+      rafId = window.requestAnimationFrame(tick);
+    });
+
+    seedCards();
+    rafId = window.requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

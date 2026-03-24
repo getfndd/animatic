@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insight Conveyor — Fintech Dark</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --stage-w: 960px;
+      --stage-h: 720px;
+      --card-w: 620px;
+      --card-left: 50%;
+      --card-shift: -310px;
+      --card-top: 318px;
+      --surface: #111827;
+      --bg: #0a0c10;
+      --text: #f3f4f6;
+      --muted: rgba(243,244,246,0.5);
+      --faint: rgba(243,244,246,0.3);
+      --border: rgba(255,255,255,0.06);
+      --shadow: 0 3px 14px rgba(0,0,0,0.3);
+      --accent: #6366f1;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      color: var(--text);
+    }
+
+    .stage {
+      position: relative;
+      width: var(--stage-w);
+      height: var(--stage-h);
+      overflow: hidden;
+      background: var(--surface);
+      border-radius: 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      perspective: 1900px;
+      perspective-origin: 50% 24%;
+    }
+
+    .rail { position: absolute; inset: 0; transform-style: preserve-3d; }
+
+    .card {
+      position: absolute;
+      left: var(--card-left);
+      top: var(--card-top);
+      width: var(--card-w);
+      margin-left: var(--card-shift);
+      transform-origin: center 0%;
+      transform-style: preserve-3d;
+      will-change: transform, opacity;
+    }
+
+    .card-shell {
+      width: 100%;
+      padding: 20px 24px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #1c2030;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      color: var(--text);
+      transform-origin: center center;
+      will-change: transform, box-shadow, border-color;
+    }
+
+    .card.is-picked .card-shell {
+      border-color: rgba(99,102,241,0.4);
+      box-shadow: 0 18px 42px rgba(0,0,0,0.4), 0 0 0 1px rgba(99,102,241,0.2);
+    }
+
+    .trend-icon {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0; margin-top: 2px;
+    }
+
+    .copy { min-width: 0; flex: 1; }
+
+    .title {
+      font-size: 17px; font-weight: 600;
+      line-height: 1.3; margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .excerpt {
+      font-size: 14px; line-height: 1.5;
+      color: var(--muted); margin-bottom: 8px;
+    }
+
+    .tag {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px;
+      padding: 1px 6px; font-size: 12px;
+      color: var(--faint);
+    }
+
+    .meta { font-size: 11px; color: var(--faint); }
+
+    .replay {
+      position: fixed; right: 24px; bottom: 24px;
+      padding: 10px 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9px;
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.5);
+      font: inherit; font-size: 12px; cursor: pointer;
+    }
+    .replay:hover { background: rgba(255,255,255,0.08); }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <!-- Card template lives here, cloned by JS -->
+    <template id="card-tmpl">
+      <div class="card">
+        <div class="card-shell">
+          <div class="trend-icon"></div>
+          <div class="copy">
+            <div class="title"></div>
+            <div class="excerpt"></div>
+            <div class="meta"></div>
+          </div>
+        </div>
+      </div>
+    </template>
+    <div class="rail" id="rail"></div>
+  </div>
+
+  <button class="replay" id="replay">Replay</button>
+
+  <script>
+    const rail = document.getElementById('rail');
+    const tmpl = document.getElementById('card-tmpl');
+    const replayButton = document.getElementById('replay');
+
+    const stories = [
+      { title: "12% revenue growth", excerpt: "From January to June revenue increased from $12,459 to $13,954, representing consistent quarterly growth.", meta: "treasury report · 2 days ago", trend: "↗", color: "#34d399" },
+      { title: "Decreased Credit card spend", excerpt: "Credit card spend saw a decrease of 8% from $3,490 in August to $3,210 in September.", meta: "spend analytics · 3 days ago", trend: "↘", color: "#94a3b8" },
+      { title: "Increased software spend", excerpt: "Software spend saw an increase of 16% from $3,283 in February to $3,808 in March.", meta: "spend analytics · 2 days ago", trend: "↗", color: "#94a3b8" },
+      { title: "Spike in spend on software", excerpt: "Current spend in September totaled $5,807, which is an increase of 41% from $4,099 in August.", meta: "internal analytics · 1 day ago", trend: "↗", color: "#34d399" },
+      { title: "Revenue trend reversal in Q3", excerpt: "Revenue patterns shifted significantly in Q3, driven by seasonal changes and new client acquisition.", meta: "quarterly review · 4 days ago", trend: "↗", color: "#34d399" },
+      { title: "Vendor consolidation opportunity", excerpt: "Four overlapping SaaS subscriptions identified across engineering and design teams.", meta: "procurement · 2 days ago", trend: "↘", color: "#94a3b8" },
+      { title: "Operating expenses down 6%", excerpt: "Operational costs decreased from $28,400 to $26,696 due to facility optimization.", meta: "finance ops · 3 days ago", trend: "↘", color: "#34d399" },
+      { title: "Accounts receivable aging alert", excerpt: "Three invoices totaling $14,200 have exceeded 60-day payment terms.", meta: "collections · 1 day ago", trend: "↗", color: "#f87171" }
+    ];
+
+    const P = { farZ:-1500, frontZ:0, exitZ:260, gap:225, speed:470, backY:-128, frontY:14 };
+    const STEADY=8, INTRO_START=1, SPAWN_MS=170, LOOP_MS=520, SELECT_N=3, POP_MS=280, FADE_MS=420;
+    let cursor=0, cards=[], raf=null, lastT=0, tMs=0, phase='intro';
+    let loopE=0, introE=0, targetId=null, nextId=1, holdAt=0, spm=1.58;
+
+    function next() { const s=stories[cursor%stories.length]; cursor++; return s; }
+
+    function apply(card, s) {
+      const icon = card.querySelector('.trend-icon');
+      icon.textContent = s.trend;
+      icon.style.color = s.color;
+      card.querySelector('.title').textContent = s.title;
+      card.querySelector('.excerpt').textContent = s.excerpt;
+      card.querySelector('.meta').textContent = s.meta;
+    }
+
+    function make(z) {
+      const frag = tmpl.content.cloneNode(true);
+      const card = frag.querySelector('.card');
+      card.dataset.id = String(nextId++);
+      card.dataset.z = String(z);
+      card.dataset.t = String(tMs);
+      apply(card, next());
+      rail.appendChild(card);
+      return card;
+    }
+
+    const cl = (v,a,b) => Math.min(b, Math.max(a, v));
+    const mx = (a,b,t) => a+(b-a)*t;
+    const eoc = t => 1-Math.pow(1-t,3);
+    const eioc = t => t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+    const eob = t => { const c=2.70158; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2); };
+
+    const yForZ = z => { const t=cl((z-P.farZ)/(P.frontZ-P.farZ),0,1); return P.backY+(P.frontY-P.backY)*Math.pow(t,1.08); };
+    const oForZ = z => z<=P.frontZ?1:z>=P.exitZ?0:cl(1-(z-P.frontZ)/(P.exitZ-P.frontZ),0,1);
+    const tiltZ = z => z<=P.frontZ?0:Math.pow(cl((z-P.frontZ)/(P.exitZ-P.frontZ),0,1),1.15)*-18;
+
+    function spdZ(z) {
+      if(z<=-900) return 0.92;
+      if(z<=-420) return 0.92+cl((z+900)/480,0,1)*0.26;
+      if(z<=-120) return 1.18+Math.pow(cl((z+420)/300,0,1),1.05)*0.44;
+      if(z<=P.frontZ) return 1.62+Math.pow(cl((z+120)/120,0,1),1.35)*0.7;
+      return 2.32+Math.pow(cl((z-P.frontZ)/(P.exitZ-P.frontZ),0,1),1.2)*0.34;
+    }
+
+    const phaseSp = () => phase==='intro'?1.58:phase==='loop'?1.24:phase==='outro'?1.9:0;
+    const popS = p => p<=0.16?mx(1,0.968,eoc(p/0.16)):p<=0.58?mx(0.968,1.072,eob((p-0.16)/0.42)):mx(1.072,1,eioc((p-0.58)/0.42));
+    const popY = p => p<=0.16?mx(0,3,eoc(p/0.16)):p<=0.58?mx(3,-4,eob((p-0.16)/0.42)):mx(-4,0,eioc((p-0.58)/0.42));
+
+    function render(card) {
+      const shell=card.querySelector('.card-shell'), z=+card.dataset.z;
+      const y=yForZ(z); let op=oForZ(z), tilt=tiltZ(z), ey=0, ez=0, ss=1, sy=0;
+
+      if(phase==='hold'&&cards.length<=SELECT_N) {
+        const pr=cl((tMs-holdAt)/POP_MS,0,1);
+        const order=[...cards].sort((a,b)=>+b.dataset.z - +a.dataset.z).map(i=>i.dataset.id);
+        const rank=order.indexOf(card.dataset.id);
+        if(card.dataset.id===targetId) {
+          ss=popS(pr); sy=popY(pr); ez=10*pr; card.classList.add('is-picked');
+        } else {
+          const d=rank===1?1:2;
+          ey=(-18-d*8)*pr; ez=(-90-d*65)*pr;
+          ss=1-(0.03+d*0.015)*pr; sy=(-2-d)*pr;
+          op*=1-(0.38+d*0.12)*pr;
+          card.classList.remove('is-picked');
+        }
+      } else card.classList.remove('is-picked');
+
+      if(card.dataset.id==='1'&&phase==='intro') op*=eoc(cl((tMs-+card.dataset.t)/FADE_MS,0,1));
+
+      card.style.transform=`translate3d(0,${y+ey}px,${z+ez}px) rotateX(${tilt}deg)`;
+      shell.style.transform=`translate3d(0,${sy}px,0) scale(${ss})`;
+      card.style.opacity=op;
+      card.style.zIndex=(phase==='hold'&&card.dataset.id===targetId)?'20000':String(10000+Math.round(z));
+    }
+
+    function addBack(z=P.farZ) { const c=make(z); render(c); cards.push(c); return c; }
+
+    function seed() {
+      rail.textContent='';
+      cards=[]; cursor=0; nextId=1; tMs=0; phase='intro';
+      loopE=0; introE=0; targetId=null; holdAt=0; spm=1.58;
+      for(let i=0;i<INTRO_START;i++) addBack(P.farZ-i*P.gap);
+    }
+
+    const backZ = () => cards.length===0?P.farZ:Math.min(...cards.map(c=>+c.dataset.z));
+    const frontC = () => cards.reduce((b,c)=>(!b||+c.dataset.z>+b.dataset.z)?c:b,null);
+
+    function spawn(dt) {
+      if(cards.length>=STEADY) return;
+      introE+=dt;
+      while(introE>=SPAWN_MS&&cards.length<STEADY) { introE-=SPAWN_MS; addBack(P.farZ); }
+      if(cards.length===STEADY) { phase='loop'; loopE=0; }
+    }
+
+    function exits() {
+      cards.filter(c=>+c.dataset.z>P.exitZ).forEach(c=>{
+        if(phase==='loop') { c.dataset.z=String(backZ()-P.gap); apply(c,next()); render(c); }
+        else if(c.dataset.id===targetId) c.dataset.z=String(P.frontZ);
+        else { cards=cards.filter(x=>x!==c); c.remove(); }
+      });
+    }
+
+    function tryHold() {
+      if(phase!=='outro'||cards.length>SELECT_N) return false;
+      const t=frontC(); if(!t) return false;
+      targetId=t.dataset.id; t.dataset.z=String(P.frontZ);
+      phase='hold'; holdAt=tMs; return true;
+    }
+
+    function tick(ts) {
+      if(!lastT) lastT=ts;
+      const dt=Math.min((ts-lastT)/1000,0.05); lastT=ts; tMs+=dt*1000;
+      spm+=(phaseSp()-spm)*Math.min(dt*10,1);
+      if(phase==='loop') { loopE+=dt*1000; if(loopE>=LOOP_MS) phase='outro'; }
+      if(phase!=='hold') cards.forEach(c=>{ c.dataset.z=String(+c.dataset.z+P.speed*spm*spdZ(+c.dataset.z)*dt); });
+      if(tryHold()) { cards.forEach(render); if(tMs-holdAt<POP_MS) raf=requestAnimationFrame(tick); return; }
+      exits(); if(phase==='intro') spawn(dt*1000);
+      cards.forEach(render);
+      if(phase!=='hold'||tMs-holdAt<POP_MS) raf=requestAnimationFrame(tick);
+    }
+
+    replayButton.addEventListener('click',()=>{ if(raf) cancelAnimationFrame(raf); raf=null; lastT=0; seed(); raf=requestAnimationFrame(tick); });
+    seed(); raf=requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

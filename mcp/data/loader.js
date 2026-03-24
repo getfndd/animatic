@@ -32,9 +32,21 @@ function loadJSON(path) {
   return JSON.parse(readFileSync(path, 'utf-8'));
 }
 
-/** Load catalog/primitives.json → array + slug map */
+/** Load catalog/primitives.json + catalog/compound/*.json → array + slug map */
 export function loadPrimitivesCatalog() {
   const arr = loadJSON(resolve(CATALOG_DIR, 'primitives.json'));
+
+  // Load compound primitives (JS-driven recipes)
+  const compoundDir = resolve(CATALOG_DIR, 'compound');
+  try {
+    const files = readdirSync(compoundDir).filter(f => f.endsWith('.json'));
+    for (const f of files) {
+      arr.push(loadJSON(resolve(compoundDir, f)));
+    }
+  } catch {
+    // compound/ directory may not exist yet
+  }
+
   const bySlug = new Map(arr.map(p => [p.slug, p]));
   return { array: arr, bySlug };
 }

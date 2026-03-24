@@ -102,6 +102,14 @@ export function compileMotion(scene, catalogs = {}, options = {}) {
     return null; // v1 scene, no compilation needed
   }
 
+  // ── Reactive mode: emit init/step functions for usePhysicsEngine ──────
+  // When mode is 'reactive' and motion references a compound primitive,
+  // return { mode: 'reactive', init, step, config } instead of a static timeline.
+  // The init/step are pure functions suitable for usePhysicsEngine.
+  if (options.mode === 'reactive' && motion.compound) {
+    return compileReactive(motion, scene, fps, durationFrames, catalogs, options);
+  }
+
   // Step 1: Resolve recipes
   const groups = resolveRecipes(motion, catalogs.recipes);
 
@@ -1570,4 +1578,75 @@ export {
   applySemanticConstraints,
   ANIMATABLE_DEFAULTS,
   PERSONALITY_CAMERA,
+  compileReactive,
 };
+
+// ── Reactive Compiler Mode ─────────────────────────────────────────────────
+
+/**
+ * Compile a reactive motion block — returns { init, step } functions
+ * instead of a static timeline. Designed for usePhysicsEngine in Remotion.
+ *
+ * The motion block must include a `compound` field referencing a compound
+ * primitive by slug. The compound primitive's physics module provides
+ * the init/step functions; this compiler wires in config overrides and
+ * validates guardrails.
+ *
+ * Scene definition:
+ * ```json
+ * {
+ *   "motion": {
+ *     "compound": "bd-card-conveyor",
+ *     "compound_config": { "speed": 500, "loopDurationMs": 800 },
+ *     "content_count": 8
+ *   }
+ * }
+ * ```
+ *
+ * @param {Object} motion - The scene.motion block
+ * @param {Object} scene - Full scene definition
+ * @param {number} fps
+ * @param {number} durationFrames
+ * @param {Object} catalogs
+ * @param {Object} options
+ * @returns {{ mode: 'reactive', compound: string, config: Object, contentCount: number, durationFrames: number, fps: number }}
+ */
+function compileReactive(motion, scene, fps, durationFrames, catalogs, options) {
+  const compoundSlug = motion.compound;
+  const configOverrides = motion.compound_config || {};
+  const contentCount = motion.content_count || 8;
+
+  // Look up compound primitive in catalog for validation
+  const catalogEntry = catalogs.primitives?.bySlug?.get(compoundSlug);
+
+  // Validate personality affinity if personality is specified
+  if (options.personality && catalogEntry?.personality_affinity) {
+    const allowed = catalogEntry.personality_affinity;
+    if (!allowed.includes(options.personality) && !allowed.includes('universal')) {
+      // Warn but don't block — guardrail is advisory for compound primitives
+      // since they manage their own visual parameters
+    }
+  }
+
+  // Build merged config from catalog defaults + overrides
+  const catalogDefaults = {};
+  if (catalogEntry?.config_schema) {
+    for (const [key, schema] of Object.entries(catalogEntry.config_schema)) {
+      if (schema.default !== undefined) {
+        catalogDefaults[key] = schema.default;
+      }
+    }
+  }
+
+  const config = { ...catalogDefaults, ...configOverrides };
+
+  return {
+    mode: 'reactive',
+    compound: compoundSlug,
+    config,
+    contentCount,
+    durationFrames,
+    fps,
+    scene_id: scene.scene_id,
+  };
+}

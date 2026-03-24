@@ -880,6 +880,38 @@ function handleGetPrimitive(args) {
     out += `**AI Guidance:** ${catalogEntry.ai_guidance}\n\n`;
   }
 
+  // Compound primitive: show config schema + sub-primitives
+  if (catalogEntry?.source === 'compound') {
+    out += '## Compound JS Primitive\n\n';
+    out += `**Requires JS:** ${catalogEntry.requires_js}\n`;
+    out += `**Entry Point:** ${catalogEntry.entry_point}\n`;
+    if (catalogEntry.remotion_component) {
+      out += `**Remotion Component:** ${catalogEntry.remotion_component}\n`;
+    }
+    out += '\n### Configuration Schema\n\n```json\n';
+    out += JSON.stringify(catalogEntry.config_schema, null, 2);
+    out += '\n```\n\n';
+
+    if (catalogEntry.content_schema) {
+      out += '### Content Schema\n\n```json\n';
+      out += JSON.stringify(catalogEntry.content_schema, null, 2);
+      out += '\n```\n\n';
+    }
+
+    if (catalogEntry.sub_primitives?.length) {
+      out += '### Sub-Primitives\n\n';
+      for (const sub of catalogEntry.sub_primitives) {
+        out += `- **${sub.id}** (${sub.name})`;
+        if (sub.extractable_as_css) out += ' [CSS-extractable]';
+        out += ` — ${sub.description}\n`;
+        if (sub.css) {
+          out += '  ```css\n  ' + sub.css + '\n  ```\n';
+        }
+      }
+      out += '\n';
+    }
+  }
+
   // CSS implementation from registry
   if (css) {
     out += '## CSS Implementation\n\n```css\n';

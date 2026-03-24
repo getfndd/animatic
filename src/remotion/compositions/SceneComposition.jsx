@@ -16,6 +16,7 @@ import { CameraRig } from './CameraRig.jsx';
 import { TextLayer } from './TextLayer.jsx';
 import { TimelineLayer } from './TimelineLayer.jsx';
 import { AnalogOverlay } from './AnalogOverlay.jsx';
+import { CardConveyorLayer } from './CardConveyorLayer.jsx';
 
 /**
  * SceneComposition — Renders a single scene definition to video.
@@ -248,6 +249,9 @@ const SceneLayer = ({ layer, assets, frame, fps }) => {
       }
       return <PlaceholderLayer style={layerStyle} label={`svg: ${layer.id}`} />;
 
+    case 'card_conveyor':
+      return <CardConveyorLayer layer={layer} />;
+
     default:
       return <PlaceholderLayer style={layerStyle} label={`${layer.type}: ${layer.id}`} />;
   }
@@ -441,6 +445,8 @@ const LayerContent = ({ layer, assets, frame, fps, textChars, semanticValues }) 
       return <div style={fillStyle}>[html: {layer.id}]</div>;
     case 'svg':
       return renderSvgContent(layer, fillStyle);
+    case 'card_conveyor':
+      return <CardConveyorLayer layer={layer} />;
     default:
       return <div style={fillStyle}>[{layer.type}: {layer.id}]</div>;
   }

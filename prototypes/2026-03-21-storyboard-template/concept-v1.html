@@ -388,46 +388,464 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* ── Thumbnail Animations ────────────────── */
+    /* ── 3D Perspective Stage ─────────────────── */
 
-    @keyframes fadeIn {
-      0%, 10% { opacity: 0; }
-      25%, 85% { opacity: 1; }
-      100% { opacity: 0; }
+    .panel-thumb {
+      perspective: 900px;
+      transform-style: preserve-3d;
     }
 
-    @keyframes slideUp {
-      0%, 10% { opacity: 0; transform: translateY(12px); }
-      30%, 80% { opacity: 1; transform: translateY(0); }
-      100% { opacity: 0; transform: translateY(0); }
+    .panel-thumb-content {
+      transform-style: preserve-3d;
     }
 
-    @keyframes scaleIn {
-      0%, 10% { opacity: 0; transform: scale(0.96) translateY(8px); }
-      30%, 80% { opacity: 1; transform: scale(1) translateY(0); }
-      100% { opacity: 0; transform: scale(1) translateY(0); }
+    /* ── Thumbnail Animations (cinematic-dark: depth, not flat) ── */
+
+    @keyframes fadeIn3D {
+      0%, 8% { opacity: 0; transform: translateZ(-40px) rotateX(2deg); }
+      22%, 82% { opacity: 1; transform: translateZ(0) rotateX(0); }
+      100% { opacity: 0; transform: translateZ(-20px) rotateX(1deg); }
     }
 
-    @keyframes pullOut {
-      0%, 10% { transform: scale(1.2); }
-      50%, 85% { transform: scale(1); }
-      100% { transform: scale(1); opacity: 0; }
+    @keyframes slideUp3D {
+      0%, 8% { opacity: 0; transform: translateY(16px) translateZ(-60px) rotateX(4deg); }
+      28%, 78% { opacity: 1; transform: translateY(0) translateZ(0) rotateX(0); }
+      100% { opacity: 0; transform: translateY(-4px) translateZ(-30px) rotateX(-1deg); }
     }
+
+    @keyframes scaleIn3D {
+      0%, 8% { opacity: 0; transform: scale(0.92) translateZ(-80px) rotateX(5deg) rotateY(-1deg); }
+      28%, 78% { opacity: 1; transform: scale(1) translateZ(0) rotateX(0) rotateY(0); }
+      100% { opacity: 0; transform: scale(0.98) translateZ(-20px) rotateX(1deg); }
+    }
+
+    @keyframes pullOut3D {
+      0%, 8% { transform: scale(1.25) translateZ(60px) rotateX(-2deg); }
+      45%, 82% { transform: scale(1) translateZ(0) rotateX(0); }
+      100% { transform: scale(0.97) translateZ(-40px) rotateX(2deg); opacity: 0; }
+    }
+
+    /* Speed hierarchy: FAST 4s / MEDIUM 5.5s / SLOW 7s */
 
     .panel[data-anim="fade"] .panel-thumb-content {
-      animation: fadeIn 4s ease-out infinite;
+      animation: fadeIn3D 4s cubic-bezier(0.16,1,0.3,1) infinite;
     }
 
     .panel[data-anim="slide"] .panel-thumb-content {
-      animation: slideUp 5s cubic-bezier(0.16,1,0.3,1) infinite;
+      animation: slideUp3D 5.5s cubic-bezier(0.16,1,0.3,1) infinite;
     }
 
     .panel[data-anim="scale"] .panel-thumb-content {
-      animation: scaleIn 5s cubic-bezier(0.16,1,0.3,1) infinite;
+      animation: scaleIn3D 5.5s cubic-bezier(0.16,1,0.3,1) infinite;
     }
 
     .panel[data-anim="pull"] .panel-thumb-content {
-      animation: pullOut 6s cubic-bezier(0.33,0,0.2,1) infinite;
+      animation: pullOut3D 7s cubic-bezier(0.33,0,0.2,1) infinite;
+    }
+
+    /* ── Panel 03: Center-scale entrance (no Y bias) ── */
+
+    @keyframes centerScale3D {
+      0%, 8% { opacity: 0; transform: scale(0.88) translateZ(-60px); }
+      25%, 72% { opacity: 1; transform: scale(1) translateZ(0); }
+      88%, 100% { opacity: 0; transform: scale(0.94) translateZ(-30px); }
+    }
+
+    .panel[data-anim="center-scale"] .panel-thumb-content {
+      animation: centerScale3D 5.5s cubic-bezier(0.16,1,0.3,1) infinite;
+    }
+
+    /* ── Panel 03/05: Input field internal animations ── */
+
+    @keyframes cursorBlink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    .input-cursor {
+      display: inline-block;
+      width: 1px;
+      height: 11px;
+      background: #f3f4f6;
+      margin-left: 1px;
+      vertical-align: middle;
+      animation: cursorBlink 1s step-end infinite;
+    }
+
+    /* ── Typewriter effect (proportional-font safe) ── */
+
+    .typewriter-wrap {
+      display: inline-block;
+      overflow: hidden;
+      white-space: nowrap;
+      max-width: 0;
+      border-right: 1.5px solid rgba(243,244,246,0.7);
+      animation:
+        typewrite 5.5s steps(40, end) infinite,
+        blinkCaret 0.5s step-end infinite;
+    }
+
+    @keyframes typewrite {
+      0%, 14% { max-width: 0; }
+      55%, 72% { max-width: 500px; }
+      90%, 100% { max-width: 0; }
+    }
+
+    @keyframes blinkCaret {
+      50% { border-color: transparent; }
+    }
+
+    @keyframes submitPulse {
+      0%, 70% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+      80% { transform: scale(1.12); box-shadow: 0 0 0 4px rgba(99,102,241,0.15); }
+      90%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+    }
+
+    .submit-btn {
+      animation: submitPulse 5.5s ease-out infinite;
+    }
+
+    /* ── Panel 04: Slide from right ──────────── */
+
+    @keyframes slideFromRight {
+      0%, 5% { opacity: 0; transform: translateX(30px) translateZ(-40px) rotateY(-3deg); }
+      18%, 78% { opacity: 1; transform: translateX(0) translateZ(0) rotateY(0); }
+      92%, 100% { opacity: 0; transform: translateX(-10px) translateZ(-20px); }
+    }
+
+    /* Subtle ambient Z-drift on hover for all panels */
+    .panel:hover .panel-thumb-content {
+      animation-play-state: paused;
+    }
+
+    /* ── Insight Card Rolodex (Panel 02) ──────── */
+
+    .insight-cards-stack {
+      perspective: 600px;
+      transform-style: preserve-3d;
+    }
+
+    .insight-card {
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 8px 12px;
+      opacity: 0;
+      transform-origin: center top;
+      transform: rotateX(-70deg) translateZ(-40px);
+      animation: rolodexFlip 7s cubic-bezier(0.22,1,0.36,1) infinite;
+      backface-visibility: hidden;
+    }
+
+    .insight-card:nth-child(1) { animation-delay: 0.5s; }
+    .insight-card:nth-child(2) { animation-delay: 0.85s; }
+    .insight-card:nth-child(3) { animation-delay: 1.2s; }
+
+    @keyframes rolodexFlip {
+      0%, 6% { opacity: 0; transform: rotateX(-70deg) translateZ(-40px) scale(0.92); }
+      10%    { opacity: 0.6; }
+      22%, 72% { opacity: 1; transform: rotateX(0deg) translateZ(0) scale(1); }
+      86%, 100% { opacity: 0; transform: rotateX(30deg) translateZ(-20px) scale(0.96); }
+    }
+
+    /* ── Panel 04: Chart Drilldown ────────────── */
+
+    .chart-panel {
+      background: #1f2937;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 12px 14px;
+      width: 100%;
+      text-align: left;
+      perspective: 600px;
+      transform-style: preserve-3d;
+      animation: slideFromRight 7s cubic-bezier(0.16,1,0.3,1) infinite;
+    }
+
+    .chart-header {
+      animation: chartHeaderIn 7s cubic-bezier(0.16,1,0.3,1) infinite;
+      opacity: 0;
+    }
+
+    @keyframes chartHeaderIn {
+      0%, 8% { opacity: 0; transform: translateY(8px); }
+      18%, 75% { opacity: 1; transform: translateY(0); }
+      90%, 100% { opacity: 0; }
+    }
+
+    .chart-bars-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 50px;
+      margin-bottom: 6px;
+      position: relative;
+    }
+
+    .chart-bar {
+      flex: 1;
+      border-radius: 2px 2px 0 0;
+      background: rgba(99,102,241,0.35);
+      transform-origin: bottom center;
+      transform: scaleY(0);
+      animation: chartBarGrow 7s cubic-bezier(0.22,1,0.36,1) infinite;
+    }
+
+    .chart-bar:nth-child(1) { height: 85%; animation-delay: 0.7s; }
+    .chart-bar:nth-child(2) { height: 65%; animation-delay: 0.84s; }
+    .chart-bar:nth-child(3) { height: 48%; animation-delay: 0.98s; }
+    .chart-bar:nth-child(4) { height: 38%; animation-delay: 1.12s; }
+
+    @keyframes chartBarGrow {
+      0%, 8% { transform: scaleY(0); opacity: 0.4; }
+      20% { transform: scaleY(1.06); opacity: 1; }
+      26%, 72% { transform: scaleY(1); opacity: 1; }
+      88%, 100% { transform: scaleY(0.6); opacity: 0; }
+    }
+
+    .chart-labels {
+      display: flex;
+      gap: 6px;
+      font-size: 7px;
+      color: rgba(243,244,246,0.4);
+      animation: chartHeaderIn 7s cubic-bezier(0.16,1,0.3,1) infinite;
+      animation-delay: 1.1s;
+      opacity: 0;
+    }
+
+
+    /* ── Panel 06: Dashboard Assembly ──────────── */
+
+    .dash-assembly {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      transform-style: preserve-3d;
+      background: #0d1117;
+      overflow: hidden;
+    }
+
+    .dash-sidebar {
+      width: 22%;
+      background: rgba(255,255,255,0.02);
+      border-right: 1px solid rgba(255,255,255,0.05);
+      padding: 10px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      animation: sidebarSlideIn 7s cubic-bezier(0.16,1,0.3,1) infinite;
+    }
+
+    @keyframes sidebarSlideIn {
+      0%, 5% { opacity: 0; transform: translateX(-100%) translateZ(-30px); }
+      20%, 80% { opacity: 1; transform: translateX(0) translateZ(0); }
+      100% { opacity: 0; transform: translateX(-20px) translateZ(-10px); }
+    }
+
+    .dash-sidebar-item {
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .dash-sidebar-item.active {
+      background: rgba(99,102,241,0.3);
+    }
+
+    .dash-sidebar-logo {
+      width: 50%;
+      height: 5px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.12);
+      margin-bottom: 10px;
+    }
+
+    .dash-main {
+      flex: 1;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: mainFadeUp 7s cubic-bezier(0.16,1,0.3,1) infinite;
+    }
+
+    @keyframes mainFadeUp {
+      0%, 12% { opacity: 0; transform: translateY(20px) translateZ(-40px) rotateX(3deg); }
+      30%, 80% { opacity: 1; transform: translateY(0) translateZ(0) rotateX(0); }
+      100% { opacity: 0; transform: translateY(-4px) translateZ(-20px); }
+    }
+
+    .dash-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dash-tab {
+      font-size: 8px;
+      color: rgba(255,255,255,0.25);
+      padding-bottom: 4px;
+    }
+
+    .dash-tab.active {
+      color: rgba(255,255,255,0.65);
+      border-bottom: 1px solid var(--accent);
+    }
+
+    .dash-cards {
+      display: flex;
+      gap: 5px;
+    }
+
+    .dash-card {
+      flex: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 6px;
+      padding: 6px 8px;
+      animation: cardStagger 7s cubic-bezier(0.16,1,0.3,1) infinite;
+    }
+
+    .dash-card:nth-child(1) { animation-delay: 0.35s; }
+    .dash-card:nth-child(2) { animation-delay: 0.5s; }
+    .dash-card:nth-child(3) { animation-delay: 0.65s; }
+
+    @keyframes cardStagger {
+      0%, 18% { opacity: 0; transform: translateY(10px); }
+      32%, 80% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; }
+    }
+
+    .dash-card-label {
+      font-size: 6px;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .dash-card-value {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      letter-spacing: -0.02em;
+    }
+
+    .dash-card-trend {
+      font-size: 7px;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .dash-chart {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .dash-chart-title {
+      font-size: 8px;
+      color: rgba(255,255,255,0.35);
+      font-weight: 500;
+    }
+
+    .dash-chart-bars {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      padding-top: 4px;
+    }
+
+    .dash-chart-bar-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .dash-bar-up {
+      width: 100%;
+      border-radius: 2px 2px 0 0;
+      background: rgba(99,102,241,0.5);
+      animation: barGrow 7s cubic-bezier(0.16,1,0.3,1) infinite;
+      transform-origin: bottom center;
+    }
+
+    .dash-bar-down {
+      width: 100%;
+      border-radius: 0 0 2px 2px;
+      background: rgba(148,163,184,0.25);
+      animation: barGrow 7s cubic-bezier(0.16,1,0.3,1) infinite;
+      transform-origin: top center;
+    }
+
+    @keyframes barGrow {
+      0%, 30% { transform: scaleY(0); opacity: 0; }
+      50%, 80% { transform: scaleY(1); opacity: 1; }
+      100% { transform: scaleY(0.8); opacity: 0; }
+    }
+
+    .dash-chart-bar-group:nth-child(1) .dash-bar-up,
+    .dash-chart-bar-group:nth-child(1) .dash-bar-down { animation-delay: 0.5s; }
+    .dash-chart-bar-group:nth-child(2) .dash-bar-up,
+    .dash-chart-bar-group:nth-child(2) .dash-bar-down { animation-delay: 0.6s; }
+    .dash-chart-bar-group:nth-child(3) .dash-bar-up,
+    .dash-chart-bar-group:nth-child(3) .dash-bar-down { animation-delay: 0.7s; }
+    .dash-chart-bar-group:nth-child(4) .dash-bar-up,
+    .dash-chart-bar-group:nth-child(4) .dash-bar-down { animation-delay: 0.8s; }
+    .dash-chart-bar-group:nth-child(5) .dash-bar-up,
+    .dash-chart-bar-group:nth-child(5) .dash-bar-down { animation-delay: 0.9s; }
+    .dash-chart-bar-group:nth-child(6) .dash-bar-up,
+    .dash-chart-bar-group:nth-child(6) .dash-bar-down { animation-delay: 1.0s; }
+
+    .dash-chart-months {
+      display: flex;
+      gap: 3px;
+    }
+
+    .dash-chart-month {
+      flex: 1;
+      font-size: 5px;
+      text-align: center;
+      color: rgba(255,255,255,0.2);
+    }
+
+    .dash-input {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 4px 6px;
+      animation: inputFadeIn 7s ease-out infinite;
+      animation-delay: 1.1s;
+      opacity: 0;
+      animation-fill-mode: backwards;
+    }
+
+    @keyframes inputFadeIn {
+      0%, 38% { opacity: 0; transform: translateY(6px); }
+      50%, 80% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; }
+    }
+
+    .dash-input-text {
+      flex: 1;
+      font-size: 6px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .dash-input-submit {
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     /* Reference image in thumbnail */
@@ -509,7 +927,7 @@
           <span class="badge badge-panel">01</span>
           <span class="badge badge-act" data-act="open">Open</span>
         </div>
-        <div class="panel-thumb-content" style="font-size:24px;font-weight:300;letter-spacing:-0.02em;color:rgba(243,244,246,0.8)">Clarity takes craft.</div>
+        <div class="panel-thumb-content" style="font-size:24px;font-weight:300;letter-spacing:-0.02em;color:rgba(243,244,246,0.8)">Your numbers have a story.</div>
         <span class="badge badge-duration">3.0s</span>
       </div>
       <div class="panel-body">
@@ -543,23 +961,23 @@
     </div>
 
     <!-- ── Panel 02 ─────────────────────────── -->
-    <div class="panel" data-anim="slide">
+    <div class="panel">
       <div class="panel-thumb">
         <div class="panel-badges">
           <span class="badge badge-panel">02</span>
           <span class="badge badge-act" data-act="build">Build</span>
         </div>
         <div class="panel-thumb-content">
-          <div style="display:flex;flex-direction:column;gap:6px;text-align:left;width:100%">
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 12px">
+          <div class="insight-cards-stack" style="display:flex;flex-direction:column;gap:6px;text-align:left;width:100%">
+            <div class="insight-card">
               <div style="display:flex;gap:4px;align-items:center;margin-bottom:2px"><span style="color:#34d399;font-size:10px">↗</span><span style="font-size:10px;font-weight:600;color:#f3f4f6">12% revenue growth</span></div>
               <div style="font-size:8px;color:rgba(243,244,246,0.5)">Q3 to Q4: $12,459 → $12,950</div>
             </div>
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 12px">
+            <div class="insight-card">
               <div style="display:flex;gap:4px;align-items:center;margin-bottom:2px"><span style="color:#94a3b8;font-size:10px">↘</span><span style="font-size:10px;font-weight:600;color:#f3f4f6">Decreased card spend</span></div>
               <div style="font-size:8px;color:rgba(243,244,246,0.5)">Decreased 8%: $3,490 → $3,210</div>
             </div>
-            <div style="background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 12px">
+            <div class="insight-card">
               <div style="display:flex;gap:4px;align-items:center;margin-bottom:2px"><span style="color:#94a3b8;font-size:10px">↗</span><span style="font-size:10px;font-weight:600;color:#f3f4f6">Increased software spend</span></div>
               <div style="font-size:8px;color:rgba(243,244,246,0.5)">Increased 16%: $3,283 → $3,808</div>
             </div>
@@ -587,9 +1005,9 @@
         <div class="panel-section">
           <div class="panel-section-title">Motion</div>
           <ul class="motion-list">
-            <li>Container: translateY(16→0) + opacity, 400ms expo-out</li>
-            <li>Cards as unit — no individual stagger</li>
-            <li>Camera push_in begins after settle</li>
+            <li>Rolodex: cards flip in from rotateX(-70°→0°), 300ms stagger</li>
+            <li>transform-origin top, backface hidden, perspective 600px</li>
+            <li>Exit: flip forward rotateX(0→30°) + scale down</li>
           </ul>
         </div>
         <div class="transition-indicator">
@@ -600,16 +1018,16 @@
     </div>
 
     <!-- ── Panel 03 ─────────────────────────── -->
-    <div class="panel" data-anim="scale">
+    <div class="panel">
       <div class="panel-thumb">
         <div class="panel-badges">
           <span class="badge badge-panel">03</span>
           <span class="badge badge-act" data-act="build">Build</span>
         </div>
-        <div class="panel-thumb-content">
+        <div class="panel-thumb-content" style="width:85%">
           <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:10px 14px;display:flex;align-items:center;gap:8px;width:100%">
-            <span style="flex:1;font-size:10px;color:#f3f4f6;text-align:left">Tell me more about: Increased software spend.</span>
-            <span style="width:20px;height:20px;background:#6366f1;border-radius:50%"></span>
+            <span style="flex:1;font-size:10px;color:#f3f4f6;text-align:left"><span class="typewriter-wrap">Tell me more about: Increased software spend.</span></span>
+            <span class="submit-btn" style="width:22px;height:22px;background:#6366f1;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3v4H4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 4.5L4 7l2.5 2.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </div>
         </div>
         <span class="badge badge-duration">4.0s</span>
@@ -625,9 +1043,9 @@
         <div class="panel-section">
           <div class="panel-section-title">Motion</div>
           <ul class="motion-list">
-            <li>Input: scale(0.97→1) + translateY(20→0), 500ms</li>
-            <li>Typewriter ~40ms/char after 600ms delay</li>
-            <li>Hard cut out — AI responded instantly</li>
+            <li>Input field is static — always present, no entrance</li>
+            <li>Typewriter fills the field: steps(40), 2.2s, blinking caret</li>
+            <li>Submit button pulses after text completes</li>
           </ul>
         </div>
         <div class="transition-indicator">
@@ -638,23 +1056,25 @@
     </div>
 
     <!-- ── Panel 04 ─────────────────────────── -->
-    <div class="panel" data-anim="scale">
+    <div class="panel">
       <div class="panel-thumb">
         <div class="panel-badges">
           <span class="badge badge-panel">04</span>
           <span class="badge badge-act" data-act="peak">Peak</span>
         </div>
         <div class="panel-thumb-content">
-          <div style="background:#1f2937;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;width:100%;text-align:left">
-            <div style="font-size:11px;font-weight:600;color:#f3f4f6;margin-bottom:4px">Increased software spend</div>
-            <div style="font-size:8px;color:rgba(243,244,246,0.5);margin-bottom:10px">Driven by these 4 vendors</div>
-            <div style="display:flex;align-items:flex-end;gap:6px;height:50px;margin-bottom:6px">
-              <div style="flex:1;height:85%;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
-              <div style="flex:1;height:65%;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
-              <div style="flex:1;height:48%;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
-              <div style="flex:1;height:38%;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+          <div class="chart-panel">
+            <div class="chart-header">
+              <div style="font-size:11px;font-weight:600;color:#f3f4f6;margin-bottom:4px">Increased software spend</div>
+              <div style="font-size:8px;color:rgba(243,244,246,0.5);margin-bottom:10px">Driven by these 4 vendors</div>
             </div>
-            <div style="display:flex;gap:6px;font-size:7px;color:rgba(243,244,246,0.4)">
+            <div class="chart-bars-container">
+              <div class="chart-bar"></div>
+              <div class="chart-bar"></div>
+              <div class="chart-bar"></div>
+              <div class="chart-bar"></div>
+            </div>
+            <div class="chart-labels">
               <span style="flex:1;text-align:center">Anthropic</span>
               <span style="flex:1;text-align:center">Cloudflare</span>
               <span style="flex:1;text-align:center">Zoom</span>
@@ -684,9 +1104,9 @@
         <div class="panel-section">
           <div class="panel-section-title">Motion</div>
           <ul class="motion-list">
-            <li>Panel: scale(0.97→1) + translateY, 500ms</li>
-            <li>Consider static bars vs grow — test both</li>
-            <li>Hold 3s for reading</li>
+            <li>Header fades in first (translateY 8→0), 400ms</li>
+            <li>Bars: scaleY(0→1) stagger 120ms, indigo fill</li>
+            <li>Labels fade in last, 0.9s delay</li>
           </ul>
         </div>
         <div class="transition-indicator">
@@ -704,16 +1124,21 @@
           <span class="badge badge-act" data-act="build">Build</span>
         </div>
         <div class="panel-thumb-content">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%">
-            <div style="display:flex;gap:6px;align-items:flex-end;height:35px;opacity:0.35">
-              <div style="width:28px;height:30px;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
-              <div style="width:28px;height:22px;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
-              <div style="width:28px;height:16px;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
-              <div style="width:28px;height:12px;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%">
+            <!-- Faded drilldown panel residue -->
+            <div style="opacity:0.2;width:90%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px;text-align:left">
+              <div style="font-size:8px;font-weight:600;color:#f3f4f6;margin-bottom:4px">Increased software spend</div>
+              <div style="display:flex;align-items:flex-end;gap:4px;height:28px">
+                <div style="flex:1;height:85%;background:rgba(99,102,241,0.3);border-radius:2px 2px 0 0"></div>
+                <div style="flex:1;height:65%;background:rgba(99,102,241,0.3);border-radius:2px 2px 0 0"></div>
+                <div style="flex:1;height:48%;background:rgba(99,102,241,0.3);border-radius:2px 2px 0 0"></div>
+                <div style="flex:1;height:38%;background:rgba(99,102,241,0.3);border-radius:2px 2px 0 0"></div>
+              </div>
             </div>
+            <!-- Follow-up input -->
             <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:8px 12px;display:flex;align-items:center;gap:6px;width:100%">
-              <span style="flex:1;font-size:9px;color:#f3f4f6;text-align:left">Show me my largest transactions in March</span>
-              <span style="width:18px;height:18px;background:rgba(99,102,241,0.6);border-radius:50%"></span>
+              <span style="flex:1;font-size:9px;color:#f3f4f6;text-align:left">Show me my largest transactions in March<span class="input-cursor"></span></span>
+              <span class="submit-btn" style="width:18px;height:18px;background:rgba(99,102,241,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M9 3v4H4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 4.5L4 7l2.5 2.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
             </div>
           </div>
         </div>
@@ -749,10 +1174,75 @@
           <span class="badge badge-panel">06</span>
           <span class="badge badge-act" data-act="peak">Peak</span>
         </div>
-        <div class="panel-thumb-content">
-          <img src="ref-dashboard.jpg" alt="Dashboard reference" class="panel-thumb-ref">
+        <div class="panel-thumb-content" style="padding:0;max-width:100%">
+          <div class="dash-assembly">
+            <!-- Sidebar -->
+            <div class="dash-sidebar">
+              <div class="dash-sidebar-logo"></div>
+              <div class="dash-sidebar-item" style="width:70%"></div>
+              <div class="dash-sidebar-item" style="width:55%"></div>
+              <div class="dash-sidebar-item" style="width:65%"></div>
+              <div class="dash-sidebar-item active" style="width:60%"></div>
+              <div class="dash-sidebar-item" style="width:50%"></div>
+              <div style="flex:1"></div>
+              <div class="dash-sidebar-item" style="width:45%"></div>
+            </div>
+            <!-- Main content -->
+            <div class="dash-main">
+              <!-- Tabs -->
+              <div class="dash-tabs">
+                <span class="dash-tab active">Overview</span>
+                <span class="dash-tab">Money In</span>
+                <span class="dash-tab">Money Out</span>
+              </div>
+              <!-- Stat cards -->
+              <div class="dash-cards">
+                <div class="dash-card">
+                  <div class="dash-card-label">Revenue</div>
+                  <div class="dash-card-value">$12,950</div>
+                  <div class="dash-card-trend" style="color:#34d399">+12%</div>
+                </div>
+                <div class="dash-card">
+                  <div class="dash-card-label">Card spend</div>
+                  <div class="dash-card-value">$3,210</div>
+                  <div class="dash-card-trend" style="color:#94a3b8">-8%</div>
+                </div>
+                <div class="dash-card">
+                  <div class="dash-card-label">Software</div>
+                  <div class="dash-card-value">$3,808</div>
+                  <div class="dash-card-trend" style="color:#fbbf24">+16%</div>
+                </div>
+              </div>
+              <!-- Cashflow chart -->
+              <div class="dash-chart">
+                <div class="dash-chart-title">Cashflow</div>
+                <div class="dash-chart-bars">
+                  <div class="dash-chart-bar-group"><div class="dash-bar-up" style="height:18px"></div><div class="dash-bar-down" style="height:10px"></div></div>
+                  <div class="dash-chart-bar-group"><div class="dash-bar-up" style="height:28px"></div><div class="dash-bar-down" style="height:16px"></div></div>
+                  <div class="dash-chart-bar-group"><div class="dash-bar-up" style="height:14px"></div><div class="dash-bar-down" style="height:22px"></div></div>
+                  <div class="dash-chart-bar-group"><div class="dash-bar-up" style="height:16px"></div><div class="dash-bar-down" style="height:14px"></div></div>
+                  <div class="dash-chart-bar-group"><div class="dash-bar-up" style="height:12px"></div><div class="dash-bar-down" style="height:12px"></div></div>
+                  <div class="dash-chart-bar-group"><div class="dash-bar-up" style="height:24px"></div><div class="dash-bar-down" style="height:8px"></div></div>
+                </div>
+                <div class="dash-chart-months">
+                  <span class="dash-chart-month">Jan</span>
+                  <span class="dash-chart-month">Feb</span>
+                  <span class="dash-chart-month">Mar</span>
+                  <span class="dash-chart-month">Apr</span>
+                  <span class="dash-chart-month">May</span>
+                  <span class="dash-chart-month">Jun</span>
+                </div>
+              </div>
+              <!-- Bottom input -->
+              <div class="dash-input">
+                <span class="dash-input-text">Ask anything...</span>
+                <div class="dash-input-submit">
+                  <svg width="7" height="7" viewBox="0 0 12 12" fill="none"><path d="M9 3v4H4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 4.5L4 7l2.5 2.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <span class="ref-label">Source reference</span>
         <span class="badge badge-duration">5.0s</span>
       </div>
       <div class="panel-body">
@@ -766,9 +1256,10 @@
         <div class="panel-section">
           <div class="panel-section-title">Motion</div>
           <ul class="motion-list">
-            <li>Content: translateY(16→0) + opacity, 400ms</li>
-            <li>Sidebar: fade-in 300ms later</li>
-            <li>Camera pull_out IS the animation — don't over-choreograph</li>
+            <li>Sidebar: translateX(-100%→0) + Z depth, 500ms expo-out</li>
+            <li>Stat cards: stagger 150ms, translateY(10→0) + opacity</li>
+            <li>Bars: scaleY(0→1) stagger 100ms from bottom</li>
+            <li>Input: fade in last (1.1s delay). Camera pull_out overlays.</li>
           </ul>
         </div>
         <div class="transition-indicator">

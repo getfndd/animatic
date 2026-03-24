@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fintech AI Insights — Autoplay</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #111827;
+      --text: #f3f4f6;
+      --text-dim: rgba(243,244,246,0.55);
+      --text-muted: rgba(243,244,246,0.3);
+      --accent: #6366f1;
+      --green: #34d399;
+      --slate: #94a3b8;
+      --amber: #fbbf24;
+      --surface: rgba(255,255,255,0.035);
+      --border: rgba(255,255,255,0.06);
+      --total: 33.5s;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0a0c10;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 48px 48px 64px;
+    }
+
+    .page-header {
+      width: 100%;
+      max-width: 1280px;
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .page-title span {
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+
+    .page-meta {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .page-pill {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 5px;
+      background: rgba(99,102,241,0.15);
+      color: var(--accent);
+    }
+
+    .page-duration {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .viewport-frame {
+      width: 100%;
+      max-width: 1280px;
+      aspect-ratio: 16/9;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 32px 100px rgba(0,0,0,0.5);
+      position: relative;
+    }
+
+    .viewport-inner {
+      width: 1920px;
+      height: 1080px;
+      transform-origin: top left;
+      transform: scale(var(--vp-scale, 0.6667));
+      position: relative;
+      background: var(--bg);
+    }
+
+    /* ── Scene Container ─────────────────────── */
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      perspective: 1200px;
+      transform-style: preserve-3d;
+    }
+
+    /* ── Camera Moves ────────────────────────── */
+
+    @keyframes cameraPushIn {
+      from { transform: scale(1) translateZ(0); }
+      to   { transform: scale(1.08) translateZ(30px); }
+    }
+
+    @keyframes cameraPullOut {
+      from { transform: scale(1.35) translateZ(60px); }
+      to   { transform: scale(1) translateZ(0); }
+    }
+
+    @keyframes cameraDrift {
+      0%   { transform: translateX(0) translateY(0); }
+      50%  { transform: translateX(8px) translateY(-4px); }
+      100% { transform: translateX(0) translateY(0); }
+    }
+
+    @keyframes cameraSubtle {
+      0%   { transform: scale(1) translateZ(0); }
+      100% { transform: scale(1.03) translateZ(10px); }
+    }
+
+    /* ══════════════════════════════════════════
+       SCENE 01 — "Your numbers have a story."
+       0.0s–3.0s, crossfade 600ms
+       ══════════════════════════════════════════ */
+
+    .sc01 {
+      animation: sc01 3.6s ease-out forwards;
+    }
+
+    @keyframes sc01 {
+      0%       { opacity: 0; }
+      13%      { opacity: 1; }       /* 0.5s fade in */
+      72%      { opacity: 1; }       /* hold until 2.6s */
+      100%     { opacity: 0; }       /* crossfade out by 3.6s */
+    }
+
+    .sc01 .tagline {
+      font-size: 52px;
+      font-weight: 300;
+      letter-spacing: -0.025em;
+      color: rgba(243,244,246,0.85);
+      transform: translateZ(-60px) scale(0.95);
+      opacity: 0;
+      animation: taglineSettle 1.4s cubic-bezier(0.16,1,0.3,1) 0.3s both,
+                 cameraDrift 3s ease-in-out 1.0s both;
+    }
+
+    @keyframes taglineSettle {
+      from { transform: translateZ(-60px) scale(0.95); opacity: 0; }
+      to   { transform: translateZ(0) scale(1); opacity: 1; }
+    }
+
+    /* ══════════════════════════════════════════
+       SCENE 02 — Insight Cards Rolodex
+       2.4s–7.4s (enters during sc01 crossfade)
+       ══════════════════════════════════════════ */
+
+    .sc02 {
+      animation: sceneFade 5.4s ease-out 2.4s both;
+    }
+
+    @keyframes sceneFade {
+      0%   { opacity: 0; }
+      9%   { opacity: 1; }
+      85%  { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    .sc02 .cards-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 560px;
+      perspective: 1200px;
+      transform-style: preserve-3d;
+    }
+
+    .sc02 .insight-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 24px;
+      opacity: 0;
+      transform: translateY(60px) translateZ(-200px) scale(0.88);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      transform-style: preserve-3d;
+    }
+
+    .sc02 .insight-card:nth-child(1) {
+      animation: cardCascade 0.9s cubic-bezier(0.16,1,0.3,1) 3.0s both;
+    }
+    .sc02 .insight-card:nth-child(2) {
+      animation: cardCascade 0.9s cubic-bezier(0.16,1,0.3,1) 3.4s both;
+    }
+    .sc02 .insight-card:nth-child(3) {
+      animation: cardCascade 0.9s cubic-bezier(0.16,1,0.3,1) 3.8s both;
+    }
+    .sc02 .insight-card:nth-child(4) {
+      animation: cardCascadePeek 0.9s cubic-bezier(0.16,1,0.3,1) 4.2s both;
+    }
+
+    @keyframes cardCascade {
+      0%   { opacity: 0; transform: translateY(60px) translateZ(-200px) scale(0.88); }
+      25%  { opacity: 0.7; }
+      100% { opacity: 1; transform: translateY(0) translateZ(0) scale(1); }
+    }
+
+    @keyframes cardCascadePeek {
+      0%   { opacity: 0; transform: translateY(60px) translateZ(-200px) scale(0.88); }
+      25%  { opacity: 0.4; }
+      100% { opacity: 0.45; transform: translateY(16px) translateZ(-60px) scale(0.96); }
+    }
+
+    /* Selected state — links visually to Scene 03 */
+    .sc02 .insight-card.selected {
+      border-color: rgba(99,102,241,0.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(99,102,241,0.2), inset 0 1px 0 rgba(99,102,241,0.1);
+    }
+
+    .insight-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .insight-title .trend { font-size: 16px; }
+    .insight-title span:last-child {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .insight-detail {
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    /* ══════════════════════════════════════════
+       SCENE 03 — AI Prompt Input (typewriter)
+       7.4s–11.4s, hard cut in
+       ══════════════════════════════════════════ */
+
+    .sc03 {
+      animation: hardCutScene 4.0s ease-out 7.4s both;
+    }
+
+    @keyframes hardCutScene {
+      0%        { opacity: 0; }
+      0.1%      { opacity: 1; }
+      90%       { opacity: 1; }
+      100%      { opacity: 0; }
+    }
+
+    .sc03 .input-shell {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 28px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 640px;
+      min-width: 640px;
+      opacity: 0;
+      transform: scale(0.92) translateZ(-60px);
+      animation: inputAppear 0.6s cubic-bezier(0.16,1,0.3,1) 7.5s both;
+    }
+
+    .sc03 .input-shell-wrap {
+      animation: cameraSubtle 3.5s ease-out 8.0s both;
+    }
+
+    .sc03 .input-shell .typewriter-text-area {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    @keyframes inputAppear {
+      to { opacity: 1; transform: scale(1) translateZ(0) rotateX(0); }
+    }
+
+    .sc03 .typewriter {
+      display: inline-block;
+      font-size: 18px;
+      color: var(--text);
+      overflow: hidden;
+      white-space: nowrap;
+      max-width: 0;
+      border-right: 2px solid rgba(243,244,246,0.7);
+      animation:
+        typeOut 2.2s steps(46, end) 8.2s both,
+        caretBlink 0.5s step-end 8.2s 6;
+    }
+
+    @keyframes typeOut {
+      from { max-width: 0; }
+      to   { max-width: 600px; }
+    }
+
+    @keyframes caretBlink {
+      50% { border-color: transparent; }
+    }
+
+    .submit-circle {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════
+       SCENE 04 — Chart Drilldown
+       11.4s–16.4s, slides from right
+       ══════════════════════════════════════════ */
+
+    .sc04 {
+      animation: sceneFade 5.4s ease-out 11.0s both;
+    }
+
+    .sc04 .drilldown-panel {
+      background: #1c1c2e;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 32px 36px;
+      width: 520px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+      opacity: 0;
+      transform: translateX(60px) translateZ(-80px) rotateY(-4deg);
+      animation: panelSlideIn 0.8s cubic-bezier(0.16,1,0.3,1) 11.6s both;
+    }
+
+    .sc04 .drilldown-panel-wrap {
+      animation: cameraPushIn 4.5s ease-out 12.0s both;
+    }
+
+    @keyframes panelSlideIn {
+      40% { opacity: 1; }
+      100% {
+        opacity: 1;
+        transform: translateX(0) translateZ(0) rotateY(0);
+      }
+    }
+
+    .drilldown-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .drilldown-sub {
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 28px;
+      opacity: 0;
+      animation: fadeUp 0.4s ease-out 12.0s both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .chart-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 20px;
+      height: 140px;
+      margin-bottom: 12px;
+      padding: 0 16px;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+      max-width: 80px;
+    }
+
+    .bar {
+      width: 100%;
+      border-radius: 4px 4px 0 0;
+      background: linear-gradient(180deg, rgba(99,102,241,0.5) 0%, rgba(99,102,241,0.25) 100%);
+      border: 1px solid rgba(99,102,241,0.15);
+      border-bottom: none;
+      transform-origin: bottom center;
+      transform: scaleY(0);
+    }
+
+    .bar-col:nth-child(1) .bar { height: 100%; animation: barSpring 0.6s cubic-bezier(0.22,1,0.36,1) 12.4s both; }
+    .bar-col:nth-child(2) .bar { height: 76%;  animation: barSpring 0.6s cubic-bezier(0.22,1,0.36,1) 12.54s both; }
+    .bar-col:nth-child(3) .bar { height: 56%;  animation: barSpring 0.6s cubic-bezier(0.22,1,0.36,1) 12.68s both; }
+    .bar-col:nth-child(4) .bar { height: 44%;  animation: barSpring 0.6s cubic-bezier(0.22,1,0.36,1) 12.82s both; }
+
+    @keyframes barSpring {
+      0%  { transform: scaleY(0); }
+      60% { transform: scaleY(1.06); }
+      100%{ transform: scaleY(1); }
+    }
+
+    .bar-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 10px;
+      opacity: 0;
+      animation: fadeUp 0.3s ease-out 13.0s both;
+    }
+
+    /* ══════════════════════════════════════════
+       SCENE 05 — Follow-up prompt
+       16.4s–19.9s, hard cut
+       ══════════════════════════════════════════ */
+
+    .sc05 {
+      flex-direction: column;
+      gap: 24px;
+      animation: hardCutScene 3.5s ease-out 16.4s both;
+    }
+
+    .sc05 .chart-ghost {
+      display: flex;
+      gap: 14px;
+      align-items: flex-end;
+      height: 60px;
+      opacity: 0;
+      animation: fadeUp 0.5s ease-out 16.6s both;
+    }
+
+    .sc05 .chart-ghost .ghost-bar {
+      width: 48px;
+      border-radius: 3px 3px 0 0;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .sc05 .input-shell {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 28px;
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 580px;
+      min-width: 580px;
+      opacity: 0;
+      animation: fadeUp 0.4s ease-out 17.0s both;
+    }
+
+    .sc05 .input-shell .typewriter-text-area {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .sc05 .typewriter {
+      display: inline-block;
+      font-size: 16px;
+      color: var(--text);
+      overflow: hidden;
+      white-space: nowrap;
+      max-width: 0;
+      border-right: 2px solid rgba(243,244,246,0.7);
+      animation:
+        typeOut05 2.0s steps(42, end) 17.6s both,
+        caretBlink 0.5s step-end 17.6s 5;
+    }
+
+    @keyframes typeOut05 {
+      from { max-width: 0; }
+      to   { max-width: 560px; }
+    }
+
+    .sc05 .submit-circle {
+      opacity: 0.6;
+    }
+
+    /* ══════════════════════════════════════════
+       SCENE 06 — Dashboard Assembly
+       19.9s–24.9s, pull out
+       ══════════════════════════════════════════ */
+
+    .sc06 {
+      animation: sceneFade 5.6s ease-out 19.3s both;
+      align-items: stretch;
+    }
+
+    .sc06 .dashboard {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      background: #0d1117;
+      transform: scale(1.3);
+      animation: pullOutReveal 2s cubic-bezier(0.33,0,0.2,1) 20.0s both;
+    }
+
+    @keyframes pullOutReveal {
+      to { transform: scale(1); }
+    }
+
+    .sc06 .sidebar {
+      width: 220px;
+      background: rgba(255,255,255,0.015);
+      border-right: 1px solid rgba(255,255,255,0.04);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      opacity: 0;
+      transform: translateX(-100%);
+      animation: sidebarReveal 0.7s cubic-bezier(0.16,1,0.3,1) 20.4s both;
+    }
+
+    @keyframes sidebarReveal {
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 28px;
+      padding: 0 8px;
+    }
+
+    .sidebar-logo-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sidebar-logo-icon-inner {
+      width: 8px;
+      height: 8px;
+      background: rgba(99,102,241,0.5);
+      border-radius: 3px;
+    }
+
+    .sidebar-logo-text {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .sidebar-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      transition: background 0.15s;
+    }
+
+    .sidebar-nav-item.active {
+      background: rgba(99,102,241,0.12);
+      color: rgba(255,255,255,0.8);
+    }
+
+    .sidebar-nav-item .nav-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.5;
+    }
+
+    .sidebar-nav-item .nav-badge {
+      margin-left: auto;
+      font-size: 10px;
+      background: rgba(99,102,241,0.2);
+      color: rgba(99,102,241,0.8);
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+
+    .sc06 .main-area {
+      flex: 1;
+      padding: 28px 36px;
+      display: grid;
+      grid-template-rows: auto auto auto auto auto;
+      gap: 14px;
+      overflow: hidden;
+      opacity: 0;
+      animation: fadeUp 0.6s ease-out 20.8s both;
+    }
+
+    .dash-tab-row {
+      display: flex;
+      gap: 20px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .dash-tab-item {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .dash-tab-item.active {
+      color: var(--text);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 8px;
+      margin-bottom: -11px;
+    }
+
+    .stat-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .stat-card {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      opacity: 0;
+    }
+
+    .stat-card:nth-child(1) { animation: fadeUp 0.4s ease-out 21.0s both; }
+    .stat-card:nth-child(2) { animation: fadeUp 0.4s ease-out 21.15s both; }
+    .stat-card:nth-child(3) { animation: fadeUp 0.4s ease-out 21.3s both; }
+
+    .stat-label { font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+    .stat-value { font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+    .stat-trend { font-size: 12px; margin-top: 4px; font-weight: 500; }
+
+    .cashflow-area {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .cashflow-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .cashflow-title {
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .cashflow-legend {
+      display: flex;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .cashflow-legend span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    .cashflow-chart-wrap {
+      display: flex;
+      gap: 8px;
+      height: 300px;
+    }
+
+    .cashflow-yaxis {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 9px;
+      color: var(--text-muted);
+      width: 32px;
+      text-align: right;
+      opacity: 0.5;
+    }
+
+    .cashflow-bars {
+      flex: 1;
+      display: flex;
+      gap: 4px;
+      position: relative;
+    }
+
+    /* Zero line */
+    .cashflow-bars::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      z-index: 1;
+    }
+
+    .cashflow-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cf-half-up {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .cf-half-down {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .cf-bar-up {
+      width: 70%;
+      border-radius: 3px 3px 0 0;
+      background: linear-gradient(180deg, rgba(99,102,241,0.5) 0%, rgba(99,102,241,0.3) 100%);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-bottom: none;
+      transform-origin: bottom center;
+      transform: scaleY(0);
+    }
+
+    .cf-bar-down {
+      width: 70%;
+      border-radius: 0 0 3px 3px;
+      background: linear-gradient(180deg, rgba(148,163,184,0.15) 0%, rgba(148,163,184,0.08) 100%);
+      border: 1px solid rgba(148,163,184,0.1);
+      border-top: none;
+      transform-origin: top center;
+      transform: scaleY(0);
+    }
+
+    .cashflow-col:nth-child(1) .cf-bar-up,
+    .cashflow-col:nth-child(1) .cf-bar-down { animation: barSpring 0.5s ease-out 21.5s both; }
+    .cashflow-col:nth-child(2) .cf-bar-up,
+    .cashflow-col:nth-child(2) .cf-bar-down { animation: barSpring 0.5s ease-out 21.6s both; }
+    .cashflow-col:nth-child(3) .cf-bar-up,
+    .cashflow-col:nth-child(3) .cf-bar-down { animation: barSpring 0.5s ease-out 21.7s both; }
+    .cashflow-col:nth-child(4) .cf-bar-up,
+    .cashflow-col:nth-child(4) .cf-bar-down { animation: barSpring 0.5s ease-out 21.8s both; }
+    .cashflow-col:nth-child(5) .cf-bar-up,
+    .cashflow-col:nth-child(5) .cf-bar-down { animation: barSpring 0.5s ease-out 21.9s both; }
+    .cashflow-col:nth-child(6) .cf-bar-up,
+    .cashflow-col:nth-child(6) .cf-bar-down { animation: barSpring 0.5s ease-out 22.0s both; }
+
+    .cashflow-months {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+      margin-left: 40px; /* offset past y-axis */
+    }
+
+    .cashflow-months span {
+      flex: 1;
+      text-align: center;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .dash-timeline {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .tl-range {
+      background: rgba(99,102,241,0.25);
+      color: rgba(99,102,241,0.9);
+      padding: 2px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .dash-input-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 10px 16px;
+      opacity: 0;
+      animation: fadeUp 0.4s ease-out 22.2s both;
+    }
+
+    .dash-input-bar span {
+      font-size: 13px;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .dash-input-bar .mini-submit {
+      width: 24px;
+      height: 24px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ══════════════════════════════════════════
+       SCENE 07 — "Introducing Insights."
+       24.9s–27.9s
+       ══════════════════════════════════════════ */
+
+    .sc07 {
+      flex-direction: column;
+      gap: 8px;
+      animation: sceneFade 3.4s ease-out 24.3s both;
+    }
+
+    .sc07 .tagline-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      animation: cameraSubtle 3s ease-out 25.0s both;
+    }
+
+    .sc07 .tagline {
+      font-size: 48px;
+      font-weight: 300;
+      letter-spacing: -0.025em;
+      color: rgba(243,244,246,0.85);
+      opacity: 0;
+      transform: translateZ(-40px);
+      animation: taglineSettle 0.8s cubic-bezier(0.16,1,0.3,1) 25.0s both;
+    }
+
+    .sc07 .tagline:nth-child(2) {
+      animation-delay: 25.3s;
+    }
+
+    /* ══════════════════════════════════════════
+       SCENE 08 — "Radically different banking."
+       27.5s–30.0s
+       ══════════════════════════════════════════ */
+
+    .sc08 {
+      animation: sceneFade 2.9s ease-out 27.1s both;
+    }
+
+    .sc08 .tagline {
+      font-size: 48px;
+      font-weight: 300;
+      letter-spacing: -0.025em;
+      color: rgba(243,244,246,0.85);
+      opacity: 0;
+      transform: translateZ(-40px);
+      animation: taglineSettle 0.8s cubic-bezier(0.16,1,0.3,1) 27.6s both,
+                 cameraDrift 2.5s ease-in-out 28.0s both;
+    }
+
+    /* ══════════════════════════════════════════
+       SCENE 09 — Logo Lockup
+       29.6s–33.5s
+       ══════════════════════════════════════════ */
+
+    .sc09 {
+      flex-direction: column;
+      gap: 28px;
+      animation: sc09In 3.9s ease-out 29.6s both;
+    }
+
+    @keyframes sc09In {
+      0%   { opacity: 0; }
+      15%  { opacity: 1; }
+      100% { opacity: 1; } /* holds — last frame */
+    }
+
+    .sc09 .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      opacity: 0;
+      transform: translateZ(-40px) scale(0.95);
+      animation: taglineSettle 1s cubic-bezier(0.16,1,0.3,1) 30.2s both;
+    }
+
+    .logo-mark {
+      width: 40px;
+      height: 40px;
+      border: 2px solid rgba(243,244,246,0.4);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-mark-inner {
+      width: 16px;
+      height: 16px;
+      background: rgba(99,102,241,0.5);
+      border-radius: 5px;
+    }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      color: var(--text);
+    }
+
+    .sc09 .legal {
+      font-size: 11px;
+      color: rgba(243,244,246,0.2);
+      opacity: 0;
+      animation: fadeUp 0.4s ease-out 30.8s both;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="page-title">Fintech AI Insights <span>— Preview</span></div>
+    <div class="page-meta">
+      <span class="page-pill">cinematic-dark</span>
+      <span class="page-pill" style="background:rgba(52,211,153,0.1);color:#34d399">prestige</span>
+      <span class="page-duration">33.5s · 9 scenes</span>
+    </div>
+  </div>
+
+  <div class="viewport-frame">
+    <div class="viewport-inner">
+
+  <!-- ── Scene 01: Opening Tagline ──────────── -->
+  <div class="scene sc01">
+    <div class="tagline">Your numbers have a story.</div>
+  </div>
+
+  <!-- ── Scene 02: Insight Cards ────────────── -->
+  <div class="scene sc02">
+    <div class="cards-stack">
+      <div class="insight-card">
+        <div class="insight-title">
+          <span class="trend" style="color:var(--green)">↗</span>
+          <span>12% revenue growth</span>
+        </div>
+        <div class="insight-detail">From January to June revenue increased from $12,459 to $13,954</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-title">
+          <span class="trend" style="color:var(--slate)">↘</span>
+          <span>Decreased Credit spend</span>
+        </div>
+        <div class="insight-detail"><span style="border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:1px 6px;font-size:12px">Credit</span> card spend saw a decrease of 8% from $3,490 in August to $3,210 in September.</div>
+      </div>
+      <div class="insight-card selected">
+        <div class="insight-title">
+          <span class="trend" style="color:var(--slate)">↗</span>
+          <span>Increased software spend</span>
+        </div>
+        <div class="insight-detail"><span style="border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:1px 6px;font-size:12px">Software</span> spend saw an increase of 16% from $3,283 in February to $3,808 in March</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-title">
+          <span class="trend" style="color:var(--green)">↗</span>
+          <span>Spike in spend on software</span>
+        </div>
+        <div class="insight-detail">Current spend in September totaled $5,807 which is an increase from $4,099 in August.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Scene 03: AI Prompt ────────────────── -->
+  <div class="scene sc03">
+    <div class="input-shell">
+      <div class="typewriter-text-area"><span class="typewriter">Tell me more about: Increased software spend.</span></div>
+      <div class="submit-circle">
+        <svg width="18" height="18" viewBox="0 0 12 12" fill="none"><path d="M9 3v4H4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 4.5L4 7l2.5 2.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Scene 04: Chart Drilldown ──────────── -->
+  <div class="scene sc04">
+    <div class="drilldown-panel">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div class="drilldown-title">Increased software spend</div>
+        <div style="display:flex;gap:8px">
+          <span style="font-size:12px;color:var(--text-muted);cursor:pointer">+</span>
+          <span style="font-size:12px;color:var(--text-muted);cursor:pointer">×</span>
+        </div>
+      </div>
+      <div class="drilldown-sub">Software spend saw an increase of 16% from $3,283 to $3,808</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+        <span>Top software vendors</span>
+        <span style="font-size:10px;opacity:0.5">Money Out</span>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div style="display:flex;flex-direction:column;justify-content:space-between;font-size:10px;color:var(--text-muted);padding:4px 0;opacity:0;animation:fadeUp 0.3s ease-out 12.2s both">
+          <span>~$1K</span>
+          <span></span>
+          <span>$0</span>
+        </div>
+        <div class="chart-row" style="flex:1">
+          <div class="bar-col"><div class="bar"></div><span class="bar-label">Anthropic</span></div>
+          <div class="bar-col"><div class="bar"></div><span class="bar-label">Cloudflare</span></div>
+          <div class="bar-col"><div class="bar"></div><span class="bar-label">Zoom</span></div>
+          <div class="bar-col"><div class="bar"></div><span class="bar-label">Notion</span></div>
+        </div>
+      </div>
+      <div style="margin-top:20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:10px 16px;display:flex;align-items:center;gap:10px;opacity:0;animation:fadeUp 0.3s ease-out 13.2s both">
+        <span style="flex:1;font-size:13px;color:var(--text-muted)">Ask anything...</span>
+        <div class="submit-circle" style="width:28px;height:28px">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M9 3v4H4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 4.5L4 7l2.5 2.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Scene 05: Follow-up Prompt ─────────── -->
+  <div class="scene sc05">
+    <div class="chart-ghost">
+      <div class="ghost-bar" style="height:50px"></div>
+      <div class="ghost-bar" style="height:38px"></div>
+      <div class="ghost-bar" style="height:28px"></div>
+      <div class="ghost-bar" style="height:22px"></div>
+    </div>
+    <div class="input-shell">
+      <div class="typewriter-text-area"><span class="typewriter">Show me my largest transactions in March</span></div>
+      <div class="submit-circle" style="opacity:0.6">
+        <svg width="16" height="16" viewBox="0 0 12 12" fill="none"><path d="M9 3v4H4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 4.5L4 7l2.5 2.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Scene 06: Dashboard Assembly ───────── -->
+  <div class="scene sc06">
+    <div class="dashboard">
+      <div class="sidebar">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon"><div class="sidebar-logo-icon-inner"></div></div>
+          <span class="sidebar-logo-text">ACME</span>
+        </div>
+        <div class="sidebar-nav-item"><span class="nav-dot"></span>Home</div>
+        <div class="sidebar-nav-item"><span class="nav-dot"></span>Tasks<span class="nav-badge">10</span></div>
+        <div class="sidebar-nav-item"><span class="nav-dot"></span>Transactions</div>
+        <div class="sidebar-nav-item active"><span class="nav-dot"></span>Insights</div>
+        <div class="sidebar-nav-item"><span class="nav-dot"></span>Payments</div>
+        <div style="flex:1"></div>
+        <div class="sidebar-nav-item"><span class="nav-dot"></span>Settings</div>
+      </div>
+      <div class="main-area">
+        <div class="dash-timeline"><span class="tl-range">Jan 01 – Jun 30</span><span>Nov</span><span>Dec</span><span style="font-weight:500;color:rgba(255,255,255,0.5)">Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span style="font-weight:500;color:rgba(255,255,255,0.5)">Jun</span><span>Jul</span></div>
+        <div class="dash-tab-row">
+          <span class="dash-tab-item active">Overview</span>
+          <span class="dash-tab-item">Money In</span>
+          <span class="dash-tab-item">Money Out</span>
+        </div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-label">Revenue</div>
+            <div class="stat-value">$12,950</div>
+            <div class="stat-trend" style="color:var(--green)">+12%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Card spend</div>
+            <div class="stat-value">$3,210</div>
+            <div class="stat-trend" style="color:var(--slate)">-8%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Software</div>
+            <div class="stat-value">$3,808</div>
+            <div class="stat-trend" style="color:var(--amber)">+16%</div>
+          </div>
+        </div>
+        <div class="cashflow-area">
+          <div class="cashflow-header">
+            <div class="cashflow-title">Cashflow</div>
+            <div class="cashflow-legend">
+              <span><div class="legend-dot" style="background:rgba(99,102,241,0.5)"></div>Money in</span>
+              <span><div class="legend-dot" style="background:rgba(148,163,184,0.3)"></div>Money out</span>
+            </div>
+          </div>
+          <div class="cashflow-chart-wrap">
+            <div class="cashflow-yaxis"><span>$15K</span><span>$10K</span><span>$5K</span><span>0</span><span>-$5K</span></div>
+            <div class="cashflow-bars">
+              <div class="cashflow-col"><div class="cf-half-up"><div class="cf-bar-up" style="height:35%"></div></div><div class="cf-half-down"><div class="cf-bar-down" style="height:20%"></div></div></div>
+              <div class="cashflow-col"><div class="cf-half-up"><div class="cf-bar-up" style="height:65%"></div></div><div class="cf-half-down"><div class="cf-bar-down" style="height:35%"></div></div></div>
+              <div class="cashflow-col"><div class="cf-half-up"><div class="cf-bar-up" style="height:25%"></div></div><div class="cf-half-down"><div class="cf-bar-down" style="height:50%"></div></div></div>
+              <div class="cashflow-col"><div class="cf-half-up"><div class="cf-bar-up" style="height:30%"></div></div><div class="cf-half-down"><div class="cf-bar-down" style="height:25%"></div></div></div>
+              <div class="cashflow-col"><div class="cf-half-up"><div class="cf-bar-up" style="height:22%"></div></div><div class="cf-half-down"><div class="cf-bar-down" style="height:22%"></div></div></div>
+              <div class="cashflow-col"><div class="cf-half-up"><div class="cf-bar-up" style="height:55%"></div></div><div class="cf-half-down"><div class="cf-bar-down" style="height:15%"></div></div></div>
+            </div>
+          </div>
+          <div class="cashflow-months">
+            <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+          </div>
+        </div>
+        <div class="dash-input-bar">
+          <span>Ask anything...</span>
+          <div class="mini-submit">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3v4H4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 4.5L4 7l2.5 2.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Scene 07: "Introducing Insights." ──── -->
+  <div class="scene sc07">
+    <div class="tagline-group">
+      <div class="tagline">Introducing Insights.</div>
+      <div class="tagline">An intelligent view of your finances.</div>
+    </div>
+  </div>
+
+  <!-- ── Scene 08: "Radically different banking." -->
+  <div class="scene sc08">
+    <div class="tagline">Radically different banking.</div>
+  </div>
+
+  <!-- ── Scene 09: Logo Lockup ──────────────── -->
+  <div class="scene sc09">
+    <div class="logo-row">
+      <div class="logo-mark"><div class="logo-mark-inner"></div></div>
+      <span class="logo-text">ACME FINANCE</span>
+    </div>
+    <div class="legal">Acme Finance is a technology company.</div>
+  </div>
+
+    </div><!-- .viewport-inner -->
+  </div><!-- .viewport-frame -->
+
+  <script>
+    // Scale viewport-inner to fit viewport-frame
+    function scaleViewport() {
+      const frame = document.querySelector('.viewport-frame');
+      const inner = document.querySelector('.viewport-inner');
+      if (!frame || !inner) return;
+      const scale = frame.clientWidth / 1920;
+      inner.style.setProperty('--vp-scale', scale);
+      inner.style.transform = `scale(${scale})`;
+    }
+    scaleViewport();
+    window.addEventListener('resize', scaleViewport);
+  </script>
+</body>
+</html>

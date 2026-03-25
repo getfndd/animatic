@@ -7,6 +7,7 @@ import {
 } from 'remotion';
 import {
   getCameraTransformValues,
+  getMultiSegmentCameraValues,
   calculateOverscanDimensions,
   getShotGrammarCSS,
   composeCameraTransform,
@@ -74,7 +75,8 @@ export const CameraRig = ({ camera, shotGrammar, timelineTracks, children }) => 
   const { durationInFrames, width, height } = useVideoConfig();
 
   const hasTimeline = timelineTracks && Object.keys(timelineTracks).length > 0;
-  const hasCamera = camera && camera.move !== 'static';
+  const hasSegments = camera?.segments && Array.isArray(camera.segments) && camera.segments.length > 0;
+  const hasCamera = hasSegments || (camera && camera.move !== 'static');
   const hasShotGrammar = shotGrammar && (shotGrammar.shot_size || shotGrammar.angle || shotGrammar.framing);
 
   // No camera, no shot grammar, no timeline — no rig needed
@@ -122,6 +124,16 @@ export const CameraRig = ({ camera, shotGrammar, timelineTracks, children }) => 
       ({ transform, transformOrigin, perspectiveOrigin } = composeCameraTransform(
         sgCSS, camera, progress, easingFn, GUARDRAIL_BOUNDS
       ));
+    } else if (hasSegments) {
+      const values = getMultiSegmentCameraValues(camera, progress, easingFn, GUARDRAIL_BOUNDS);
+      const parts = [];
+      if (values.scale !== 1) parts.push(`scale(${values.scale})`);
+      if (values.translateX !== 0 || values.translateY !== 0) {
+        parts.push(`translate(${values.translateX}px, ${values.translateY}px)`);
+      }
+      transform = parts.length > 0 ? parts.join(' ') : 'none';
+      transformOrigin = 'center center';
+      perspectiveOrigin = undefined;
     } else {
       ({ transform } = getCameraTransformValues(camera, progress, easingFn, GUARDRAIL_BOUNDS));
       transformOrigin = 'center center';

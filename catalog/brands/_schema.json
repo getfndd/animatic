@@ -1,0 +1,94 @@
+{
+  "description": "Brand package schema for Animatic video pipeline",
+  "version": "1.0.0",
+  "fields": {
+    "brand_id": "URL-safe identifier (kebab-case). Used as filename and lookup key.",
+    "name": "Display name for the brand",
+    "description": "Short description of brand positioning and visual feel",
+    "logo": {
+      "primary": "path to primary logo SVG/PNG",
+      "monochrome": "path to monochrome version",
+      "icon_only": "path to icon-only version",
+      "safe_zone_pct": "minimum clear space as % of logo height (default: 15)",
+      "min_size_px": "minimum logo size in pixels (default: 48)"
+    },
+    "intro_outro": {
+      "intro_style": "fade | resolve | slide | none",
+      "intro_duration_ms": "intro animation duration (default: 800)",
+      "outro_style": "fade | resolve | hold",
+      "outro_duration_ms": "outro animation duration (default: 600)",
+      "outro_hold_ms": "how long logo holds at end (default: 1500)"
+    },
+    "personality": "default personality slug: cinematic-dark | editorial | neutral-light | montage",
+    "style": "default style pack name",
+    "colors": {
+      "bg_primary": "primary background color",
+      "bg_surface": "surface-level background",
+      "bg_elevated": "elevated surface background",
+      "text_primary": "primary text color",
+      "text_secondary": "secondary text color",
+      "text_muted": "muted/disabled text color",
+      "accent": "primary accent color",
+      "accent_hover": "accent hover state",
+      "trend_up": "positive trend color",
+      "trend_down": "negative trend color",
+      "border": "default border color",
+      "border_active": "active/focused border color",
+      "shadow": "shadow color",
+      "approved_colors": "array of all approved brand colors (optional)"
+    },
+    "typography": {
+      "font_family": "primary font stack",
+      "font_mono": "monospace font stack (optional)",
+      "hero": { "size": "px", "weight": "number", "line_height": "unitless", "letter_spacing": "em" },
+      "tagline": { "size": "px", "weight": "number", "line_height": "unitless", "letter_spacing": "em" },
+      "heading": { "size": "px", "weight": "number", "line_height": "unitless" },
+      "body": { "size": "px", "weight": "number", "line_height": "unitless" },
+      "caption": { "size": "px", "weight": "number", "line_height": "unitless" },
+      "label": { "size": "px", "weight": "number", "line_height": "unitless" }
+    },
+    "surfaces": {
+      "card": { "background": "color", "border": "CSS border", "border_radius": "px", "padding": "CSS padding" },
+      "panel": { "background": "color", "border": "CSS border", "border_radius": "px", "shadow": "CSS shadow" },
+      "input": { "background": "color", "border": "CSS border", "border_radius": "px", "padding": "CSS padding" }
+    },
+    "chart": {
+      "bar_color": "default bar color",
+      "bar_active": "highlighted bar color",
+      "axis_color": "axis line color",
+      "label_color": "axis label color",
+      "grid_color": "grid line color"
+    },
+    "motion": {
+      "preferred_personality": "default personality for this brand (overrides top-level personality)",
+      "preferred_style_pack": "default style pack (overrides top-level style)",
+      "preferred_easing": "brand-specific easing curve (CSS easing string)",
+      "forbidden_moves": "array of camera moves that violate brand guidelines",
+      "max_intensity": "max camera intensity 0-1 (default: 1.0)"
+    },
+    "textures": {
+      "overlays": "array of paths to approved texture overlays",
+      "grain": { "enabled": "boolean (default: false)", "opacity": "number 0-1 (default: 0.03)" }
+    },
+    "audio": {
+      "sonic_cues": {
+        "logo_sting": "path to logo sting audio",
+        "transition_whoosh": "path to transition sound",
+        "ui_click": "path to UI click sound"
+      },
+      "music_guidelines": "description of music style"
+    },
+    "guidelines": {
+      "dos": "array of things to always do",
+      "donts": "array of things to never do"
+    }
+  },
+  "required": ["brand_id", "name", "personality", "colors"],
+  "notes": [
+    "Files are stored as catalog/brands/{brand_id}.json",
+    "The _default.json brand is used when no brand_id is specified",
+    "colors, typography, and surfaces follow the same token structure used by the scene generator",
+    "motion.forbidden_moves references camera move slugs: push_in, pull_out, pan_left, pan_right, drift",
+    "intro_outro controls logo reveal/close animations in rendered sequences"
+  ]
+}

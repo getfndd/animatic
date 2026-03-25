@@ -59,6 +59,11 @@ const ANIMATABLE_DEFAULTS = {
   list_reorder_progress: 0,
   // Counter properties
   counter_value: 0,
+  // Menu properties
+  menu_open_progress: 0,
+  menu_selected_index: -1,
+  // Focus properties
+  focus_pulse_progress: 0,
   // Surface effect properties
   surface_shadow: 0,
   surface_blur: 0,

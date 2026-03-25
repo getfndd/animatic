@@ -17,6 +17,16 @@ import { TextLayer } from './TextLayer.jsx';
 import { TimelineLayer } from './TimelineLayer.jsx';
 import { AnalogOverlay } from './AnalogOverlay.jsx';
 import { CardConveyorLayer } from './CardConveyorLayer.jsx';
+import {
+  CounterRenderer,
+  ListRenderer,
+  SelectionOverlay,
+  MenuRenderer,
+  FocusPulseOverlay,
+} from './SemanticRenderers.jsx';
+import { StackFanSettleLayer } from './StackFanSettleLayer.jsx';
+import { ChartBuildExplainLayer } from './ChartBuildExplainLayer.jsx';
+import { SpotlightCursorRevealLayer } from './SpotlightCursorRevealLayer.jsx';
 
 /**
  * SceneComposition — Renders a single scene definition to video.
@@ -115,6 +125,31 @@ export const SceneComposition = ({ scene, timeline }) => {
               />
             );
           })}
+        </CameraRig>
+        {scene.metadata?.visual_treatment === 'analog' && <AnalogOverlay />}
+      </AbsoluteFill>
+    );
+  }
+
+  // Editorial canvas path — flat art-directed space with anchor-based positioning
+  if (scene.mode === 'editorial_canvas') {
+    const editorialLayers = resolveEditorialLayout(scene, layers);
+    const editorialBg = resolveEditorialBackground(scene.canvas, background);
+    return (
+      <AbsoluteFill style={{ background: editorialBg }}>
+        <CameraRig camera={scene.camera} shotGrammar={scene.shot_grammar}>
+          <div style={getEditorialSafeZoneStyle(scene.canvas)}>
+            {editorialLayers.map(({ layer, style: editorialStyle }) => (
+              <EditorialCanvasLayer
+                key={layer.id}
+                layer={layer}
+                editorialStyle={editorialStyle}
+                assets={assets}
+                frame={frame}
+                fps={fps}
+              />
+            ))}
+          </div>
         </CameraRig>
         {scene.metadata?.visual_treatment === 'analog' && <AnalogOverlay />}
       </AbsoluteFill>
@@ -411,7 +446,20 @@ const LayerContent = ({ layer, assets, frame, fps, textChars, semanticValues }) 
         />
       );
     }
-    case 'text':
+    case 'text': {
+      // Counter value renderer
+      if (semanticValues?.counter_value != null) {
+        const wrapped = <CounterRenderer counterValue={semanticValues.counter_value} layer={layer} style={fillStyle} />;
+        if (semanticValues?.focus_pulse_progress != null) {
+          return <FocusPulseOverlay layer={layer} pulseProgress={semanticValues.focus_pulse_progress}>{wrapped}</FocusPulseOverlay>;
+        }
+        return wrapped;
+      }
+      // Selection overlay
+      if (semanticValues?.selection_start != null && semanticValues?.selection_end != null) {
+        return <SelectionOverlay content={layer.content || ''} selectionStart={semanticValues.selection_start} selectionEnd={semanticValues.selection_end} layer={layer} style={fillStyle} />;
+      }
+      // Timeline-driven typewriter
       if (semanticValues?.text_chars != null) {
         const totalChars = (layer.content || '').length;
         return <TextLayer layer={layer} style={fillStyle} entrance={{ mode: 'typewriter', progress: totalChars > 0 ? semanticValues.text_chars / totalChars : 1 }} semanticValues={semanticValues} />;
@@ -420,8 +468,25 @@ const LayerContent = ({ layer, assets, frame, fps, textChars, semanticValues }) 
         const totalChars = (layer.content || '').length;
         return <TextLayer layer={layer} style={fillStyle} entrance={{ mode: 'typewriter', progress: totalChars > 0 ? textChars / totalChars : 1 }} />;
       }
-      return <TextLayer layer={layer} style={fillStyle} entrance={{ mode: 'style', opacity: 1, filter: 'none', transform: 'none' }} semanticValues={semanticValues} />;
-    case 'html':
+      let textResult = <TextLayer layer={layer} style={fillStyle} entrance={{ mode: 'style', opacity: 1, filter: 'none', transform: 'none' }} semanticValues={semanticValues} />;
+      if (semanticValues?.focus_pulse_progress != null) {
+        textResult = <FocusPulseOverlay layer={layer} pulseProgress={semanticValues.focus_pulse_progress}>{textResult}</FocusPulseOverlay>;
+      }
+      return textResult;
+    }
+    case 'html': {
+      // List renderer: driven by list_*_progress semantic values
+      if (layer.list_items && semanticValues && (semanticValues.list_insert_progress != null || semanticValues.list_remove_progress != null || semanticValues.list_reorder_progress != null)) {
+        const listResult = <ListRenderer layer={layer} semanticValues={semanticValues} style={fillStyle} />;
+        if (semanticValues.focus_pulse_progress != null) {
+          return <FocusPulseOverlay layer={layer} pulseProgress={semanticValues.focus_pulse_progress}>{listResult}</FocusPulseOverlay>;
+        }
+        return listResult;
+      }
+      // Menu renderer: driven by menu_open_progress semantic values
+      if (layer.menu_items && semanticValues && semanticValues.menu_open_progress != null) {
+        return <MenuRenderer layer={layer} semanticValues={semanticValues} style={fillStyle} />;
+      }
       if (layer.content) {
         return (
           <iframe
@@ -443,10 +508,17 @@ const LayerContent = ({ layer, assets, frame, fps, textChars, semanticValues }) 
         );
       }
       return <div style={fillStyle}>[html: {layer.id}]</div>;
+    }
     case 'svg':
       return renderSvgContent(layer, fillStyle);
     case 'card_conveyor':
       return <CardConveyorLayer layer={layer} />;
+    case 'stack_fan_settle':
+      return <StackFanSettleLayer layer={layer} />;
+    case 'chart_build_explain':
+      return <ChartBuildExplainLayer layer={layer} />;
+    case 'spotlight_cursor_reveal':
+      return <SpotlightCursorRevealLayer layer={layer} />;
     default:
       return <div style={fillStyle}>[{layer.type}: {layer.id}]</div>;
   }
@@ -576,6 +648,175 @@ function renderSvgContent(layer, fillStyle) {
   }
   return <div style={fillStyle}>[svg: {layer.id}]</div>;
 }
+
+// ── Editorial Canvas helpers ──────────────────────────────────────────────────
+
+/**
+ * Resolve anchor string to CSS positioning properties.
+ * Maps named anchors (e.g., "center", "top-left") to absolute positioning.
+ */
+const ANCHOR_CSS = {
+  'center':        { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
+  'top-left':      { top: '0', left: '0', transform: 'none' },
+  'top-center':    { top: '0', left: '50%', transform: 'translateX(-50%)' },
+  'top-right':     { top: '0', right: '0', transform: 'none' },
+  'center-left':   { top: '50%', left: '0', transform: 'translateY(-50%)' },
+  'center-right':  { top: '50%', right: '0', transform: 'translateY(-50%)' },
+  'bottom-left':   { bottom: '0', left: '0', transform: 'none' },
+  'bottom-center': { bottom: '0', left: '50%', transform: 'translateX(-50%)' },
+  'bottom-right':  { bottom: '0', right: '0', transform: 'none' },
+};
+
+/**
+ * resolveEditorialLayout — Computes positioned layer styles for editorial canvas mode.
+ *
+ * Each layer gets absolute positioning based on its anchor, max_w, and z_bias.
+ * Returns array of { layer, style } objects ready for rendering.
+ *
+ * @param {object} scene - Scene definition with canvas and layers
+ * @param {object[]} layers - Resolved layer array
+ * @returns {{ layer: object, style: object }[]}
+ */
+export function resolveEditorialLayout(scene, layers) {
+  const baseZIndex = 10;
+
+  return layers.map((layer, index) => {
+    const anchor = layer.anchor || 'center';
+    const anchorCSS = ANCHOR_CSS[anchor] || ANCHOR_CSS['center'];
+
+    // Resolve max_w: number → pixels, string → percentage
+    let maxWidth = undefined;
+    if (layer.max_w != null) {
+      maxWidth = typeof layer.max_w === 'number' ? `${layer.max_w}px` : layer.max_w;
+    }
+
+    // z_bias adds to visual stacking without affecting depth_class parallax
+    const zBias = layer.z_bias || 0;
+    const zIndex = baseZIndex + index + zBias;
+
+    const style = {
+      position: 'absolute',
+      ...anchorCSS,
+      zIndex,
+      ...(maxWidth ? { maxWidth } : {}),
+    };
+
+    return { layer, style };
+  });
+}
+
+/**
+ * Get safe zone inset style from canvas config.
+ * safe_zone is a percentage (0-30) applied as padding.
+ */
+function getEditorialSafeZoneStyle(canvas) {
+  const safeZone = canvas?.safe_zone || 0;
+  return {
+    position: 'absolute',
+    inset: 0,
+    padding: safeZone > 0 ? `${safeZone}%` : undefined,
+  };
+}
+
+/**
+ * Resolve canvas.background_treatment to CSS background value.
+ * Works alongside resolveSceneBackground for editorial canvases.
+ */
+function resolveEditorialBackground(canvas, existingBackground) {
+  const treatment = canvas?.background_treatment;
+  if (!treatment || treatment === 'solid') return existingBackground;
+
+  const bg = canvas.background_color || '#0a0a0a';
+  const bgAlt = canvas.background_color_alt || '#1a1a1a';
+
+  switch (treatment) {
+    case 'gradient':
+      return `linear-gradient(180deg, ${bg} 0%, ${bgAlt} 100%)`;
+    case 'radial':
+      return `radial-gradient(ellipse at center, ${bgAlt} 0%, ${bg} 70%)`;
+    case 'mesh':
+      // Approximation of mesh gradient using multiple radial layers
+      return `radial-gradient(ellipse at 20% 30%, ${bgAlt} 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, ${bgAlt} 0%, transparent 50%), ${bg}`;
+    case 'blur_plate':
+      return existingBackground;
+    default:
+      return existingBackground;
+  }
+}
+
+/**
+ * EditorialCanvasLayer — Renders a single layer within editorial canvas mode.
+ * Wraps SceneLayer with editorial-specific positioning and constraints.
+ */
+const EditorialCanvasLayer = ({ layer, editorialStyle, assets, frame, fps }) => {
+  const parallaxFactor = getParallaxFactor(layer.depth_class);
+  const entrance = resolveEntranceAnimation(layer, frame, fps, { parallaxFactor });
+
+  const combinedStyle = {
+    ...editorialStyle,
+    opacity: entrance.opacity,
+    filter: entrance.filter,
+    // Compose editorial anchor transform with entrance transform
+    transform: editorialStyle.transform !== 'none'
+      ? `${editorialStyle.transform} ${entrance.transform}`
+      : entrance.transform,
+    mixBlendMode: layer.blend_mode || 'normal',
+  };
+
+  const asset = layer.asset ? assets[layer.asset] : null;
+
+  switch (layer.type) {
+    case 'video':
+      return (
+        <div style={combinedStyle}>
+          <VideoLayerInner asset={asset} src={layer.src} fit={layer.fit || 'contain'} fps={fps} />
+        </div>
+      );
+    case 'image':
+      return (
+        <div style={combinedStyle}>
+          <ImageLayerInner asset={asset} src={layer.src} fit={layer.fit || 'contain'} />
+        </div>
+      );
+    case 'text':
+      return <TextLayer layer={layer} style={combinedStyle} entrance={entrance} />;
+    default:
+      return (
+        <SceneLayer layer={layer} assets={assets} frame={frame} fps={fps} />
+      );
+  }
+};
+
+/**
+ * Lightweight video inner renderer (no positioning, just media).
+ */
+const VideoLayerInner = ({ asset, src, fit, fps }) => {
+  const resolvedSrc = resolveAssetSrc(asset?.src || src);
+  if (!resolvedSrc) return <PlaceholderLayer style={{}} label="video: missing src" />;
+  const trimBefore = asset?.trim?.start_s ? Math.round(asset.trim.start_s * fps) : 0;
+  const trimAfter = asset?.trim?.end_s ? Math.round(asset.trim.end_s * fps) : undefined;
+  return (
+    <OffthreadVideo
+      src={resolvedSrc}
+      style={{ width: '100%', height: '100%', objectFit: fit }}
+      trimBefore={trimBefore}
+      trimAfter={trimAfter}
+      muted={asset?.muted !== false}
+      playbackRate={1}
+    />
+  );
+};
+
+/**
+ * Lightweight image inner renderer (no positioning, just media).
+ */
+const ImageLayerInner = ({ asset, src, fit }) => {
+  const resolvedSrc = resolveAssetSrc(asset?.src || src);
+  if (!resolvedSrc) return <PlaceholderLayer style={{}} label="image: missing src" />;
+  return (
+    <Img src={resolvedSrc} style={{ width: '100%', height: '100%', objectFit: fit }} />
+  );
+};
 
 /**
  * PlaceholderLayer — Fallback for unresolved or unknown layer types.

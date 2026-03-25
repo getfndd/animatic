@@ -1,0 +1,353 @@
+[
+  {
+    "slug": "prestige-dark",
+    "name": "Prestige Dark",
+    "description": "Deep blacks with subtle grain and warm metallic accents. Film-grade texture layers — vignette, grain overlay, anamorphic lens flare — create depth without distraction. Typography pairs high-contrast serif headlines with clean sans-serif body. Every surface whispers quality.",
+    "typography": {
+      "headline": { "family": "Playfair Display", "weight": 700, "tracking": "-0.02em" },
+      "body": { "family": "Inter", "weight": 400, "tracking": "0" },
+      "caption": { "family": "Inter", "weight": 300, "tracking": "0.02em" }
+    },
+    "palette": {
+      "background": "#0a0a0a",
+      "surface": "rgba(255,255,255,0.04)",
+      "text_primary": "#ffffff",
+      "text_secondary": "rgba(255,255,255,0.6)",
+      "accent": "#c4a265",
+      "accent_secondary": "#8b7355"
+    },
+    "textures": {
+      "grain": { "enabled": true, "opacity": 0.04, "blend": "overlay" },
+      "vignette": { "enabled": true, "spread": 0.7, "opacity": 0.3 },
+      "scan_lines": false
+    },
+    "lighting": {
+      "style": "cinematic",
+      "ambient_intensity": 0.3,
+      "highlight_color": "rgba(255,255,255,0.08)",
+      "shadow_depth": "deep"
+    },
+    "effects": {
+      "lens_flare": { "enabled": true, "style": "anamorphic", "opacity": 0.12, "color": "#c4a265" },
+      "light_sweep": { "enabled": true, "duration_ms": 4000, "opacity": 0.06, "angle_deg": 25 }
+    },
+    "logo_behavior": {
+      "treatment": "monochrome",
+      "entrance": "fade",
+      "safe_zone_pct": 0.15,
+      "placement": "center"
+    },
+    "background_treatment": {
+      "style": "solid",
+      "blur_radius": 0,
+      "overlay_gradient": null
+    },
+    "compatible_personalities": ["cinematic-dark"],
+    "compatible_style_packs": ["prestige", "dramatic", "intimate"],
+    "when_to_use": [
+      "Premium product launches",
+      "Brand films and hero moments",
+      "Investor presentations requiring gravitas",
+      "Award-show or event openers"
+    ],
+    "when_to_avoid": [
+      "Tutorials or onboarding flows",
+      "Data-heavy dashboards",
+      "Content that needs to feel approachable",
+      "Brands with a playful identity"
+    ]
+  },
+  {
+    "slug": "clean-corporate",
+    "name": "Clean Corporate",
+    "description": "White backgrounds, system fonts, minimal shadows. No textures, no grain, no visual embellishment. Flat lighting with crisp edges. Generous whitespace lets content breathe. The aesthetic of enterprise trust — nothing to hide behind.",
+    "typography": {
+      "headline": { "family": "system-ui", "weight": 600, "tracking": "-0.01em" },
+      "body": { "family": "system-ui", "weight": 400, "tracking": "0" },
+      "caption": { "family": "system-ui", "weight": 400, "tracking": "0.01em" }
+    },
+    "palette": {
+      "background": "#ffffff",
+      "surface": "#f5f5f5",
+      "text_primary": "#1a1a1a",
+      "text_secondary": "rgba(0,0,0,0.55)",
+      "accent": "#2563eb",
+      "accent_secondary": "#1d4ed8"
+    },
+    "textures": {
+      "grain": { "enabled": false, "opacity": 0, "blend": "normal" },
+      "vignette": { "enabled": false, "spread": 0, "opacity": 0 },
+      "scan_lines": false
+    },
+    "lighting": {
+      "style": "flat",
+      "ambient_intensity": 1.0,
+      "highlight_color": "rgba(0,0,0,0.03)",
+      "shadow_depth": "none"
+    },
+    "effects": {
+      "lens_flare": { "enabled": false },
+      "light_sweep": { "enabled": false }
+    },
+    "logo_behavior": {
+      "treatment": "full-color",
+      "entrance": "fade",
+      "safe_zone_pct": 0.12,
+      "placement": "center"
+    },
+    "background_treatment": {
+      "style": "solid",
+      "blur_radius": 0,
+      "overlay_gradient": null
+    },
+    "compatible_personalities": ["editorial", "neutral-light"],
+    "compatible_style_packs": ["corporate", "minimal", "fade"],
+    "when_to_use": [
+      "Enterprise product demos",
+      "B2B sales collateral",
+      "Internal communications",
+      "Compliance-sensitive industries"
+    ],
+    "when_to_avoid": [
+      "Consumer brand launches",
+      "Creative agency portfolios",
+      "Products targeting younger demographics",
+      "Anything that needs to feel premium or cinematic"
+    ]
+  },
+  {
+    "slug": "editorial-warm",
+    "name": "Editorial Warm",
+    "description": "Warm neutrals built on a #faf7f0 foundation. Serif headlines over subtle paper texture. Soft shadows and natural lighting create an editorial-magazine quality. Muted earth tones — ochre, terracotta, sage — feel considered without being precious.",
+    "typography": {
+      "headline": { "family": "Georgia", "weight": 700, "tracking": "-0.015em" },
+      "body": { "family": "Inter", "weight": 400, "tracking": "0.005em" },
+      "caption": { "family": "Inter", "weight": 300, "tracking": "0.02em" }
+    },
+    "palette": {
+      "background": "#faf7f0",
+      "surface": "#f0ebe0",
+      "text_primary": "#2c2520",
+      "text_secondary": "rgba(44,37,32,0.6)",
+      "accent": "#b8860b",
+      "accent_secondary": "#8b6914"
+    },
+    "textures": {
+      "grain": { "enabled": true, "opacity": 0.025, "blend": "multiply" },
+      "vignette": { "enabled": true, "spread": 0.85, "opacity": 0.15 },
+      "scan_lines": false
+    },
+    "lighting": {
+      "style": "natural",
+      "ambient_intensity": 0.8,
+      "highlight_color": "rgba(255,248,230,0.3)",
+      "shadow_depth": "soft"
+    },
+    "effects": {
+      "lens_flare": { "enabled": false },
+      "light_sweep": { "enabled": true, "duration_ms": 6000, "opacity": 0.04, "angle_deg": 15 }
+    },
+    "logo_behavior": {
+      "treatment": "monochrome",
+      "entrance": "fade",
+      "safe_zone_pct": 0.12,
+      "placement": "center"
+    },
+    "background_treatment": {
+      "style": "textured",
+      "blur_radius": 0,
+      "overlay_gradient": "linear-gradient(180deg, rgba(250,247,240,0) 60%, rgba(250,247,240,0.4) 100%)"
+    },
+    "compatible_personalities": ["editorial"],
+    "compatible_style_packs": ["prestige", "fade", "documentary"],
+    "when_to_use": [
+      "Brand storytelling and narratives",
+      "Photo essays and portfolio showcases",
+      "Products with artisanal or craft positioning",
+      "Content-first editorial layouts"
+    ],
+    "when_to_avoid": [
+      "High-energy sizzle reels",
+      "Technical product demos",
+      "Dark-mode-first products",
+      "Brands requiring a modern tech aesthetic"
+    ]
+  },
+  {
+    "slug": "tech-gradient",
+    "name": "Tech Gradient",
+    "description": "Dark base with electric gradient accents sweeping from blue to purple. Monospace code fonts for technical credibility. Subtle scan-line texture and neon glow accents. Glass-morphism surfaces with frosted translucency. The aesthetic of developer tools and AI products.",
+    "typography": {
+      "headline": { "family": "Inter", "weight": 700, "tracking": "-0.02em" },
+      "body": { "family": "Inter", "weight": 400, "tracking": "0" },
+      "caption": { "family": "JetBrains Mono", "weight": 400, "tracking": "0.03em" }
+    },
+    "palette": {
+      "background": "#0f0f1a",
+      "surface": "rgba(255,255,255,0.06)",
+      "text_primary": "#e8e8f0",
+      "text_secondary": "rgba(232,232,240,0.55)",
+      "accent": "#6366f1",
+      "accent_secondary": "#a855f7"
+    },
+    "textures": {
+      "grain": { "enabled": true, "opacity": 0.03, "blend": "overlay" },
+      "vignette": { "enabled": true, "spread": 0.6, "opacity": 0.25 },
+      "scan_lines": { "enabled": true, "opacity": 0.03, "spacing_px": 4 }
+    },
+    "lighting": {
+      "style": "neon",
+      "ambient_intensity": 0.2,
+      "highlight_color": "rgba(99,102,241,0.12)",
+      "shadow_depth": "deep"
+    },
+    "effects": {
+      "lens_flare": { "enabled": false },
+      "light_sweep": { "enabled": true, "duration_ms": 5000, "opacity": 0.08, "angle_deg": 30 },
+      "glow": { "enabled": true, "color": "rgba(99,102,241,0.15)", "radius_px": 80 },
+      "glassmorphism": { "enabled": true, "blur_px": 16, "opacity": 0.08, "border_opacity": 0.12 }
+    },
+    "logo_behavior": {
+      "treatment": "monochrome",
+      "entrance": "fade",
+      "safe_zone_pct": 0.12,
+      "placement": "center"
+    },
+    "background_treatment": {
+      "style": "gradient",
+      "blur_radius": 0,
+      "overlay_gradient": "radial-gradient(ellipse at 30% 20%, rgba(99,102,241,0.15) 0%, transparent 60%)"
+    },
+    "compatible_personalities": ["cinematic-dark", "montage"],
+    "compatible_style_packs": ["dramatic", "energy", "kinetic"],
+    "when_to_use": [
+      "Developer tool launches",
+      "AI and ML product demos",
+      "Technical keynote presentations",
+      "SaaS products targeting engineers"
+    ],
+    "when_to_avoid": [
+      "Consumer lifestyle brands",
+      "Healthcare or finance (conservative)",
+      "Print-first collateral",
+      "Products targeting non-technical users"
+    ]
+  },
+  {
+    "slug": "bold-contrast",
+    "name": "Bold Contrast",
+    "description": "High contrast black-and-white foundation with a single accent color as the only relief. Condensed bold type demands attention. Hard shadows, no texture, stark directional lighting. Every element earns its place through contrast alone — the visual equivalent of a raised voice.",
+    "typography": {
+      "headline": { "family": "Inter", "weight": 900, "tracking": "-0.03em" },
+      "body": { "family": "Inter", "weight": 400, "tracking": "0" },
+      "caption": { "family": "Inter", "weight": 500, "tracking": "0.02em" }
+    },
+    "palette": {
+      "background": "#000000",
+      "surface": "#111111",
+      "text_primary": "#ffffff",
+      "text_secondary": "rgba(255,255,255,0.5)",
+      "accent": "#ff3b30",
+      "accent_secondary": "#ff3b30"
+    },
+    "textures": {
+      "grain": { "enabled": false, "opacity": 0, "blend": "normal" },
+      "vignette": { "enabled": false, "spread": 0, "opacity": 0 },
+      "scan_lines": false
+    },
+    "lighting": {
+      "style": "stark",
+      "ambient_intensity": 0.15,
+      "highlight_color": "rgba(255,255,255,0.12)",
+      "shadow_depth": "hard"
+    },
+    "effects": {
+      "lens_flare": { "enabled": false },
+      "light_sweep": { "enabled": false }
+    },
+    "logo_behavior": {
+      "treatment": "monochrome",
+      "entrance": "cut",
+      "safe_zone_pct": 0.1,
+      "placement": "center"
+    },
+    "background_treatment": {
+      "style": "solid",
+      "blur_radius": 0,
+      "overlay_gradient": null
+    },
+    "compatible_personalities": ["cinematic-dark", "montage"],
+    "compatible_style_packs": ["dramatic", "energy", "kinetic"],
+    "when_to_use": [
+      "Brand manifestos and statements",
+      "High-impact sizzle reels",
+      "Product launches requiring urgency",
+      "Sports, music, and entertainment brands"
+    ],
+    "when_to_avoid": [
+      "Tutorials and onboarding",
+      "Content-heavy editorial",
+      "Brands requiring warmth or approachability",
+      "Long-form narrative sequences"
+    ]
+  },
+  {
+    "slug": "organic-soft",
+    "name": "Organic Soft",
+    "description": "Pastel palette with no hard edges. Rounded sans-serif type. Soft blur backgrounds and gentle gradients create a sense of comfort. Bokeh-style highlights add depth without drama. The visual language of wellness, care, and consumer delight.",
+    "typography": {
+      "headline": { "family": "Inter", "weight": 600, "tracking": "-0.01em" },
+      "body": { "family": "Inter", "weight": 400, "tracking": "0.005em" },
+      "caption": { "family": "Inter", "weight": 300, "tracking": "0.02em" }
+    },
+    "palette": {
+      "background": "#faf8f6",
+      "surface": "#f0eeec",
+      "text_primary": "#3d3833",
+      "text_secondary": "rgba(61,56,51,0.55)",
+      "accent": "#7c9885",
+      "accent_secondary": "#c4a882"
+    },
+    "textures": {
+      "grain": { "enabled": false, "opacity": 0, "blend": "normal" },
+      "vignette": { "enabled": true, "spread": 0.9, "opacity": 0.1 },
+      "scan_lines": false
+    },
+    "lighting": {
+      "style": "diffused",
+      "ambient_intensity": 0.9,
+      "highlight_color": "rgba(255,255,255,0.2)",
+      "shadow_depth": "soft"
+    },
+    "effects": {
+      "lens_flare": { "enabled": false },
+      "light_sweep": { "enabled": false },
+      "bokeh": { "enabled": true, "count": 6, "min_size_px": 40, "max_size_px": 120, "opacity": 0.08, "color": "rgba(255,255,255,0.5)" }
+    },
+    "logo_behavior": {
+      "treatment": "full-color",
+      "entrance": "fade",
+      "safe_zone_pct": 0.15,
+      "placement": "center"
+    },
+    "background_treatment": {
+      "style": "gradient",
+      "blur_radius": 20,
+      "overlay_gradient": "linear-gradient(135deg, rgba(124,152,133,0.08) 0%, rgba(196,168,130,0.08) 100%)"
+    },
+    "compatible_personalities": ["editorial", "neutral-light"],
+    "compatible_style_packs": ["fade", "minimal", "documentary"],
+    "when_to_use": [
+      "Wellness and health products",
+      "Consumer apps targeting comfort and trust",
+      "Onboarding flows that need to feel welcoming",
+      "Brands with organic or natural positioning"
+    ],
+    "when_to_avoid": [
+      "High-energy sizzle reels",
+      "Enterprise B2B products",
+      "Technical or developer audiences",
+      "Brands that need to project authority"
+    ]
+  }
+]

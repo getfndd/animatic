@@ -1,0 +1,334 @@
+[
+  {
+    "slug": "prompt_to_answer",
+    "name": "Prompt → Answer",
+    "description": "User types a question, AI processes, answer appears with rich formatting. The quintessential AI demo pattern — shows the full loop from natural-language input to structured, useful output.",
+    "duration_range": { "min_s": 8, "max_s": 20 },
+    "loop": false,
+    "scenes": [
+      {
+        "role": "context_setup",
+        "purpose": "Show the empty interface — establish the product's resting state before any interaction",
+        "duration_pct": 0.15,
+        "energy": "still",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": null,
+        "recommended_layers": ["ui_screenshot", "background_gradient"],
+        "recommended_primitives": ["as-fadeIn", "fade-in", "ed-slide-stagger"]
+      },
+      {
+        "role": "prompt_input",
+        "purpose": "Typewriter-style prompt entry — the user's question materializes character by character",
+        "duration_pct": 0.25,
+        "energy": "medium",
+        "camera": { "move": "push_in", "intensity": 0.3 },
+        "transition_in": { "type": "crossfade", "duration_ms": 300 },
+        "recommended_layers": ["text_input", "cursor_indicator", "ui_chrome"],
+        "recommended_primitives": ["cd-typewriter", "nl-cursor-highlight", "as-fadeInUp"]
+      },
+      {
+        "role": "thinking",
+        "purpose": "Processing indicator — brief pause that communicates intelligence at work",
+        "duration_pct": 0.15,
+        "energy": "low",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "crossfade", "duration_ms": 200 },
+        "recommended_layers": ["loading_indicator", "ui_chrome"],
+        "recommended_primitives": ["bk-sparse-breathe", "as-pulse", "nl-step-indicator"]
+      },
+      {
+        "role": "answer_reveal",
+        "purpose": "Rich answer with cards, charts, or formatted text — the AI's structured response",
+        "duration_pct": 0.30,
+        "energy": "high",
+        "camera": { "move": "pull_out", "intensity": 0.4 },
+        "transition_in": { "type": "crossfade", "duration_ms": 400 },
+        "recommended_layers": ["answer_content", "card_elements", "chart_visual", "ui_chrome"],
+        "recommended_primitives": ["cd-focus-stagger", "ed-slide-stagger", "as-fadeInUp", "mo-scale-entrance"]
+      },
+      {
+        "role": "interaction",
+        "purpose": "User interacts with the result — clicking, expanding, or refining the answer",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "drift", "intensity": 0.2 },
+        "transition_in": { "type": "crossfade", "duration_ms": 300 },
+        "recommended_layers": ["ui_screenshot", "highlight_overlay"],
+        "recommended_primitives": ["nl-cursor-highlight", "as-fadeIn", "cd-focus-stagger"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "build_resolve",
+      "energy_curve": ["still", "medium", "low", "high", "medium"],
+      "contrast_rule": "The thinking pause creates anticipation — never skip it, even if brief"
+    },
+    "recommended_interactions": ["type_text", "focus", "insert_items"],
+    "personalities": ["editorial", "cinematic-dark"],
+    "style_packs": ["minimal", "prestige"],
+    "when_to_use": [
+      "Chatbot or conversational AI product demos",
+      "Search-to-answer experiences",
+      "AI assistant onboarding flows",
+      "Natural language query interfaces"
+    ],
+    "when_to_avoid": [
+      "Products where the input is not text-based",
+      "Batch processing workflows without real-time feedback",
+      "Features where the AI operates invisibly"
+    ]
+  },
+  {
+    "slug": "brief_to_board",
+    "name": "Brief → Board",
+    "description": "Creative brief becomes a storyboard or moodboard. Demonstrates generative AI transforming loose requirements into structured visual output — the creative AI workhorse pattern.",
+    "duration_range": { "min_s": 10, "max_s": 25 },
+    "loop": false,
+    "scenes": [
+      {
+        "role": "brief_entry",
+        "purpose": "Show the brief input — form fields, text area, or structured prompt",
+        "duration_pct": 0.20,
+        "energy": "medium",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": null,
+        "recommended_layers": ["form_ui", "text_input", "ui_chrome"],
+        "recommended_primitives": ["cd-typewriter", "as-fadeIn", "ed-slide-stagger"]
+      },
+      {
+        "role": "generation_progress",
+        "purpose": "Visual generation in progress — skeleton loaders, progressive rendering, or staged reveals",
+        "duration_pct": 0.20,
+        "energy": "medium",
+        "camera": { "move": "drift", "intensity": 0.2 },
+        "transition_in": { "type": "crossfade", "duration_ms": 400 },
+        "recommended_layers": ["skeleton_grid", "progress_indicator", "ui_chrome"],
+        "recommended_primitives": ["bk-sparse-breathe", "nl-step-indicator", "as-fadeInUp"]
+      },
+      {
+        "role": "board_reveal",
+        "purpose": "The generated board materializes — cards, images, or panels populate a grid",
+        "duration_pct": 0.30,
+        "energy": "high",
+        "camera": { "move": "pull_out", "intensity": 0.5 },
+        "transition_in": { "type": "crossfade", "duration_ms": 500 },
+        "recommended_layers": ["card_grid", "image_panels", "text_labels", "ui_chrome"],
+        "recommended_primitives": ["cd-focus-stagger", "mo-scale-entrance", "as-zoomIn", "ed-slide-stagger"]
+      },
+      {
+        "role": "detail_zoom",
+        "purpose": "Camera pushes into a single card or panel — showing quality and detail of output",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "push_in", "intensity": 0.6 },
+        "transition_in": { "type": "crossfade", "duration_ms": 300 },
+        "recommended_layers": ["detail_panel", "annotation_overlay"],
+        "recommended_primitives": ["as-zoomIn", "cd-focus-stagger", "as-fadeIn"]
+      },
+      {
+        "role": "refinement",
+        "purpose": "User adjusts or iterates — drag-reorder, regenerate a panel, or edit inline",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "pull_out", "intensity": 0.3 },
+        "transition_in": { "type": "crossfade", "duration_ms": 300 },
+        "recommended_layers": ["ui_screenshot", "cursor_indicator", "highlight_overlay"],
+        "recommended_primitives": ["nl-cursor-highlight", "as-fadeIn", "ed-slide-stagger"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "build_sustain",
+      "energy_curve": ["medium", "medium", "high", "medium", "medium"],
+      "contrast_rule": "The board reveal is the hero moment — give it the most visual weight and time"
+    },
+    "recommended_interactions": ["type_text", "insert_items", "drag_reorder", "focus"],
+    "personalities": ["editorial", "cinematic-dark"],
+    "style_packs": ["prestige", "minimal", "intimate"],
+    "when_to_use": [
+      "Generative AI creative tools (design, writing, marketing)",
+      "Moodboard or storyboard generation features",
+      "AI-assisted brainstorming workflows",
+      "Content calendar or campaign planning tools"
+    ],
+    "when_to_avoid": [
+      "Products generating a single artifact rather than a collection",
+      "Workflows where generation is instant (no meaningful progress to show)",
+      "Non-visual output formats"
+    ]
+  },
+  {
+    "slug": "query_to_report",
+    "name": "Query → Report",
+    "description": "Data query transforms into a formatted report or interactive dashboard. Demonstrates AI turning raw data questions into structured, visual intelligence — the analytics AI pattern.",
+    "duration_range": { "min_s": 12, "max_s": 25 },
+    "loop": false,
+    "scenes": [
+      {
+        "role": "data_context",
+        "purpose": "Show the data environment — connected sources, dataset indicators, or schema preview",
+        "duration_pct": 0.12,
+        "energy": "low",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": null,
+        "recommended_layers": ["ui_screenshot", "data_indicators", "background_gradient"],
+        "recommended_primitives": ["as-fadeIn", "ed-slide-stagger", "fade-in"]
+      },
+      {
+        "role": "query_input",
+        "purpose": "Natural language query entry — user asks a data question in plain English",
+        "duration_pct": 0.18,
+        "energy": "medium",
+        "camera": { "move": "push_in", "intensity": 0.2 },
+        "transition_in": { "type": "crossfade", "duration_ms": 300 },
+        "recommended_layers": ["text_input", "cursor_indicator", "suggestion_chips"],
+        "recommended_primitives": ["cd-typewriter", "nl-cursor-highlight", "as-fadeInUp"]
+      },
+      {
+        "role": "processing",
+        "purpose": "Query interpretation and data processing — show the AI parsing intent and fetching data",
+        "duration_pct": 0.12,
+        "energy": "low",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "crossfade", "duration_ms": 200 },
+        "recommended_layers": ["progress_steps", "loading_indicator"],
+        "recommended_primitives": ["nl-step-indicator", "bk-sparse-breathe", "as-pulse"]
+      },
+      {
+        "role": "chart_reveal",
+        "purpose": "Primary visualization appears — the main chart, graph, or data table that answers the query",
+        "duration_pct": 0.25,
+        "energy": "high",
+        "camera": { "move": "pull_out", "intensity": 0.4 },
+        "transition_in": { "type": "crossfade", "duration_ms": 500 },
+        "recommended_layers": ["chart_visual", "axis_labels", "data_points", "ui_chrome"],
+        "recommended_primitives": ["cd-focus-stagger", "mo-scale-entrance", "as-fadeInUp", "ed-slide-stagger"]
+      },
+      {
+        "role": "insight_callouts",
+        "purpose": "AI-generated insight annotations appear on or alongside the visualization",
+        "duration_pct": 0.18,
+        "energy": "medium",
+        "camera": { "move": "drift", "intensity": 0.2 },
+        "transition_in": { "type": "crossfade", "duration_ms": 300 },
+        "recommended_layers": ["annotation_cards", "highlight_overlay", "text_callout"],
+        "recommended_primitives": ["as-fadeInUp", "cd-focus-stagger", "as-fadeIn"]
+      },
+      {
+        "role": "drilldown",
+        "purpose": "User clicks into a data point or section — showing interactive depth",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "push_in", "intensity": 0.5 },
+        "transition_in": { "type": "crossfade", "duration_ms": 300 },
+        "recommended_layers": ["detail_panel", "sub_chart", "ui_chrome"],
+        "recommended_primitives": ["as-zoomIn", "cd-focus-stagger", "nl-cursor-highlight"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "build_explore",
+      "energy_curve": ["low", "medium", "low", "high", "medium", "medium"],
+      "contrast_rule": "Chart reveal is the peak — ensure a processing pause before it to build anticipation"
+    },
+    "recommended_interactions": ["type_text", "focus", "insert_items", "click_highlight"],
+    "personalities": ["editorial", "cinematic-dark", "neutral-light"],
+    "style_packs": ["corporate", "minimal", "prestige"],
+    "when_to_use": [
+      "Business intelligence and analytics AI products",
+      "Natural language database query interfaces",
+      "AI-powered reporting dashboards",
+      "Data exploration and insight discovery tools"
+    ],
+    "when_to_avoid": [
+      "Products where data is pre-aggregated (no query step)",
+      "Real-time streaming dashboards without query interaction",
+      "Simple metric displays without analytical depth"
+    ]
+  },
+  {
+    "slug": "upload_to_insight",
+    "name": "Upload → Insight",
+    "description": "File upload triggers AI processing that extracts structured insights. Demonstrates document intelligence — the pattern where users feed raw content and receive organized understanding.",
+    "duration_range": { "min_s": 10, "max_s": 22 },
+    "loop": false,
+    "scenes": [
+      {
+        "role": "upload_prompt",
+        "purpose": "Show the upload zone — drag-and-drop area or file picker in its ready state",
+        "duration_pct": 0.12,
+        "energy": "still",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": null,
+        "recommended_layers": ["upload_zone", "ui_chrome", "background_gradient"],
+        "recommended_primitives": ["as-fadeIn", "fade-in"]
+      },
+      {
+        "role": "file_drop",
+        "purpose": "File appears and lands in the upload zone — conveying the act of providing input",
+        "duration_pct": 0.13,
+        "energy": "medium",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "crossfade", "duration_ms": 200 },
+        "recommended_layers": ["file_thumbnail", "upload_zone", "progress_bar"],
+        "recommended_primitives": ["as-fadeInDown", "mo-scale-entrance", "as-bounceIn"]
+      },
+      {
+        "role": "extraction",
+        "purpose": "AI processing the file — show scanning, highlighting, or progressive extraction",
+        "duration_pct": 0.20,
+        "energy": "medium",
+        "camera": { "move": "push_in", "intensity": 0.3 },
+        "transition_in": { "type": "crossfade", "duration_ms": 300 },
+        "recommended_layers": ["document_preview", "scan_overlay", "extraction_highlights"],
+        "recommended_primitives": ["nl-step-indicator", "bk-sparse-breathe", "cd-focus-stagger"]
+      },
+      {
+        "role": "insight_reveal",
+        "purpose": "Extracted insights appear as structured cards, summaries, or tagged entities",
+        "duration_pct": 0.30,
+        "energy": "high",
+        "camera": { "move": "pull_out", "intensity": 0.5 },
+        "transition_in": { "type": "crossfade", "duration_ms": 500 },
+        "recommended_layers": ["insight_cards", "summary_panel", "entity_tags", "ui_chrome"],
+        "recommended_primitives": ["cd-focus-stagger", "ed-slide-stagger", "as-fadeInUp", "mo-scale-entrance"]
+      },
+      {
+        "role": "action_options",
+        "purpose": "Show what the user can do with the insights — export, share, drill deeper, or act",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "drift", "intensity": 0.2 },
+        "transition_in": { "type": "crossfade", "duration_ms": 300 },
+        "recommended_layers": ["action_buttons", "export_options", "ui_chrome"],
+        "recommended_primitives": ["as-fadeIn", "as-fadeInUp", "nl-cursor-highlight"]
+      },
+      {
+        "role": "value_summary",
+        "purpose": "Close on the transformation — before/after or key metric that demonstrates value extracted",
+        "duration_pct": 0.10,
+        "energy": "low",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "crossfade", "duration_ms": 400 },
+        "recommended_layers": ["metric_display", "text_hero", "background_solid"],
+        "recommended_primitives": ["mo-text-hero", "as-fadeIn"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "transform",
+      "energy_curve": ["still", "medium", "medium", "high", "medium", "low"],
+      "contrast_rule": "The extraction scene bridges input and output — use scanning motion to maintain engagement"
+    },
+    "recommended_interactions": ["drag_drop", "focus", "insert_items"],
+    "personalities": ["editorial", "cinematic-dark", "neutral-light"],
+    "style_packs": ["corporate", "minimal", "prestige"],
+    "when_to_use": [
+      "Document AI and OCR products",
+      "Resume parsing or contract analysis tools",
+      "Image or video analysis features",
+      "Data import and enrichment workflows"
+    ],
+    "when_to_avoid": [
+      "Products where upload is a minor feature, not the core flow",
+      "Batch processing without per-file visualization",
+      "APIs without a user-facing upload experience"
+    ]
+  }
+]

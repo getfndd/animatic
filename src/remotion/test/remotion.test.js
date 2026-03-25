@@ -41,6 +41,8 @@ import {
   parseCubicBezier,
   evaluateCubicBezier,
   resolveEasing,
+  // Multi-segment camera
+  getMultiSegmentCameraValues,
 } from '../lib.js';
 
 // ── Load test manifests ─────────────────────────────────────────────────────
@@ -1143,6 +1145,69 @@ describe('validateScene text layers', () => {
     }
   });
 
+  it('accepts editorial typography motion pack animations', () => {
+    for (const animation of ['line-reveal', 'word-swap', 'lockup-slide', 'cursor-pulse', 'caption-build']) {
+      const result = validateScene({
+        scene_id: 'sc_test_type',
+        layers: [
+          { id: 'title', type: 'text', content: 'Film Typography', animation },
+        ],
+        assets: [],
+      });
+      assert.equal(result.valid, true, `animation "${animation}" should be valid: ${result.errors.join(', ')}`);
+    }
+  });
+
+  it('still rejects unknown animation names after motion pack additions', () => {
+    for (const animation of ['bounce', 'slide-in', 'zoom', 'shimmer']) {
+      const result = validateScene({
+        scene_id: 'sc_test_type',
+        layers: [
+          { id: 'title', type: 'text', content: 'Hello', animation },
+        ],
+        assets: [],
+      });
+      assert.equal(result.valid, false, `animation "${animation}" should be rejected`);
+      assert.ok(result.errors.some(e => e.includes('animation')));
+    }
+  });
+
+  it('accepts valid block_role values', () => {
+    for (const block_role of ['headline', 'caption', 'label', 'quote']) {
+      const result = validateScene({
+        scene_id: 'sc_test_role',
+        layers: [
+          { id: 'title', type: 'text', content: 'Hello', block_role },
+        ],
+        assets: [],
+      });
+      assert.equal(result.valid, true, `block_role "${block_role}" should be valid: ${result.errors.join(', ')}`);
+    }
+  });
+
+  it('rejects invalid block_role values', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_role',
+      layers: [
+        { id: 'title', type: 'text', content: 'Hello', block_role: 'banner' },
+      ],
+      assets: [],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('block_role')));
+  });
+
+  it('accepts text layer without block_role (optional field)', () => {
+    const result = validateScene({
+      scene_id: 'sc_test_role',
+      layers: [
+        { id: 'title', type: 'text', content: 'No role' },
+      ],
+      assets: [],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
   it('accepts text layer without animation (static text)', () => {
     const result = validateScene({
       scene_id: 'sc_test_text',
@@ -2093,5 +2158,1103 @@ describe('SequenceComposition prop interface', () => {
     const entry = { scene: 'sc_v1', duration_s: 3 };
     const threadedTimeline = timelines[entry.scene] || null;
     assert.equal(threadedTimeline, null, 'missing timeline should resolve to null (v1 path)');
+  });
+});
+
+// ── Baseline Scene Fixtures ─────────────────────────────────────────────────
+// Phase 0: hero, editorial, and data scene archetypes must validate cleanly.
+
+describe('baseline scene fixtures', () => {
+  const heroScene = {
+    scene_id: 'sc_hero_product',
+    format_version: 2,
+    duration_s: 4,
+    canvas: { w: 1920, h: 1080 },
+    camera: { move: 'push_in', intensity: 0.4 },
+    background: { fill: '#0a0a0a' },
+    assets: [
+      { id: 'hero_bg', src: 'scenes/hero-bg.jpg' },
+      { id: 'product_shot', src: 'scenes/product.png' },
+    ],
+    layers: [
+      { id: 'bg', type: 'image', asset: 'hero_bg', depth_class: 'background', opacity: 1 },
+      { id: 'product', type: 'image', asset: 'product_shot', depth_class: 'foreground', position: { x: 480, y: 140, w: 960, h: 720 } },
+      { id: 'headline', type: 'text', content: 'BUILT FOR SPEED', depth_class: 'foreground' },
+    ],
+  };
+
+  const editorialScene = {
+    scene_id: 'sc_editorial_explainer',
+    format_version: 2,
+    duration_s: 5,
+    canvas: { w: 1920, h: 1080 },
+    camera: { move: 'static' },
+    background: { fill: '#faf7f0' },
+    assets: [
+      { id: 'content_img', src: 'scenes/content.png' },
+    ],
+    layers: [
+      { id: 'bg', type: 'html', depth_class: 'background', content: '<div style="width:100%;height:100%;background:#faf7f0"></div>' },
+      { id: 'photo', type: 'image', asset: 'content_img', depth_class: 'midground', position: { x: 100, y: 100, w: 800, h: 600 } },
+      { id: 'caption', type: 'text', content: 'Quarterly insights across all segments', depth_class: 'foreground' },
+    ],
+  };
+
+  const dataScene = {
+    scene_id: 'sc_data_dashboard',
+    format_version: 2,
+    duration_s: 6,
+    canvas: { w: 1920, h: 1080 },
+    camera: { move: 'drift', intensity: 0.2 },
+    background: { fill: '#0f1117' },
+    assets: [
+      { id: 'chart_bg', src: 'scenes/chart-bg.png' },
+    ],
+    layers: [
+      { id: 'bg', type: 'image', asset: 'chart_bg', depth_class: 'background' },
+      { id: 'chart_html', type: 'html', depth_class: 'midground', content: '<div class="chart-container"></div>', position: { x: 100, y: 200, w: 800, h: 500 } },
+      { id: 'conveyor', type: 'card_conveyor', depth_class: 'foreground', position: { x: 960, y: 100, w: 860, h: 880 } },
+      { id: 'metric_label', type: 'text', content: '$4.2M ARR', depth_class: 'foreground' },
+    ],
+  };
+
+  it('hero scene validates cleanly', () => {
+    const result = validateScene(heroScene);
+    assert.equal(result.valid, true, `hero errors: ${result.errors.join(', ')}`);
+  });
+
+  it('editorial scene validates cleanly', () => {
+    const result = validateScene(editorialScene);
+    assert.equal(result.valid, true, `editorial errors: ${result.errors.join(', ')}`);
+  });
+
+  it('data scene with card_conveyor validates cleanly', () => {
+    const result = validateScene(dataScene);
+    assert.equal(result.valid, true, `data errors: ${result.errors.join(', ')}`);
+  });
+
+  it('hero scene has correct camera move', () => {
+    assert.equal(heroScene.camera.move, 'push_in');
+    assert.equal(heroScene.camera.intensity, 0.4);
+  });
+
+  it('editorial scene uses static camera (no cinematic moves)', () => {
+    assert.equal(editorialScene.camera.move, 'static');
+  });
+
+  it('data scene camera values produce valid motion', () => {
+    const values = getCameraMotionValues(dataScene.camera, 0.5, linear);
+    assert.equal(typeof values.translateX, 'number');
+    assert.equal(typeof values.translateY, 'number');
+    assert.equal(values.scale, 1); // drift doesn't scale
+  });
+
+  it('hero scene camera produces push_in scale at full progress', () => {
+    const values = getCameraMotionValues(heroScene.camera, 1, linear);
+    const expectedScale = 1 + 1 * 0.4 * CAMERA_CONSTANTS.SCALE_FACTOR;
+    assert.equal(values.scale, expectedScale);
+  });
+});
+
+// ── Phase 1: New Transition Defaults ────────────────────────────────────────
+
+describe('new transition defaults', () => {
+  it('zoom_crossfade returns 500ms', () => {
+    assert.equal(getDefaultTransitionDuration('zoom_crossfade'), 500);
+  });
+
+  it('parallax_crossfade returns 600ms', () => {
+    assert.equal(getDefaultTransitionDuration('parallax_crossfade'), 600);
+  });
+
+  it('light_wipe returns 450ms', () => {
+    assert.equal(getDefaultTransitionDuration('light_wipe'), 450);
+  });
+
+  it('focus_dissolve returns 550ms', () => {
+    assert.equal(getDefaultTransitionDuration('focus_dissolve'), 550);
+  });
+
+  it('match_cut_scale returns 400ms', () => {
+    assert.equal(getDefaultTransitionDuration('match_cut_scale'), 400);
+  });
+});
+
+// ── Phase 1: New Transition Validation ──────────────────────────────────────
+
+describe('new transition validation', () => {
+  const newTypes = ['zoom_crossfade', 'parallax_crossfade', 'light_wipe', 'focus_dissolve', 'match_cut_scale'];
+
+  for (const type of newTypes) {
+    it(`accepts ${type} in manifest transition_in`, () => {
+      const result = validateManifest({
+        sequence_id: 'seq_test',
+        scenes: [{ scene: 'sc_a', duration_s: 3, transition_in: { type } }],
+      });
+      assert.equal(result.valid, true, `${type} should be valid: ${result.errors.join(', ')}`);
+    });
+  }
+
+  it('still rejects invalid transition types', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_test',
+      scenes: [{ scene: 'sc_a', duration_s: 3, transition_in: { type: 'slide_reveal' } }],
+    });
+    assert.equal(result.valid, false);
+  });
+});
+
+// ── Phase 1: Breathe and Handheld Camera Moves ──────────────────────────────
+
+describe('breathe camera move', () => {
+  it('validates in scene camera', () => {
+    const result = validateScene({ scene_id: 'sc_test', camera: { move: 'breathe' } });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('produces subtle scale oscillation', () => {
+    const mid = getCameraMotionValues({ move: 'breathe', intensity: 0.5 }, 0.25, linear);
+    // At progress=0.25, sin(0.25 * 2π) = sin(π/2) = 1 → max scale
+    const breatheAmount = 0.5 * CAMERA_CONSTANTS.SCALE_FACTOR * 0.3;
+    const expectedScale = 1 + Math.sin(0.25 * Math.PI * 2) * breatheAmount;
+    assert.equal(mid.scale, expectedScale);
+    assert.equal(mid.translateX, 0);
+    assert.equal(mid.translateY, 0);
+  });
+
+  it('returns to baseline at progress=0 and progress=1', () => {
+    const start = getCameraMotionValues({ move: 'breathe', intensity: 0.5 }, 0, linear);
+    assert.ok(Math.abs(start.scale - 1) < 0.001, 'scale should be ~1 at start');
+
+    const end = getCameraMotionValues({ move: 'breathe', intensity: 0.5 }, 1, linear);
+    assert.ok(Math.abs(end.scale - 1) < 0.001, 'scale should be ~1 at end');
+  });
+});
+
+describe('handheld camera move', () => {
+  it('validates in scene camera', () => {
+    const result = validateScene({ scene_id: 'sc_test', camera: { move: 'handheld' } });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('produces non-zero translate at mid-progress', () => {
+    const mid = getCameraMotionValues({ move: 'handheld', intensity: 0.5 }, 0.5, linear);
+    assert.equal(mid.scale, 1); // handheld doesn't scale
+    // At least one axis should have non-zero value
+    assert.ok(mid.translateX !== 0 || mid.translateY !== 0, 'should have some drift');
+  });
+
+  it('uses incommensurate frequencies for organic feel', () => {
+    // Sample several points and verify they're not identical (not periodic at simple intervals)
+    const samples = [0.1, 0.2, 0.3, 0.4, 0.5].map(p =>
+      getCameraMotionValues({ move: 'handheld', intensity: 0.5 }, p, linear)
+    );
+    const uniqueX = new Set(samples.map(s => s.translateX.toFixed(6)));
+    assert.ok(uniqueX.size >= 4, 'handheld should produce varied translateX values');
+  });
+});
+
+// ── Phase 1: Multi-Segment Camera Tracks ────────────────────────────────────
+
+describe('getMultiSegmentCameraValues', () => {
+  it('falls back to single-move when no segments', () => {
+    const camera = { move: 'push_in', intensity: 0.5 };
+    const result = getMultiSegmentCameraValues(camera, 0.5, linear);
+    const expected = getCameraMotionValues(camera, 0.5, linear);
+    assert.deepEqual(result, expected);
+  });
+
+  it('resolves active segment by progress', () => {
+    const camera = {
+      intensity: 0.5,
+      segments: [
+        { move: 'push_in', start_pct: 0, end_pct: 0.5, intensity: 0.4 },
+        { move: 'drift', start_pct: 0.5, end_pct: 1, intensity: 0.3 },
+      ],
+    };
+
+    // In first segment at 25% overall = 50% through first segment
+    const first = getMultiSegmentCameraValues(camera, 0.25, linear);
+    const expectedFirst = getCameraMotionValues({ move: 'push_in', intensity: 0.4 }, 0.5, linear);
+    assert.equal(first.scale, expectedFirst.scale);
+
+    // In second segment at 75% overall = 50% through second segment
+    const second = getMultiSegmentCameraValues(camera, 0.75, linear);
+    assert.equal(second.scale, 1); // drift doesn't scale
+    assert.equal(typeof second.translateX, 'number');
+  });
+
+  it('three-segment track: push_in → static hold → pull_out', () => {
+    const camera = {
+      segments: [
+        { move: 'push_in', start_pct: 0, end_pct: 0.3, intensity: 0.5 },
+        { move: 'static', start_pct: 0.3, end_pct: 0.7 },
+        { move: 'pull_out', start_pct: 0.7, end_pct: 1, intensity: 0.5 },
+      ],
+    };
+
+    // Mid hold should be static
+    const hold = getMultiSegmentCameraValues(camera, 0.5, linear);
+    assert.deepEqual(hold, { scale: 1, translateX: 0, translateY: 0 });
+
+    // Start of push_in
+    const start = getMultiSegmentCameraValues(camera, 0, linear);
+    assert.equal(start.scale, 1);
+
+    // End of pull_out returns to scale(1)
+    const end = getMultiSegmentCameraValues(camera, 1, linear);
+    assert.ok(Math.abs(end.scale - 1) < 0.001, 'pull_out at end should return to ~1');
+  });
+});
+
+// ── Phase 1: Benchmark Scenes with Rich Transitions ─────────────────────────
+
+describe('benchmark scenes with rich transitions', () => {
+  it('cinematic hero sequence uses zoom_crossfade and focus_dissolve', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_cinematic_hero',
+      fps: 60,
+      scenes: [
+        { scene: 'sc_brand_open', duration_s: 4 },
+        { scene: 'sc_product_hero', duration_s: 5, transition_in: { type: 'zoom_crossfade', duration_ms: 500 } },
+        { scene: 'sc_feature_deep', duration_s: 4, transition_in: { type: 'focus_dissolve', duration_ms: 550 } },
+        { scene: 'sc_cta_close', duration_s: 3, transition_in: { type: 'match_cut_scale', duration_ms: 400 } },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+
+    // Duration accounts for new transition overlaps
+    const duration = calculateDuration(result.manifest || {
+      fps: 60,
+      scenes: result.manifest?.scenes || [
+        { scene: 'sc_brand_open', duration_s: 4 },
+        { scene: 'sc_product_hero', duration_s: 5, transition_in: { type: 'zoom_crossfade', duration_ms: 500 } },
+        { scene: 'sc_feature_deep', duration_s: 4, transition_in: { type: 'focus_dissolve', duration_ms: 550 } },
+        { scene: 'sc_cta_close', duration_s: 3, transition_in: { type: 'match_cut_scale', duration_ms: 400 } },
+      ],
+    });
+    // 16s total - 1.45s overlap = 14.55s * 60fps = 873 frames
+    assert.equal(duration, 873);
+  });
+
+  it('editorial explainer uses parallax_crossfade and light_wipe', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_editorial',
+      fps: 60,
+      scenes: [
+        { scene: 'sc_intro', duration_s: 3 },
+        { scene: 'sc_insight_a', duration_s: 4, transition_in: { type: 'parallax_crossfade', duration_ms: 600 } },
+        { scene: 'sc_insight_b', duration_s: 4, transition_in: { type: 'light_wipe', duration_ms: 450 } },
+        { scene: 'sc_closing', duration_s: 3, transition_in: { type: 'crossfade', duration_ms: 400 } },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('data reveal uses match_cut_scale between chart scenes', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_data_reveal',
+      fps: 60,
+      scenes: [
+        { scene: 'sc_overview', duration_s: 3 },
+        { scene: 'sc_chart_zoom', duration_s: 5, transition_in: { type: 'match_cut_scale', duration_ms: 400 } },
+        { scene: 'sc_detail', duration_s: 4, transition_in: { type: 'zoom_crossfade', duration_ms: 500 } },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+});
+
+// ── Phase 2: Semantic Scene Fixtures ────────────────────────────────────────
+// Validates v3 semantic scenes with typed input, counter, list, menu, focus.
+
+describe('semantic scene fixtures', () => {
+  // Type-text scene: typewriter with caret
+  const typeTextScene = {
+    scene_id: 'sc_type_text_demo',
+    format_version: 3,
+    duration_s: 4,
+    canvas: { w: 1920, h: 1080 },
+    camera: { move: 'static' },
+    layers: [
+      { id: 'prompt', type: 'text', content: 'How did Q4 revenue compare to forecast?', depth_class: 'foreground' },
+    ],
+  };
+
+  // Counter scene: animated count-up
+  const counterScene = {
+    scene_id: 'sc_counter_demo',
+    format_version: 3,
+    duration_s: 3,
+    canvas: { w: 1920, h: 1080 },
+    camera: { move: 'breathe', intensity: 0.2 },
+    layers: [
+      { id: 'metric', type: 'text', content: '0', depth_class: 'foreground',
+        counter_format: { prefix: '$', suffix: 'M', decimals: 1, separator: ',' },
+        style: { fontSize: 96, fontWeight: 800, color: '#ffffff' },
+      },
+    ],
+  };
+
+  // List scene: insert items
+  const listScene = {
+    scene_id: 'sc_list_insert_demo',
+    format_version: 3,
+    duration_s: 5,
+    canvas: { w: 1920, h: 1080 },
+    camera: { move: 'static' },
+    layers: [
+      { id: 'results', type: 'html', depth_class: 'foreground',
+        list_items: ['Revenue exceeded forecast by 12%', 'APAC grew 34% YoY', 'Enterprise segment hit $2.1M'],
+        list_insert_index: 2,
+        list_item_height: 56,
+        list_gap: 8,
+        position: { x: 100, y: 200, w: 600, h: 400 },
+      },
+    ],
+  };
+
+  // Menu scene: dropdown open/select
+  const menuScene = {
+    scene_id: 'sc_menu_demo',
+    format_version: 3,
+    duration_s: 4,
+    canvas: { w: 1920, h: 1080 },
+    camera: { move: 'static' },
+    layers: [
+      { id: 'dropdown', type: 'html', depth_class: 'foreground',
+        menu_items: ['Revenue', 'Users', 'Churn Rate', 'NPS Score'],
+        menu_trigger: 'Select metric...',
+        menu_item_height: 40,
+        position: { x: 100, y: 100, w: 280, h: 60 },
+      },
+    ],
+  };
+
+  // Selection scene: text selection range
+  const selectionScene = {
+    scene_id: 'sc_selection_demo',
+    format_version: 3,
+    duration_s: 3,
+    canvas: { w: 1920, h: 1080 },
+    camera: { move: 'static' },
+    layers: [
+      { id: 'code', type: 'text', content: 'const revenue = calculateQ4Revenue(data);', depth_class: 'foreground',
+        style: { fontFamily: 'monospace', fontSize: 18, color: '#e0e0e0' },
+      },
+    ],
+  };
+
+  // Focus pulse scene
+  const focusScene = {
+    scene_id: 'sc_focus_pulse_demo',
+    format_version: 3,
+    duration_s: 2,
+    canvas: { w: 1920, h: 1080 },
+    camera: { move: 'static' },
+    layers: [
+      { id: 'button', type: 'text', content: 'Generate Report', depth_class: 'foreground',
+        focus_color: 'rgba(56, 132, 255, 0.4)',
+        focus_radius: 12,
+        focus_count: 3,
+      },
+    ],
+  };
+
+  it('type-text scene validates', () => {
+    const result = validateScene(typeTextScene);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('counter scene validates', () => {
+    const result = validateScene(counterScene);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('list-insert scene validates', () => {
+    const result = validateScene(listScene);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('menu scene validates', () => {
+    const result = validateScene(menuScene);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('selection scene validates', () => {
+    const result = validateScene(selectionScene);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('focus-pulse scene validates', () => {
+    const result = validateScene(focusScene);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  // Semantic timeline value tests
+  it('counter timeline produces interpolated values', () => {
+    const track = [
+      { frame: 0, value: 0 },
+      { frame: 120, value: 4200000 },
+      { frame: 180, value: 4200000 },
+    ];
+    const midValue = interpolateTrack(track, 60);
+    assert.ok(midValue > 0 && midValue < 4200000, 'counter should be mid-value at frame 60');
+    assert.equal(interpolateTrack(track, 120), 4200000);
+  });
+
+  it('list_insert_progress timeline ramps 0 to 1', () => {
+    const track = [
+      { frame: 0, value: 0 },
+      { frame: 30, value: 1 },
+    ];
+    assert.equal(interpolateTrack(track, 0), 0);
+    assert.equal(interpolateTrack(track, 30), 1);
+    const mid = interpolateTrack(track, 15);
+    assert.ok(mid > 0 && mid < 1, 'should be partial at midpoint');
+  });
+
+  it('menu_open_progress + menu_selected_index timeline', () => {
+    const openTrack = [
+      { frame: 0, value: 0 },
+      { frame: 18, value: 1 },
+    ];
+    const selectTrack = [
+      { frame: 0, value: -1 },
+      { frame: 18, value: -1 },
+      { frame: 30, value: 2 },
+    ];
+    assert.equal(interpolateTrack(openTrack, 0), 0);
+    assert.equal(interpolateTrack(openTrack, 18), 1);
+    assert.equal(interpolateTrack(selectTrack, 30), 2);
+  });
+
+  it('selection_start/end timeline sweeps across text', () => {
+    const content = 'const revenue = calculateQ4Revenue(data);';
+    const startTrack = [
+      { frame: 0, value: 0 },
+      { frame: 30, value: 16 },
+    ];
+    const endTrack = [
+      { frame: 0, value: 0 },
+      { frame: 30, value: 35 },
+    ];
+    const startVal = interpolateTrack(startTrack, 30);
+    const endVal = interpolateTrack(endTrack, 30);
+    assert.equal(startVal, 16);
+    assert.equal(endVal, 35);
+    assert.equal(content.slice(startVal, endVal), 'calculateQ4Revenue(');
+  });
+
+  it('focus_pulse_progress drives pulse cycle', () => {
+    const track = [
+      { frame: 0, value: 0 },
+      { frame: 60, value: 1 },
+    ];
+    assert.equal(interpolateTrack(track, 0), 0);
+    assert.equal(interpolateTrack(track, 60), 1);
+    const mid = interpolateTrack(track, 30);
+    assert.ok(mid > 0 && mid < 1);
+  });
+});
+
+// ── Phase 4: Compound Primitive Validation ──────────────────────────────────
+
+describe('compound primitive layer validation', () => {
+  it('stack_fan_settle layer validates', () => {
+    const result = validateScene({
+      scene_id: 'sc_fan_demo',
+      layers: [
+        { id: 'fan', type: 'stack_fan_settle', depth_class: 'foreground',
+          cards: [
+            { title: 'Feature A', description: 'Fast processing' },
+            { title: 'Feature B', description: 'Real-time sync' },
+            { title: 'Feature C', description: 'Smart alerts' },
+          ],
+        },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('chart_build_explain layer validates', () => {
+    const result = validateScene({
+      scene_id: 'sc_chart_demo',
+      layers: [
+        { id: 'chart', type: 'chart_build_explain', depth_class: 'foreground',
+          bars: [
+            { label: 'Q1', value: 120 },
+            { label: 'Q2', value: 185 },
+            { label: 'Q3', value: 210 },
+            { label: 'Q4', value: 340 },
+          ],
+          annotation: 'Q4 exceeded forecast by 62%',
+          highlight_index: 3,
+        },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('spotlight_cursor_reveal layer validates', () => {
+    const result = validateScene({
+      scene_id: 'sc_cursor_demo',
+      layers: [
+        { id: 'spotlight', type: 'spotlight_cursor_reveal', depth_class: 'foreground',
+          cursor_config: {
+            waypoints: [
+              { x: 200, y: 300, t: 0 },
+              { x: 500, y: 400, t: 0.4 },
+              { x: 500, y: 400, t: 0.55 },
+            ],
+            spotlightRadius: 200,
+            glowColor: 'rgba(99, 102, 241, 0.3)',
+          },
+        },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('compound layers work in a sequence manifest', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_compound_demo',
+      fps: 60,
+      scenes: [
+        { scene: 'sc_fan_demo', duration_s: 3 },
+        { scene: 'sc_chart_demo', duration_s: 4, transition_in: { type: 'zoom_crossfade', duration_ms: 500 } },
+        { scene: 'sc_cursor_demo', duration_s: 3, transition_in: { type: 'focus_dissolve', duration_ms: 550 } },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+});
+
+// ── Editorial Canvas ─────────────────────────────────────────────────────────
+
+describe('editorial canvas scene validation', () => {
+  it('validates editorial canvas scene with mode, safe_zone, anchor, max_w, z_bias', () => {
+    const result = validateScene({
+      scene_id: 'sc_editorial_test',
+      duration_s: 4,
+      mode: 'editorial_canvas',
+      canvas: {
+        w: 1920,
+        h: 1080,
+        safe_zone: 8,
+        background_treatment: 'gradient',
+      },
+      background: { fill: '#0a0a0a' },
+      camera: { move: 'drift', intensity: 0.15 },
+      layers: [
+        {
+          id: 'headline',
+          type: 'text',
+          content: 'Intelligent by design',
+          depth_class: 'foreground',
+          anchor: 'center',
+          max_w: '60%',
+          z_bias: 3,
+        },
+        {
+          id: 'card_bg',
+          type: 'image',
+          src: 'card.png',
+          depth_class: 'midground',
+          anchor: 'bottom-right',
+          max_w: 400,
+          z_bias: -1,
+        },
+      ],
+      assets: [
+        { id: 'card_bg_asset', src: 'card.png' },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('rejects invalid mode', () => {
+    const result = validateScene({
+      scene_id: 'sc_bad_mode',
+      duration_s: 3,
+      mode: 'freeform',
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('mode') && e.includes('freeform')));
+  });
+
+  it('rejects invalid anchor', () => {
+    const result = validateScene({
+      scene_id: 'sc_bad_anchor',
+      duration_s: 3,
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground', anchor: 'middle' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('anchor') && e.includes('middle')));
+  });
+
+  it('rejects invalid z_bias out of range', () => {
+    const result = validateScene({
+      scene_id: 'sc_bad_zbias',
+      duration_s: 3,
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground', z_bias: 15 },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('z_bias')));
+  });
+
+  it('rejects invalid canvas.safe_zone', () => {
+    const result = validateScene({
+      scene_id: 'sc_bad_safezone',
+      duration_s: 3,
+      canvas: { safe_zone: 50 },
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('safe_zone')));
+  });
+
+  it('rejects invalid canvas.background_treatment', () => {
+    const result = validateScene({
+      scene_id: 'sc_bad_treatment',
+      duration_s: 3,
+      canvas: { background_treatment: 'sparkle' },
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('background_treatment')));
+  });
+
+  it('rejects invalid max_w percentage format', () => {
+    const result = validateScene({
+      scene_id: 'sc_bad_maxw',
+      duration_s: 3,
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground', max_w: '60px' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('max_w')));
+  });
+
+  it('validates editorial canvas with floating prompt + result card + headline', () => {
+    const result = validateScene({
+      scene_id: 'sc_editorial_prompt_result',
+      duration_s: 5,
+      mode: 'editorial_canvas',
+      canvas: {
+        w: 1920,
+        h: 1080,
+        safe_zone: 6,
+        background_treatment: 'radial',
+      },
+      background: { fill: '#0f0f0f' },
+      camera: { move: 'breathe', intensity: 0.1 },
+      layers: [
+        {
+          id: 'prompt_card',
+          type: 'html',
+          content: '<div class="prompt">What are Q3 trends?</div>',
+          depth_class: 'midground',
+          anchor: 'center-left',
+          max_w: '35%',
+          z_bias: 1,
+        },
+        {
+          id: 'result_card',
+          type: 'html',
+          content: '<div class="result">Revenue up 23%</div>',
+          depth_class: 'foreground',
+          anchor: 'center-right',
+          max_w: '45%',
+          z_bias: 3,
+        },
+        {
+          id: 'headline',
+          type: 'text',
+          content: 'Ask anything.',
+          depth_class: 'foreground',
+          anchor: 'top-center',
+          max_w: '50%',
+          z_bias: 4,
+        },
+        {
+          id: 'bg_accent',
+          type: 'image',
+          src: 'gradient-blur.png',
+          depth_class: 'background',
+          anchor: 'center',
+          max_w: '100%',
+          z_bias: -5,
+        },
+      ],
+      assets: [
+        { id: 'bg_asset', src: 'gradient-blur.png' },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('accepts product mode', () => {
+    const result = validateScene({
+      scene_id: 'sc_product_mode',
+      duration_s: 3,
+      mode: 'product',
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground' },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('accepts all valid anchor values', () => {
+    const validAnchors = ['center', 'top-left', 'top-center', 'top-right', 'center-left', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+    for (const anchor of validAnchors) {
+      const result = validateScene({
+        scene_id: 'sc_anchor_test',
+        duration_s: 3,
+        layers: [
+          { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground', anchor },
+        ],
+      });
+      assert.equal(result.valid, true, `anchor "${anchor}" should be valid but got errors: ${result.errors.join(', ')}`);
+    }
+  });
+
+  it('accepts numeric max_w (pixels)', () => {
+    const result = validateScene({
+      scene_id: 'sc_maxw_px',
+      duration_s: 3,
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground', max_w: 500 },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('accepts percentage max_w', () => {
+    const result = validateScene({
+      scene_id: 'sc_maxw_pct',
+      duration_s: 3,
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground', max_w: '75%' },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+});
+
+// ── Social format validation fields ─────────────────────────────────────────
+
+describe('validateScene: canvas.aspect_ratio', () => {
+  it('accepts valid aspect_ratio values', () => {
+    for (const ratio of ['16:9', '1:1', '4:5', '9:16']) {
+      const result = validateScene({
+        scene_id: 'sc_ratio_test',
+        duration_s: 3,
+        canvas: { aspect_ratio: ratio },
+        layers: [
+          { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground' },
+        ],
+      });
+      assert.equal(result.valid, true, `${ratio} should be valid: ${result.errors.join(', ')}`);
+    }
+  });
+
+  it('rejects invalid aspect_ratio', () => {
+    const result = validateScene({
+      scene_id: 'sc_bad_ratio',
+      duration_s: 3,
+      canvas: { aspect_ratio: '3:2' },
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('aspect_ratio')));
+  });
+
+  it('allows canvas without aspect_ratio', () => {
+    const result = validateScene({
+      scene_id: 'sc_no_ratio',
+      duration_s: 3,
+      canvas: { safe_zone: 5 },
+      layers: [
+        { id: 'l1', type: 'text', content: 'test', depth_class: 'foreground' },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+});
+
+describe('validateManifest: format and sequence_intent', () => {
+  it('accepts valid format.aspect_ratio', () => {
+    for (const ratio of ['16:9', '1:1', '4:5', '9:16']) {
+      const result = validateManifest({
+        sequence_id: 'seq_format_test',
+        format: { aspect_ratio: ratio },
+        scenes: [{ scene: 'sc_a', duration_s: 3 }],
+      });
+      assert.equal(result.valid, true, `${ratio} should be valid: ${result.errors.join(', ')}`);
+    }
+  });
+
+  it('rejects invalid format.aspect_ratio', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_bad_ratio',
+      format: { aspect_ratio: '2:1' },
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('format.aspect_ratio')));
+  });
+
+  it('accepts valid format.safe_areas', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_safe_areas',
+      format: { safe_areas: { top: 10, right: 5, bottom: 12, left: 5 } },
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('rejects safe_areas with negative values', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_bad_safe',
+      format: { safe_areas: { top: -1 } },
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('safe_areas.top')));
+  });
+
+  it('rejects safe_areas above 50', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_too_safe',
+      format: { safe_areas: { left: 55 } },
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('safe_areas.left')));
+  });
+
+  it('accepts valid sequence_intent values', () => {
+    for (const intent of ['brand_social', 'product_social', 'explainer', 'brand_hero', 'product_demo']) {
+      const result = validateManifest({
+        sequence_id: 'seq_intent_test',
+        sequence_intent: intent,
+        scenes: [{ scene: 'sc_a', duration_s: 3 }],
+      });
+      assert.equal(result.valid, true, `${intent} should be valid: ${result.errors.join(', ')}`);
+    }
+  });
+
+  it('rejects invalid sequence_intent', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_bad_intent',
+      sequence_intent: 'viral_meme',
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('sequence_intent')));
+  });
+
+  it('allows manifest without format or sequence_intent', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_minimal',
+      scenes: [{ scene: 'sc_a', duration_s: 3 }],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  // ── transition_in.match (cross-scene continuity) ──────────────────────
+
+  it('accepts valid transition_in.match config', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_match_valid',
+      scenes: [
+        { scene: 'sc_a', duration_s: 3 },
+        {
+          scene: 'sc_b', duration_s: 3,
+          transition_in: {
+            type: 'crossfade', duration_ms: 400,
+            match: {
+              source_continuity_id: 'prompt_chip',
+              target_continuity_id: 'search_bar',
+              strategy: 'card_to_panel',
+            },
+          },
+        },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('accepts match with only source_continuity_id and strategy', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_match_minimal',
+      scenes: [
+        { scene: 'sc_a', duration_s: 3 },
+        {
+          scene: 'sc_b', duration_s: 3,
+          transition_in: {
+            type: 'crossfade', duration_ms: 400,
+            match: {
+              source_continuity_id: 'chip',
+              strategy: 'position',
+            },
+          },
+        },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('rejects match without source_continuity_id', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_match_no_source',
+      scenes: [
+        { scene: 'sc_a', duration_s: 3 },
+        {
+          scene: 'sc_b', duration_s: 3,
+          transition_in: {
+            type: 'crossfade', duration_ms: 400,
+            match: { strategy: 'position' },
+          },
+        },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('source_continuity_id')));
+  });
+
+  it('rejects match with invalid strategy', () => {
+    const result = validateManifest({
+      sequence_id: 'seq_match_bad_strat',
+      scenes: [
+        { scene: 'sc_a', duration_s: 3 },
+        {
+          scene: 'sc_b', duration_s: 3,
+          transition_in: {
+            type: 'crossfade', duration_ms: 400,
+            match: {
+              source_continuity_id: 'chip',
+              strategy: 'teleport',
+            },
+          },
+        },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('strategy')));
+  });
+
+  it('accepts all valid match strategies', () => {
+    for (const strategy of ['position', 'scale', 'mask_expand', 'content_morph', 'card_to_panel']) {
+      const result = validateManifest({
+        sequence_id: 'seq_strat_test',
+        scenes: [
+          { scene: 'sc_a', duration_s: 3 },
+          {
+            scene: 'sc_b', duration_s: 3,
+            transition_in: {
+              type: 'crossfade', duration_ms: 400,
+              match: { source_continuity_id: 'elem', strategy },
+            },
+          },
+        ],
+      });
+      assert.equal(result.valid, true, `${strategy} should be valid: ${result.errors.join(', ')}`);
+    }
+  });
+});
+
+// ── validateScene — continuity_id ────────────────────────────────────────────
+
+describe('validateScene — continuity_id', () => {
+  it('accepts valid continuity_id on a layer', () => {
+    const result = validateScene({
+      scene_id: 'sc_cid_valid',
+      duration_s: 3,
+      assets: [{ id: 'a1', src: '/img.png' }],
+      layers: [
+        { id: 'ly_chip', type: 'html', asset: 'a1', continuity_id: 'prompt_chip' },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('accepts layers without continuity_id', () => {
+    const result = validateScene({
+      scene_id: 'sc_cid_none',
+      duration_s: 3,
+      assets: [{ id: 'a1', src: '/img.png' }],
+      layers: [
+        { id: 'ly_plain', type: 'html', asset: 'a1' },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('rejects continuity_id starting with uppercase', () => {
+    const result = validateScene({
+      scene_id: 'sc_cid_upper',
+      duration_s: 3,
+      assets: [{ id: 'a1', src: '/img.png' }],
+      layers: [
+        { id: 'ly_bad', type: 'html', asset: 'a1', continuity_id: 'PromptChip' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('continuity_id')));
+  });
+
+  it('rejects continuity_id starting with number', () => {
+    const result = validateScene({
+      scene_id: 'sc_cid_num',
+      duration_s: 3,
+      assets: [{ id: 'a1', src: '/img.png' }],
+      layers: [
+        { id: 'ly_num', type: 'html', asset: 'a1', continuity_id: '1chip' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('continuity_id')));
+  });
+
+  it('rejects continuity_id with hyphens', () => {
+    const result = validateScene({
+      scene_id: 'sc_cid_hyphen',
+      duration_s: 3,
+      assets: [{ id: 'a1', src: '/img.png' }],
+      layers: [
+        { id: 'ly_hyp', type: 'html', asset: 'a1', continuity_id: 'prompt-chip' },
+      ],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('continuity_id')));
+  });
+
+  it('accepts continuity_id with underscores and numbers', () => {
+    const result = validateScene({
+      scene_id: 'sc_cid_complex',
+      duration_s: 3,
+      assets: [{ id: 'a1', src: '/img.png' }],
+      layers: [
+        { id: 'ly_ok', type: 'html', asset: 'a1', continuity_id: 'card_panel_2' },
+      ],
+    });
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
   });
 });

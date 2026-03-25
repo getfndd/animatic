@@ -44,11 +44,22 @@ import { evaluateSequence, compareVariants } from './lib/evaluate.js';
 import { validateFullManifest } from './lib/guardrails.js';
 import { generateScenes } from './lib/generator.js';
 import { detectBeats, computeEnergyCurve, decodeWav } from './lib/beats.js';
+import { syncSequenceToBeats, generateHitMarkers, planAudioCues, scoreAudioSync } from './lib/audio-sync.js';
 import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality } from './lib/personality.js';
 import { compileMotion } from './lib/compiler.js';
 import { critiqueTimeline } from './lib/critic.js';
 import { runBenchmarks, QUALITY_THRESHOLD } from './lib/benchmark.js';
 import { generateVideo } from './lib/video.js';
+import { initProject, listProjects, getProject, getProjectContext, saveProjectArtifact } from './lib/projects.js';
+import { auditMotionDensity } from './lib/motion-density.js';
+import { getArtDirection, listArtDirections, ART_DIRECTION_SLUGS } from './lib/art-direction.js';
+import { loadBrand, listBrands, createBrandPackage, resolveBrandDefaults, validateBrandCompliance } from './lib/brands.js';
+import { scoreBrandFinish, COMPOSITING_PASS_SLUGS } from './lib/compositing.js';
+import { getProductArchetype, listProductArchetypes, recommendProductArchetype, getCameraIntent, listCameraIntents, scoreProductDemoClarity, PRODUCT_ARCHETYPE_SLUGS, CAMERA_INTENT_SLUGS } from './lib/product-archetypes.js';
+import { generateContactSheet, generateKeyMomentStrip, compareProjectVersions, formatContactSheetMarkdown, formatComparisonMarkdown } from './lib/storyboard-tools.js';
+import { getSocialFormat, listSocialFormats, adaptManifestAspectRatio, createSocialCutdown, SOCIAL_FORMAT_SLUGS, VALID_ASPECT_RATIOS } from './lib/social-formats.js';
+import { resolveContinuityLinks, suggestMatchCuts, planContinuityLinks, validateContinuityChain } from './lib/continuity.js';
+import { auditMotionDensity, suggestSimplification } from './lib/motion-density.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -66,6 +77,17 @@ const briefTemplatesCatalog = loadBriefTemplates();
 const recipesCatalog = loadRecipes();
 const registry = parseRegistry();
 const breakdownIndex = parseBreakdownIndex();
+const sequenceArchetypes = JSON.parse(readFileSync(resolve(__dirname, '..', 'catalog', 'sequence-archetypes.json'), 'utf-8'));
+let _aiDemoArchetypes = null;
+function getAiDemoArchetypes() {
+  if (!_aiDemoArchetypes) _aiDemoArchetypes = JSON.parse(readFileSync(resolve(__dirname, '..', 'catalog', 'ai-demo-archetypes.json'), 'utf-8'));
+  return _aiDemoArchetypes;
+}
+let _finishPresets = null;
+function getFinishPresets() {
+  if (!_finishPresets) _finishPresets = JSON.parse(readFileSync(resolve(__dirname, '..', 'catalog', 'finish-presets.json'), 'utf-8'));
+  return _finishPresets;
+}
 
 console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intent mappings, ${Object.keys(cameraGuardrails.primitive_amplitudes).length} guardrail amplitudes, ${breakdownIndex.length} breakdowns, ${stylePacksCatalog.array.length} style packs, ${briefTemplatesCatalog.array.length} brief templates`);
 
@@ -606,6 +628,56 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: 'sync_sequence_to_beats',
+      description:
+        'Align a sequence manifest\'s scene transitions to beat points from analyze_beats. Adjusts scene durations (±15% max) so transitions land on beats. Returns adjusted manifest, sync report with score, hit markers, and optional audio cue suggestions. Use after plan_sequence + analyze_beats to make audio a first-class motion driver.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: {
+            type: 'object',
+            description: 'Sequence manifest (from plan_sequence or inline). Must have a `scenes` array with `duration_s` per scene.',
+          },
+          beats: {
+            type: 'object',
+            description: 'Beat analysis data from analyze_beats. Shape: { beats: [{ time_s, strength, type }], tempo_bpm, energy_curve: [{ time_s, energy }], duration_s }.',
+          },
+          options: {
+            type: 'object',
+            description: 'Sync options.',
+            properties: {
+              sync_mode: {
+                type: 'string',
+                enum: ['tight', 'loose'],
+                description: 'Sync tolerance: tight (100ms) or loose (200ms). Default: tight.',
+              },
+              max_adjust_pct: {
+                type: 'number',
+                description: 'Max duration adjustment as fraction (default: 0.15 = 15%).',
+              },
+              include_hit_markers: {
+                type: 'boolean',
+                description: 'Include hit marker analysis in response (default: true).',
+              },
+              include_audio_cues: {
+                type: 'boolean',
+                description: 'Include audio cue suggestions (default: false). Requires archetype_slug.',
+              },
+              archetype_slug: {
+                type: 'string',
+                description: 'Sequence archetype for audio cue planning (e.g. product-launch, sizzle-reel).',
+              },
+              hit_sensitivity: {
+                type: 'number',
+                description: 'Hit marker sensitivity threshold 0-1 (default: 0.5).',
+              },
+            },
+          },
+        },
+        required: ['manifest', 'beats'],
+      },
+    },
+    {
       name: 'create_personality',
       description:
         'Create a custom personality definition. Validates the definition, derives guardrail boundaries and shot grammar restrictions from characteristics, and registers it for use in the current session. Custom personalities work with all pipeline tools (plan_sequence, evaluate_sequence, etc.).',
@@ -707,6 +779,703 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['prompt'],
       },
     },
+    // ── Sequence Archetype Tools ───────────────────────────────────────────────
+    {
+      name: 'recommend_sequence_archetype',
+      description:
+        'Recommend a sequence archetype (multi-scene recipe) for a given output type. Returns scene roles, transitions, camera progression, pacing profile, and recommended primitives.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          output_type: {
+            type: 'string',
+            description: 'What kind of video: brand-teaser, feature-reveal, onboarding-explainer, launch-reel, testimonial-cutdown, social-loop, or a freeform description',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Filter by personality compatibility',
+          },
+          duration_s: {
+            type: 'number',
+            description: 'Target duration in seconds — helps narrow archetype selection',
+          },
+        },
+        required: ['output_type'],
+      },
+    },
+    // ── Project Management Tools ─────────────────────────────────────────────
+    {
+      name: 'init_project',
+      description:
+        'Create a new animation project with full folder structure and project.json. Projects represent one end-to-end motion deliverable: brief → storyboard → scenes → motion → renders → review.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Human-readable project title' },
+          slug: { type: 'string', description: 'URL-safe project slug (e.g., fintech-sizzle)' },
+          date_prefix: { type: 'boolean', description: 'Prepend YYYY-MM-DD to folder name (default: true)' },
+          brand: { type: 'string', description: 'Brand identifier' },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Animation personality',
+          },
+          style_pack: {
+            type: 'string',
+            enum: ['prestige', 'energy', 'dramatic', 'minimal', 'intimate', 'corporate', 'kinetic', 'fade'],
+            description: 'Style pack',
+          },
+          resolution: {
+            type: 'object',
+            properties: { w: { type: 'number' }, h: { type: 'number' } },
+            description: 'Output resolution (default: 1920x1080)',
+          },
+          fps: { type: 'number', description: 'Frame rate (default: 60)' },
+          duration_target_s: { type: 'number', description: 'Target duration in seconds' },
+        },
+        required: ['title', 'slug'],
+      },
+    },
+    {
+      name: 'list_projects',
+      description:
+        'List animation projects with status, personality, latest render, and updated date. Filter by status.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['draft', 'blocked', 'in_review', 'approved', 'archived'],
+            description: 'Filter by project status',
+          },
+          limit: { type: 'number', description: 'Max results (default: 20)' },
+        },
+      },
+    },
+    {
+      name: 'get_project',
+      description:
+        'Get full project.json plus resolved paths for an animation project.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: { type: 'string', description: 'Project slug or path' },
+        },
+        required: ['project'],
+      },
+    },
+    {
+      name: 'get_project_context',
+      description:
+        'Get the minimum useful working context for a project. Returns brief, storyboard, scenes, manifest, and/or review content.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: { type: 'string', description: 'Project slug or path' },
+          include: {
+            type: 'array',
+            items: { type: 'string', enum: ['brief', 'storyboard', 'scenes', 'manifest', 'review'] },
+            description: 'Which context sections to include',
+          },
+        },
+        required: ['project'],
+      },
+    },
+    {
+      name: 'save_project_artifact',
+      description:
+        'Register or update an artifact in a project. Updates entrypoints and optionally writes metadata into project.json.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: { type: 'string', description: 'Project slug' },
+          kind: { type: 'string', enum: ['brief', 'storyboard', 'manifest', 'render', 'scene', 'version', 'review'], description: 'Artifact type' },
+          role: { type: 'string', description: 'Entrypoint role to update (e.g., latest_render, approved_render)' },
+          path: { type: 'string', description: 'Relative path within project' },
+          scene_id: { type: 'string', description: 'Scene ID (for scene artifacts)' },
+          version_id: { type: 'string', description: 'Version ID (for version artifacts)' },
+          metadata: { type: 'object', description: 'Additional metadata to store' },
+        },
+        required: ['project', 'kind', 'path'],
+      },
+    },
+    {
+      name: 'render_project',
+      description:
+        'Render a project manifest to video. Writes output to renders/ within the project.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: { type: 'string', description: 'Project slug' },
+          manifest: { type: 'string', description: 'Relative path to manifest within project (default: root_manifest from project.json)' },
+          output: { type: 'string', description: 'Relative output path within project (default: renders/draft/)' },
+          mark_as_latest: { type: 'boolean', description: 'Update entrypoints.latest_render (default: true)' },
+        },
+        required: ['project'],
+      },
+    },
+    {
+      name: 'review_project',
+      description:
+        'Run evaluation and critic tools on a project and store outputs in review/.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: { type: 'string', description: 'Project slug' },
+          manifest: { type: 'string', description: 'Relative path to manifest within project' },
+        },
+        required: ['project'],
+      },
+    },
+    // ── Art direction ─────────────────────────────────────────────────────
+    {
+      name: 'get_art_direction',
+      description:
+        'Get an art direction definition by slug. Returns typography, palette, textures, lighting, logo behavior, background treatment, and compatibility metadata. Art direction is separate from personality: personality tells you how things move, art direction tells you why they feel premium.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          slug: {
+            type: 'string',
+            enum: ART_DIRECTION_SLUGS,
+            description: 'Art direction slug',
+          },
+        },
+        required: ['slug'],
+      },
+    },
+    {
+      name: 'list_art_directions',
+      description:
+        'List art directions, optionally filtered by compatible personality or style pack. Returns summary entries with slug, name, description, and compatibility lists.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Filter by compatible personality',
+          },
+          style_pack: {
+            type: 'string',
+            description: 'Filter by compatible style pack name',
+          },
+        },
+      },
+    },
+    // ── Hero moments ──────────────────────────────────────────────────────
+    {
+      name: 'plan_hero_moments',
+      description:
+        'Recommend hero moment primitives for a scene based on its role and personality. Hero moments are non-entrance compound primitives designed for climax/peak beats in videos — product freeze frames, metric explosions, logo resolves, etc. Returns filtered and ranked recommendations with usage guidance.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scene_role: {
+            type: 'string',
+            description: 'The role this scene plays in the sequence (e.g., "hero_product", "metric_reveal", "logo_close", "comparison", "data_insight", "feature_options", "spatial_transition")',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Animation personality to filter by affinity',
+          },
+          duration_s: {
+            type: 'number',
+            description: 'Available duration in seconds — filters out primitives that exceed it (optional)',
+          },
+          count: {
+            type: 'number',
+            description: 'Max number of recommendations to return (default: 3)',
+          },
+        },
+        required: ['scene_role', 'personality'],
+      },
+    },
+    // ── Compositing ──────────────────────────────────────────────────────
+    {
+      name: 'score_brand_finish',
+      description:
+        'Recommend a multi-pass compositing stack (bloom, grain, vignette, DOF, etc.) for a personality + style pack combination, and score the finishing quality (0-100). Returns ordered compositing passes with resolved CSS properties and quality breakdown.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Personality slug',
+          },
+          style_pack: {
+            type: 'string',
+            description: 'Style pack name (e.g., dramatic, intimate, prestige, energy)',
+          },
+          art_direction: {
+            type: 'string',
+            description: 'Art direction slug (optional, reserved for future integration)',
+          },
+          passes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                slug: { type: 'string', enum: COMPOSITING_PASS_SLUGS },
+                overrides: { type: 'object' },
+              },
+              required: ['slug'],
+            },
+            description: 'Optional custom passes to score instead of the recommended stack',
+          },
+        },
+        required: ['personality'],
+      },
+    },
+    // ── Brand packages ─────────────────────────────────────────────────
+    {
+      name: 'create_brand_package',
+      description:
+        'Create a new brand package with per-client visual identity: colors, typography, motion rules, logo behavior, and compliance guidelines. Writes to catalog/brands/{brand_id}.json. Returns the created brand object.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          brand_id: {
+            type: 'string',
+            description: 'URL-safe identifier in kebab-case (e.g., "acme-corp")',
+          },
+          name: {
+            type: 'string',
+            description: 'Display name for the brand',
+          },
+          description: {
+            type: 'string',
+            description: 'Short description of brand positioning',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Default animation personality',
+          },
+          style: {
+            type: 'string',
+            description: 'Default style pack name (e.g., prestige, dramatic, energy)',
+          },
+          colors: {
+            type: 'object',
+            description: 'Brand color tokens: bg_primary, text_primary, accent, etc.',
+          },
+          typography: {
+            type: 'object',
+            description: 'Typography tokens: font_family, hero, tagline, heading, body, label',
+          },
+          logo: {
+            type: 'object',
+            description: 'Logo configuration: primary, monochrome, icon_only, safe_zone_pct, min_size_px',
+          },
+          intro_outro: {
+            type: 'object',
+            description: 'Logo intro/outro animation: intro_style, intro_duration_ms, outro_style, outro_duration_ms, outro_hold_ms',
+          },
+          motion: {
+            type: 'object',
+            description: 'Motion rules: preferred_personality, preferred_style_pack, preferred_easing, forbidden_moves[], max_intensity (0-1)',
+          },
+          guidelines: {
+            type: 'object',
+            description: 'Brand guidelines: dos[] and donts[]',
+          },
+        },
+        required: ['brand_id', 'name'],
+      },
+    },
+    {
+      name: 'get_brand_package',
+      description:
+        'Load a brand package by brand_id. Returns full brand specification including colors, typography, motion rules, logo config, and guidelines.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          brand_id: {
+            type: 'string',
+            description: 'Brand identifier (e.g., "fintech-demo", "mercury", "_default")',
+          },
+        },
+        required: ['brand_id'],
+      },
+    },
+    {
+      name: 'list_brand_packages',
+      description:
+        'List all available brand packages. Returns brand_id, name, personality, and style for each.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+    },
+    {
+      name: 'validate_brand_compliance',
+      description:
+        'Check a manifest and its scenes against a brand\'s guidelines. Returns violations (forbidden camera moves, intensity limits, unapproved colors, personality mismatches). Empty violations array means fully compliant.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          brand_id: {
+            type: 'string',
+            description: 'Brand to validate against',
+          },
+          manifest: {
+            type: 'object',
+            description: 'Sequence manifest to check',
+          },
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Scene objects to check for camera/color compliance',
+          },
+        },
+        required: ['brand_id'],
+      },
+    },
+    // ── Product archetypes ─────────────────────────────────────────────
+    {
+      name: 'score_product_demo_clarity',
+      description:
+        'Score a product demo manifest + scenes for clarity and quality (0–100). Evaluates interaction truthfulness (cursor timing, text rhythm), camera intent consistency, pacing variety, and clear hierarchy. Returns score breakdown and actionable warnings.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: {
+            type: 'object',
+            description: 'Sequence manifest with scenes array',
+          },
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Array of scene definitions to evaluate',
+          },
+        },
+        required: ['scenes'],
+      },
+    },
+    // ── AI Demo & Finishing Tools ──────────────────────────────────────────
+    {
+      name: 'instantiate_sequence_archetype',
+      description:
+        'Generate a manifest skeleton from an AI demo sequence archetype (prompt_to_answer, brief_to_board, query_to_report, upload_to_insight). Returns pre-configured scenes with timing, transitions, and camera intent.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          archetype_slug: { type: 'string', description: 'Archetype slug' },
+          personality: { type: 'string', enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'] },
+          duration_s: { type: 'number', description: 'Target total duration' },
+          content_hints: { type: 'object', description: 'Optional content hints per scene role' },
+        },
+        required: ['archetype_slug'],
+      },
+    },
+    {
+      name: 'apply_finish_preset',
+      description:
+        'Apply a named finishing preset (cinematic-film, clean-digital, editorial-subtle, social-punchy, premium-brand) to a manifest. Adds compositing passes with tuned parameters.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          preset_slug: { type: 'string', description: 'Finish preset slug' },
+          manifest: { type: 'object', description: 'Manifest to apply finish to' },
+          overrides: { type: 'object', description: 'Optional per-pass overrides' },
+        },
+        required: ['preset_slug'],
+      },
+    },
+    {
+      name: 'audit_motion_density',
+      description:
+        'Analyze motion density in a scene timeline. Returns density score (0-100, 50=ideal), hold windows, hot spots, and simplification suggestions.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          timeline: { type: 'object', description: 'Compiled timeline object' },
+          scene: { type: 'object', description: 'Scene definition' },
+        },
+        required: ['timeline', 'scene'],
+      },
+    },
+    // ── Storyboard tools ──────────────────────────────────────────────────
+    {
+      name: 'generate_contact_sheet',
+      description:
+        'Generate a contact sheet from a manifest and scenes. Returns a structured overview of each scene: thumbnail description, duration, transition, camera, energy. Useful for reviewing a sequence at a glance before rendering. Optionally formats as markdown.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: {
+            type: 'string',
+            description: 'Project slug to load manifest/scenes from (alternative to inline)',
+          },
+          manifest: {
+            type: 'object',
+            description: 'Inline sequence manifest (if not loading from project)',
+          },
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Inline scene definitions (if not loading from project)',
+          },
+          includeTimecodes: {
+            type: 'boolean',
+            description: 'Include start/end timecodes per scene. Default: true.',
+          },
+          includeTechnical: {
+            type: 'boolean',
+            description: 'Include camera move and energy level per scene. Default: true.',
+          },
+          format: {
+            type: 'string',
+            enum: ['json', 'markdown'],
+            description: 'Output format. Default: json.',
+          },
+        },
+      },
+    },
+    {
+      name: 'compare_project_versions',
+      description:
+        'Compare two manifest versions and return a structured diff: scenes added/removed/reordered, duration changes, transition changes, camera changes, and overall timing delta. Useful for reviewing edits between iterations.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: {
+            type: 'string',
+            description: 'Project slug (for future version history support)',
+          },
+          version_a: {
+            type: 'string',
+            description: 'Version A identifier (for future version history support)',
+          },
+          version_b: {
+            type: 'string',
+            description: 'Version B identifier (for future version history support)',
+          },
+          manifest_a: {
+            type: 'object',
+            description: 'First manifest to compare (inline)',
+          },
+          manifest_b: {
+            type: 'object',
+            description: 'Second manifest to compare (inline)',
+          },
+          format: {
+            type: 'string',
+            enum: ['json', 'markdown'],
+            description: 'Output format. Default: json.',
+          },
+        },
+      },
+    },
+    // ── Editorial canvas ────────────────────────────────────────────────
+    {
+      name: 'create_editorial_canvas_scene',
+      description:
+        'Create an editorial canvas scene — a flat art-directed space with anchor-based positioning, safe zones, and floating UI fragments. Returns a valid editorial canvas scene JSON ready for rendering.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scene_id: {
+            type: 'string',
+            description: 'Scene ID (must match ^sc_[a-z0-9_]+$)',
+          },
+          duration_s: {
+            type: 'number',
+            description: 'Scene duration in seconds (0.5–30)',
+          },
+          background: {
+            type: 'object',
+            description: 'Background config: { color, color_alt, treatment }. Treatment: solid, gradient, radial, mesh, blur_plate.',
+            properties: {
+              color: { type: 'string' },
+              color_alt: { type: 'string' },
+              treatment: { type: 'string', enum: ['solid', 'gradient', 'radial', 'mesh', 'blur_plate'] },
+            },
+          },
+          safe_zone: {
+            type: 'number',
+            description: 'Safe zone inset percentage (0–30). Default: 5.',
+          },
+          camera: {
+            type: 'object',
+            description: 'Camera config: { move, intensity, easing }. Optional.',
+          },
+          layers: {
+            type: 'array',
+            description: 'Array of layer objects: { id, type, content, anchor, max_w, z_bias, depth_class, src, fit }',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                type: { type: 'string' },
+                content: { type: 'string' },
+                anchor: { type: 'string', enum: ['center', 'top-left', 'top-center', 'top-right', 'center-left', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'] },
+                max_w: {},
+                z_bias: { type: 'number' },
+                depth_class: { type: 'string', enum: ['background', 'midground', 'foreground'] },
+                src: { type: 'string' },
+                fit: { type: 'string' },
+              },
+              required: ['id', 'type'],
+            },
+          },
+        },
+        required: ['scene_id', 'duration_s', 'layers'],
+      },
+    },
+    {
+      name: 'recommend_editorial_layout',
+      description:
+        'Recommend anchor positioning and layout strategy for editorial canvas scenes. Given a content description and personality, returns recommended patterns with anchor assignments for common editorial layouts (hero-center, split-editorial, floating-fragments, minimal-type).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          content_description: {
+            type: 'string',
+            description: 'What this editorial scene needs to communicate (e.g., "headline with floating prompt card and result")',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Animation personality for style-appropriate defaults',
+          },
+        },
+        required: ['content_description'],
+      },
+    },
+    // ── Social formats ──────────────────────────────────────────────────
+    {
+      name: 'adapt_project_aspect_ratio',
+      description:
+        'Adapt an existing manifest for a different aspect ratio. Adjusts resolution, layer positions, typography scale, safe areas, and camera moves. Use recompose=true to recalculate layer positions (vs. simple crop).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: {
+            type: 'object',
+            description: 'The source sequence manifest to adapt',
+          },
+          target_aspect_ratio: {
+            type: 'string',
+            enum: ['16:9', '1:1', '4:5', '9:16'],
+            description: 'Target aspect ratio',
+          },
+          recompose: {
+            type: 'boolean',
+            description: 'If true, recalculate layer positions for the new ratio. If false, simple crop. Default: false.',
+          },
+        },
+        required: ['manifest', 'target_aspect_ratio'],
+      },
+    },
+    {
+      name: 'create_social_cutdown',
+      description:
+        'Create a shortened social version from a full manifest. Selects key scenes, tightens transitions, adapts aspect ratio, and enforces a maximum duration. Returns a new cutdown manifest ready for rendering.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: {
+            type: 'object',
+            description: 'The source sequence manifest',
+          },
+          target_aspect_ratio: {
+            type: 'string',
+            enum: ['16:9', '1:1', '4:5', '9:16'],
+            description: 'Target aspect ratio for the cutdown',
+          },
+          max_duration_s: {
+            type: 'number',
+            description: 'Maximum total duration in seconds',
+          },
+          scenes_to_keep: {
+            type: 'array',
+            items: { type: 'number' },
+            description: 'Indices of scenes to keep (0-based). If omitted, auto-selects key scenes.',
+          },
+        },
+        required: ['manifest', 'target_aspect_ratio', 'max_duration_s'],
+      },
+    },
+    {
+      name: 'recommend_type_treatment',
+      description:
+        'Recommend a text animation treatment and styling based on block role, content, personality, and scene energy. Returns the best text animation primitive plus typography styling guidance for editorial-quality film typography.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          block_role: {
+            type: 'string',
+            enum: ['headline', 'caption', 'label', 'quote'],
+            description: 'The semantic role of the text block',
+          },
+          content: {
+            type: 'string',
+            description: 'The text content to be animated',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Animation personality context',
+          },
+          scene_energy: {
+            type: 'string',
+            enum: ['low', 'medium', 'high'],
+            description: 'Energy level of the scene (affects animation intensity)',
+          },
+        },
+        required: ['block_role', 'content', 'personality'],
+      },
+    },
+    // ── Cross-scene continuity ──────────────────────────────────────────
+    {
+      name: 'suggest_match_cuts',
+      description:
+        'Analyze adjacent scenes for potential match-cut opportunities even without explicit continuity_ids. Looks for same layer types at similar positions, similar content, and shared assets. Returns ranked suggestions with similarity scores and recommended strategies.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: {
+            type: 'object',
+            description: 'Sequence manifest with scenes array',
+          },
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Array of scene definitions (order matches manifest.scenes)',
+          },
+        },
+        required: ['manifest', 'scenes'],
+      },
+    },
+    {
+      name: 'plan_continuity_links',
+      description:
+        'Automatically annotate layers with continuity_ids and add transition_in.match configs to a manifest. Returns an annotated manifest and scene definitions with cross-scene element identity for seamless transitions.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: {
+            type: 'object',
+            description: 'Sequence manifest with scenes array',
+          },
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Array of scene definitions (order matches manifest.scenes)',
+          },
+          auto_assign_ids: {
+            type: 'boolean',
+            description: 'Automatically assign continuity_ids to layers that match across scenes. Default: true.',
+          },
+        },
+        required: ['manifest', 'scenes'],
+      },
+    },
   ],
 }));
 
@@ -754,6 +1523,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleCompareVariants(args);
     case 'analyze_beats':
       return handleAnalyzeBeats(args);
+    case 'sync_sequence_to_beats':
+      return handleSyncSequenceToBeats(args);
     case 'create_personality':
       return handleCreatePersonality(args);
     case 'list_personalities':
@@ -766,6 +1537,76 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleRunBenchmarks(args);
     case 'generate_video':
       return handleGenerateVideo(args);
+    // ── Sequence archetypes ─────────────────────────────────────────────
+    case 'recommend_sequence_archetype':
+      return handleRecommendSequenceArchetype(args);
+    // ── Project management ────────────────────────────────────────────────
+    case 'init_project':
+      return handleInitProject(args);
+    case 'list_projects':
+      return handleListProjects(args);
+    case 'get_project':
+      return handleGetProject(args);
+    case 'get_project_context':
+      return handleGetProjectContext(args);
+    case 'save_project_artifact':
+      return handleSaveProjectArtifact(args);
+    case 'render_project':
+      return handleRenderProject(args);
+    case 'review_project':
+      return handleReviewProject(args);
+    // ── Art direction ─────────────────────────────────────────────────────
+    case 'get_art_direction':
+      return handleGetArtDirection(args);
+    case 'list_art_directions':
+      return handleListArtDirections(args);
+    // ── Hero moments ─────────────────────────────────────────────────────
+    case 'plan_hero_moments':
+      return handlePlanHeroMoments(args);
+    // ── Compositing ─────────────────────────────────────────────────────
+    case 'score_brand_finish':
+      return handleScoreBrandFinish(args);
+    // ── Brand packages ──────────────────────────────────────────────────
+    case 'create_brand_package':
+      return handleCreateBrandPackage(args);
+    case 'get_brand_package':
+      return handleGetBrandPackage(args);
+    case 'list_brand_packages':
+      return handleListBrandPackages(args);
+    case 'validate_brand_compliance':
+      return handleValidateBrandCompliance(args);
+    // ── Product archetypes ───────────────────────────────────────────────
+    case 'score_product_demo_clarity':
+      return handleScoreProductDemoClarity(args);
+    // ── Storyboard tools ──────────────────────────────────────────────────
+    case 'instantiate_sequence_archetype':
+      return handleInstantiateSequenceArchetype(args);
+    case 'apply_finish_preset':
+      return handleApplyFinishPreset(args);
+    case 'audit_motion_density':
+      return handleAuditMotionDensity(args);
+    case 'generate_contact_sheet':
+      return handleGenerateContactSheet(args);
+    case 'compare_project_versions':
+      return handleCompareProjectVersions(args);
+    // ── Editorial canvas ─────────────────────────────────────────────────
+    case 'create_editorial_canvas_scene':
+      return handleCreateEditorialCanvasScene(args);
+    case 'recommend_editorial_layout':
+      return handleRecommendEditorialLayout(args);
+    // ── Social formats ──────────────────────────────────────────────────
+    case 'adapt_project_aspect_ratio':
+      return handleAdaptProjectAspectRatio(args);
+    case 'create_social_cutdown':
+      return handleCreateSocialCutdown(args);
+    // ── Typography motion ─────────────────────────────────────────────────
+    case 'recommend_type_treatment':
+      return handleRecommendTypeTreatment(args);
+    // ── Cross-scene continuity ─────────────────────────────────────────
+    case 'suggest_match_cuts':
+      return handleSuggestMatchCuts(args);
+    case 'plan_continuity_links':
+      return handlePlanContinuityLinks(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -2302,6 +3143,115 @@ function handleAnalyzeBeats(args) {
   }
 }
 
+// ── sync_sequence_to_beats (ANI-100) ────────────────────────────────────────
+
+function handleSyncSequenceToBeats(args) {
+  const { manifest, beats, options = {} } = args;
+
+  if (!manifest || !manifest.scenes || !Array.isArray(manifest.scenes)) {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `manifest` must have a `scenes` array.' }],
+      isError: true,
+    };
+  }
+
+  if (!beats || !beats.beats) {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `beats` must have a `beats` array (from analyze_beats output).' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const {
+      include_hit_markers = true,
+      include_audio_cues = false,
+      archetype_slug,
+      hit_sensitivity = 0.5,
+      ...syncOptions
+    } = options;
+
+    // 1. Sync manifest to beats
+    const syncResult = syncSequenceToBeats(manifest, beats, syncOptions);
+
+    // 2. Score the sync quality
+    const syncScore = scoreAudioSync(syncResult.manifest, beats);
+
+    let out = `# Beat-Synced Sequence\n\n`;
+    out += `**Sync Mode:** ${syncResult.sync_report.sync_mode || 'tight'}\n`;
+    out += `**Scenes Adjusted:** ${syncResult.sync_report.adjusted_count} / ${syncResult.sync_report.total_scenes}\n`;
+    out += `**Sync Score:** ${syncScore.score}/100 (${syncScore.grade})\n\n`;
+
+    // Adjustments detail
+    if (syncResult.sync_report.adjustments.length > 0) {
+      out += '## Adjustments\n\n';
+      for (const adj of syncResult.sync_report.adjustments) {
+        const dir = adj.type === 'stretch' ? '+' : '-';
+        out += `- **${adj.scene_id}**: ${adj.original_duration}s → ${adj.adjusted_duration}s (${dir}${Math.abs(adj.delta_s * 1000).toFixed(0)}ms to beat at ${adj.beat_time}s)\n`;
+      }
+      out += '\n';
+    }
+
+    // Per-transition sync details
+    if (syncScore.details.length > 0) {
+      out += '## Transition Sync Details\n\n';
+      out += '| Scene | Time | Nearest Beat | Offset | Score | Level |\n';
+      out += '|-------|------|-------------|--------|-------|-------|\n';
+      for (const d of syncScore.details) {
+        out += `| ${d.scene_id} | ${d.transition_time_s}s | ${d.nearest_beat_s}s | ${d.offset_ms.toFixed(0)}ms | ${d.score} | ${d.sync_level} |\n`;
+      }
+      out += '\n';
+    }
+
+    // 3. Hit markers
+    let hitResult = null;
+    if (include_hit_markers) {
+      hitResult = generateHitMarkers(beats, { sensitivity: hit_sensitivity });
+      out += `## Hit Markers (${hitResult.stats.total} found)\n\n`;
+      if (hitResult.markers.length > 0) {
+        out += '| Time | Type | Strength | Energy | Label |\n';
+        out += '|------|------|----------|--------|-------|\n';
+        for (const m of hitResult.markers) {
+          out += `| ${m.time_s}s | ${m.type} | ${m.strength} | ${m.energy} | ${m.label} |\n`;
+        }
+        out += '\n';
+      }
+    }
+
+    // 4. Audio cues
+    let cueResult = null;
+    if (include_audio_cues && archetype_slug) {
+      cueResult = planAudioCues(beats, archetype_slug, syncResult.manifest);
+      out += `## Audio Cues (${cueResult.summary.total} suggested)\n\n`;
+      if (cueResult.cues.length > 0) {
+        for (const c of cueResult.cues) {
+          out += `- **${c.type}** at ${c.time_s}s (${c.duration_s}s) — ${c.reason}\n`;
+        }
+        out += '\n';
+      }
+    }
+
+    // JSON data block
+    out += '## Data (for downstream tools)\n\n```json\n';
+    const data = {
+      manifest: syncResult.manifest,
+      sync_report: syncResult.sync_report,
+      sync_score: syncScore,
+      ...(hitResult ? { hit_markers: hitResult } : {}),
+      ...(cueResult ? { audio_cues: cueResult } : {}),
+    };
+    out += JSON.stringify(data, null, 2);
+    out += '\n```\n';
+
+    return { content: [{ type: 'text', text: out }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Beat sync failed: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
 // ── create_personality (ANI-43) ─────────────────────────────────────────────
 
 function handleCreatePersonality(args) {
@@ -2633,6 +3583,1021 @@ async function handleGenerateVideo(args) {
   out += '```json\n' + JSON.stringify(scenes, null, 2) + '\n```\n';
 
   return { content: [{ type: 'text', text: out }] };
+}
+
+// ── AI Demo Archetype Handler ────────────────────────────────────────────────
+
+function handleInstantiateSequenceArchetype(args) {
+  const archetypes = getAiDemoArchetypes();
+  const archetype = archetypes.find(a => a.slug === args.archetype_slug);
+  if (!archetype) {
+    return { content: [{ type: 'text', text: `Unknown archetype "${args.archetype_slug}". Available: ${archetypes.map(a => a.slug).join(', ')}` }] };
+  }
+
+  const personality = args.personality || archetype.personalities[0] || 'editorial';
+  const totalDuration = args.duration_s || (archetype.duration_range.min_s + archetype.duration_range.max_s) / 2;
+  const contentHints = args.content_hints || {};
+
+  const scenes = archetype.scenes.map((sceneTemplate, i) => {
+    const sceneDuration = totalDuration * sceneTemplate.pct;
+    const sceneId = `sc_${String(i + 1).padStart(2, '0')}_${sceneTemplate.role}`;
+    const entry = {
+      scene: sceneId,
+      duration_s: Math.round(sceneDuration * 10) / 10,
+    };
+    if (i > 0) {
+      entry.transition_in = { type: 'crossfade', duration_ms: 400 };
+    }
+    if (contentHints[sceneTemplate.role]) {
+      entry._content_hint = contentHints[sceneTemplate.role];
+    }
+    entry._role = sceneTemplate.role;
+    entry._description = sceneTemplate.description;
+    return entry;
+  });
+
+  const manifest = {
+    sequence_id: `seq_${args.archetype_slug}`,
+    archetype: args.archetype_slug,
+    personality,
+    fps: 60,
+    scenes,
+  };
+
+  return { content: [{ type: 'text', text: JSON.stringify({ archetype: archetype.slug, manifest }, null, 2) }] };
+}
+
+// ── Finish Preset Handler ───────────────────────────────────────────────────
+
+function handleApplyFinishPreset(args) {
+  const presets = getFinishPresets();
+  const preset = presets.find(p => p.slug === args.preset_slug);
+  if (!preset) {
+    return { content: [{ type: 'text', text: `Unknown preset "${args.preset_slug}". Available: ${presets.map(p => p.slug).join(', ')}` }] };
+  }
+
+  const manifest = args.manifest ? JSON.parse(JSON.stringify(args.manifest)) : {};
+  const overrides = args.overrides || {};
+
+  // Apply finish block
+  manifest.finish = {
+    preset: preset.slug,
+    passes: preset.passes.map(pass => ({
+      ...pass,
+      overrides: { ...pass.overrides, ...(overrides[pass.slug] || {}) },
+    })),
+    color_grade: preset.color_grade || null,
+  };
+
+  return { content: [{ type: 'text', text: JSON.stringify({ preset: preset.slug, manifest }, null, 2) }] };
+}
+
+// ── Motion Density Handler ──────────────────────────────────────────────────
+
+function handleAuditMotionDensity(args) {
+  const { timeline, scene } = args;
+  const report = auditMotionDensity(timeline, scene);
+  return { content: [{ type: 'text', text: JSON.stringify(report, null, 2) }] };
+}
+
+// ── Sequence Archetype Handler ───────────────────────────────────────────────
+
+function handleRecommendSequenceArchetype(args) {
+  const { output_type, personality, duration_s } = args;
+
+  let candidates = [...sequenceArchetypes];
+
+  // Exact slug match first
+  const exact = candidates.find(a => a.slug === output_type);
+  if (exact) {
+    candidates = [exact];
+  } else {
+    // Fuzzy match on name/description
+    const q = output_type.toLowerCase();
+    candidates = candidates.filter(a =>
+      a.slug.includes(q) ||
+      a.name.toLowerCase().includes(q) ||
+      a.description.toLowerCase().includes(q) ||
+      a.when_to_use.some(u => u.toLowerCase().includes(q))
+    );
+  }
+
+  // Filter by personality
+  if (personality && candidates.length > 1) {
+    const perFiltered = candidates.filter(a => a.personalities.includes(personality));
+    if (perFiltered.length > 0) candidates = perFiltered;
+  }
+
+  // Filter by duration
+  if (duration_s && candidates.length > 1) {
+    const durFiltered = candidates.filter(a =>
+      duration_s >= a.duration_range.min_s && duration_s <= a.duration_range.max_s
+    );
+    if (durFiltered.length > 0) candidates = durFiltered;
+  }
+
+  if (candidates.length === 0) {
+    return {
+      content: [{
+        type: 'text',
+        text: `No matching archetype found for "${output_type}". Available: ${sequenceArchetypes.map(a => a.slug).join(', ')}`,
+      }],
+    };
+  }
+
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify(candidates.length === 1 ? candidates[0] : candidates, null, 2),
+    }],
+  };
+}
+
+// ── Project Management Handlers ─────────────────────────────────────────────
+
+async function handleInitProject(args) {
+  const result = await initProject(args);
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+}
+
+async function handleListProjects(args) {
+  const result = await listProjects(args);
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+}
+
+async function handleGetProject(args) {
+  const result = await getProject(args);
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+}
+
+async function handleGetProjectContext(args) {
+  const result = await getProjectContext(args);
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+}
+
+async function handleSaveProjectArtifact(args) {
+  const result = await saveProjectArtifact(args);
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+}
+
+async function handleRenderProject(args) {
+  // Get project context to resolve manifest path
+  const project = await getProject({ project: args.project });
+  if (!project) {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: `Project "${args.project}" not found` }) }] };
+  }
+
+  const manifestPath = args.manifest || project.entrypoints?.root_manifest;
+  if (!manifestPath) {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: 'No manifest specified and no root_manifest in project.json' }) }] };
+  }
+
+  const { join } = await import('node:path');
+  const { readFileSync } = await import('node:fs');
+
+  const fullManifestPath = join(project.project_root, manifestPath);
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(fullManifestPath, 'utf-8'));
+  } catch {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: `Cannot read manifest at ${fullManifestPath}` }) }] };
+  }
+
+  const outputName = args.output || `renders/draft/${project.slug}-render.mp4`;
+  const outputPath = join(project.project_root, outputName);
+
+  // Use generateVideo with the resolved paths
+  const videoResult = await generateVideo({
+    prompt: `Render project ${project.title}`,
+    manifest,
+    outputPath,
+  });
+
+  // Update entrypoint if requested
+  if (args.mark_as_latest !== false) {
+    await saveProjectArtifact({
+      project: args.project,
+      kind: 'render',
+      role: 'latest_render',
+      path: outputName,
+    });
+  }
+
+  return { content: [{ type: 'text', text: JSON.stringify({ ...videoResult, output: outputPath }) }] };
+}
+
+async function handleReviewProject(args) {
+  const project = await getProject({ project: args.project });
+  if (!project) {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: `Project "${args.project}" not found` }) }] };
+  }
+
+  const { join } = await import('node:path');
+  const { readFileSync, writeFileSync } = await import('node:fs');
+
+  const manifestPath = args.manifest || project.entrypoints?.root_manifest;
+  if (!manifestPath) {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: 'No manifest to review' }) }] };
+  }
+
+  const fullManifestPath = join(project.project_root, manifestPath);
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(fullManifestPath, 'utf-8'));
+  } catch {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: `Cannot read manifest at ${fullManifestPath}` }) }] };
+  }
+
+  // Run validation
+  const validationResult = validateFullManifest(manifest, cameraGuardrails);
+
+  // Run evaluation if scene definitions are available
+  let evaluationResult = null;
+  if (manifest.sceneDefs) {
+    const scenes = Object.values(manifest.sceneDefs);
+    evaluationResult = evaluateSequence(scenes, {
+      personality: project.personality || 'cinematic-dark',
+    });
+  }
+
+  // Write results to review/
+  const reviewDir = join(project.project_root, 'review');
+  const evaluationOutput = {
+    validation: validationResult,
+    evaluation: evaluationResult,
+    reviewed_at: new Date().toISOString(),
+    manifest: manifestPath,
+  };
+
+  writeFileSync(join(reviewDir, 'evaluation.json'), JSON.stringify(evaluationOutput, null, 2));
+
+  return { content: [{ type: 'text', text: JSON.stringify(evaluationOutput, null, 2) }] };
+}
+
+// ── get_art_direction ───────────────────────────────────────────────────────
+
+function handleGetArtDirection(args) {
+  const { slug } = args;
+  const ad = getArtDirection(slug);
+
+  if (!ad) {
+    return {
+      content: [{
+        type: 'text',
+        text: `Unknown art direction "${slug}". Available: ${ART_DIRECTION_SLUGS.join(', ')}`,
+      }],
+    };
+  }
+
+  let out = `## Art Direction: ${ad.name}\n\n`;
+  out += `${ad.description}\n\n`;
+
+  out += `**Typography:**\n`;
+  out += `- Headline: ${ad.typography.headline.family} ${ad.typography.headline.weight} (${ad.typography.headline.tracking})\n`;
+  out += `- Body: ${ad.typography.body.family} ${ad.typography.body.weight} (${ad.typography.body.tracking})\n`;
+  out += `- Caption: ${ad.typography.caption.family} ${ad.typography.caption.weight} (${ad.typography.caption.tracking})\n\n`;
+
+  out += `**Palette:**\n`;
+  for (const [key, val] of Object.entries(ad.palette)) {
+    out += `- ${key}: \`${val}\`\n`;
+  }
+  out += '\n';
+
+  out += `**Lighting:** ${ad.lighting.style} (ambient: ${ad.lighting.ambient_intensity}, shadow: ${ad.lighting.shadow_depth})\n\n`;
+
+  out += `**Textures:** grain=${ad.textures.grain.enabled ? `${ad.textures.grain.opacity} ${ad.textures.grain.blend}` : 'off'}, vignette=${ad.textures.vignette.enabled ? `${ad.textures.vignette.opacity}` : 'off'}, scan_lines=${ad.textures.scan_lines && ad.textures.scan_lines.enabled ? 'on' : 'off'}\n\n`;
+
+  out += `**Compatible personalities:** ${ad.compatible_personalities.join(', ')}\n`;
+  out += `**Compatible style packs:** ${ad.compatible_style_packs.join(', ')}\n\n`;
+
+  out += `**When to use:** ${ad.when_to_use.join('; ')}\n`;
+  out += `**When to avoid:** ${ad.when_to_avoid.join('; ')}\n\n`;
+
+  out += '```json\n' + JSON.stringify(ad, null, 2) + '\n```';
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── list_art_directions ─────────────────────────────────────────────────────
+
+function handleListArtDirections(args) {
+  const results = listArtDirections({
+    personality: args.personality,
+    style_pack: args.style_pack,
+  });
+
+  if (results.length === 0) {
+    let msg = 'No art directions match the given filters.';
+    if (args.personality) msg += ` personality=${args.personality}`;
+    if (args.style_pack) msg += ` style_pack=${args.style_pack}`;
+    return { content: [{ type: 'text', text: msg }] };
+  }
+
+  let out = `## Art Directions (${results.length} match${results.length === 1 ? '' : 'es'})\n\n`;
+
+  for (const ad of results) {
+    out += `### ${ad.name} (\`${ad.slug}\`)\n`;
+    out += `${ad.description}\n`;
+    out += `- Personalities: ${ad.compatible_personalities.join(', ')}\n`;
+    out += `- Style packs: ${ad.compatible_style_packs.join(', ')}\n\n`;
+  }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── plan_hero_moments ────────────────────────────────────────────────────────
+
+const HERO_MOMENT_ROLE_MAP = {
+  hero_product:       ['hm-product-freeze-frame', 'hm-zoom-through'],
+  metric_reveal:      ['hm-metric-explosion'],
+  logo_close:         ['hm-logo-resolve'],
+  comparison:         ['hm-before-after-morph', 'hm-card-fan-out'],
+  data_insight:       ['hm-chart-to-insight-reveal', 'hm-metric-explosion'],
+  feature_options:    ['hm-card-fan-out'],
+  spatial_transition: ['hm-zoom-through'],
+  brand_reveal:       ['hm-logo-resolve', 'hm-product-freeze-frame'],
+  before_after:       ['hm-before-after-morph'],
+  options_reveal:     ['hm-card-fan-out', 'hm-before-after-morph'],
+};
+
+let _heroMomentsCache = null;
+
+function loadHeroMoments() {
+  if (_heroMomentsCache) return _heroMomentsCache;
+  _heroMomentsCache = JSON.parse(
+    readFileSync(resolve(ROOT, 'catalog', 'compound', 'hero-moments.json'), 'utf-8')
+  );
+  return _heroMomentsCache;
+}
+
+function handlePlanHeroMoments(args) {
+  const { scene_role, personality, duration_s, count = 3 } = args;
+  const heroMoments = loadHeroMoments();
+
+  // Filter by personality affinity
+  let candidates = heroMoments.filter(hm =>
+    hm.personality_affinity.includes(personality)
+  );
+
+  // Filter by duration if provided
+  if (duration_s != null) {
+    const maxMs = duration_s * 1000;
+    candidates = candidates.filter(hm => {
+      const durationMs = parseInt(hm.default_duration, 10);
+      return durationMs <= maxMs;
+    });
+  }
+
+  // Score by role relevance
+  const rolePreferred = HERO_MOMENT_ROLE_MAP[scene_role] || [];
+  const scored = candidates.map(hm => {
+    let score = 1; // base score for personality match
+    const roleIdx = rolePreferred.indexOf(hm.slug);
+    if (roleIdx !== -1) {
+      score += 10 - roleIdx; // higher score for earlier match
+    }
+    return { ...hm, _score: score };
+  });
+
+  // Sort by score descending, take top N
+  scored.sort((a, b) => b._score - a._score);
+  const results = scored.slice(0, count);
+
+  if (results.length === 0) {
+    return {
+      content: [{
+        type: 'text',
+        text: `No hero moment primitives match personality="${personality}"${duration_s ? ` within ${duration_s}s` : ''} for scene_role="${scene_role}". Try a different personality or increase the duration.`,
+      }],
+    };
+  }
+
+  let out = `## Hero Moment Recommendations\n`;
+  out += `**Scene role:** ${scene_role} | **Personality:** ${personality}`;
+  if (duration_s) out += ` | **Max duration:** ${duration_s}s`;
+  out += `\n\n`;
+
+  for (const hm of results) {
+    const relevance = rolePreferred.includes(hm.slug) ? 'direct match' : 'compatible';
+    out += `### ${hm.name} (\`${hm.slug}\`) — ${relevance}\n`;
+    out += `${hm.description}\n\n`;
+    out += `- **Duration:** ${hm.default_duration}\n`;
+    out += `- **Affinity:** ${hm.personality_affinity.join(', ')}\n`;
+    out += `- **Sub-primitives:** ${hm.sub_primitives.map(sp => sp.name).join(', ')}\n`;
+    out += `- **When to use:** ${hm.when_to_use[0]}\n`;
+    out += `- **AI guidance:** ${hm.ai_guidance}\n\n`;
+    out += `<details><summary>Config schema</summary>\n\n\`\`\`json\n${JSON.stringify(hm.config_schema, null, 2)}\n\`\`\`\n</details>\n\n`;
+  }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── score_brand_finish ──────────────────────────────────────────────────────
+
+function handleScoreBrandFinish(args) {
+  const result = scoreBrandFinish({
+    personality: args.personality,
+    style_pack: args.style_pack,
+    art_direction: args.art_direction,
+    passes: args.passes,
+  });
+
+  let out = `## Brand Finish — ${args.personality}\n\n`;
+  out += `**Quality Score: ${result.quality_score.score}/${result.quality_score.max}**\n\n`;
+
+  if (result.recommended_stack.length > 0) {
+    out += `### Recommended Compositing Stack\n\n`;
+    out += `| # | Pass | Category | Key Parameters |\n`;
+    out += `|---|------|----------|----------------|\n`;
+    for (let i = 0; i < result.recommended_stack.length; i++) {
+      const entry = result.recommended_stack[i];
+      const paramStr = Object.entries(entry.overrides || {})
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ');
+      out += `| ${i + 1} | ${entry.name} | ${entry.category} | ${paramStr} |\n`;
+    }
+    out += `\n`;
+  }
+
+  out += `### Score Breakdown\n\n`;
+  for (const [key, value] of Object.entries(result.quality_score.breakdown)) {
+    out += `- **${key}**: ${value}\n`;
+  }
+
+  if (result.notes.length > 0) {
+    out += `\n### Notes\n\n`;
+    for (const note of result.notes) {
+      out += `- ${note}\n`;
+    }
+  }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── create_brand_package ─────────────────────────────────────────────────────
+
+function handleCreateBrandPackage(args) {
+  const { brand, path } = createBrandPackage(args);
+
+  let out = `## Brand Package Created\n\n`;
+  out += `**${brand.name}** (\`${brand.brand_id}\`)\n\n`;
+  out += `- Personality: ${brand.personality}\n`;
+  out += `- Style: ${brand.style || 'default'}\n`;
+  out += `- File: \`${path}\`\n`;
+
+  if (brand.motion?.forbidden_moves?.length > 0) {
+    out += `- Forbidden moves: ${brand.motion.forbidden_moves.join(', ')}\n`;
+  }
+  if (brand.motion?.max_intensity !== undefined) {
+    out += `- Max intensity: ${brand.motion.max_intensity}\n`;
+  }
+  if (brand.guidelines) {
+    if (brand.guidelines.dos?.length > 0) {
+      out += `\n### Do's\n${brand.guidelines.dos.map(d => `- ${d}`).join('\n')}\n`;
+    }
+    if (brand.guidelines.donts?.length > 0) {
+      out += `\n### Don'ts\n${brand.guidelines.donts.map(d => `- ${d}`).join('\n')}\n`;
+    }
+  }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── get_brand_package ───────────────────────────────────────────────────────
+
+function handleGetBrandPackage(args) {
+  const brand = loadBrand(args.brand_id);
+  if (!brand) {
+    throw new Error(`Brand "${args.brand_id}" not found. Use list_brand_packages to see available brands.`);
+  }
+  return {
+    content: [{ type: 'text', text: JSON.stringify(brand, null, 2) }],
+  };
+}
+
+// ── list_brand_packages ─────────────────────────────────────────────────────
+
+function handleListBrandPackages() {
+  const brands = listBrands();
+
+  let out = `## Brand Packages (${brands.length})\n\n`;
+  out += `| Brand ID | Name | Personality | Style |\n`;
+  out += `|----------|------|-------------|-------|\n`;
+  for (const b of brands) {
+    out += `| \`${b.brand_id}\` | ${b.name} | ${b.personality} | ${b.style || '—'} |\n`;
+  }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── validate_brand_compliance ───────────────────────────────────────────────
+
+function handleValidateBrandCompliance(args) {
+  const brand = loadBrand(args.brand_id);
+  if (!brand) {
+    throw new Error(`Brand "${args.brand_id}" not found.`);
+  }
+
+  const manifest = args.manifest || {};
+  const scenes = args.scenes || [];
+  const violations = validateBrandCompliance(brand, manifest, scenes);
+
+  let out = `## Brand Compliance: ${brand.name}\n\n`;
+
+  if (violations.length === 0) {
+    out += `All checks passed. Manifest is compliant with brand guidelines.\n`;
+  } else {
+    const errors = violations.filter(v => v.severity === 'error');
+    const warnings = violations.filter(v => v.severity === 'warning');
+
+    out += `**${errors.length} errors, ${warnings.length} warnings**\n\n`;
+
+    if (errors.length > 0) {
+      out += `### Errors\n`;
+      for (const v of errors) {
+        out += `- [${v.rule}] ${v.message}\n`;
+      }
+      out += `\n`;
+    }
+    if (warnings.length > 0) {
+      out += `### Warnings\n`;
+      for (const v of warnings) {
+        out += `- [${v.rule}] ${v.message}\n`;
+      }
+    }
+  }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── score_product_demo_clarity ───────────────────────────────────────────────
+
+function handleScoreProductDemoClarity(args) {
+  const result = scoreProductDemoClarity(args.manifest || {}, args.scenes || []);
+
+  let out = `## Product Demo Clarity Score: ${result.score}/${result.max}\n\n`;
+
+  if (result.breakdown.length > 0) {
+    out += `### Breakdown\n\n`;
+    out += `| Dimension | Score | Max |\n`;
+    out += `|-----------|-------|-----|\n`;
+    for (const dim of result.breakdown) {
+      out += `| ${dim.dimension.replace(/_/g, ' ')} | ${dim.score} | ${dim.max} |\n`;
+    }
+    out += `\n`;
+  }
+
+  if (result.warnings.length > 0) {
+    out += `### Warnings\n\n`;
+    for (const w of result.warnings) {
+      out += `- ${w}\n`;
+    }
+  }
+
+  return { content: [{ type: 'text', text: out }] };
+}
+
+// ── generate_contact_sheet ────────────────────────────────────────────────
+
+function handleGenerateContactSheet(args) {
+  const { manifest, scenes, includeTimecodes, includeTechnical, format } = args;
+
+  if (!manifest) {
+    return {
+      content: [{ type: 'text', text: 'A `manifest` object is required. Provide a sequence manifest with scene_order or scenes array.' }],
+      isError: true,
+    };
+  }
+
+  // Derive scenes from manifest.sceneDefs if not provided separately
+  const sceneData = scenes || manifest.sceneDefs || [];
+
+  const contactSheet = generateContactSheet(manifest, sceneData, {
+    includeTimecodes: includeTimecodes !== false,
+    includeTechnical: includeTechnical !== false,
+  });
+
+  if (format === 'markdown') {
+    const md = formatContactSheetMarkdown(contactSheet);
+    return { content: [{ type: 'text', text: md }] };
+  }
+
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify(contactSheet, null, 2),
+    }],
+  };
+}
+
+// ── compare_project_versions ─────────────────────────────────────────────
+
+function handleCompareProjectVersions(args) {
+  const { manifest_a, manifest_b, format } = args;
+
+  if (!manifest_a || !manifest_b) {
+    return {
+      content: [{ type: 'text', text: 'Both `manifest_a` and `manifest_b` are required. Provide two sequence manifests to compare.' }],
+      isError: true,
+    };
+  }
+
+  const comparison = compareProjectVersions(manifest_a, manifest_b);
+
+  if (format === 'markdown') {
+    const md = formatComparisonMarkdown(comparison);
+    return { content: [{ type: 'text', text: md }] };
+  }
+
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify(comparison, null, 2),
+    }],
+  };
+}
+
+// ── create_editorial_canvas_scene ────────────────────────────────────────────
+
+function handleCreateEditorialCanvasScene(args) {
+  const { scene_id, duration_s, background = {}, safe_zone = 5, camera, layers = [] } = args;
+
+  const scene = {
+    scene_id,
+    duration_s,
+    mode: 'editorial_canvas',
+    canvas: {
+      w: 1920,
+      h: 1080,
+      safe_zone,
+      background_treatment: background.treatment || 'solid',
+      ...(background.color ? { background_color: background.color } : {}),
+      ...(background.color_alt ? { background_color_alt: background.color_alt } : {}),
+    },
+    background: {
+      fill: background.color || '#0a0a0a',
+    },
+    camera: camera || { move: 'static', intensity: 0 },
+    layers: layers.map((l) => ({
+      id: l.id,
+      type: l.type,
+      depth_class: l.depth_class || 'midground',
+      ...(l.content ? { content: l.content } : {}),
+      ...(l.src ? { src: l.src } : {}),
+      ...(l.fit ? { fit: l.fit } : {}),
+      ...(l.anchor ? { anchor: l.anchor } : {}),
+      ...(l.max_w != null ? { max_w: l.max_w } : {}),
+      ...(l.z_bias != null ? { z_bias: l.z_bias } : {}),
+    })),
+  };
+
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify(scene, null, 2),
+    }],
+  };
+}
+
+// ── recommend_editorial_layout ──────────────────────────────────────────────
+
+const EDITORIAL_PATTERNS = {
+  'hero-center': {
+    description: 'Single dominant element centered with breathing room. Best for headlines, hero images, or a single product shot.',
+    recommended_safe_zone: 8,
+    layers: [
+      { role: 'headline', anchor: 'center', max_w: '60%', z_bias: 2 },
+      { role: 'subtext', anchor: 'bottom-center', max_w: '40%', z_bias: 1 },
+    ],
+    camera: { move: 'breathe', intensity: 0.2 },
+  },
+  'split-editorial': {
+    description: 'Two-column feel with type on one side and visual on the other. Good for prompt/result, before/after, or feature callouts.',
+    recommended_safe_zone: 6,
+    layers: [
+      { role: 'primary_text', anchor: 'center-left', max_w: '40%', z_bias: 2 },
+      { role: 'visual', anchor: 'center-right', max_w: '50%', z_bias: 1 },
+      { role: 'caption', anchor: 'bottom-center', max_w: '80%', z_bias: 0 },
+    ],
+    camera: { move: 'drift', intensity: 0.15 },
+  },
+  'floating-fragments': {
+    description: 'Multiple UI fragments floating in space at different depths. Creates editorial richness through layered composition. Great for showing multiple features or UI states.',
+    recommended_safe_zone: 5,
+    layers: [
+      { role: 'fragment_1', anchor: 'top-left', max_w: '35%', z_bias: -1 },
+      { role: 'fragment_2', anchor: 'center', max_w: '45%', z_bias: 3 },
+      { role: 'fragment_3', anchor: 'bottom-right', max_w: '30%', z_bias: 1 },
+      { role: 'headline', anchor: 'top-center', max_w: '50%', z_bias: 4 },
+    ],
+    camera: { move: 'drift', intensity: 0.2 },
+  },
+  'minimal-type': {
+    description: 'Typography-dominant layout. Giant type with minimal supporting elements. For taglines, chapter titles, or statement moments.',
+    recommended_safe_zone: 10,
+    layers: [
+      { role: 'headline', anchor: 'center', max_w: '80%', z_bias: 3 },
+      { role: 'accent', anchor: 'bottom-right', max_w: '20%', z_bias: 0 },
+    ],
+    camera: { move: 'static', intensity: 0 },
+  },
+};
+
+function handleRecommendEditorialLayout(args) {
+  const { content_description, personality = 'editorial' } = args;
+  const desc = (content_description || '').toLowerCase();
+
+  // Score each pattern against the description
+  const scores = {};
+  const keywords = {
+    'hero-center': ['hero', 'headline', 'title', 'single', 'centered', 'big', 'giant', 'statement', 'logo'],
+    'split-editorial': ['split', 'two', 'prompt', 'result', 'before', 'after', 'side', 'column', 'compare'],
+    'floating-fragments': ['float', 'fragment', 'multiple', 'cards', 'ui', 'features', 'scattered', 'collage', 'pieces'],
+    'minimal-type': ['type', 'typography', 'tagline', 'minimal', 'text', 'chapter', 'word', 'statement'],
+  };
+
+  for (const [pattern, kws] of Object.entries(keywords)) {
+    scores[pattern] = kws.reduce((score, kw) => score + (desc.includes(kw) ? 1 : 0), 0);
+  }
+
+  // Sort by score, fallback to floating-fragments as most versatile
+  const ranked = Object.entries(scores)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name]) => name);
+
+  const bestMatch = scores[ranked[0]] > 0 ? ranked[0] : 'floating-fragments';
+
+  // Personality-specific adjustments
+  const personalityNotes = {
+    'cinematic-dark': 'Use dark backgrounds (#0a0a0a to #1a1a1a), generous safe zones, and subtle drift camera. Prefer gradient or radial background treatments.',
+    'editorial': 'Use light backgrounds (#fafafa to #f0f0f0), clean typography, and static or breathe camera. Prefer solid or gradient treatments.',
+    'neutral-light': 'Use clean white backgrounds, clear hierarchy, and static camera. Prefer solid background treatment.',
+    'montage': 'Use high-contrast backgrounds, bold type, and consider hard cuts between editorial canvases. Prefer solid or gradient treatments.',
+  };
+
+  const result = {
+    recommended_pattern: bestMatch,
+    all_patterns: Object.entries(EDITORIAL_PATTERNS).map(([name, p]) => ({
+      name,
+      description: p.description,
+      match_score: scores[name],
+      recommended_safe_zone: p.recommended_safe_zone,
+      layers: p.layers,
+      camera: p.camera,
+    })),
+    personality_notes: personalityNotes[personality] || personalityNotes['editorial'],
+  };
+
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify(result, null, 2),
+    }],
+  };
+}
+
+// ── adapt_project_aspect_ratio ────────────────────────────────────────────
+
+function handleAdaptProjectAspectRatio(args) {
+  const { manifest, target_aspect_ratio, recompose } = args;
+
+  if (!manifest) {
+    return {
+      content: [{ type: 'text', text: 'A `manifest` object is required.' }],
+      isError: true,
+    };
+  }
+
+  if (!target_aspect_ratio) {
+    return {
+      content: [{ type: 'text', text: 'A `target_aspect_ratio` is required (e.g. "1:1", "4:5", "9:16").' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const adapted = adaptManifestAspectRatio(manifest, target_aspect_ratio, {
+      recompose: recompose === true,
+    });
+
+    const format = getSocialFormat(
+      SOCIAL_FORMAT_SLUGS.find(s => getSocialFormat(s)?.aspect_ratio === target_aspect_ratio)
+    );
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          adapted_manifest: adapted,
+          format_applied: format ? format.slug : null,
+          resolution: adapted.resolution,
+          safe_areas: adapted.format?.safe_areas,
+          notes: [
+            `Adapted from ${manifest.format?.aspect_ratio || '16:9'} to ${target_aspect_ratio}`,
+            recompose ? 'Layer positions recomposed for new ratio' : 'Layers cropped (use recompose=true for repositioning)',
+            format ? `Pacing: ${format.pacing_rules}` : null,
+          ].filter(Boolean),
+        }, null, 2),
+      }],
+    };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Error adapting manifest: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+// ── create_social_cutdown ─────────────────────────────────────────────────
+
+function handleCreateSocialCutdown(args) {
+  const { manifest, target_aspect_ratio, max_duration_s, scenes_to_keep } = args;
+
+  if (!manifest) {
+    return {
+      content: [{ type: 'text', text: 'A `manifest` object is required.' }],
+      isError: true,
+    };
+  }
+
+  if (!target_aspect_ratio) {
+    return {
+      content: [{ type: 'text', text: 'A `target_aspect_ratio` is required.' }],
+      isError: true,
+    };
+  }
+
+  if (!max_duration_s || max_duration_s <= 0) {
+    return {
+      content: [{ type: 'text', text: 'A positive `max_duration_s` is required.' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const cutdown = createSocialCutdown(
+      manifest,
+      scenes_to_keep || null,
+      target_aspect_ratio,
+      max_duration_s,
+    );
+
+    const originalSceneCount = manifest.scenes?.length || 0;
+    const cutdownSceneCount = cutdown.scenes?.length || 0;
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          cutdown_manifest: cutdown,
+          summary: {
+            original_scenes: originalSceneCount,
+            cutdown_scenes: cutdownSceneCount,
+            target_aspect_ratio,
+            max_duration_s,
+            resolution: cutdown.resolution,
+            sequence_intent: cutdown.sequence_intent,
+          },
+        }, null, 2),
+      }],
+    };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Error creating cutdown: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+// ── recommend_type_treatment ──────────────────────────────────────────────────
+
+function handleRecommendTypeTreatment(args) {
+  const { block_role, content, personality, scene_energy = 'medium' } = args;
+
+  const treatments = {
+    headline: {
+      'cinematic-dark': { animation: 'line-reveal', style_hints: { fontSize: 96, fontWeight: 800, letterSpacing: '-0.02em', textTransform: 'uppercase' } },
+      'editorial': { animation: 'word-reveal', style_hints: { fontSize: 72, fontWeight: 300, letterSpacing: '0.04em', textTransform: 'none' } },
+      'neutral-light': { animation: 'lockup-slide', style_hints: { fontSize: 64, fontWeight: 600, letterSpacing: '0', textTransform: 'none' } },
+      'montage': { animation: 'lockup-slide', style_hints: { fontSize: 108, fontWeight: 900, letterSpacing: '-0.03em', textTransform: 'uppercase' } },
+    },
+    caption: {
+      'cinematic-dark': { animation: 'caption-build', style_hints: { fontSize: 24, fontWeight: 400, letterSpacing: '0.06em', textTransform: 'uppercase' } },
+      'editorial': { animation: 'caption-build', style_hints: { fontSize: 20, fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' } },
+      'neutral-light': { animation: 'cursor-pulse', style_hints: { fontSize: 18, fontWeight: 400, letterSpacing: '0', textTransform: 'none' } },
+      'montage': { animation: 'caption-build', style_hints: { fontSize: 28, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' } },
+    },
+    label: {
+      'cinematic-dark': { animation: null, style_hints: { fontSize: 16, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' } },
+      'editorial': { animation: null, style_hints: { fontSize: 14, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase' } },
+      'neutral-light': { animation: null, style_hints: { fontSize: 14, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'none' } },
+      'montage': { animation: null, style_hints: { fontSize: 18, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' } },
+    },
+    quote: {
+      'cinematic-dark': { animation: 'line-reveal', style_hints: { fontSize: 48, fontWeight: 300, letterSpacing: '0', textTransform: 'none', fontStyle: 'italic' } },
+      'editorial': { animation: 'line-reveal', style_hints: { fontSize: 40, fontWeight: 300, letterSpacing: '0.02em', textTransform: 'none', fontStyle: 'italic' } },
+      'neutral-light': { animation: 'word-reveal', style_hints: { fontSize: 36, fontWeight: 400, letterSpacing: '0', textTransform: 'none' } },
+      'montage': { animation: 'lockup-slide', style_hints: { fontSize: 56, fontWeight: 700, letterSpacing: '-0.01em', textTransform: 'uppercase' } },
+    },
+  };
+
+  const base = treatments[block_role]?.[personality];
+  if (!base) {
+    return {
+      content: [{ type: 'text', text: `Unknown block_role "${block_role}" or personality "${personality}"` }],
+      isError: true,
+    };
+  }
+
+  // Energy adjustments
+  const result = { ...base, block_role, personality, scene_energy };
+  if (scene_energy === 'high' && block_role === 'headline') {
+    if (personality === 'cinematic-dark' || personality === 'montage') {
+      result.animation = 'lockup-slide';
+      result.style_hints = { ...result.style_hints, slide_direction: 'left' };
+    }
+  }
+  if (scene_energy === 'low' && block_role === 'caption') {
+    result.animation = 'cursor-pulse';
+  }
+
+  // Word swap suggestion for headlines with short content
+  if (block_role === 'headline' && content.split(/\s+/).length <= 3) {
+    result.alternative = { animation: 'word-swap', note: 'Consider word-swap for short headlines with multiple variants' };
+  }
+
+  // Label always uses simple fade (no text animation)
+  if (block_role === 'label') {
+    result.animation = null;
+    result.entrance_note = 'Use layer entrance (fade_in) instead of text animation for labels';
+  }
+
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify(result, null, 2),
+    }],
+  };
+}
+
+// ── suggest_match_cuts ───────────────────────────────────────────────────────
+
+function handleSuggestMatchCuts(args) {
+  const { manifest, scenes } = args;
+
+  if (!manifest || !scenes) {
+    return {
+      content: [{ type: 'text', text: 'manifest and scenes are required' }],
+      isError: true,
+    };
+  }
+
+  const suggestions = suggestMatchCuts(manifest, scenes);
+
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify({
+        match_cut_suggestions: suggestions.map(s => ({
+          from_scene: s.from_scene,
+          to_scene: s.to_scene,
+          from_layer_id: s.from_layer.id,
+          to_layer_id: s.to_layer.id,
+          similarity: Math.round(s.similarity * 100) / 100,
+          suggested_continuity_id: s.suggested_continuity_id,
+          suggested_strategy: s.suggested_strategy,
+        })),
+        count: suggestions.length,
+      }, null, 2),
+    }],
+  };
+}
+
+// ── plan_continuity_links ────────────────────────────────────────────────────
+
+function handlePlanContinuityLinks(args) {
+  const { manifest, scenes, auto_assign_ids = true } = args;
+
+  if (!manifest || !scenes) {
+    return {
+      content: [{ type: 'text', text: 'manifest and scenes are required' }],
+      isError: true,
+    };
+  }
+
+  const result = planContinuityLinks(manifest, scenes, { auto_assign_ids });
+  const validation = validateContinuityChain(result.manifest, result.scenes);
+
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify({
+        annotated_manifest: result.manifest,
+        annotated_scenes: result.scenes,
+        validation,
+      }, null, 2),
+    }],
+  };
 }
 
 async function main() {

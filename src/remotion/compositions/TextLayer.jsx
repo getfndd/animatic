@@ -108,6 +108,56 @@ export const TextLayer = ({ layer, style, entrance, semanticValues }) => {
           />
         </div>
       );
+    case 'line-reveal':
+      return (
+        <div style={style}>
+          <LineRevealRenderer content={content} progress={progress} textStyle={textStyle} />
+        </div>
+      );
+    case 'word-swap':
+      return (
+        <div style={style}>
+          <WordSwapRenderer
+            content={content}
+            swapWords={layer.swap_words || []}
+            progress={progress}
+            textStyle={textStyle}
+          />
+        </div>
+      );
+    case 'lockup-slide':
+      return (
+        <div style={style}>
+          <LockupSlideRenderer
+            content={content}
+            progress={progress}
+            textStyle={textStyle}
+            direction={layer.slide_direction || 'left'}
+          />
+        </div>
+      );
+    case 'cursor-pulse':
+      return (
+        <div style={{
+          ...style,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: textStyle.textAlign === 'left' ? 'flex-start' : 'center',
+        }}>
+          <CursorPulseRenderer
+            content={content}
+            progress={progress}
+            textStyle={textStyle}
+            cursorStyle={layer.cursor_style || '|'}
+          />
+        </div>
+      );
+    case 'caption-build':
+      return (
+        <div style={style}>
+          <CaptionBuildRenderer content={content} progress={progress} textStyle={textStyle} />
+        </div>
+      );
     default:
       return (
         <div style={{
@@ -270,6 +320,201 @@ const WeightMorphRenderer = ({ content, progress, textStyle, startWeight, endWei
             }}
           >
             {char}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
+/**
+ * LineRevealRenderer — Lines appear one at a time with slide + fade.
+ * Split content by newlines; each line fades in and slides from bottom with stagger.
+ */
+const LineRevealRenderer = ({ content, progress, textStyle }) => {
+  const lines = content.split('\n').filter(Boolean);
+  const staggerWindow = 0.6;
+  const lineWindow = (1 - staggerWindow) + staggerWindow / Math.max(lines.length, 1);
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: textStyle.textAlign === 'left' ? 'flex-start' : textStyle.textAlign === 'right' ? 'flex-end' : 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+      gap: '0.2em',
+    }}>
+      {lines.map((line, i) => {
+        const lineStart = (staggerWindow / Math.max(lines.length - 1, 1)) * i;
+        const lineProgress = Math.max(0, Math.min(1, (progress - lineStart) / lineWindow));
+        const opacity = lineProgress;
+        const translateY = (1 - lineProgress) * 30;
+        return (
+          <span
+            key={i}
+            style={{
+              ...textStyle,
+              display: 'block',
+              opacity,
+              transform: `translateY(${translateY}px)`,
+            }}
+          >
+            {line}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
+/**
+ * WordSwapRenderer — Words cycle through alternatives with crossfade.
+ * Takes swap_words array and cycles through them, showing one at a time.
+ */
+const WordSwapRenderer = ({ content, swapWords, progress, textStyle }) => {
+  const words = swapWords.length > 0 ? swapWords : [content];
+  const totalWords = words.length;
+  const segmentDuration = 1 / totalWords;
+  const currentIndex = Math.min(Math.floor(progress / segmentDuration), totalWords - 1);
+  const segmentProgress = (progress - currentIndex * segmentDuration) / segmentDuration;
+
+  // Fade in during first 30%, hold, fade out during last 20%
+  let opacity;
+  if (segmentProgress < 0.3) {
+    opacity = segmentProgress / 0.3;
+  } else if (segmentProgress > 0.8 && currentIndex < totalWords - 1) {
+    opacity = (1 - segmentProgress) / 0.2;
+  } else {
+    opacity = 1;
+  }
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+    }}>
+      <span style={{ ...textStyle, opacity }}>
+        {words[currentIndex]}
+      </span>
+    </div>
+  );
+};
+
+/**
+ * LockupSlideRenderer — Entire text block slides in from one direction as a unit.
+ * Supports slide_direction: left, right, up, down.
+ */
+const LockupSlideRenderer = ({ content, progress, textStyle, direction }) => {
+  const eased = 1 - Math.pow(1 - Math.min(progress * 1.5, 1), 3); // ease-out cubic, arrive by ~67%
+  const distance = 120;
+
+  const translates = {
+    left: `translateX(${(1 - eased) * -distance}px)`,
+    right: `translateX(${(1 - eased) * distance}px)`,
+    up: `translateY(${(1 - eased) * -distance}px)`,
+    down: `translateY(${(1 - eased) * distance}px)`,
+  };
+
+  const transform = translates[direction] || translates.left;
+  const opacity = Math.min(eased * 2, 1);
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+      transform,
+      opacity,
+    }}>
+      <span style={{ ...textStyle, whiteSpace: 'pre-wrap' }}>
+        {content}
+      </span>
+    </div>
+  );
+};
+
+/**
+ * CursorPulseRenderer — Typed text reveal with pronounced cursor pulse animation.
+ * More cinematic than TypewriterRenderer: configurable cursor style and stronger pulse.
+ */
+const CursorPulseRenderer = ({ content, progress, textStyle, cursorStyle }) => {
+  const frame = useCurrentFrame();
+  const totalChars = content.length;
+
+  // Type out over first 80% of duration, hold for remaining 20%
+  const typeProgress = Math.min(progress / 0.8, 1);
+  const visibleChars = Math.max(0, Math.min(totalChars, Math.round(totalChars * typeProgress)));
+  const visibleText = content.slice(0, visibleChars);
+
+  // Pronounced pulse: sinusoidal with faster cycle (every 20 frames)
+  const pulseOpacity = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(frame * 0.314));
+
+  return (
+    <span style={{ ...textStyle, whiteSpace: 'pre-wrap' }}>
+      {visibleText}
+      <span style={{
+        opacity: pulseOpacity,
+        fontWeight: textStyle.fontWeight,
+        color: textStyle.color,
+      }}>
+        {cursorStyle}
+      </span>
+    </span>
+  );
+};
+
+/**
+ * CaptionBuildRenderer — Words appear one by one with an underline growing beneath each.
+ * Editorial caption treatment: each word fades in sequentially with underline accent.
+ */
+const CaptionBuildRenderer = ({ content, progress, textStyle }) => {
+  const words = content.split(/\s+/).filter(Boolean);
+  const totalWords = words.length;
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+      flexWrap: 'wrap',
+      gap: '0.3em',
+    }}>
+      {words.map((word, i) => {
+        const wordStart = (i / totalWords) * 0.85;
+        const wordEnd = wordStart + (0.85 / totalWords);
+        const wordProgress = Math.max(0, Math.min(1, (progress - wordStart) / (wordEnd - wordStart)));
+        const opacity = wordProgress;
+        const underlineWidth = `${wordProgress * 100}%`;
+
+        return (
+          <span
+            key={i}
+            style={{
+              ...textStyle,
+              display: 'inline-block',
+              opacity,
+              position: 'relative',
+            }}
+          >
+            {word}
+            <span style={{
+              position: 'absolute',
+              bottom: '-2px',
+              left: 0,
+              width: underlineWidth,
+              height: '2px',
+              backgroundColor: textStyle.color || '#ffffff',
+              opacity: 0.6,
+            }} />
           </span>
         );
       })}

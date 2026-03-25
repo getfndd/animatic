@@ -45,6 +45,16 @@ export const TransitionWrapper = ({ transition, transitionFrames, children }) =>
       return <WhipWipe direction="up" progress={progress}>{children}</WhipWipe>;
     case 'whip_down':
       return <WhipWipe direction="down" progress={progress}>{children}</WhipWipe>;
+    case 'zoom_crossfade':
+      return <ZoomCrossfadeIn progress={progress}>{children}</ZoomCrossfadeIn>;
+    case 'parallax_crossfade':
+      return <ParallaxCrossfadeIn progress={progress}>{children}</ParallaxCrossfadeIn>;
+    case 'light_wipe':
+      return <LightWipe progress={progress}>{children}</LightWipe>;
+    case 'focus_dissolve':
+      return <FocusDissolveIn progress={progress}>{children}</FocusDissolveIn>;
+    case 'match_cut_scale':
+      return <MatchCutScaleIn progress={progress}>{children}</MatchCutScaleIn>;
     default:
       return <AbsoluteFill>{children}</AbsoluteFill>;
   }
@@ -78,6 +88,17 @@ export const TransitionOutWrapper = ({ transition, transitionFrames, sceneFrames
     case 'whip_down':
       // Whip wipes: outgoing scene stays fully visible, incoming wipes over it
       return <AbsoluteFill>{children}</AbsoluteFill>;
+    case 'zoom_crossfade':
+      return <ZoomCrossfadeOut progress={exitProgress}>{children}</ZoomCrossfadeOut>;
+    case 'parallax_crossfade':
+      return <ParallaxCrossfadeOut progress={exitProgress}>{children}</ParallaxCrossfadeOut>;
+    case 'light_wipe':
+      // Light wipe: outgoing scene stays visible, gradient wipes over it
+      return <AbsoluteFill>{children}</AbsoluteFill>;
+    case 'focus_dissolve':
+      return <FocusDissolveOut progress={exitProgress}>{children}</FocusDissolveOut>;
+    case 'match_cut_scale':
+      return <MatchCutScaleOut progress={exitProgress}>{children}</MatchCutScaleOut>;
     default:
       return <AbsoluteFill>{children}</AbsoluteFill>;
   }
@@ -155,6 +176,182 @@ const WhipWipe = ({ direction, progress, children }) => {
 
   return (
     <AbsoluteFill style={{ clipPath }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * Zoom crossfade in — incoming scene fades in while scaling from 1.08 to 1.0.
+ * Creates a gentle "landing" feel, as if the camera settles into the new scene.
+ */
+const ZoomCrossfadeIn = ({ progress, children }) => {
+  const opacity = interpolate(progress, [0, 1], [0, 1], {
+    easing: Easing.inOut(Easing.cubic),
+  });
+  const scale = interpolate(progress, [0, 1], [1.08, 1], {
+    easing: Easing.out(Easing.cubic),
+  });
+
+  return (
+    <AbsoluteFill style={{ opacity, transform: `scale(${scale})` }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+const ZoomCrossfadeOut = ({ progress, children }) => {
+  const opacity = interpolate(progress, [0, 1], [1, 0], {
+    easing: Easing.inOut(Easing.cubic),
+  });
+  const scale = interpolate(progress, [0, 1], [1, 0.94], {
+    easing: Easing.in(Easing.cubic),
+  });
+
+  return (
+    <AbsoluteFill style={{ opacity, transform: `scale(${scale})` }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * Parallax crossfade — incoming scene fades in while sliding from right.
+ * Outgoing scene fades out while sliding left at half the speed (parallax offset).
+ */
+const ParallaxCrossfadeIn = ({ progress, children }) => {
+  const opacity = interpolate(progress, [0, 0.6], [0, 1], {
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+  const translateX = interpolate(progress, [0, 1], [80, 0], {
+    easing: Easing.out(Easing.cubic),
+  });
+
+  return (
+    <AbsoluteFill style={{ opacity, transform: `translateX(${translateX}px)` }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+const ParallaxCrossfadeOut = ({ progress, children }) => {
+  const opacity = interpolate(progress, [0.4, 1], [1, 0], {
+    extrapolateLeft: 'clamp',
+    easing: Easing.in(Easing.cubic),
+  });
+  const translateX = interpolate(progress, [0, 1], [0, -40], {
+    easing: Easing.in(Easing.cubic),
+  });
+
+  return (
+    <AbsoluteFill style={{ opacity, transform: `translateX(${translateX}px)` }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * Light wipe — a bright gradient band sweeps across, revealing the incoming scene.
+ * Uses clip-path for the reveal and a white gradient overlay for the "light" effect.
+ */
+const LightWipe = ({ progress, children }) => {
+  const easedProgress = interpolate(progress, [0, 1], [0, 1], {
+    easing: Easing.inOut(Easing.cubic),
+  });
+
+  // The reveal clip moves from left to right
+  const revealPct = easedProgress * 100;
+  const clipPath = `inset(0 ${100 - revealPct}% 0 0)`;
+
+  // The light band leads the wipe edge
+  const bandCenter = revealPct;
+  const bandOpacity = interpolate(progress, [0, 0.15, 0.85, 1], [0, 0.6, 0.6, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  return (
+    <AbsoluteFill>
+      <AbsoluteFill style={{ clipPath }}>
+        {children}
+      </AbsoluteFill>
+      <AbsoluteFill
+        style={{
+          background: `linear-gradient(90deg, transparent ${bandCenter - 8}%, rgba(255,255,255,${bandOpacity}) ${bandCenter}%, transparent ${bandCenter + 8}%)`,
+          pointerEvents: 'none',
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * Focus dissolve — incoming scene starts blurred and sharpens as it fades in.
+ * Simulates a rack-focus transition between scenes.
+ */
+const FocusDissolveIn = ({ progress, children }) => {
+  const opacity = interpolate(progress, [0, 1], [0, 1], {
+    easing: Easing.inOut(Easing.cubic),
+  });
+  const blur = interpolate(progress, [0, 1], [12, 0], {
+    easing: Easing.out(Easing.cubic),
+  });
+
+  return (
+    <AbsoluteFill style={{ opacity, filter: `blur(${blur}px)` }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+const FocusDissolveOut = ({ progress, children }) => {
+  const opacity = interpolate(progress, [0, 1], [1, 0], {
+    easing: Easing.inOut(Easing.cubic),
+  });
+  const blur = interpolate(progress, [0, 1], [0, 8], {
+    easing: Easing.in(Easing.cubic),
+  });
+
+  return (
+    <AbsoluteFill style={{ opacity, filter: `blur(${blur}px)` }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * Match cut scale — incoming scene scales up from a small focal point.
+ * Creates a graphic match-cut effect, as if zooming into a detail that becomes
+ * the next scene. Outgoing scene scales down to the same focal point.
+ */
+const MatchCutScaleIn = ({ progress, children }) => {
+  const opacity = interpolate(progress, [0, 0.3], [0, 1], {
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+  const scale = interpolate(progress, [0, 1], [0.4, 1], {
+    easing: Easing.out(Easing.expo),
+  });
+
+  return (
+    <AbsoluteFill style={{ opacity, transform: `scale(${scale})`, transformOrigin: 'center center' }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+const MatchCutScaleOut = ({ progress, children }) => {
+  const opacity = interpolate(progress, [0.7, 1], [1, 0], {
+    extrapolateLeft: 'clamp',
+    easing: Easing.in(Easing.cubic),
+  });
+  const scale = interpolate(progress, [0, 1], [1, 2.2], {
+    easing: Easing.in(Easing.expo),
+  });
+
+  return (
+    <AbsoluteFill style={{ opacity, transform: `scale(${scale})`, transformOrigin: 'center center' }}>
       {children}
     </AbsoluteFill>
   );

@@ -1,0 +1,62 @@
+[
+  {
+    "slug": "inspect",
+    "name": "Inspect",
+    "description": "Slow, deliberate examination — user is studying the interface. Camera stays still, letting the content speak.",
+    "camera": { "move": "static", "intensity": 0 },
+    "transition_in": "crossfade",
+    "transition_duration_ms": 400,
+    "pacing": "slow",
+    "when_to_use": "Empty states, form fields, settings panels, initial context establishment"
+  },
+  {
+    "slug": "compare",
+    "name": "Compare",
+    "description": "Side-by-side or toggle view — user evaluating options. Gentle drift maintains visual interest without competing with the content contrast.",
+    "camera": { "move": "drift", "intensity": 0.15 },
+    "transition_in": "crossfade",
+    "transition_duration_ms": 300,
+    "pacing": "medium",
+    "when_to_use": "Before/after states, feature comparisons, A/B views, theme toggles"
+  },
+  {
+    "slug": "confirm",
+    "name": "Confirm",
+    "description": "Brief hold showing completed action — user sees success. Subtle breathing motion communicates life and completion without distraction.",
+    "camera": { "move": "breathe", "intensity": 0.2 },
+    "transition_in": "crossfade",
+    "transition_duration_ms": 300,
+    "pacing": "slow",
+    "when_to_use": "Success states, saved confirmations, upload completions, form submissions"
+  },
+  {
+    "slug": "spotlight",
+    "name": "Spotlight",
+    "description": "Draw attention to a specific UI element. Camera pushes in to focus the viewer's eye on the interaction point.",
+    "camera": { "move": "push_in", "intensity": 0.25 },
+    "transition_in": "crossfade",
+    "transition_duration_ms": 250,
+    "pacing": "medium",
+    "when_to_use": "User clicks, button interactions, cursor focus, highlighting a specific control"
+  },
+  {
+    "slug": "reveal",
+    "name": "Reveal",
+    "description": "Content appearing or expanding — the payoff moment. Camera pulls out to give newly appeared content room to breathe.",
+    "camera": { "move": "pull_out", "intensity": 0.3 },
+    "transition_in": "crossfade",
+    "transition_duration_ms": 400,
+    "pacing": "medium",
+    "when_to_use": "Data population, results appearing, panels expanding, content loading"
+  },
+  {
+    "slug": "recap",
+    "name": "Recap",
+    "description": "Pull back to show full context after a detail view. Re-establishes the bigger picture after focused interaction.",
+    "camera": { "move": "pull_out", "intensity": 0.2 },
+    "transition_in": "crossfade",
+    "transition_duration_ms": 500,
+    "pacing": "slow",
+    "when_to_use": "Post-drilldown context recovery, closing sequences, returning to dashboard view"
+  }
+]

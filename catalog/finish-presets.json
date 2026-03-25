@@ -1,0 +1,57 @@
+[
+  {
+    "slug": "cinematic-film",
+    "name": "Cinematic Film",
+    "description": "Classic film look: grain + vignette + subtle bloom + warm grade. The default for hero videos where every frame should feel like a still worth framing.",
+    "passes": [
+      { "slug": "film-grain", "overrides": { "opacity": 0.05 } },
+      { "slug": "vignette", "overrides": { "opacity": 0.4, "spread": 0.65 } },
+      { "slug": "bloom", "overrides": { "intensity": 0.2, "threshold": 0.75 } }
+    ],
+    "color_grade": { "warmth": 0.1, "contrast": 1.05, "saturation": 0.95 },
+    "compatible_personalities": ["cinematic-dark"]
+  },
+  {
+    "slug": "clean-digital",
+    "name": "Clean Digital",
+    "description": "Minimal post-processing for product demos where clarity is paramount. No grain, no vignette — just a slight contrast bump to keep the image from feeling flat.",
+    "passes": [],
+    "color_grade": { "warmth": 0, "contrast": 1.02, "saturation": 1.0 },
+    "compatible_personalities": ["neutral-light", "editorial"]
+  },
+  {
+    "slug": "editorial-subtle",
+    "name": "Editorial Subtle",
+    "description": "Light grain + soft vignette for editorial content. Adds just enough texture to feel crafted without drawing attention to the post-processing.",
+    "passes": [
+      { "slug": "film-grain", "overrides": { "opacity": 0.025 } },
+      { "slug": "vignette", "overrides": { "opacity": 0.2, "spread": 0.75 } }
+    ],
+    "color_grade": { "warmth": 0.03, "contrast": 1.03, "saturation": 0.98 },
+    "compatible_personalities": ["editorial", "cinematic-dark"]
+  },
+  {
+    "slug": "social-punchy",
+    "name": "Social Punchy",
+    "description": "High contrast + slight chromatic softness for social media content. Optimized for small screens and autoplay — punches through the scroll with aggressive tonal separation.",
+    "passes": [
+      { "slug": "chromatic-softness", "overrides": { "offset_px": 1.0, "opacity": 0.1 } },
+      { "slug": "vignette", "overrides": { "opacity": 0.25, "spread": 0.7 } }
+    ],
+    "color_grade": { "warmth": 0.05, "contrast": 1.12, "saturation": 1.08 },
+    "compatible_personalities": ["montage", "cinematic-dark"]
+  },
+  {
+    "slug": "premium-brand",
+    "name": "Premium Brand",
+    "description": "Full treatment for brand hero videos. Film grain, vignette, bloom, and chromatic softness layered with a neutral-warm grade. The maximum finish stack — use when every detail matters.",
+    "passes": [
+      { "slug": "film-grain", "overrides": { "opacity": 0.04 } },
+      { "slug": "vignette", "overrides": { "opacity": 0.35, "spread": 0.6 } },
+      { "slug": "bloom", "overrides": { "intensity": 0.15, "threshold": 0.8 } },
+      { "slug": "chromatic-softness", "overrides": { "offset_px": 1.0, "opacity": 0.08 } }
+    ],
+    "color_grade": { "warmth": 0.06, "contrast": 1.06, "saturation": 0.97 },
+    "compatible_personalities": ["cinematic-dark", "editorial"]
+  }
+]

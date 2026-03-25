@@ -5,6 +5,22 @@
   "personality": "cinematic-dark",
   "style": "prestige",
 
+  "logo": {
+    "primary": null,
+    "monochrome": null,
+    "icon_only": null,
+    "safe_zone_pct": 15,
+    "min_size_px": 48
+  },
+
+  "intro_outro": {
+    "intro_style": "fade",
+    "intro_duration_ms": 800,
+    "outro_style": "fade",
+    "outro_duration_ms": 600,
+    "outro_hold_ms": 1500
+  },
+
   "colors": {
     "bg_primary": "#111827",
     "bg_surface": "rgba(255,255,255,0.04)",
@@ -17,7 +33,8 @@
     "trend_up": "#34d399",
     "trend_down": "#94a3b8",
     "border": "rgba(255,255,255,0.07)",
-    "shadow": "rgba(0,0,0,0.5)"
+    "shadow": "rgba(0,0,0,0.5)",
+    "approved_colors": ["#111827", "#1f2937", "#f3f4f6", "#6366f1", "#818cf8", "#34d399", "#94a3b8"]
   },
 
   "typography": {
@@ -33,5 +50,42 @@
     "card": { "background": "rgba(255,255,255,0.035)", "border": "1px solid rgba(255,255,255,0.06)", "border_radius": "14px", "padding": "20px 24px" },
     "panel": { "background": "#1f2937", "border": "1px solid rgba(255,255,255,0.08)", "border_radius": "18px", "shadow": "0 32px 80px rgba(0,0,0,0.5)" },
     "input": { "background": "rgba(255,255,255,0.05)", "border": "1px solid rgba(255,255,255,0.08)", "border_radius": "28px", "padding": "14px 20px" }
+  },
+
+  "motion": {
+    "preferred_personality": "cinematic-dark",
+    "preferred_style_pack": "prestige",
+    "preferred_easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "forbidden_moves": [],
+    "max_intensity": 0.7
+  },
+
+  "textures": {
+    "overlays": [],
+    "grain": { "enabled": true, "opacity": 0.03 }
+  },
+
+  "audio": {
+    "sonic_cues": {
+      "logo_sting": null,
+      "transition_whoosh": null,
+      "ui_click": null
+    },
+    "music_guidelines": "Minimal electronic, low tempo, no lyrics. Subtle ambient pads preferred."
+  },
+
+  "guidelines": {
+    "dos": [
+      "Use dark backgrounds with high-contrast text",
+      "Favor crossfade transitions over hard cuts",
+      "Keep camera movement subtle and deliberate",
+      "Use accent color sparingly for data highlights"
+    ],
+    "donts": [
+      "Never use bright or saturated backgrounds",
+      "Avoid whip-wipe transitions",
+      "No 3D perspective tilts beyond 5 degrees",
+      "Do not use more than 2 accent colors per scene"
+    ]
   }
 }

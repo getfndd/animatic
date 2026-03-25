@@ -1,0 +1,27 @@
+{
+  "scene_id": "sc_07_tagline_intro",
+  "format_version": 2,
+  "duration_s": 3,
+  "brand": "fintech-demo",
+  "camera": { "move": "drift", "intensity": 0.04 },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+      "depth_class": "background"
+    },
+    {
+      "id": "taglines",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:40px;font-weight:300;color:#f3f4f6;letter-spacing:-0.025em\">Introducing Insights.</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:40px;font-weight:300;color:#f3f4f6;letter-spacing:-0.025em\">An intelligent view of your finances.</span></div>",
+      "depth_class": "foreground"
+    }
+  ],
+  "motion": {
+    "groups": [{ "targets": ["taglines"], "primitive": "as-fadeIn" }]
+  },
+  "metadata": { "motion_energy": "subtle", "intent_tags": ["closing"] }
+}

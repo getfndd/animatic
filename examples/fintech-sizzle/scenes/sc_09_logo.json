@@ -1,0 +1,27 @@
+{
+  "scene_id": "sc_09_logo",
+  "format_version": 2,
+  "duration_s": 2.5,
+  "brand": "fintech-demo",
+  "camera": { "move": "static" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+      "depth_class": "background"
+    },
+    {
+      "id": "logo",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px\"><div style=\"display:flex;align-items:center;gap:14px\"><div style=\"width:48px;height:48px;border:1.5px solid rgba(243,244,246,0.6);border-radius:12px;display:flex;align-items:center;justify-content:center\"><div style=\"width:20px;height:20px;background:rgba(99,102,241,0.5);border-radius:4px\"></div></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:24px;font-weight:400;letter-spacing:0.15em;color:#f3f4f6\">ACME FINANCE</span></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(243,244,246,0.25);max-width:600px;text-align:center\">Acme Finance is a technology company. Banking services provided through partner institutions.</div></div>",
+      "depth_class": "foreground"
+    }
+  ],
+  "motion": {
+    "groups": [{ "targets": ["logo"], "primitive": "as-fadeIn" }]
+  },
+  "metadata": { "motion_energy": "static", "intent_tags": ["closing"] }
+}

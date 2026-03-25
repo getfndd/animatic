@@ -17,6 +17,11 @@ export function getDefaultTransitionDuration(type) {
     case 'whip_up':
     case 'whip_down':
       return 250;
+    case 'zoom_crossfade': return 500;
+    case 'parallax_crossfade': return 600;
+    case 'light_wipe': return 450;
+    case 'focus_dissolve': return 550;
+    case 'match_cut_scale': return 400;
     default:
       return 0;
   }
@@ -101,6 +106,32 @@ export function validateManifest(manifest) {
     }
   }
 
+  // format
+  if (manifest.format) {
+    if (manifest.format.aspect_ratio != null) {
+      const validAspectRatios = ['16:9', '1:1', '4:5', '9:16'];
+      if (!validAspectRatios.includes(manifest.format.aspect_ratio)) {
+        errors.push(`format.aspect_ratio "${manifest.format.aspect_ratio}" is not valid (must be one of: ${validAspectRatios.join(', ')})`);
+      }
+    }
+    if (manifest.format.safe_areas != null) {
+      const sa = manifest.format.safe_areas;
+      for (const side of ['top', 'right', 'bottom', 'left']) {
+        if (sa[side] != null && (typeof sa[side] !== 'number' || sa[side] < 0 || sa[side] > 50)) {
+          errors.push(`format.safe_areas.${side} must be a number between 0 and 50`);
+        }
+      }
+    }
+  }
+
+  // sequence_intent
+  if (manifest.sequence_intent != null) {
+    const validIntents = ['brand_social', 'product_social', 'explainer', 'brand_hero', 'product_demo'];
+    if (!validIntents.includes(manifest.sequence_intent)) {
+      errors.push(`sequence_intent "${manifest.sequence_intent}" is not valid (must be one of: ${validIntents.join(', ')})`);
+    }
+  }
+
   // scenes
   if (!manifest.scenes || !Array.isArray(manifest.scenes) || manifest.scenes.length === 0) {
     errors.push('scenes array is required and must have at least 1 entry');
@@ -120,7 +151,7 @@ export function validateManifest(manifest) {
       }
 
       if (scene.transition_in) {
-        const validTypes = ['hard_cut', 'crossfade', 'whip_left', 'whip_right', 'whip_up', 'whip_down'];
+        const validTypes = ['hard_cut', 'crossfade', 'whip_left', 'whip_right', 'whip_up', 'whip_down', 'zoom_crossfade', 'parallax_crossfade', 'light_wipe', 'focus_dissolve', 'match_cut_scale'];
         if (!validTypes.includes(scene.transition_in.type)) {
           errors.push(`${prefix}.transition_in.type "${scene.transition_in.type}" is not valid`);
         }
@@ -129,11 +160,26 @@ export function validateManifest(manifest) {
             errors.push(`${prefix}.transition_in.duration_ms must be between 0 and 2000`);
           }
         }
+
+        // match config for cross-scene continuity
+        if (scene.transition_in.match) {
+          const m = scene.transition_in.match;
+          const validStrategies = ['position', 'scale', 'mask_expand', 'content_morph', 'card_to_panel'];
+          if (!m.source_continuity_id || typeof m.source_continuity_id !== 'string') {
+            errors.push(`${prefix}.transition_in.match.source_continuity_id is required`);
+          }
+          if (m.target_continuity_id != null && typeof m.target_continuity_id !== 'string') {
+            errors.push(`${prefix}.transition_in.match.target_continuity_id must be a string`);
+          }
+          if (!m.strategy || !validStrategies.includes(m.strategy)) {
+            errors.push(`${prefix}.transition_in.match.strategy "${m.strategy}" is not valid (must be one of: ${validStrategies.join(', ')})`);
+          }
+        }
       }
 
       if (scene.camera_override) {
         const cam = scene.camera_override;
-        const validMoves = ['static', 'push_in', 'pull_out', 'pan_left', 'pan_right', 'drift'];
+        const validMoves = ['static', 'push_in', 'pull_out', 'pan_left', 'pan_right', 'drift', 'breathe', 'handheld'];
         if (cam.move && !validMoves.includes(cam.move)) {
           errors.push(`${prefix}.camera_override.move "${cam.move}" is not valid`);
         }
@@ -241,7 +287,7 @@ export function validateScene(scene) {
   // camera
   if (scene.camera) {
     const cam = scene.camera;
-    const validMoves = ['static', 'push_in', 'pull_out', 'pan_left', 'pan_right', 'drift'];
+    const validMoves = ['static', 'push_in', 'pull_out', 'pan_left', 'pan_right', 'drift', 'breathe', 'handheld'];
     if (cam.move && !validMoves.includes(cam.move)) {
       errors.push(`camera.move "${cam.move}" is not valid`);
     }
@@ -293,7 +339,7 @@ export function validateScene(scene) {
           layerIds.add(layer.id);
         }
 
-        const validTypes = ['html', 'video', 'image', 'text', 'svg'];
+        const validTypes = ['html', 'video', 'image', 'text', 'svg', 'card_conveyor', 'stack_fan_settle', 'chart_build_explain', 'spotlight_cursor_reveal', 'moodboard', 'result_grid', 'stacked_thumbs', 'media_strip'];
         if (!validTypes.includes(layer.type)) {
           errors.push(`layer "${layer.id || '?'}".type "${layer.type}" is not valid`);
         }
@@ -304,9 +350,15 @@ export function validateScene(scene) {
             errors.push(`layer "${layer.id || '?'}".content is required for text layers and must be a non-empty string`);
           }
           if (layer.animation) {
-            const validAnimations = ['word-reveal', 'scale-cascade', 'weight-morph'];
+            const validAnimations = ['word-reveal', 'scale-cascade', 'weight-morph', 'line-reveal', 'word-swap', 'lockup-slide', 'cursor-pulse', 'caption-build'];
             if (!validAnimations.includes(layer.animation)) {
               errors.push(`layer "${layer.id || '?'}".animation "${layer.animation}" is not valid (must be one of: ${validAnimations.join(', ')})`);
+            }
+          }
+          if (layer.block_role) {
+            const validBlockRoles = ['headline', 'caption', 'label', 'quote'];
+            if (!validBlockRoles.includes(layer.block_role)) {
+              errors.push(`layer "${layer.id || '?'}".block_role "${layer.block_role}" is not valid (must be one of: ${validBlockRoles.join(', ')})`);
             }
           }
         }
@@ -331,6 +383,13 @@ export function validateScene(scene) {
 
         if (layer.opacity != null && (layer.opacity < 0 || layer.opacity > 1)) {
           errors.push(`layer "${layer.id || '?'}".opacity must be between 0 and 1`);
+        }
+
+        // continuity_id: optional, must match ^[a-z][a-z0-9_]*$
+        if (layer.continuity_id != null) {
+          if (typeof layer.continuity_id !== 'string' || !/^[a-z][a-z0-9_]*$/.test(layer.continuity_id)) {
+            errors.push(`layer "${layer.id || '?'}".continuity_id "${layer.continuity_id}" must match ^[a-z][a-z0-9_]*$`);
+          }
         }
 
         // mask_layer: must be a string referencing another layer
@@ -507,6 +566,75 @@ export function validateScene(scene) {
       }
       if (ad.motion_profile != null && !['restrained', 'fluid', 'energetic'].includes(ad.motion_profile)) {
         errors.push(`semantic.art_direction.motion_profile "${ad.motion_profile}" is not valid (must be one of: restrained, fluid, energetic)`);
+      }
+    }
+  }
+
+  // mode
+  if (scene.mode != null) {
+    const validModes = ['product', 'editorial_canvas'];
+    if (!validModes.includes(scene.mode)) {
+      errors.push(`mode "${scene.mode}" is not valid (must be one of: ${validModes.join(', ')})`);
+    }
+  }
+
+  // canvas (editorial canvas properties)
+  if (scene.canvas) {
+    if (scene.canvas.grid) {
+      const g = scene.canvas.grid;
+      if (g.columns != null && (typeof g.columns !== 'number' || g.columns < 1)) {
+        errors.push('canvas.grid.columns must be a positive number');
+      }
+      if (g.rows != null && (typeof g.rows !== 'number' || g.rows < 1)) {
+        errors.push('canvas.grid.rows must be a positive number');
+      }
+      if (g.gutter != null && (typeof g.gutter !== 'number' || g.gutter < 0)) {
+        errors.push('canvas.grid.gutter must be >= 0');
+      }
+      if (g.margin != null && (typeof g.margin !== 'number' || g.margin < 0)) {
+        errors.push('canvas.grid.margin must be >= 0');
+      }
+    }
+    if (scene.canvas.safe_zone != null) {
+      if (typeof scene.canvas.safe_zone !== 'number' || scene.canvas.safe_zone < 0 || scene.canvas.safe_zone > 30) {
+        errors.push(`canvas.safe_zone must be between 0 and 30 (got ${scene.canvas.safe_zone})`);
+      }
+    }
+    if (scene.canvas.background_treatment != null) {
+      const validTreatments = ['solid', 'gradient', 'radial', 'mesh', 'blur_plate'];
+      if (!validTreatments.includes(scene.canvas.background_treatment)) {
+        errors.push(`canvas.background_treatment "${scene.canvas.background_treatment}" is not valid (must be one of: ${validTreatments.join(', ')})`);
+      }
+    }
+    if (scene.canvas.aspect_ratio != null) {
+      const validAspectRatios = ['16:9', '1:1', '4:5', '9:16'];
+      if (!validAspectRatios.includes(scene.canvas.aspect_ratio)) {
+        errors.push(`canvas.aspect_ratio "${scene.canvas.aspect_ratio}" is not valid (must be one of: ${validAspectRatios.join(', ')})`);
+      }
+    }
+  }
+
+  // Editorial canvas layer properties (anchor, max_w, z_bias)
+  if (scene.layers && Array.isArray(scene.layers)) {
+    const validAnchors = ['center', 'top-left', 'top-center', 'top-right', 'center-left', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+    for (const layer of scene.layers) {
+      if (layer.anchor != null) {
+        if (!validAnchors.includes(layer.anchor)) {
+          errors.push(`layer "${layer.id || '?'}".anchor "${layer.anchor}" is not valid (must be one of: ${validAnchors.join(', ')})`);
+        }
+      }
+      if (layer.max_w != null) {
+        if (typeof layer.max_w !== 'number' && typeof layer.max_w !== 'string') {
+          errors.push(`layer "${layer.id || '?'}".max_w must be a number (pixels) or string (e.g., "60%")`);
+        }
+        if (typeof layer.max_w === 'string' && !/^\d+(\.\d+)?%$/.test(layer.max_w)) {
+          errors.push(`layer "${layer.id || '?'}".max_w string must be a percentage (e.g., "60%")`);
+        }
+      }
+      if (layer.z_bias != null) {
+        if (typeof layer.z_bias !== 'number' || layer.z_bias < -10 || layer.z_bias > 10) {
+          errors.push(`layer "${layer.id || '?'}".z_bias must be between -10 and 10 (got ${layer.z_bias})`);
+        }
       }
     }
   }
@@ -1026,6 +1154,22 @@ export function getCameraMotionValues(camera, progress, easingFn, clampBounds) {
       translateY = Math.cos(progress * Math.PI * 1.5) * amplitude * constants.DRIFT_Y_RATIO;
       break;
     }
+    case 'breathe': {
+      // Subtle periodic scale oscillation — organic "living" feel
+      const breatheAmount = intensity * constants.SCALE_FACTOR * 0.3;
+      scale = 1 + Math.sin(progress * Math.PI * 2) * breatheAmount;
+      break;
+    }
+    case 'handheld': {
+      // Organic noise-like drift — simulates subtle handheld camera shake
+      // Uses incommensurate frequencies for non-repeating motion
+      const hAmplitude = intensity * constants.DRIFT_AMPLITUDE * 0.5;
+      translateX = Math.sin(progress * Math.PI * 3.7) * hAmplitude
+                 + Math.sin(progress * Math.PI * 7.3) * hAmplitude * 0.3;
+      translateY = Math.cos(progress * Math.PI * 2.9) * hAmplitude * constants.DRIFT_Y_RATIO
+                 + Math.cos(progress * Math.PI * 5.1) * hAmplitude * constants.DRIFT_Y_RATIO * 0.25;
+      break;
+    }
   }
 
   if (!clampBounds) {
@@ -1033,6 +1177,52 @@ export function getCameraMotionValues(camera, progress, easingFn, clampBounds) {
   }
 
   return clampCameraValues({ scale, translateX, translateY }, clampBounds);
+}
+
+/**
+ * Resolve a multi-segment camera track into motion values.
+ *
+ * Segments array: [{ move, start_pct, end_pct, intensity?, easing? }, ...]
+ * Each segment covers a portion of the scene (0-1 range). The active segment
+ * is determined by progress, and its local progress is normalized within
+ * its start_pct..end_pct range.
+ *
+ * Falls back to single-move getCameraMotionValues when camera has no segments.
+ *
+ * @param {object} camera - { move?, intensity?, segments?: Array }
+ * @param {number} progress - 0..1 linear progress through the scene
+ * @param {function} easingFn - (t: number) => number
+ * @param {object} [clampBounds] - Optional guardrail bounds
+ * @returns {{ scale: number, translateX: number, translateY: number }}
+ */
+export function getMultiSegmentCameraValues(camera, progress, easingFn, clampBounds) {
+  if (!camera?.segments || !Array.isArray(camera.segments) || camera.segments.length === 0) {
+    return getCameraMotionValues(camera, progress, easingFn, clampBounds);
+  }
+
+  // Find the active segment
+  const segments = camera.segments;
+  let active = segments[segments.length - 1]; // default to last if past all
+  for (const seg of segments) {
+    if (progress >= (seg.start_pct ?? 0) && progress <= (seg.end_pct ?? 1)) {
+      active = seg;
+      break;
+    }
+  }
+
+  // Normalize progress within the active segment
+  const segStart = active.start_pct ?? 0;
+  const segEnd = active.end_pct ?? 1;
+  const segRange = segEnd - segStart;
+  const localProgress = segRange > 0 ? Math.min(1, Math.max(0, (progress - segStart) / segRange)) : 0;
+
+  const segCamera = {
+    move: active.move || 'static',
+    intensity: active.intensity ?? camera.intensity ?? 0.5,
+    tuning: camera.tuning,
+  };
+
+  return getCameraMotionValues(segCamera, localProgress, easingFn, clampBounds);
 }
 
 /**

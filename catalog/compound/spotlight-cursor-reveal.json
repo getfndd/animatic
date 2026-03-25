@@ -1,0 +1,68 @@
+{
+  "name": "Spotlight Cursor Reveal — Click-to-Illuminate",
+  "slug": "bd-spotlight-cursor-reveal",
+  "source": "compound",
+  "category": "compound-entrance",
+  "requires_js": true,
+  "description": "A cursor moves smoothly along a waypoint path to a UI element, performs a click animation with scale pulse and ripple ring, then a radial spotlight expands from the click point to reveal content beneath.",
+  "default_duration": "3000ms",
+  "personality_affinity": ["neutral-light", "editorial"],
+  "entry_point": "src/remotion/physics/spotlight-cursor-reveal.js",
+  "remotion_component": "src/remotion/compositions/SpotlightCursorRevealLayer.jsx",
+  "config_schema": {
+    "cursorPath": {
+      "type": "array",
+      "default": [
+        { "x": 200, "y": 200, "t": 0 },
+        { "x": 960, "y": 540, "t": 1 }
+      ],
+      "description": "Array of {x, y, t} waypoints where t is normalized 0-1 within the cursor phase"
+    },
+    "spotlightRadius": { "type": "number", "default": 400, "description": "Final radius of the spotlight reveal in pixels" },
+    "revealDelay": { "type": "number", "default": 150, "description": "Delay in ms after click before spotlight starts expanding" },
+    "glowColor": { "type": "string", "default": "rgba(99,102,241,0.15)", "description": "Color of the spotlight glow effect" },
+    "cursorSize": { "type": "number", "default": 24, "description": "Size of the cursor icon in pixels" },
+    "clickScale": { "type": "number", "default": 0.82, "description": "Scale of cursor at click impact" },
+    "rippleMaxRadius": { "type": "number", "default": 32, "description": "Maximum radius of the click ripple ring" },
+    "rippleDuration": { "type": "number", "default": 300, "description": "Duration of the ripple ring animation in ms" }
+  },
+  "content_schema": {
+    "cursorStyle": "string (optional, 'default' | 'pointer' | 'hand')",
+    "spotlightTarget": "string (optional, label for the target element)",
+    "revealContent": "string (optional, text content revealed by spotlight)"
+  },
+  "sub_primitives": [
+    {
+      "id": "bd-cursor-move",
+      "name": "Cursor Move",
+      "extractable_as_css": false,
+      "description": "Smooth cursor path interpolation along waypoints with eased timing between stops. Requires JS for multi-point path interpolation."
+    },
+    {
+      "id": "bd-spotlight-glow",
+      "name": "Spotlight Glow",
+      "extractable_as_css": true,
+      "description": "Radial gradient reveal expanding from a point, creating a spotlight/illumination effect.",
+      "css": "@keyframes spotlight-glow { 0%{clip-path:circle(0% at var(--cx) var(--cy))} 100%{clip-path:circle(50% at var(--cx) var(--cy))} }"
+    },
+    {
+      "id": "bd-click-ripple",
+      "name": "Click Ripple",
+      "extractable_as_css": true,
+      "description": "Click feedback ring that expands outward from the click point with opacity fade.",
+      "css": "@keyframes click-ripple { 0%{transform:scale(0);opacity:0.6} 100%{transform:scale(1);opacity:0} }"
+    }
+  ],
+  "when_to_use": [
+    "Feature tutorials — showing where to click and what happens",
+    "Product walkthroughs — guiding attention through a UI flow",
+    "Onboarding demos — revealing features with interactive feel",
+    "Interaction demos — simulating user actions for stakeholder review"
+  ],
+  "when_to_avoid": [
+    "Cinematic-dark personality — cursor interactions feel too literal",
+    "Montage personality — hard cuts conflict with gradual reveal",
+    "Scenes under 2.5 seconds — cursor travel + click + reveal needs time"
+  ],
+  "ai_guidance": "Use layer type 'spotlight_cursor_reveal' with content { cursorStyle, spotlightTarget, revealContent } and cursor_config overrides including a cursorPath array. Phase 1 (0-40%) moves cursor along waypoints, Phase 2 (40-55%) click animation, Phase 3 (55-100%) radial spotlight reveal. Duration ~3s."
+}

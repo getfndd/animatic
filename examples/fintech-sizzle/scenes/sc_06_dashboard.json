@@ -1,0 +1,28 @@
+{
+  "scene_id": "sc_06_dashboard",
+  "format_version": 2,
+  "duration_s": 5,
+  "brand": "fintech-demo",
+  "camera": { "move": "pull_out", "intensity": 0.3, "easing": "cinematic_scurve" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+      "depth_class": "background"
+    },
+    {
+      "id": "dashboard",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex\"><div style=\"width:200px;background:#0f172a;border-right:1px solid rgba(255,255,255,0.06);padding:20px 14px;box-sizing:border-box;flex-shrink:0\"><div style=\"font-family:Inter,system-ui,sans-serif\"><div style=\"display:flex;align-items:center;gap:8px;margin-bottom:28px\"><div style=\"width:22px;height:22px;background:rgba(99,102,241,0.3);border-radius:6px\"></div><span style=\"font-size:14px;font-weight:600;color:#f3f4f6\">Acme Finance</span></div><div style=\"display:flex;flex-direction:column;gap:2px\"><div style=\"padding:7px 10px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Home</div><div style=\"padding:7px 10px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Tasks <span style=\"background:rgba(99,102,241,0.25);color:#818cf8;padding:1px 7px;border-radius:8px;font-size:10px;margin-left:4px\">10</span></div><div style=\"padding:7px 10px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Transactions</div><div style=\"padding:7px 10px;border-radius:7px;background:rgba(255,255,255,0.06);font-size:12px;color:#f3f4f6;font-weight:500\">Insights</div><div style=\"padding:7px 10px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Payments</div></div></div></div><div style=\"flex:1;padding:24px 32px;font-family:Inter,system-ui,sans-serif;overflow:hidden\"><div style=\"font-size:22px;font-weight:600;color:#f3f4f6;margin-bottom:14px\">Insights</div><div style=\"display:flex;gap:6px;margin-bottom:22px\"><span style=\"padding:5px 14px;border-radius:7px;background:rgba(255,255,255,0.07);font-size:12px;font-weight:500;color:#f3f4f6\">Overview</span><span style=\"padding:5px 14px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Money In</span><span style=\"padding:5px 14px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Money Out</span></div><div style=\"display:flex;gap:40px;margin-bottom:22px\"><div><div style=\"font-size:11px;color:rgba(243,244,246,0.4);margin-bottom:3px\">Net Cashflow</div><div style=\"font-size:26px;font-weight:600;color:#f3f4f6\">$11,007</div></div><div><div style=\"font-size:11px;color:rgba(243,244,246,0.4);margin-bottom:3px\">Money In</div><div style=\"font-size:17px;font-weight:500;color:#f3f4f6\">$56,102</div></div><div><div style=\"font-size:11px;color:rgba(243,244,246,0.4);margin-bottom:3px\">Money Out</div><div style=\"font-size:17px;font-weight:500;color:rgba(243,244,246,0.45)\">−$45,100</div></div></div><div style=\"display:flex;gap:24px\"><div style=\"flex:1\"><div style=\"display:flex;align-items:center;gap:5px;margin-bottom:6px\"><span style=\"color:#34d399;font-size:13px\">↗</span><span style=\"font-size:13px;font-weight:500;color:#f3f4f6\">12% revenue growth</span></div><div style=\"font-size:12px;color:rgba(243,244,246,0.4);margin-bottom:12px\">From January to June revenue increased from $12,460 to $13,954</div><div style=\"display:flex;align-items:center;gap:5px\"><span style=\"color:#94a3b8;font-size:13px\">↗</span><span style=\"font-size:13px;font-weight:500;color:#f3f4f6\">Increased software spend</span></div></div><div style=\"flex:1\"><div style=\"display:flex;align-items:flex-end;gap:8px;height:100px\"><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:28px;background:#6366f1;border-radius:2px\"></div><div style=\"height:16px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:36px;background:#6366f1;border-radius:2px\"></div><div style=\"height:18px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:12px;background:#6366f1;border-radius:2px\"></div><div style=\"height:22px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:20px;background:#6366f1;border-radius:2px\"></div><div style=\"height:14px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:24px;background:#6366f1;border-radius:2px\"></div><div style=\"height:20px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:32px;background:#6366f1;border-radius:2px\"></div><div style=\"height:16px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div></div></div></div></div></div>",
+      "depth_class": "foreground"
+    }
+  ],
+  "motion": {
+    "groups": [{ "targets": ["dashboard"], "primitive": "cd-card-cascade" }],
+    "camera": { "move": "pull_out", "intensity": 0.3, "sync": { "peak_at": 0.8 } }
+  },
+  "metadata": { "motion_energy": "high", "intent_tags": ["hero"] }
+}

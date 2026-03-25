@@ -40,8 +40,7 @@ get_personality({ slug: "cinematic-dark" })
     "perspective": "3D (1200px)"
   },
   "camera_behavior": {
-    "mode": "full-3d",
-    "allowed_movements": ["dolly", "orbit", "crane", "push-in", "rack-focus", "handheld"],
+    "allowed_movements": ["static", "push_in", "pull_out", "pan_left", "pan_right", "drift"],
     "depth_of_field": { "enabled": true, "max_blur": "12px", "entrance_blur": true },
     "ambient_motion": {
       "scene_breathe": { "scale": "0.4%", "duration": "8000ms" },
@@ -55,7 +54,7 @@ get_personality({ slug: "cinematic-dark" })
 
 - **Timing tiers** determine how fast each animation class runs. Cinematic-dark has a 4-tier hierarchy (fast/medium/slow/spring) while editorial only has 3 (no spring).
 - **Easing curves** shape the feel. The `expo_out` enter curve (`0.16, 1, 0.3, 1`) gives cinematic-dark its signature aggressive deceleration.
-- **Camera rules** define what is physically possible. Cinematic-dark allows full 3D camera (dolly, orbit, crane), blur entrances, and rack focus. Editorial forbids all of these.
+- **Camera rules** define what is physically possible. Cinematic-dark allows push_in, pull_out, pan, drift, blur entrances, and high intensity. Editorial forbids blur entrances and limits camera intensity.
 - **Ambient motion** adds life between entrances. Cinematic-dark breathes at 0.4% scale; editorial breathes at 0.2%.
 
 ---

@@ -19,6 +19,7 @@
 export const REVISION_OPS = [
   'trim', 'extend_hold', 'swap_transition', 'reorder',
   'boost_hierarchy', 'compress', 'add_continuity', 'adjust_density',
+  'needs_annotation',
 ];
 
 const VALID_TRANSITIONS = [
@@ -82,6 +83,7 @@ function applyOp(manifest, scenes, rev) {
     case 'compress': return applyCompress(manifest, scenes, rev);
     case 'add_continuity': return applyAddContinuity(manifest, scenes, rev);
     case 'adjust_density': return applyAdjustDensity(manifest, scenes, rev);
+    case 'needs_annotation': return { manifest, scenes, entry: { op: 'needs_annotation', target: null, before: 'low_confidence', after: 'advisory', reason: rev.reason || 'Annotations need human review' } };
     default: return { manifest, scenes, entry: null };
   }
 }

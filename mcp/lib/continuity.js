@@ -41,28 +41,55 @@ function suggestStrategy(fromLayer, toLayer) {
  * type, position, and content overlap. Used by suggestMatchCuts to rank
  * candidate pairings that lack explicit continuity_ids.
  */
-function layerSimilarity(a, b) {
+/**
+ * Compute similarity score (0–1) between two layers.
+ * Hero-aware: strongly boosts product_role and clarity_weight matches,
+ * down-ranks background/decorative layers.
+ *
+ * @param {object} a - Layer from source scene
+ * @param {object} b - Layer from target scene
+ * @param {object} [ctx] - Context: { fromScene, toScene } for primary_subject matching
+ */
+function layerSimilarity(a, b, ctx) {
+  // Down-rank decorative/background matches — these aren't meaningful continuity
+  if (a.product_role === 'decorative' && b.product_role === 'decorative') return 0.05;
+  if (a.depth_class === 'background' && b.depth_class === 'background') return 0.05;
+
   let score = 0;
 
-  // Same type is the strongest signal
-  if (a.type === b.type) score += 0.4;
+  // Hero-to-hero match is the strongest signal
+  if (a.product_role === 'hero' && b.product_role === 'hero') score += 0.35;
+  else if (a.product_role && b.product_role && a.product_role === b.product_role) score += 0.15;
 
-  // Same depth class
-  if (a.depth_class && b.depth_class && a.depth_class === b.depth_class) score += 0.15;
+  // primary_subject-to-primary_subject — highest priority
+  if (ctx?.fromScene?.primary_subject === a.id && ctx?.toScene?.primary_subject === b.id) {
+    score += 0.35;
+  }
+
+  // Same type — strong signal (0.3 baseline, boosted to 0.35 for non-decorative)
+  if (a.type === b.type) {
+    score += (a.product_role !== 'decorative' && b.product_role !== 'decorative') ? 0.35 : 0.15;
+  }
+
+  // Similar clarity_weight (within 1 step)
+  if (a.clarity_weight && b.clarity_weight) {
+    if (a.clarity_weight === b.clarity_weight) score += 0.15;
+    else if (Math.abs(a.clarity_weight - b.clarity_weight) <= 1) score += 0.08;
+  }
 
   // Same slot
-  if (a.slot && b.slot && a.slot === b.slot) score += 0.2;
+  if (a.slot && b.slot && a.slot === b.slot) score += 0.1;
 
   // Shared asset reference
-  if (a.asset && b.asset && a.asset === b.asset) score += 0.25;
+  if (a.asset && b.asset && a.asset === b.asset) score += 0.15;
 
   // Text content overlap (Jaccard on words)
-  if (a.content && b.content) {
+  if (a.content && b.content && typeof a.content === 'string' && typeof b.content === 'string') {
     const wordsA = new Set(a.content.toLowerCase().split(/\s+/));
     const wordsB = new Set(b.content.toLowerCase().split(/\s+/));
     const intersection = [...wordsA].filter(w => wordsB.has(w)).length;
     const union = new Set([...wordsA, ...wordsB]).size;
-    if (union > 0) score += 0.25 * (intersection / union);
+    if (union > 0) score += 0.15 * (intersection / union);
   }
 
   return Math.min(score, 1);
@@ -140,9 +167,10 @@ export function suggestMatchCuts(manifest, sceneDefs) {
     const fromLayers = fromDef.layers.filter(l => !l.continuity_id);
     const toLayers = toDef.layers.filter(l => !l.continuity_id);
 
+    const ctx = { fromScene: fromDef, toScene: toDef };
     for (const fromLayer of fromLayers) {
       for (const toLayer of toLayers) {
-        const similarity = layerSimilarity(fromLayer, toLayer);
+        const similarity = layerSimilarity(fromLayer, toLayer, ctx);
         if (similarity >= 0.4) {
           // Generate a suggested id from the layer ids
           const baseName = (fromLayer.id || toLayer.id || 'element').replace(/^ly_/, '');
@@ -198,14 +226,15 @@ export function planContinuityLinks(manifest, sceneDefs, options = {}) {
       const fromUntagged = fromDef.layers.filter(l => !l.continuity_id);
       const toUntagged = toDef.layers.filter(l => !l.continuity_id);
 
-      // Match untagged layers by similarity
+      // Match untagged layers by similarity (hero-aware)
       const used = new Set();
+      const ctx = { fromScene: fromDef, toScene: toDef };
       for (const fromLayer of fromUntagged) {
         let bestMatch = null;
         let bestSim = 0;
         for (const toLayer of toUntagged) {
           if (used.has(toLayer.id)) continue;
-          const sim = layerSimilarity(fromLayer, toLayer);
+          const sim = layerSimilarity(fromLayer, toLayer, ctx);
           if (sim > bestSim && sim >= 0.4) {
             bestSim = sim;
             bestMatch = toLayer;

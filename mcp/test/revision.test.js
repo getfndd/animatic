@@ -287,7 +287,7 @@ describe('revision — edge cases', () => {
   });
 
   it('exports all valid ops', () => {
-    assert.equal(REVISION_OPS.length, 8);
+    assert.equal(REVISION_OPS.length, 9);
     assert.ok(REVISION_OPS.includes('trim'));
     assert.ok(REVISION_OPS.includes('add_continuity'));
   });

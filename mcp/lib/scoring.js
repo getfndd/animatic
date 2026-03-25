@@ -44,6 +44,7 @@ export const DEFAULT_WEIGHTS = {
 export const REVISION_OPS = [
   'trim', 'extend_hold', 'swap_transition', 'reorder',
   'boost_hierarchy', 'compress', 'add_continuity', 'adjust_density',
+  'needs_annotation',
 ];
 
 // ── Catalogs for compilation ────────────────────────────────────────────────
@@ -152,9 +153,20 @@ export function scoreCandidateVideo({ manifest, scenes, style, brand, audio_beat
 
   const per_scene = scorePerScene(manifest, scenes, raw);
 
+  // ── Annotation confidence check ────────────────────────────────────────
+
+  // Compute mean annotation confidence across scenes
+  let annotationConfidence = null;
+  const confScores = scenes
+    .map(s => s._annotation_confidence?.overall)
+    .filter(c => c != null);
+  if (confScores.length > 0) {
+    annotationConfidence = Math.round(confScores.reduce((a, b) => a + b, 0) / confScores.length * 1000) / 1000;
+  }
+
   // ── Revision recommendations ────────────────────────────────────────────
 
-  const recommended_revisions = generateRevisions(raw, subscores, manifest, per_scene);
+  const recommended_revisions = generateRevisions(raw, subscores, manifest, per_scene, annotationConfidence);
 
   return {
     overall,
@@ -443,10 +455,20 @@ function scorePerScene(manifest, scenes, raw) {
 
 // ── Revision recommendations ────────────────────────────────────────────────
 
-function generateRevisions(raw, subscores, manifest, perScene) {
+function generateRevisions(raw, subscores, manifest, perScene, annotationConfidence) {
   const revisions = [];
+  const lowConfidence = annotationConfidence != null && annotationConfidence < 0.6;
 
-  // Per-scene targeted revisions (Item 4: actionable)
+  // If annotation confidence is low, emit advisory instead of strong structural revisions
+  if (lowConfidence) {
+    revisions.push({
+      op: 'needs_annotation',
+      target: null,
+      reason: `Annotation confidence is ${annotationConfidence?.toFixed(2)} — add explicit product_role, primary_subject, and hero layer markup before structural revisions`,
+    });
+  }
+
+  // Per-scene targeted revisions
   if (perScene) {
     // Sort scenes by overall ascending — worst first
     const sorted = [...perScene].sort((a, b) => a.overall - b.overall);
@@ -474,8 +496,8 @@ function generateRevisions(raw, subscores, manifest, perScene) {
         }
       }
 
-      // Hierarchy issues → boost hero
-      if (ps.hierarchy < 0.5) {
+      // Hierarchy issues → boost hero (only if annotations are reliable)
+      if (ps.hierarchy < 0.5 && !lowConfidence) {
         revisions.push({
           op: 'boost_hierarchy',
           target: ps.scene_id,
@@ -483,7 +505,7 @@ function generateRevisions(raw, subscores, manifest, perScene) {
         });
       }
 
-      // Motion quality issues → adjust density
+      // Motion quality issues → adjust density (safe regardless of confidence)
       if (ps.motion_quality < 0.5) {
         revisions.push({
           op: 'adjust_density',
@@ -493,8 +515,8 @@ function generateRevisions(raw, subscores, manifest, perScene) {
         });
       }
 
-      // Continuity gaps → add continuity link
-      if (ps.continuity_to_next !== null && ps.continuity_to_next < 0.75) {
+      // Continuity gaps → add continuity link (only if annotations are reliable)
+      if (ps.continuity_to_next !== null && ps.continuity_to_next < 0.75 && !lowConfidence) {
         const nextIdx = perScene.findIndex(p => p.scene_id === ps.scene_id) + 1;
         if (nextIdx < perScene.length) {
           revisions.push({

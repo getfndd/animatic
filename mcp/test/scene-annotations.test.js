@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import {
   annotateScene,
   annotateScenes,
+  auditAnnotationQuality,
   inferSceneProductRole,
   inferPrimarySubject,
   inferInteractionTruth,
@@ -247,6 +248,56 @@ describe('inferLayerClarityWeight', () => {
   it('returns 1 for decorative', () => assert.equal(inferLayerClarityWeight('decorative'), 1));
 });
 
+// ── Confidence scores ───────────────────────────────────────────────────────
+
+describe('confidence scores', () => {
+  it('annotateScene produces _annotation_confidence', () => {
+    const scene = { scene_id: 'sc_03_prompt_input', layers: [
+      { id: 'bg', type: 'html', depth_class: 'background', content: '<div></div>' },
+      { id: 'prompt', type: 'html', depth_class: 'foreground', content: '<input placeholder="Ask">' },
+    ], motion: { groups: [{ targets: ['prompt'], primitive: 'x' }] }, metadata: { intent_tags: ['detail'] } };
+
+    const annotated = annotateScene(scene);
+    assert.ok(annotated._annotation_confidence);
+    assert.ok(typeof annotated._annotation_confidence.product_role === 'number');
+    assert.ok(typeof annotated._annotation_confidence.primary_subject === 'number');
+    assert.ok(typeof annotated._annotation_confidence.interaction_truth === 'number');
+    assert.ok(typeof annotated._annotation_confidence.overall === 'number');
+    assert.ok(annotated._annotation_confidence.overall >= 0 && annotated._annotation_confidence.overall <= 1);
+  });
+
+  it('explicit values get confidence 1.0', () => {
+    const scene = {
+      scene_id: 'sc_explicit',
+      product_role: 'dashboard',
+      primary_subject: 'my_layer',
+      interaction_truth: { has_cursor: true, has_typing: false, has_state_change: false, timing_realistic: true },
+      layers: [{ id: 'my_layer', type: 'html' }],
+    };
+    const annotated = annotateScene(scene);
+    assert.equal(annotated._annotation_confidence.product_role, 1.0);
+    assert.equal(annotated._annotation_confidence.primary_subject, 1.0);
+    assert.equal(annotated._annotation_confidence.interaction_truth, 1.0);
+  });
+
+  it('scene_id keyword match gives higher confidence than fallback', () => {
+    const strong = annotateScene({ scene_id: 'sc_04_chart_drilldown', layers: [{ id: 'a', depth_class: 'foreground' }] });
+    const weak = annotateScene({ scene_id: 'sc_misc_stuff', layers: [{ id: 'a', depth_class: 'foreground' }] });
+    assert.ok(strong._annotation_confidence.product_role > weak._annotation_confidence.product_role,
+      `chart (${strong._annotation_confidence.product_role}) should be more confident than misc (${weak._annotation_confidence.product_role})`);
+  });
+
+  it('overall confidence is the weakest link', () => {
+    const scene = { scene_id: 'sc_misc', layers: [
+      { id: 'a', depth_class: 'foreground' }, { id: 'b', depth_class: 'foreground' },
+    ] };
+    const annotated = annotateScene(scene);
+    const conf = annotated._annotation_confidence;
+    assert.ok(conf.overall <= conf.product_role);
+    assert.ok(conf.overall <= conf.primary_subject);
+  });
+});
+
 // ── annotateScene ───────────────────────────────────────────────────────────
 
 describe('annotateScene', () => {
@@ -298,6 +349,64 @@ describe('annotateScene', () => {
     const original = JSON.stringify(scene);
     annotateScene(scene);
     assert.equal(JSON.stringify(scene), original);
+  });
+});
+
+// ── auditAnnotationQuality ──────────────────────────────────────────────────
+
+describe('auditAnnotationQuality', () => {
+  it('returns quality score and pass/fail', () => {
+    const scenes = annotateScenes([
+      { scene_id: 'sc_a', layers: [{ id: 'hero', type: 'text', depth_class: 'foreground' }], metadata: { intent_tags: ['opening'], content_type: 'typography' } },
+      { scene_id: 'sc_b', layers: [{ id: 'main', type: 'html', depth_class: 'foreground' }], metadata: { intent_tags: ['detail'] } },
+    ]);
+    const result = auditAnnotationQuality(scenes);
+    assert.ok(typeof result.quality === 'number');
+    assert.ok(typeof result.pass === 'boolean');
+    assert.ok(Array.isArray(result.issues));
+    assert.ok(typeof result.summary === 'string');
+  });
+
+  it('passes for well-annotated scenes', () => {
+    const scenes = [
+      {
+        scene_id: 'sc_good',
+        product_role: 'result',
+        primary_subject: 'hero',
+        outcome: 'User sees the result',
+        layers: [{ id: 'hero', product_role: 'hero', clarity_weight: 5 }],
+        _annotation_confidence: { product_role: 1, primary_subject: 1, interaction_truth: 1, outcome: 1, has_hero: 1, overall: 1 },
+      },
+    ];
+    const result = auditAnnotationQuality(scenes);
+    assert.ok(result.pass);
+    assert.ok(result.quality >= 0.8);
+  });
+
+  it('strict mode fails when hero is missing', () => {
+    const scenes = annotateScenes([
+      { scene_id: 'sc_nohero', layers: [] },
+    ]);
+    const result = auditAnnotationQuality(scenes, { mode: 'strict' });
+    assert.equal(result.pass, false);
+    assert.ok(result.issues.some(i => i.severity === 'error' && i.field === 'hero'));
+  });
+
+  it('advisory mode warns but passes for partial annotations', () => {
+    const scenes = annotateScenes([
+      { scene_id: 'sc_partial', layers: [{ id: 'a', type: 'html', depth_class: 'foreground' }], metadata: { intent_tags: ['detail'] } },
+    ]);
+    const result = auditAnnotationQuality(scenes, { mode: 'advisory' });
+    assert.ok(result.issues.length > 0);
+    // Advisory should still pass if quality > 0.4
+  });
+
+  it('flags low-confidence annotations', () => {
+    const scenes = annotateScenes([
+      { scene_id: 'sc_vague', layers: [{ id: 'a', depth_class: 'foreground' }, { id: 'b', depth_class: 'foreground' }] },
+    ]);
+    const result = auditAnnotationQuality(scenes, { confidence_threshold: 0.7 });
+    assert.ok(result.issues.some(i => i.field === 'primary_subject' || i.field === 'product_role'));
   });
 });
 

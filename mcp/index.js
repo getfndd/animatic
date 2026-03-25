@@ -64,7 +64,7 @@ import { planStoryBeats } from './lib/story-beats.js';
 import { scoreCandidateVideo, autoReviseLoop, DEFAULT_WEIGHTS as SCORE_WEIGHTS } from './lib/scoring.js';
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
 import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
-import { annotateScenes } from './lib/scene-annotations.js';
+import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -1604,6 +1604,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['manifest', 'scenes'],
       },
     },
+    {
+      name: 'audit_annotation_quality',
+      description:
+        'Audit annotation quality across scenes. Checks for hero layers, low-confidence inferences, missing outcomes. Returns quality score (0-1) and pass/fail. Modes: "advisory" (warnings) or "strict" (errors block autonomous revisions).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Annotated scene array' },
+          mode: { type: 'string', enum: ['advisory', 'strict'], description: 'advisory (default) or strict' },
+          confidence_threshold: { type: 'number', description: 'Min confidence threshold (default: 0.6)' },
+        },
+        required: ['scenes'],
+      },
+    },
   ],
 }));
 
@@ -1750,6 +1764,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleAnnotateScenes(args);
     case 'auto_revise_loop':
       return handleAutoReviseLoop(args);
+    case 'audit_annotation_quality':
+      return handleAuditAnnotationQuality(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -4917,6 +4933,31 @@ function handleAutoReviseLoop(args) {
   } catch (err) {
     return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
   }
+}
+
+// ── audit_annotation_quality ─────────────────────────────────────────────────
+
+function handleAuditAnnotationQuality(args) {
+  const { scenes, mode, confidence_threshold } = args;
+  if (!scenes || !Array.isArray(scenes)) {
+    return { content: [{ type: 'text', text: 'scenes must be a non-empty array' }], isError: true };
+  }
+
+  const result = auditAnnotationQuality(scenes, { mode, confidence_threshold });
+
+  let summary = `## Annotation Quality Audit\n\n`;
+  summary += `**Quality:** ${result.quality.toFixed(2)} | **Pass:** ${result.pass ? 'YES' : 'NO'} | **Mode:** ${mode || 'advisory'}\n\n`;
+  summary += `${result.summary}\n\n`;
+
+  if (result.issues.length > 0) {
+    summary += '### Issues\n\n';
+    for (const issue of result.issues) {
+      const icon = issue.severity === 'error' ? 'X' : issue.severity === 'warning' ? '!' : '-';
+      summary += `${icon} ${issue.message}\n`;
+    }
+  }
+
+  return { content: [{ type: 'text', text: summary }] };
 }
 
 // ── annotate_scenes ─────────────────────────────────────────────────────────

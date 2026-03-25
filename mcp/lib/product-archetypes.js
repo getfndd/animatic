@@ -178,9 +178,19 @@ export function scoreProductDemoClarity(manifest, scenes) {
   let hasTextRhythm = false;
 
   for (const scene of scenes) {
+    // Prefer semantic annotations when available
+    if (scene.interaction_truth) {
+      const it = scene.interaction_truth;
+      if (it.has_cursor) { hasInteractions = true; hasCursorTiming = true; }
+      if (it.has_typing) { hasTextRhythm = true; hasInteractions = true; }
+      if (it.has_state_change) { hasInteractions = true; }
+      if (it.timing_realistic) { hasCursorTiming = true; }
+      continue;
+    }
+
+    // Fallback: scan layers
     const layers = scene.layers || [];
     for (const layer of layers) {
-      // Check for cursor or interaction layers
       if (layer.type === 'cursor' || layer.role === 'cursor' ||
           layer.interaction || layer.cursor) {
         hasInteractions = true;
@@ -188,14 +198,12 @@ export function scoreProductDemoClarity(manifest, scenes) {
           hasCursorTiming = true;
         }
       }
-      // Check for text animation layers
       if (layer.type === 'text' || layer.role === 'text' ||
           layer.animation === 'typewriter' || layer.primitive === 'cd-typewriter') {
         hasTextRhythm = true;
       }
     }
 
-    // Also check scene-level interaction metadata
     if (scene.interactions || scene.interaction_sequence) {
       hasInteractions = true;
       hasCursorTiming = true;
@@ -338,6 +346,16 @@ export function scoreProductDemoClarity(manifest, scenes) {
     else hierarchyScore += 3;
   } else {
     hierarchyScore += 2; // partial credit
+  }
+
+  // Bonus for scenes with primary_subject annotations and motion targeting
+  const annotatedScenes = scenes.filter(s => s.primary_subject);
+  if (annotatedScenes.length > 0) {
+    const heroHasMotion = annotatedScenes.some(s => {
+      const groups = s.motion?.groups || [];
+      return groups.some(g => g.targets?.includes(s.primary_subject));
+    });
+    if (heroHasMotion) hierarchyScore = Math.min(20, hierarchyScore + 5);
   }
 
   breakdown.push({ dimension: 'clear_hierarchy', score: hierarchyScore, max: 20 });

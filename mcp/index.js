@@ -64,6 +64,7 @@ import { planStoryBeats } from './lib/story-beats.js';
 import { scoreCandidateVideo, DEFAULT_WEIGHTS as SCORE_WEIGHTS } from './lib/scoring.js';
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
 import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
+import { annotateScenes } from './lib/scene-annotations.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -1569,6 +1570,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['candidates'],
       },
     },
+    {
+      name: 'annotate_scenes',
+      description:
+        'Bulk-annotate scene arrays with inferred semantic product fields: product_role (input/result/dashboard/cta/atmosphere/etc.), primary_subject, interaction_truth, layer roles, content classes, and clarity weights. Returns annotated scenes ready for scoring and critique.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Array of scene objects',
+          },
+        },
+        required: ['scenes'],
+      },
+    },
   ],
 }));
 
@@ -1711,6 +1728,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleReviseCandidateVideo(args);
     case 'compare_candidate_videos':
       return handleCompareCandidateVideos(args);
+    case 'annotate_scenes':
+      return handleAnnotateScenes(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -4837,6 +4856,27 @@ function handleCompareCandidateVideos(args) {
       isError: true,
     };
   }
+}
+
+// ── annotate_scenes ─────────────────────────────────────────────────────────
+
+function handleAnnotateScenes(args) {
+  const { scenes } = args;
+  if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
+    return { content: [{ type: 'text', text: 'scenes must be a non-empty array' }], isError: true };
+  }
+
+  const annotated = annotateScenes(scenes);
+
+  let summary = `# Scene Annotations\n\nAnnotated ${annotated.length} scene(s).\n\n`;
+  for (const s of annotated) {
+    const heroLayer = s.layers?.find(l => l.product_role === 'hero');
+    summary += `**${s.scene_id}** → ${s.product_role} | hero: ${heroLayer?.id || s.primary_subject || 'none'} | ${s.outcome || ''}\n`;
+  }
+
+  return {
+    content: [{ type: 'text', text: summary + '\n```json\n' + JSON.stringify(annotated, null, 2) + '\n```' }],
+  };
 }
 
 async function main() {

@@ -9,6 +9,7 @@
  */
 
 import { classifyShotGrammar } from './shot-grammar.js';
+import { annotateScene as annotateSceneSemantic } from './scene-annotations.js';
 
 // ── Enum constants ──────────────────────────────────────────────────────────
 
@@ -366,6 +367,13 @@ export function analyzeScene(scene) {
   // Build reasoning chain — explains why each classification was chosen
   const reasoning = buildAnalysisReasoning(scene, contentType, visualWeight, motionEnergy, intentTags, shotGrammar);
 
+  // Semantic product annotations — inferred from scene data
+  const annotated = annotateSceneSemantic(scene, {
+    content_type: contentType.value,
+    intent_tags: intentTags.value,
+    motion_energy: motionEnergy.value,
+  });
+
   return {
     metadata: {
       content_type: contentType.value,
@@ -373,6 +381,10 @@ export function analyzeScene(scene) {
       motion_energy: motionEnergy.value,
       intent_tags: intentTags.value,
       shot_grammar: shotGrammar.grammar,
+      product_role: annotated.product_role,
+      primary_subject: annotated.primary_subject,
+      outcome: annotated.outcome,
+      interaction_truth: annotated.interaction_truth,
     },
     _confidence: {
       content_type: contentType.confidence,
@@ -380,6 +392,20 @@ export function analyzeScene(scene) {
       motion_energy: motionEnergy.confidence,
       intent_tags: intentTags.confidence,
       shot_grammar: shotGrammar.confidence,
+    },
+    annotations: {
+      scene: {
+        product_role: annotated.product_role,
+        primary_subject: annotated.primary_subject,
+        outcome: annotated.outcome,
+        interaction_truth: annotated.interaction_truth,
+      },
+      layers: (annotated.layers || []).map(l => ({
+        id: l.id,
+        product_role: l.product_role,
+        content_class: l.content_class,
+        clarity_weight: l.clarity_weight,
+      })),
     },
     reasoning,
   };

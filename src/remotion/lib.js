@@ -405,6 +405,25 @@ export function validateScene(scene) {
           }
         }
 
+        // Product annotations (optional)
+        if (layer.product_role != null) {
+          const validLayerRoles = ['hero', 'supporting', 'functional', 'decorative'];
+          if (!validLayerRoles.includes(layer.product_role)) {
+            errors.push(`layer "${layer.id || '?'}".product_role "${layer.product_role}" is not valid (must be one of: ${validLayerRoles.join(', ')})`);
+          }
+        }
+        if (layer.content_class != null) {
+          const validContentClasses = ['ui_control', 'data_viz', 'branding', 'atmosphere', 'typography', 'interaction'];
+          if (!validContentClasses.includes(layer.content_class)) {
+            errors.push(`layer "${layer.id || '?'}".content_class "${layer.content_class}" is not valid (must be one of: ${validContentClasses.join(', ')})`);
+          }
+        }
+        if (layer.clarity_weight != null) {
+          if (!Number.isInteger(layer.clarity_weight) || layer.clarity_weight < 1 || layer.clarity_weight > 5) {
+            errors.push(`layer "${layer.id || '?'}".clarity_weight must be an integer 1-5`);
+          }
+        }
+
         // Validate slot references against layout
         if (layer.slot && scene.layout && scene.layout.template && VALID_TEMPLATES.includes(scene.layout.template)) {
           const validSlots = getAvailableSlots(scene.layout.template, scene.layout.config);
@@ -635,6 +654,31 @@ export function validateScene(scene) {
         if (typeof layer.z_bias !== 'number' || layer.z_bias < -10 || layer.z_bias > 10) {
           errors.push(`layer "${layer.id || '?'}".z_bias must be between -10 and 10 (got ${layer.z_bias})`);
         }
+      }
+    }
+  }
+
+  // ── Product annotations (all optional) ─────────────────────────────────
+  if (scene.product_role != null) {
+    const validProductRoles = ['input', 'processing', 'result', 'proof', 'dashboard', 'cta', 'atmosphere', 'transition'];
+    if (!validProductRoles.includes(scene.product_role)) {
+      errors.push(`product_role "${scene.product_role}" is not valid (must be one of: ${validProductRoles.join(', ')})`);
+    }
+  }
+  if (scene.primary_subject != null) {
+    const layerIds = new Set((scene.layers || []).map(l => l.id).filter(Boolean));
+    if (!layerIds.has(scene.primary_subject)) {
+      errors.push(`primary_subject "${scene.primary_subject}" references unknown layer`);
+    }
+  }
+  if (scene.outcome != null && typeof scene.outcome !== 'string') {
+    errors.push('outcome must be a string');
+  }
+  if (scene.interaction_truth != null) {
+    const it = scene.interaction_truth;
+    for (const field of ['has_cursor', 'has_typing', 'has_state_change', 'timing_realistic']) {
+      if (it[field] != null && typeof it[field] !== 'boolean') {
+        errors.push(`interaction_truth.${field} must be a boolean`);
       }
     }
   }

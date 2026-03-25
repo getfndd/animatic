@@ -259,9 +259,10 @@ export function detectMissingHierarchy(layerTracks, scene) {
 
   if (layerIds.length < 2 || !scene) return issues;
 
-  // Identify hero layer: first foreground layer, or first layer
+  // Identify hero layer: prefer product_role annotation, then depth_class heuristic
   const sceneLayers = scene.layers || [];
-  const heroLayer = sceneLayers.find(l => l.depth_class === 'foreground')
+  const heroLayer = sceneLayers.find(l => l.product_role === 'hero')
+    || sceneLayers.find(l => l.depth_class === 'foreground')
     || sceneLayers[0];
 
   if (!heroLayer) return issues;

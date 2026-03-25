@@ -576,8 +576,9 @@ function compileAndCritique(manifest, scenes) {
 
 function computeDensity(manifest, scenes) {
   const catalogs = getCatalogs();
+  const audits = [];
 
-  // Compile first scene with layers for density analysis
+  // Audit ALL scenes with layers, not just the first
   for (const entry of manifest.scenes) {
     const sceneId = entry.scene || entry.scene_id;
     const sceneDef = scenes.find(s => (s.scene_id || s.id) === sceneId);
@@ -585,13 +586,25 @@ function computeDensity(manifest, scenes) {
 
     try {
       const timeline = compileMotion(sceneDef, catalogs);
-      return auditMotionDensity(timeline, sceneDef);
+      audits.push(auditMotionDensity(timeline, sceneDef));
     } catch {
       continue;
     }
   }
 
-  return { score: 50, suggestions: [] };
+  if (audits.length === 0) return { score: 50, suggestions: [] };
+
+  // Aggregate: mean score, merge suggestions and hot spots
+  const meanScore = Math.round(audits.reduce((s, a) => s + a.score, 0) / audits.length);
+  const allSuggestions = audits.flatMap(a => a.suggestions || []);
+  const allHotSpots = audits.flatMap(a => a.hot_spots || []);
+
+  return {
+    score: meanScore,
+    suggestions: allSuggestions,
+    hot_spots: allHotSpots,
+    scenes_audited: audits.length,
+  };
 }
 
 // ── Auto-revise loop ────────────────────────────────────────────────────────

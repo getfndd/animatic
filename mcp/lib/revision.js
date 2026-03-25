@@ -188,16 +188,23 @@ function applyBoostHierarchy(manifest, scenes, rev) {
 
   const layer = layerId
     ? sceneDef.layers.find(l => l.id === layerId)
-    : sceneDef.layers.find(l => l.depth_class !== 'hero' && l.depth_class !== 'background');
+    : sceneDef.layers.find(l => l.product_role !== 'hero' && l.depth_class !== 'background');
 
   if (!layer) return { manifest, scenes, entry: null };
 
-  const before = layer.depth_class || 'default';
-  layer.depth_class = 'hero';
+  const before = layer.product_role || layer.depth_class || 'default';
+
+  // Set product_role (what the scorer reads) AND ensure foreground depth_class
+  layer.product_role = 'hero';
+  layer.clarity_weight = 5;
+  if (layer.depth_class === 'background') layer.depth_class = 'foreground';
+
+  // Also set primary_subject on the scene if not already set
+  if (!sceneDef.primary_subject) sceneDef.primary_subject = layer.id;
 
   return {
     manifest, scenes,
-    entry: { op: 'boost_hierarchy', target: `${target}/${layer.id}`, before, after: 'hero', reason: rev.reason || 'Promoted to hero' },
+    entry: { op: 'boost_hierarchy', target: `${target}/${layer.id}`, before, after: 'hero (product_role)', reason: rev.reason || 'Promoted to hero' },
   };
 }
 
@@ -245,15 +252,28 @@ function applyAddContinuity(manifest, scenes, rev) {
     strategy,
   };
 
-  // Tag layers in scene definitions
+  // Tag the hero/foreground layer (not layers[0] which is often background)
   const fromDef = scenes.find(s => (s.scene_id || s.id) === fromScene);
   const toDef = scenes.find(s => (s.scene_id || s.id) === toScene);
 
-  if (fromDef?.layers?.length > 0 && !fromDef.layers[0].continuity_id) {
-    fromDef.layers[0].continuity_id = cid;
+  const pickHeroLayer = (sceneDef) => {
+    if (!sceneDef?.layers?.length) return null;
+    // Prefer primary_subject, then product_role hero, then first foreground
+    if (sceneDef.primary_subject) return sceneDef.layers.find(l => l.id === sceneDef.primary_subject);
+    return sceneDef.layers.find(l => l.product_role === 'hero')
+      || sceneDef.layers.find(l => l.depth_class === 'foreground' || l.depth_class === 'midground')
+      || sceneDef.layers.find(l => l.depth_class !== 'background')
+      || null;
+  };
+
+  const fromLayer = pickHeroLayer(fromDef);
+  const toLayer = pickHeroLayer(toDef);
+
+  if (fromLayer && !fromLayer.continuity_id) {
+    fromLayer.continuity_id = cid;
   }
-  if (toDef?.layers?.length > 0 && !toDef.layers[0].continuity_id) {
-    toDef.layers[0].continuity_id = cid;
+  if (toLayer && !toLayer.continuity_id) {
+    toLayer.continuity_id = cid;
   }
 
   return {

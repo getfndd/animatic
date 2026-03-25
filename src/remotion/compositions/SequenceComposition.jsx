@@ -1,7 +1,7 @@
 import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig, interpolate, staticFile } from 'remotion';
 import { SceneComposition } from './SceneComposition.jsx';
 import { TransitionWrapper, TransitionOutWrapper } from './transitions.jsx';
-import { getDefaultTransitionDuration, calculateLayout } from '../lib.js';
+import { getDefaultTransitionDuration, calculateLayout, resolveLayoutSlots } from '../lib.js';
 
 /**
  * SequenceComposition — Renders a sequence manifest (multi-scene video).
@@ -178,15 +178,29 @@ function resolveMatchGeometry(transition, sceneIndex, scenes, sceneDefs) {
 
   const geo = { strategy: match.strategy || 'scale' };
 
-  // Extract position/size from layers if available
-  if (sourceLayer?.position) geo.sourcePosition = sourceLayer.position;
-  if (targetLayer?.position) geo.targetPosition = targetLayer.position;
+  // Resolve layer positions — check explicit position first, then slot-based layout
+  const resolveLayerPosition = (layer, sceneDef) => {
+    if (layer?.position) return layer.position;
+    // Resolve from layout slots if the layer has a slot assignment
+    if (layer?.slot && sceneDef?.layout) {
+      const canvasW = sceneDef.canvas?.w ?? 1920;
+      const canvasH = sceneDef.canvas?.h ?? 1080;
+      const slotMap = resolveLayoutSlots(sceneDef.layout, canvasW, canvasH);
+      if (slotMap?.[layer.slot]) return slotMap[layer.slot];
+    }
+    return null;
+  };
+
+  const sourcePos = resolveLayerPosition(sourceLayer, prevDef);
+  const targetPos = resolveLayerPosition(targetLayer, currDef);
+
+  if (sourcePos) geo.sourcePosition = sourcePos;
+  if (targetPos) geo.targetPosition = targetPos;
 
   // Compute transform-origin from source layer center (for scale transitions)
-  if (sourceLayer?.position) {
-    const sp = sourceLayer.position;
-    const cx = (sp.x || 0) + (sp.w || 1920) / 2;
-    const cy = (sp.y || 0) + (sp.h || 1080) / 2;
+  if (sourcePos) {
+    const cx = (sourcePos.x || 0) + (sourcePos.w || 1920) / 2;
+    const cy = (sourcePos.y || 0) + (sourcePos.h || 1080) / 2;
     geo.originX = `${cx}px`;
     geo.originY = `${cy}px`;
   }

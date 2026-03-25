@@ -130,7 +130,7 @@ describe('revision — reorder', () => {
 // ── boost_hierarchy ─────────────────────────────────────────────────────────
 
 describe('revision — boost_hierarchy', () => {
-  it('promotes a layer to hero depth_class', () => {
+  it('promotes a layer to hero product_role and clarity_weight 5', () => {
     const result = reviseCandidateVideo({
       manifest: makeManifest(),
       scenes: makeScenes(),
@@ -139,7 +139,9 @@ describe('revision — boost_hierarchy', () => {
 
     const scene = result.scenes.find(s => s.scene_id === 'sc_02');
     const layer = scene.layers.find(l => l.id === 'ly_c');
-    assert.equal(layer.depth_class, 'hero');
+    assert.equal(layer.product_role, 'hero');
+    assert.equal(layer.clarity_weight, 5);
+    assert.equal(scene.primary_subject, 'ly_c');
   });
 
   it('picks first non-hero/non-background layer when layer not specified', () => {
@@ -152,7 +154,7 @@ describe('revision — boost_hierarchy', () => {
     // sc_03 has ly_d (foreground) — should be promoted to hero
     const scene = result.scenes.find(s => s.scene_id === 'sc_03');
     const promoted = scene.layers.find(l => l.id === 'ly_d');
-    assert.equal(promoted.depth_class, 'hero');
+    assert.equal(promoted.product_role, 'hero');
   });
 });
 
@@ -187,7 +189,7 @@ describe('revision — add_continuity', () => {
     assert.ok(entry.transition_in.match.source_continuity_id);
   });
 
-  it('tags layers with continuity_id', () => {
+  it('tags hero/foreground layers with continuity_id, not background', () => {
     const result = reviseCandidateVideo({
       manifest: makeManifest(),
       scenes: makeScenes(),
@@ -196,8 +198,15 @@ describe('revision — add_continuity', () => {
 
     const fromScene = result.scenes.find(s => s.scene_id === 'sc_01');
     const toScene = result.scenes.find(s => s.scene_id === 'sc_02');
-    assert.ok(fromScene.layers[0].continuity_id);
-    assert.ok(toScene.layers[0].continuity_id);
+
+    // Should tag hero (ly_a) not background (ly_b) in sc_01
+    const taggedFrom = fromScene.layers.find(l => l.continuity_id);
+    assert.ok(taggedFrom, 'should tag a layer in from scene');
+    assert.notEqual(taggedFrom.depth_class, 'background', 'should not tag background layer');
+
+    // Should tag foreground layer in sc_02
+    const taggedTo = toScene.layers.find(l => l.continuity_id);
+    assert.ok(taggedTo, 'should tag a layer in to scene');
   });
 });
 

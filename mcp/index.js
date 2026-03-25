@@ -61,7 +61,7 @@ import { resolveContinuityLinks, suggestMatchCuts, planContinuityLinks, validate
 import { auditMotionDensity, suggestSimplification } from './lib/motion-density.js';
 import { extractStoryBrief } from './lib/story-brief.js';
 import { planStoryBeats } from './lib/story-beats.js';
-import { scoreCandidateVideo, DEFAULT_WEIGHTS as SCORE_WEIGHTS } from './lib/scoring.js';
+import { scoreCandidateVideo, autoReviseLoop, DEFAULT_WEIGHTS as SCORE_WEIGHTS } from './lib/scoring.js';
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
 import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes } from './lib/scene-annotations.js';
@@ -1586,6 +1586,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['scenes'],
       },
     },
+    {
+      name: 'auto_revise_loop',
+      description:
+        'Autonomous revision loop: scores per-scene, picks worst scenes, applies targeted revisions, re-scores, repeats until convergence or max rounds. Returns the best manifest with full revision history.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: { type: 'object', description: 'Starting sequence manifest' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Scene definitions' },
+          style: { type: 'string', description: 'Style pack name' },
+          brand: { type: 'object', description: 'Brand package (optional)' },
+          audio_beats: { type: 'object', description: 'Beat data (optional)' },
+          max_rounds: { type: 'number', description: 'Max revision rounds (default: 3)' },
+          min_improvement: { type: 'number', description: 'Stop threshold (default: 0.01)' },
+        },
+        required: ['manifest', 'scenes'],
+      },
+    },
   ],
 }));
 
@@ -1730,6 +1748,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleCompareCandidateVideos(args);
     case 'annotate_scenes':
       return handleAnnotateScenes(args);
+    case 'auto_revise_loop':
+      return handleAutoReviseLoop(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -4855,6 +4875,47 @@ function handleCompareCandidateVideos(args) {
       content: [{ type: 'text', text: `Error: ${err.message}` }],
       isError: true,
     };
+  }
+}
+
+// ── auto_revise_loop ────────────────────────────────────────────────────────
+
+function handleAutoReviseLoop(args) {
+  const { manifest, scenes, style, brand, audio_beats, max_rounds, min_improvement } = args;
+
+  if (!manifest || !scenes) {
+    return { content: [{ type: 'text', text: 'manifest and scenes are required' }], isError: true };
+  }
+
+  try {
+    const result = autoReviseLoop({
+      manifest, scenes, style, brand, audio_beats,
+      max_rounds: max_rounds || 3,
+      min_improvement: min_improvement || 0.01,
+    });
+
+    let summary = `## Auto-Revise Results\n\n`;
+    summary += `**Score:** ${result.score_before.toFixed(3)} → ${result.score_after.toFixed(3)} (${result.improvement >= 0 ? '+' : ''}${result.improvement.toFixed(3)})\n`;
+    summary += `**Rounds:** ${result.rounds.length} | **Total revisions:** ${result.total_revisions}\n\n`;
+
+    for (const r of result.rounds) {
+      summary += `### Round ${r.round}\n`;
+      summary += `Score: ${r.score_before.toFixed(3)} → ${r.score_after.toFixed(3)} (${r.delta >= 0 ? '+' : ''}${r.delta.toFixed(3)})`;
+      if (r.stopped) summary += ` — stopped: ${r.stopped}`;
+      summary += '\n';
+      if (r.diff) {
+        for (const d of r.diff) {
+          summary += `- ${d.op} ${d.target}: ${d.before} → ${d.after}\n`;
+        }
+      }
+      summary += '\n';
+    }
+
+    return {
+      content: [{ type: 'text', text: summary + '\n```json\n' + JSON.stringify(result, null, 2) + '\n```' }],
+    };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
   }
 }
 

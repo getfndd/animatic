@@ -202,6 +202,26 @@ describe('extractStoryBrief', () => {
     assert.equal(result.duration_target_s, 30);
     assert.ok(typeof result.narrative_template === 'string');
     assert.equal(result.scene_count, 3);
+    // Brief quality = 1.0 when all 4 core fields come from brief text
+    assert.equal(result.brief_quality, 1);
+    assert.equal(result.warnings.length, 0);
+  });
+
+  it('brief_quality is 0 when no brief text provided', () => {
+    const result = extractStoryBrief({ scenes: sampleScenes });
+    assert.equal(result.brief_quality, 0);
+    assert.ok(result.warnings.length > 0);
+    assert.ok(result.warnings.some(w => w.includes('audience')));
+    assert.ok(result.warnings.some(w => w.includes('promise')));
+  });
+
+  it('brief_quality is partial with some fields from brief', () => {
+    const partial = '## Audience\nFinance teams\n\n## Features\n- Dashboard\n';
+    const result = extractStoryBrief({ brief: partial });
+    assert.ok(result.brief_quality > 0);
+    assert.ok(result.brief_quality < 1);
+    assert.equal(result._sources.audience, 'brief');
+    assert.equal(result._sources.must_show_features, 'brief');
   });
 
   it('pulls defaults from brand when brief text is missing', () => {
@@ -230,7 +250,7 @@ describe('extractStoryBrief', () => {
     assert.equal(result.narrative_template, 'social-loop');
   });
 
-  it('handles completely empty input gracefully', () => {
+  it('handles completely empty input gracefully with defaults + warnings', () => {
     const result = extractStoryBrief({});
     assert.ok(result.audience);
     assert.ok(result.promise);
@@ -238,6 +258,8 @@ describe('extractStoryBrief', () => {
     assert.ok(typeof result.narrative_template === 'string');
     assert.ok(result.duration_target_s > 0);
     assert.ok(result.scene_count > 0);
+    assert.equal(result.brief_quality, 0);
+    assert.ok(result.warnings.length >= 3, 'should warn about missing core fields');
   });
 
   it('infers features from scenes when brief has none', () => {

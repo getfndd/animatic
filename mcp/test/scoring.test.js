@@ -196,6 +196,91 @@ describe('scoreCandidateVideo — errors', () => {
   });
 });
 
+// ── Per-scene scoring ───────────────────────────────────────────────────
+
+describe('scoreCandidateVideo — per_scene', () => {
+  it('returns per_scene array with one entry per manifest scene', () => {
+    const manifest = makeManifest(3);
+    const scenes = makeScenes(manifest);
+    const result = scoreCandidateVideo({ manifest, scenes, style: 'prestige' });
+
+    assert.ok(Array.isArray(result.per_scene));
+    assert.equal(result.per_scene.length, 3);
+  });
+
+  it('each per-scene entry has required dimensions', () => {
+    const manifest = makeManifest(3);
+    const scenes = makeScenes(manifest);
+    const result = scoreCandidateVideo({ manifest, scenes, style: 'prestige' });
+
+    for (const ps of result.per_scene) {
+      assert.ok(ps.scene_id, 'missing scene_id');
+      assert.ok(typeof ps.overall === 'number', 'missing overall');
+      assert.ok(typeof ps.clarity === 'number', 'missing clarity');
+      assert.ok(typeof ps.hierarchy === 'number', 'missing hierarchy');
+      assert.ok(typeof ps.pacing === 'number', 'missing pacing');
+      assert.ok(typeof ps.motion_quality === 'number', 'missing motion_quality');
+      assert.ok(Array.isArray(ps.findings), 'missing findings');
+    }
+  });
+
+  it('per-scene scores are between 0 and 1', () => {
+    const manifest = makeManifest(3);
+    const scenes = makeScenes(manifest);
+    const result = scoreCandidateVideo({ manifest, scenes, style: 'prestige' });
+
+    for (const ps of result.per_scene) {
+      for (const dim of ['overall', 'clarity', 'hierarchy', 'pacing', 'motion_quality']) {
+        assert.ok(ps[dim] >= 0 && ps[dim] <= 1, `${ps.scene_id} ${dim}=${ps[dim]} out of range`);
+      }
+    }
+  });
+
+  it('annotated scenes produce higher clarity scores', () => {
+    const manifest = makeManifest(2);
+    const plainScenes = makeScenes(manifest);
+    const annotatedScenes = makeScenes(manifest).map(s => ({
+      ...s,
+      product_role: 'result',
+      primary_subject: s.layers[0].id,
+      outcome: 'User sees result',
+      interaction_truth: { has_cursor: false, has_typing: true, has_state_change: true, timing_realistic: true },
+    }));
+
+    const plain = scoreCandidateVideo({ manifest, scenes: plainScenes, style: 'prestige' });
+    const annotated = scoreCandidateVideo({ manifest, scenes: annotatedScenes, style: 'prestige' });
+
+    const plainClarity = plain.per_scene.reduce((s, p) => s + p.clarity, 0) / plain.per_scene.length;
+    const annotatedClarity = annotated.per_scene.reduce((s, p) => s + p.clarity, 0) / annotated.per_scene.length;
+
+    assert.ok(annotatedClarity > plainClarity, `annotated clarity ${annotatedClarity} should be > plain ${plainClarity}`);
+  });
+
+  it('last scene has null continuity_to_next', () => {
+    const manifest = makeManifest(3);
+    const scenes = makeScenes(manifest);
+    const result = scoreCandidateVideo({ manifest, scenes, style: 'prestige' });
+
+    assert.equal(result.per_scene[result.per_scene.length - 1].continuity_to_next, null);
+  });
+});
+
+// ── Actionable revisions ────────────────────────────────────────────────
+
+describe('scoreCandidateVideo — actionable revisions', () => {
+  it('generates targeted revisions from per-scene analysis', () => {
+    const manifest = makeManifest(3);
+    const scenes = makeScenes(manifest);
+    const result = scoreCandidateVideo({ manifest, scenes, style: 'prestige' });
+
+    // All revisions should have a target scene
+    for (const rev of result.recommended_revisions) {
+      assert.ok(REVISION_OPS.includes(rev.op), `Unknown op: ${rev.op}`);
+      assert.ok(typeof rev.reason === 'string' && rev.reason.length > 0);
+    }
+  });
+});
+
 // ── Brand scoring ───────────────────────────────────────────────────────────
 
 describe('scoreCandidateVideo — brand', () => {

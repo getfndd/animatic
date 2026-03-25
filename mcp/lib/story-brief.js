@@ -235,19 +235,49 @@ export function extractStoryBrief({ project, brief, storyboard, scenes, brand, o
     || archetype?.duration_range?.max_s
     || 30;
 
-  // Build the brief
+  // Build the brief — track which fields were explicitly provided vs inferred
+  const warnings = [];
+  const sources = {};
+
+  const audience = parsed.audience || brand?.guidelines?.target_audience || null;
+  if (!audience) warnings.push('audience: defaulted — add ## Audience to brief or brand.guidelines.target_audience');
+  sources.audience = parsed.audience ? 'brief' : brand?.guidelines?.target_audience ? 'brand' : 'default';
+
+  const promise = parsed.promise || project?.title || null;
+  if (!promise) warnings.push('promise: defaulted — add ## Promise to brief or set project title');
+  sources.promise = parsed.promise ? 'brief' : project?.title ? 'project' : 'default';
+
+  const features = parsed.must_show_features || inferFeaturesFromScenes(sceneList);
+  if (features.length === 0) warnings.push('must_show_features: empty — add ## Features to brief');
+  sources.must_show_features = parsed.must_show_features ? 'brief' : features.length > 0 ? 'inferred' : 'empty';
+
+  const proofPoints = parsed.proof_points || [];
+  if (proofPoints.length === 0) warnings.push('proof_points: empty — add ## Proof to brief for stronger credibility');
+  sources.proof_points = parsed.proof_points ? 'brief' : 'empty';
+
+  const tone = parsed.emotional_tone || PERSONALITY_TONE_MAP[personality] || STYLE_TONE_MAP[stylePack] || null;
+  sources.emotional_tone = parsed.emotional_tone ? 'brief' : PERSONALITY_TONE_MAP[personality] ? 'personality' : 'default';
+
+  // Brief quality: 0-1 based on how many core fields were explicitly provided
+  const coreFields = ['audience', 'promise', 'must_show_features', 'proof_points'];
+  const explicitCount = coreFields.filter(f => sources[f] === 'brief').length;
+  const briefQuality = Math.round((explicitCount / coreFields.length) * 100) / 100;
+
   const result = {
-    audience: parsed.audience || brand?.guidelines?.target_audience || 'General audience',
-    promise: parsed.promise || project?.title || 'Product value proposition',
-    emotional_tone: parsed.emotional_tone || PERSONALITY_TONE_MAP[personality] || STYLE_TONE_MAP[stylePack] || 'aspirational',
-    must_show_features: parsed.must_show_features || inferFeaturesFromScenes(sceneList),
-    proof_points: parsed.proof_points || [],
+    audience: audience || 'General audience',
+    promise: promise || 'Product value proposition',
+    emotional_tone: tone || 'aspirational',
+    must_show_features: features,
+    proof_points: proofPoints,
     closing_beat: inferClosingBeat(sceneList, archetype),
     narrative_template: archetypeSlug,
     inferred_personality: personality,
     inferred_style_pack: stylePack,
     duration_target_s: durationTarget,
     scene_count: sceneList.length || archetype?.scenes?.length || 5,
+    brief_quality: briefQuality,
+    warnings,
+    _sources: sources,
   };
 
   // Apply overrides last

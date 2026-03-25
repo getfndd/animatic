@@ -1,0 +1,49 @@
+{
+  "scene_id": "sc_04_result_reveal",
+  "format_version": 2,
+  "duration_s": 7,
+  "brand": "atlas-ai",
+  "product_role": "result",
+  "primary_subject": "results_panel",
+  "outcome": "System presents result: structured paper summaries with citations demonstrate core value",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": true,
+    "timing_realistic": true
+  },
+  "camera": { "move": "pull_out", "intensity": 0.15, "easing": "cinematic_scurve" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#0d0d1a\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "results_panel",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:40px\"><div style=\"background:#1a1a2e;border:1px solid rgba(255,255,255,0.06);border-radius:20px;box-shadow:0 40px 100px rgba(0,0,0,0.6);padding:32px;width:100%;max-width:720px\"><div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:20px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:18px;font-weight:600;color:#e8e0f0\">Results — Transformer Efficiency</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:rgba(232,224,240,0.3)\">12 papers · 4.2s</span></div><div style=\"display:flex;flex-direction:column;gap:16px\"><div style=\"background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px 20px\"><div style=\"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:600;color:#e8e0f0;flex:1\">FlashAttention-2: Faster Attention with Better Parallelism</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:#7c3aed;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:8px;white-space:nowrap;margin-left:12px\">Dao, 2023</span></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;color:rgba(232,224,240,0.5);line-height:1.5\">2x speedup over FlashAttention through work partitioning between GPU thread blocks, reducing non-matmul FLOPs and enabling longer sequences.</div></div><div style=\"background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px 20px\"><div style=\"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:600;color:#e8e0f0;flex:1\">GQA: Training Generalized Multi-Query Attention</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:#7c3aed;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:8px;white-space:nowrap;margin-left:12px\">Ainslie et al., 2023</span></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;color:rgba(232,224,240,0.5);line-height:1.5\">Grouped-query attention interpolates between MHA and MQA, achieving near-MHA quality with MQA-comparable speed on inference.</div></div><div style=\"background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px 20px\"><div style=\"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:600;color:#e8e0f0;flex:1\">Efficient Transformers: A Survey</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:#7c3aed;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:8px;white-space:nowrap;margin-left:12px\">Tay et al., 2022</span></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;color:rgba(232,224,240,0.5);line-height:1.5\">Comprehensive taxonomy of efficient transformer methods: fixed patterns, learnable patterns, memory, low-rank, and kernel methods.</div></div></div></div></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "data_viz",
+      "clarity_weight": 5
+    }
+  ],
+  "motion": {
+    "groups": [
+      { "targets": ["results_panel"], "primitive": "cd-card-cascade", "stagger": 200 }
+    ],
+    "camera": { "move": "pull_out", "intensity": 0.15, "sync": { "peak_at": 0.7 } }
+  },
+  "metadata": {
+    "motion_energy": "high",
+    "intent_tags": ["hero"],
+    "content_type": "data_visualization"
+  }
+}

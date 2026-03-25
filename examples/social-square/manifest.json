@@ -1,0 +1,41 @@
+{
+  "sequence_id": "seq_social_square",
+  "resolution": {
+    "w": 1080,
+    "h": 1080
+  },
+  "fps": 60,
+  "style": "energy",
+  "personality": "montage",
+  "archetype": "social-loop",
+  "loop": true,
+  "scenes": [
+    {
+      "scene": "sc_01_hook",
+      "duration_s": 2
+    },
+    {
+      "scene": "sc_02_product",
+      "duration_s": 4,
+      "transition_in": {
+        "type": "whip_left",
+        "duration_ms": 250
+      }
+    },
+    {
+      "scene": "sc_03_value",
+      "duration_s": 3,
+      "transition_in": {
+        "type": "hard_cut"
+      }
+    },
+    {
+      "scene": "sc_04_cta_loop",
+      "duration_s": 3,
+      "transition_in": {
+        "type": "whip_left",
+        "duration_ms": 250
+      }
+    }
+  ]
+}

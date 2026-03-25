@@ -1,0 +1,59 @@
+{
+  "scene_id": "sc_05_social_proof",
+  "format_version": 2,
+  "duration_s": 4,
+  "brand": "fintech-demo",
+  "camera": {
+    "move": "static"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
+  "assets": [],
+  "product_role": "proof",
+  "primary_subject": "proof_text",
+  "outcome": "Establish social proof with team count and rating to build trust before CTA",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#fafafa\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "proof_text",
+      "type": "text",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:36px;font-weight:400;color:#1a1a1a;letter-spacing:-0.02em\">Trusted by 10,000+ teams</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:16px;color:rgba(0,0,0,0.45)\">4.8 stars across app stores</span></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "typography",
+      "clarity_weight": 5
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": [
+          "proof_text"
+        ],
+        "primitive": "as-fadeIn",
+        "delay_ms": 300
+      }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "subtle",
+    "intent_tags": [
+      "informational"
+    ]
+  }
+}

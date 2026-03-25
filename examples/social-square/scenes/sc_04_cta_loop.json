@@ -1,0 +1,58 @@
+{
+  "scene_id": "sc_04_cta_loop",
+  "format_version": 2,
+  "duration_s": 3,
+  "brand": "freshly",
+  "product_role": "cta",
+  "primary_subject": "cta_text",
+  "outcome": "Brand identity resolves: download CTA with logo lockup closes the loop",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "camera": { "move": "static" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:linear-gradient(135deg,#ff6b35 0%,#f7931e 100%)\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "logo",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px\"><div style=\"display:flex;align-items:center;gap:14px\"><div style=\"width:52px;height:52px;background:rgba(255,255,255,0.9);border-radius:14px;display:flex;align-items:center;justify-content:center\"><div style=\"width:28px;height:28px;background:#ff6b35;border-radius:8px\"></div></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:32px;font-weight:800;color:#ffffff;letter-spacing:-0.02em\">Freshly</span></div></div>",
+      "depth_class": "foreground",
+      "product_role": "supporting",
+      "content_class": "branding",
+      "clarity_weight": 3
+    },
+    {
+      "id": "cta_text",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:180px\"><div style=\"background:#ffffff;border-radius:16px;padding:16px 40px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:20px;font-weight:700;color:#ff6b35\">Download Now</span></div></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "ui_control",
+      "clarity_weight": 5
+    }
+  ],
+  "motion": {
+    "groups": [
+      { "targets": ["logo"], "primitive": "as-fadeIn" },
+      { "targets": ["cta_text"], "primitive": "as-bounceIn", "delay_ms": 300 }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "high",
+    "intent_tags": ["closing"],
+    "content_type": "brand_mark"
+  }
+}

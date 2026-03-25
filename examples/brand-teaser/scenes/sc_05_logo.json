@@ -1,0 +1,59 @@
+{
+  "scene_id": "sc_05_logo",
+  "format_version": 2,
+  "duration_s": 3,
+  "brand": "fintech-demo",
+  "camera": {
+    "move": "static"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
+  "assets": [],
+  "product_role": "cta",
+  "primary_subject": "logo_lockup",
+  "outcome": "Close with logo lockup and legal line for brand recall",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "logo_lockup",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px\"><div style=\"display:flex;align-items:center;gap:14px\"><div style=\"width:48px;height:48px;border:1.5px solid rgba(243,244,246,0.6);border-radius:12px;display:flex;align-items:center;justify-content:center\"><div style=\"width:20px;height:20px;background:rgba(99,102,241,0.5);border-radius:4px\"></div></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:24px;font-weight:400;letter-spacing:0.15em;color:#f3f4f6\">CANVAS</span></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(243,244,246,0.25);max-width:600px;text-align:center\">Canvas is a product of Acme Design, Inc. All rights reserved.</div></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "branding",
+      "clarity_weight": 5
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": [
+          "logo_lockup"
+        ],
+        "primitive": "as-fadeIn",
+        "delay_ms": 300
+      }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "static",
+    "intent_tags": [
+      "closing"
+    ]
+  }
+}

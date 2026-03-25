@@ -1463,6 +1463,14 @@ export async function generateScenes(brief, options = {}) {
     }
   }
 
+  // Stage 9: Auto-annotate scenes with semantic product fields
+  try {
+    const { annotateScenes } = await import('./scene-annotations.js');
+    scenes = annotateScenes(scenes);
+  } catch {
+    // Annotation is optional — if module fails, scenes still work
+  }
+
   // Self-validate each scene
   const sceneErrors = [];
   for (const scene of scenes) {

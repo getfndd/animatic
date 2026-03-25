@@ -292,5 +292,60 @@ export function extractStoryBrief({ project, brief, storyboard, scenes, brand, o
   return result;
 }
 
+// ── Brief stub generation ───────────────────────────────────────────────────
+
+/**
+ * Generate a brief markdown stub from project context.
+ * Pre-fills sections with inferred content so the user has a starting point
+ * instead of a blank page.
+ *
+ * @param {object} params - Same as extractStoryBrief
+ * @returns {string} Markdown brief with ## sections
+ */
+export function generateBriefStub({ project, scenes, brand, overrides } = {}) {
+  const brief = extractStoryBrief({ project, scenes, brand, overrides });
+
+  const lines = [`# ${project?.title || 'Project Brief'}\n`];
+
+  lines.push(`## Audience`);
+  lines.push(brief.audience === 'General audience'
+    ? `_Describe your target audience: role, industry, level of technical sophistication._\n`
+    : `${brief.audience}\n`);
+
+  lines.push(`## Promise`);
+  lines.push(brief.promise === 'Product value proposition'
+    ? `_What does the viewer walk away believing? One sentence._\n`
+    : `${brief.promise}\n`);
+
+  lines.push(`## Tone`);
+  lines.push(`${brief.emotional_tone}\n`);
+
+  lines.push(`## Features`);
+  if (brief.must_show_features.length > 0) {
+    for (const f of brief.must_show_features) lines.push(`- ${f}`);
+  } else {
+    lines.push(`- _Feature 1_`);
+    lines.push(`- _Feature 2_`);
+    lines.push(`- _Feature 3_`);
+  }
+  lines.push('');
+
+  lines.push(`## Proof`);
+  if (brief.proof_points.length > 0) {
+    for (const p of brief.proof_points) lines.push(`- ${p}`);
+  } else {
+    lines.push(`- _Metric, testimonial, or customer count that validates the promise._`);
+  }
+  lines.push('');
+
+  lines.push(`## Closing`);
+  lines.push(`${brief.closing_beat}\n`);
+
+  lines.push(`---`);
+  lines.push(`_Duration target: ${brief.duration_target_s}s | Personality: ${brief.inferred_personality} | Style: ${brief.inferred_style_pack}_`);
+
+  return lines.join('\n');
+}
+
 // Expose for testing
 export { parseBriefMarkdown, matchArchetype, inferFeaturesFromScenes, inferClosingBeat };

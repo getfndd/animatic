@@ -1,0 +1,46 @@
+{
+  "sequence_id": "seq_brand_teaser_canvas",
+  "resolution": {
+    "w": 1920,
+    "h": 1080
+  },
+  "fps": 60,
+  "style": "prestige",
+  "scenes": [
+    {
+      "scene": "sc_01_atmosphere_open",
+      "duration_s": 3
+    },
+    {
+      "scene": "sc_02_product_glimpse",
+      "duration_s": 5,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 600
+      }
+    },
+    {
+      "scene": "sc_03_brand_statement",
+      "duration_s": 5,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 500
+      }
+    },
+    {
+      "scene": "sc_04_tagline_close",
+      "duration_s": 4,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      }
+    },
+    {
+      "scene": "sc_05_logo",
+      "duration_s": 3,
+      "transition_in": {
+        "type": "hard_cut"
+      }
+    }
+  ]
+}

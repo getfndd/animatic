@@ -1,0 +1,57 @@
+{
+  "scene_id": "sc_03_processing",
+  "format_version": 2,
+  "duration_s": 3,
+  "brand": "atlas-ai",
+  "product_role": "processing",
+  "primary_subject": "thinking_indicator",
+  "outcome": "System processes request: pulsing animation communicates active computation",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "camera": { "move": "static" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#0d0d1a\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "thinking_indicator",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px\"><div style=\"display:flex;gap:10px\"><div style=\"width:10px;height:10px;background:#7c3aed;border-radius:50%;opacity:0.6\"></div><div style=\"width:10px;height:10px;background:#7c3aed;border-radius:50%;opacity:0.8\"></div><div style=\"width:10px;height:10px;background:#7c3aed;border-radius:50%;opacity:1\"></div></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:14px;color:rgba(232,224,240,0.4)\">Analyzing 2,847 papers...</span></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "ui_control",
+      "clarity_weight": 5
+    },
+    {
+      "id": "status_text",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:200px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:rgba(232,224,240,0.2)\">Extracting citations · Summarizing findings · Ranking relevance</span></div>",
+      "depth_class": "foreground",
+      "product_role": "supporting",
+      "content_class": "typography",
+      "clarity_weight": 3
+    }
+  ],
+  "motion": {
+    "groups": [
+      { "targets": ["thinking_indicator"], "primitive": "cd-pulse-dots" },
+      { "targets": ["status_text"], "primitive": "as-fadeIn", "delay_ms": 500 }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "moderate",
+    "intent_tags": ["detail"]
+  }
+}

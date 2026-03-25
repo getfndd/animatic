@@ -1,0 +1,59 @@
+{
+  "scene_id": "sc_01_context_setup",
+  "format_version": 2,
+  "duration_s": 3,
+  "brand": "fintech-demo",
+  "camera": {
+    "move": "static"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
+  "assets": [],
+  "product_role": "atmosphere",
+  "primary_subject": "headline",
+  "outcome": "Set the problem context with a relatable pain point before showing the solution",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#fafafa\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "headline",
+      "type": "text",
+      "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:36px;font-weight:400;color:#1a1a1a;letter-spacing:-0.02em;text-align:center;max-width:600px;line-height:1.3\">Too many tools, not enough clarity</span></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "typography",
+      "clarity_weight": 5
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": [
+          "headline"
+        ],
+        "primitive": "as-fadeIn",
+        "delay_ms": 300
+      }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "subtle",
+    "intent_tags": [
+      "opening"
+    ]
+  }
+}

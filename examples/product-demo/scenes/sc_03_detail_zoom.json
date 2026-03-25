@@ -1,0 +1,68 @@
+{
+  "scene_id": "sc_03_detail_zoom",
+  "format_version": 2,
+  "duration_s": 5,
+  "brand": "fintech-demo",
+  "camera": {
+    "move": "push_in",
+    "intensity": 0.1,
+    "easing": "ease_out"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
+  "assets": [],
+  "product_role": "result",
+  "primary_subject": "gantt_view",
+  "outcome": "Show timeline view with Gantt chart and task dependencies for workflow clarity",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": true,
+    "timing_realistic": false
+  },
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#fafafa\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "gantt_view",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:40px\"><div style=\"background:#ffffff;border:1px solid rgba(0,0,0,0.08);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.06);padding:24px;width:100%;max-width:820px\"><div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:20px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:16px;font-weight:600;color:#1a1a1a\">Timeline View</span><div style=\"display:flex;gap:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;background:rgba(99,102,241,0.1);color:#6366f1;padding:4px 10px;border-radius:6px\">Week</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(0,0,0,0.35);padding:4px 10px\">Month</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(0,0,0,0.35);padding:4px 10px\">Quarter</span></div></div><div style=\"display:flex;flex-direction:column;gap:6px\"><div style=\"display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:rgba(0,0,0,0.5)\">Auth migration</span><div style=\"display:flex;align-items:center;height:28px;position:relative\"><div style=\"position:absolute;left:0;width:60%;height:8px;background:#22c55e;border-radius:4px\"></div></div></div><div style=\"display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:rgba(0,0,0,0.5)\">Dashboard redesign</span><div style=\"display:flex;align-items:center;height:28px;position:relative\"><div style=\"position:absolute;left:20%;width:50%;height:8px;background:#6366f1;border-radius:4px\"></div></div></div><div style=\"display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:rgba(0,0,0,0.5)\">Onboarding flow</span><div style=\"display:flex;align-items:center;height:28px;position:relative\"><div style=\"position:absolute;left:40%;width:45%;height:8px;background:#f59e0b;border-radius:4px\"></div></div></div><div style=\"display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:rgba(0,0,0,0.5)\">API rate limiting</span><div style=\"display:flex;align-items:center;height:28px;position:relative\"><div style=\"position:absolute;left:55%;width:35%;height:8px;background:#ef4444;border-radius:4px\"></div></div></div></div><div style=\"display:flex;justify-content:space-between;margin-top:16px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06)\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:10px;color:rgba(0,0,0,0.3)\">Mon</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:10px;color:rgba(0,0,0,0.3)\">Tue</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:10px;color:rgba(0,0,0,0.3)\">Wed</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:10px;color:rgba(0,0,0,0.3)\">Thu</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:10px;color:rgba(0,0,0,0.3)\">Fri</span></div></div></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "data_viz",
+      "clarity_weight": 5
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": [
+          "gantt_view"
+        ],
+        "primitive": "as-fadeIn",
+        "delay_ms": 200
+      }
+    ],
+    "camera": {
+      "move": "push_in",
+      "intensity": 0.1,
+      "sync": {
+        "peak_at": 0.5
+      }
+    }
+  },
+  "metadata": {
+    "motion_energy": "high",
+    "intent_tags": [
+      "detail"
+    ]
+  }
+}

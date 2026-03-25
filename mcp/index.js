@@ -59,13 +59,14 @@ import { generateContactSheet, generateKeyMomentStrip, compareProjectVersions, f
 import { getSocialFormat, listSocialFormats, adaptManifestAspectRatio, createSocialCutdown, SOCIAL_FORMAT_SLUGS, VALID_ASPECT_RATIOS } from './lib/social-formats.js';
 import { resolveContinuityLinks, suggestMatchCuts, planContinuityLinks, validateContinuityChain } from './lib/continuity.js';
 import { auditMotionDensity, suggestSimplification } from './lib/motion-density.js';
-import { extractStoryBrief } from './lib/story-brief.js';
+import { extractStoryBrief, generateBriefStub } from './lib/story-brief.js';
 import { planStoryBeats } from './lib/story-beats.js';
 import { scoreCandidateVideo, autoReviseLoop, DEFAULT_WEIGHTS as SCORE_WEIGHTS } from './lib/scoring.js';
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
 import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
 import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
+import { scoreFrameStrip } from './lib/frame-critique.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -1642,6 +1643,34 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['scenes'],
       },
     },
+    {
+      name: 'generate_brief_stub',
+      description:
+        'Generate a brief markdown stub from project context. Pre-fills audience, promise, tone, features, and proof sections with inferred content so the author starts from a structured template instead of a blank page.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: { type: 'object', description: 'project.json contents' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Scene definitions (optional)' },
+          brand: { type: 'object', description: 'Brand package (optional)' },
+        },
+      },
+    },
+    {
+      name: 'score_frame_strip',
+      description:
+        'Score a frame strip (contact sheet + annotated scenes) for visual quality: contrast, readability, visual hierarchy, brand consistency, and pacing rhythm. Returns per-scene and aggregate scores with findings. Operates on metadata — does not require pixel data.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          contact_sheet: { type: 'object', description: 'Output of generate_contact_sheet' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Annotated scene definitions' },
+          brand: { type: 'object', description: 'Brand package (optional)' },
+          manifest: { type: 'object', description: 'Sequence manifest (optional)' },
+        },
+        required: ['contact_sheet', 'scenes'],
+      },
+    },
   ],
 }));
 
@@ -1792,6 +1821,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleAuditAnnotationQuality(args);
     case 'upgrade_project_confidence':
       return handleUpgradeProjectConfidence(args);
+    case 'generate_brief_stub':
+      return handleGenerateBriefStub(args);
+    case 'score_frame_strip':
+      return handleScoreFrameStrip(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -4959,6 +4992,44 @@ function handleAutoReviseLoop(args) {
   } catch (err) {
     return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
   }
+}
+
+// ── score_frame_strip ───────────────────────────────────────────────────────
+
+function handleScoreFrameStrip(args) {
+  const { contact_sheet, scenes, brand, manifest } = args;
+  if (!contact_sheet || !scenes) {
+    return { content: [{ type: 'text', text: 'contact_sheet and scenes are required' }], isError: true };
+  }
+
+  const result = scoreFrameStrip({ contactSheet: contact_sheet, scenes, brand, manifest });
+
+  let summary = `## Frame Strip Critique\n\n**Overall: ${result.overall.toFixed(3)}**\n\n`;
+  for (const [dim, data] of Object.entries(result.dimensions)) {
+    summary += `- ${dim}: ${data.score.toFixed(3)}`;
+    if (data.findings.length > 0) summary += ` (${data.findings.length} finding${data.findings.length > 1 ? 's' : ''})`;
+    summary += '\n';
+  }
+
+  if (result.findings.length > 0) {
+    summary += '\n### Findings\n\n';
+    for (const f of result.findings.slice(0, 10)) {
+      summary += `- **${f.dimension}** ${f.severity}: ${f.message}\n`;
+    }
+  }
+
+  return { content: [{ type: 'text', text: summary + '\n```json\n' + JSON.stringify(result, null, 2) + '\n```' }] };
+}
+
+// ── generate_brief_stub ─────────────────────────────────────────────────────
+
+function handleGenerateBriefStub(args) {
+  const stub = generateBriefStub({
+    project: args.project,
+    scenes: args.scenes,
+    brand: args.brand,
+  });
+  return { content: [{ type: 'text', text: stub }] };
 }
 
 // ── upgrade_project_confidence ───────────────────────────────────────────────

@@ -51,7 +51,6 @@ import { critiqueTimeline } from './lib/critic.js';
 import { runBenchmarks, QUALITY_THRESHOLD } from './lib/benchmark.js';
 import { generateVideo } from './lib/video.js';
 import { initProject, listProjects, getProject, getProjectContext, saveProjectArtifact } from './lib/projects.js';
-import { auditMotionDensity } from './lib/motion-density.js';
 import { getArtDirection, listArtDirections, ART_DIRECTION_SLUGS } from './lib/art-direction.js';
 import { loadBrand, listBrands, createBrandPackage, resolveBrandDefaults, validateBrandCompliance } from './lib/brands.js';
 import { scoreBrandFinish, COMPOSITING_PASS_SLUGS } from './lib/compositing.js';

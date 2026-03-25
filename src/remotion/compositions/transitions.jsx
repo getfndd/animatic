@@ -20,7 +20,7 @@ import { AbsoluteFill, useCurrentFrame, interpolate, Easing } from 'remotion';
  * @param {number} props.transitionFrames - Transition duration in frames
  * @param {React.ReactNode} props.children - The scene content
  */
-export const TransitionWrapper = ({ transition, transitionFrames, children }) => {
+export const TransitionWrapper = ({ transition, transitionFrames, matchGeometry, children }) => {
   const frame = useCurrentFrame();
   const type = transition?.type || 'hard_cut';
 
@@ -33,6 +33,19 @@ export const TransitionWrapper = ({ transition, transitionFrames, children }) =>
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+
+  // If continuity match geometry is present, use strategy-driven transitions
+  if (matchGeometry) {
+    switch (matchGeometry.strategy) {
+      case 'position':
+        return <MatchCutPositionIn progress={progress} matchGeometry={matchGeometry}>{children}</MatchCutPositionIn>;
+      case 'scale':
+        return <MatchCutScaleIn progress={progress} matchGeometry={matchGeometry}>{children}</MatchCutScaleIn>;
+      case 'mask_expand':
+        return <MatchCutScaleIn progress={progress} matchGeometry={matchGeometry}>{children}</MatchCutScaleIn>;
+      // content_morph and card_to_panel fall through to the transition type below
+    }
+  }
 
   switch (type) {
     case 'crossfade':
@@ -325,7 +338,7 @@ const FocusDissolveOut = ({ progress, children }) => {
  * Creates a graphic match-cut effect, as if zooming into a detail that becomes
  * the next scene. Outgoing scene scales down to the same focal point.
  */
-const MatchCutScaleIn = ({ progress, children }) => {
+const MatchCutScaleIn = ({ progress, matchGeometry, children }) => {
   const opacity = interpolate(progress, [0, 0.3], [0, 1], {
     extrapolateRight: 'clamp',
     easing: Easing.out(Easing.cubic),
@@ -334,8 +347,55 @@ const MatchCutScaleIn = ({ progress, children }) => {
     easing: Easing.out(Easing.expo),
   });
 
+  // Use continuity geometry for transform-origin if available
+  const originX = matchGeometry?.originX || 'center';
+  const originY = matchGeometry?.originY || 'center';
+
   return (
-    <AbsoluteFill style={{ opacity, transform: `scale(${scale})`, transformOrigin: 'center center' }}>
+    <AbsoluteFill style={{ opacity, transform: `scale(${scale})`, transformOrigin: `${originX} ${originY}` }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * Match cut position — incoming scene slides from the source element's position
+ * to its final position. Creates a spatial continuity effect where a UI element
+ * appears to move across the cut boundary.
+ */
+const MatchCutPositionIn = ({ progress, matchGeometry, children }) => {
+  const opacity = interpolate(progress, [0, 0.2], [0, 1], {
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+
+  // Compute offset: source center → target center (or screen center if no target)
+  const src = matchGeometry?.sourcePosition;
+  const tgt = matchGeometry?.targetPosition;
+
+  let translateX = 0;
+  let translateY = 0;
+
+  if (src && tgt) {
+    const srcCx = (src.x || 0) + (src.w || 0) / 2;
+    const srcCy = (src.y || 0) + (src.h || 0) / 2;
+    const tgtCx = (tgt.x || 0) + (tgt.w || 0) / 2;
+    const tgtCy = (tgt.y || 0) + (tgt.h || 0) / 2;
+
+    // Start offset: how far the scene needs to shift so source aligns with target
+    const dx = srcCx - tgtCx;
+    const dy = srcCy - tgtCy;
+
+    translateX = interpolate(progress, [0, 1], [dx, 0], {
+      easing: Easing.out(Easing.expo),
+    });
+    translateY = interpolate(progress, [0, 1], [dy, 0], {
+      easing: Easing.out(Easing.expo),
+    });
+  }
+
+  return (
+    <AbsoluteFill style={{ opacity, transform: `translate(${translateX}px, ${translateY}px)` }}>
       {children}
     </AbsoluteFill>
   );

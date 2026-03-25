@@ -113,8 +113,9 @@ export function generateContactSheet(manifest, scenes, options = {}) {
   if (manifest.scenes) {
     for (const ms of manifest.scenes) {
       const id = ms.scene_id || ms.id;
-      if (ms.transition && !transitionMap.has(id)) {
-        transitionMap.set(id, ms.transition);
+      const inlineTrans = ms.transition_in || ms.transition;
+      if (inlineTrans && !transitionMap.has(id)) {
+        transitionMap.set(id, inlineTrans);
       }
     }
   }
@@ -558,8 +559,9 @@ function extractTransitions(manifest) {
   if (manifest.scenes) {
     for (const s of manifest.scenes) {
       const id = s.scene_id || s.id;
-      if (s.transition && !trans[id]) {
-        const t = s.transition;
+      const inlineTrans = s.transition_in || s.transition;
+      if (inlineTrans && !trans[id]) {
+        const t = inlineTrans;
         trans[id] = { type: t.type || t.style || 'hard_cut', duration_ms: t.duration_ms ?? 0 };
       }
     }

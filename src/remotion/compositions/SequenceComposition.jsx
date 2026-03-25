@@ -71,6 +71,9 @@ export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }
         const transitionDurationMs = transition.duration_ms ?? getDefaultTransitionDuration(transition.type);
         const transitionFrames = Math.round((transitionDurationMs / 1000) * fps);
 
+        // Resolve continuity match geometry for match-cut transitions
+        const matchGeometry = resolveMatchGeometry(transition, index, scenes, sceneDefs);
+
         return (
           <Sequence key={entry.scene + '-' + index} from={startFrame} durationInFrames={durationFrames}>
             {/* Outgoing transition wrapper (handles exit during overlap with next scene) */}
@@ -80,7 +83,7 @@ export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }
               sceneFrames={durationFrames}
             >
               {/* Incoming transition wrapper (handles entrance from previous scene) */}
-              <TransitionWrapper transition={transition} transitionFrames={transitionFrames}>
+              <TransitionWrapper transition={transition} transitionFrames={transitionFrames} matchGeometry={matchGeometry}>
                 <SceneComposition scene={sceneWithOverrides} timeline={timelines[entry.scene] || null} />
               </TransitionWrapper>
             </TransitionOutWrapper>
@@ -145,6 +148,50 @@ function createPlaceholderScene(entry, index) {
       },
     ],
   };
+}
+
+/**
+ * Resolve continuity match geometry from transition_in.match config.
+ *
+ * Looks up the source layer (in previous scene) and target layer (in current scene)
+ * by continuity_id, extracts their position data, and returns geometry that
+ * TransitionWrapper can use for match-cut transitions.
+ *
+ * @returns {{ strategy: string, sourcePosition?: object, targetPosition?: object, originX?: string, originY?: string } | null}
+ */
+function resolveMatchGeometry(transition, sceneIndex, scenes, sceneDefs) {
+  const match = transition?.match;
+  if (!match || sceneIndex === 0) return null;
+
+  const prevEntry = scenes[sceneIndex - 1];
+  const prevDef = sceneDefs[prevEntry?.scene];
+  const currEntry = scenes[sceneIndex];
+  const currDef = sceneDefs[currEntry?.scene];
+  if (!prevDef?.layers || !currDef?.layers) return null;
+
+  const sourceCid = match.source_continuity_id;
+  const targetCid = match.target_continuity_id || sourceCid;
+
+  const sourceLayer = prevDef.layers.find(l => l.continuity_id === sourceCid);
+  const targetLayer = currDef.layers.find(l => l.continuity_id === targetCid);
+  if (!sourceLayer && !targetLayer) return null;
+
+  const geo = { strategy: match.strategy || 'scale' };
+
+  // Extract position/size from layers if available
+  if (sourceLayer?.position) geo.sourcePosition = sourceLayer.position;
+  if (targetLayer?.position) geo.targetPosition = targetLayer.position;
+
+  // Compute transform-origin from source layer center (for scale transitions)
+  if (sourceLayer?.position) {
+    const sp = sourceLayer.position;
+    const cx = (sp.x || 0) + (sp.w || 1920) / 2;
+    const cy = (sp.y || 0) + (sp.h || 1080) / 2;
+    geo.originX = `${cx}px`;
+    geo.originY = `${cy}px`;
+  }
+
+  return geo;
 }
 
 /**

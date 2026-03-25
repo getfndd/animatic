@@ -63,6 +63,53 @@ export const SceneComposition = ({ scene, timeline }) => {
   );
   const background = resolveSceneBackground(scene);
 
+  // Editorial canvas path — flat art-directed space with anchor-based positioning.
+  // Checked BEFORE v2 so editorial_canvas scenes with compiled timelines use the
+  // canvas layout (timeline tracks are still honored per-layer within).
+  if (scene.mode === 'editorial_canvas') {
+    const editorialLayers = resolveEditorialLayout(scene, layers);
+    const editorialBg = resolveEditorialBackground(scene.canvas, background);
+    return (
+      <AbsoluteFill style={{ background: editorialBg }}>
+        <CameraRig
+          camera={scene.camera}
+          shotGrammar={scene.shot_grammar}
+          timelineTracks={timeline?.tracks?.camera}
+        >
+          <div style={getEditorialSafeZoneStyle(scene.canvas)}>
+            {editorialLayers.map(({ layer, style: editorialStyle }) => {
+              const layerTracks = timeline?.tracks?.layers?.[layer.id];
+              if (layerTracks) {
+                return (
+                  <TimelineLayer key={layer.id} layer={layer} tracks={layerTracks}>
+                    <EditorialCanvasLayer
+                      layer={layer}
+                      editorialStyle={editorialStyle}
+                      assets={assets}
+                      frame={frame}
+                      fps={fps}
+                    />
+                  </TimelineLayer>
+                );
+              }
+              return (
+                <EditorialCanvasLayer
+                  key={layer.id}
+                  layer={layer}
+                  editorialStyle={editorialStyle}
+                  assets={assets}
+                  frame={frame}
+                  fps={fps}
+                />
+              );
+            })}
+          </div>
+        </CameraRig>
+        {scene.metadata?.visual_treatment === 'analog' && <AnalogOverlay />}
+      </AbsoluteFill>
+    );
+  }
+
   // v2 detection: compiled timeline present or format_version 2
   const isV2 = timeline?.tracks || scene.format_version === 2;
 
@@ -125,31 +172,6 @@ export const SceneComposition = ({ scene, timeline }) => {
               />
             );
           })}
-        </CameraRig>
-        {scene.metadata?.visual_treatment === 'analog' && <AnalogOverlay />}
-      </AbsoluteFill>
-    );
-  }
-
-  // Editorial canvas path — flat art-directed space with anchor-based positioning
-  if (scene.mode === 'editorial_canvas') {
-    const editorialLayers = resolveEditorialLayout(scene, layers);
-    const editorialBg = resolveEditorialBackground(scene.canvas, background);
-    return (
-      <AbsoluteFill style={{ background: editorialBg }}>
-        <CameraRig camera={scene.camera} shotGrammar={scene.shot_grammar}>
-          <div style={getEditorialSafeZoneStyle(scene.canvas)}>
-            {editorialLayers.map(({ layer, style: editorialStyle }) => (
-              <EditorialCanvasLayer
-                key={layer.id}
-                layer={layer}
-                editorialStyle={editorialStyle}
-                assets={assets}
-                frame={frame}
-                fps={fps}
-              />
-            ))}
-          </div>
         </CameraRig>
         {scene.metadata?.visual_treatment === 'analog' && <AnalogOverlay />}
       </AbsoluteFill>
@@ -746,7 +768,10 @@ function resolveEditorialBackground(canvas, existingBackground) {
 
 /**
  * EditorialCanvasLayer — Renders a single layer within editorial canvas mode.
- * Wraps SceneLayer with editorial-specific positioning and constraints.
+ *
+ * Applies editorial-specific anchor positioning and constraints, then delegates
+ * to LayerContent for the actual media rendering. This ensures ALL layer types
+ * (video, image, text, html, svg, compound) honor editorial canvas layout.
  */
 const EditorialCanvasLayer = ({ layer, editorialStyle, assets, frame, fps }) => {
   const parallaxFactor = getParallaxFactor(layer.depth_class);
@@ -761,60 +786,19 @@ const EditorialCanvasLayer = ({ layer, editorialStyle, assets, frame, fps }) => 
       ? `${editorialStyle.transform} ${entrance.transform}`
       : entrance.transform,
     mixBlendMode: layer.blend_mode || 'normal',
+    overflow: 'hidden',
   };
 
-  const asset = layer.asset ? assets[layer.asset] : null;
-
-  switch (layer.type) {
-    case 'video':
-      return (
-        <div style={combinedStyle}>
-          <VideoLayerInner asset={asset} src={layer.src} fit={layer.fit || 'contain'} fps={fps} />
-        </div>
-      );
-    case 'image':
-      return (
-        <div style={combinedStyle}>
-          <ImageLayerInner asset={asset} src={layer.src} fit={layer.fit || 'contain'} />
-        </div>
-      );
-    case 'text':
-      return <TextLayer layer={layer} style={combinedStyle} entrance={entrance} />;
-    default:
-      return (
-        <SceneLayer layer={layer} assets={assets} frame={frame} fps={fps} />
-      );
+  // Text layers use their own component for typography features
+  if (layer.type === 'text') {
+    return <TextLayer layer={layer} style={combinedStyle} entrance={entrance} />;
   }
-};
 
-/**
- * Lightweight video inner renderer (no positioning, just media).
- */
-const VideoLayerInner = ({ asset, src, fit, fps }) => {
-  const resolvedSrc = resolveAssetSrc(asset?.src || src);
-  if (!resolvedSrc) return <PlaceholderLayer style={{}} label="video: missing src" />;
-  const trimBefore = asset?.trim?.start_s ? Math.round(asset.trim.start_s * fps) : 0;
-  const trimAfter = asset?.trim?.end_s ? Math.round(asset.trim.end_s * fps) : undefined;
+  // All other layer types render through LayerContent inside the editorial wrapper
   return (
-    <OffthreadVideo
-      src={resolvedSrc}
-      style={{ width: '100%', height: '100%', objectFit: fit }}
-      trimBefore={trimBefore}
-      trimAfter={trimAfter}
-      muted={asset?.muted !== false}
-      playbackRate={1}
-    />
-  );
-};
-
-/**
- * Lightweight image inner renderer (no positioning, just media).
- */
-const ImageLayerInner = ({ asset, src, fit }) => {
-  const resolvedSrc = resolveAssetSrc(asset?.src || src);
-  if (!resolvedSrc) return <PlaceholderLayer style={{}} label="image: missing src" />;
-  return (
-    <Img src={resolvedSrc} style={{ width: '100%', height: '100%', objectFit: fit }} />
+    <div style={combinedStyle}>
+      <LayerContent layer={layer} assets={assets} frame={frame} fps={fps} />
+    </div>
   );
 };
 

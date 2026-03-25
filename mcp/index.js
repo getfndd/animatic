@@ -65,6 +65,7 @@ import { scoreCandidateVideo, autoReviseLoop, DEFAULT_WEIGHTS as SCORE_WEIGHTS }
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
 import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
+import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -1618,6 +1619,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['scenes'],
       },
     },
+    {
+      name: 'upgrade_project_confidence',
+      description:
+        'Safe metadata repair tool. Reads annotation audit, generates targeted patches for low-confidence scenes (product_role, primary_subject, interaction_truth, hero layers). Modes: "suggest" (return patches), "apply" (write patches), "apply_safe_only" (skip continuity links). Never changes authored content.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Scene definitions (annotated or raw)' },
+          mode: { type: 'string', enum: ['suggest', 'apply', 'apply_safe_only'], description: 'suggest (default), apply, or apply_safe_only' },
+          targets: { type: 'array', items: { type: 'string' }, description: 'Specific scene IDs to target (optional)' },
+          max_patches: { type: 'number', description: 'Max patches to generate (default: 20)' },
+          rules: {
+            type: 'object',
+            properties: {
+              only_safe_metadata: { type: 'boolean' },
+              min_confidence_to_apply_continuity: { type: 'number' },
+              min_confidence_to_apply_structural_unlock: { type: 'number' },
+            },
+          },
+        },
+        required: ['scenes'],
+      },
+    },
   ],
 }));
 
@@ -1766,6 +1790,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleAutoReviseLoop(args);
     case 'audit_annotation_quality':
       return handleAuditAnnotationQuality(args);
+    case 'upgrade_project_confidence':
+      return handleUpgradeProjectConfidence(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -4933,6 +4959,43 @@ function handleAutoReviseLoop(args) {
   } catch (err) {
     return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
   }
+}
+
+// ── upgrade_project_confidence ───────────────────────────────────────────────
+
+function handleUpgradeProjectConfidence(args) {
+  const { scenes, mode, targets, max_patches, rules } = args;
+  if (!scenes || !Array.isArray(scenes)) {
+    return { content: [{ type: 'text', text: 'scenes must be a non-empty array' }], isError: true };
+  }
+
+  const result = upgradeProjectConfidence({ scenes, mode, targets, max_patches, rules });
+
+  let summary = `## Confidence Upgrade\n\n`;
+  summary += `**Mode:** ${mode || 'suggest'} | **Score:** ${result.before_score.toFixed(2)} → ${result.after_score.toFixed(2)}\n`;
+  summary += `**Patches:** ${result.patches.length} | **Scenes patched:** ${result.patched_scenes.length}\n`;
+  if (result.unlocked_scenes.length > 0) {
+    summary += `**Unlocked:** ${result.unlocked_scenes.join(', ')}\n`;
+  }
+  summary += '\n';
+
+  if (result.patches.length > 0) {
+    summary += '### Patches\n\n';
+    for (const p of result.patches) {
+      const val = typeof p.value === 'object' ? JSON.stringify(p.value) : p.value;
+      summary += `- **${p.op}** ${p.scene_id}${p.layer_id ? '/' + p.layer_id : ''}.${p.path || ''} = \`${val}\`\n`;
+      summary += `  _${p.reason}_ (confidence: ${p.confidence.toFixed(2)}, source: ${p.source})\n`;
+    }
+  }
+
+  if (result.remaining_gaps.length > 0) {
+    summary += '\n### Remaining Gaps\n\n';
+    for (const g of result.remaining_gaps) {
+      summary += `- ${g.scene_id}: ${g.issue}\n`;
+    }
+  }
+
+  return { content: [{ type: 'text', text: summary }] };
 }
 
 // ── audit_annotation_quality ─────────────────────────────────────────────────

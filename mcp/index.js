@@ -59,6 +59,11 @@ import { generateContactSheet, generateKeyMomentStrip, compareProjectVersions, f
 import { getSocialFormat, listSocialFormats, adaptManifestAspectRatio, createSocialCutdown, SOCIAL_FORMAT_SLUGS, VALID_ASPECT_RATIOS } from './lib/social-formats.js';
 import { resolveContinuityLinks, suggestMatchCuts, planContinuityLinks, validateContinuityChain } from './lib/continuity.js';
 import { auditMotionDensity, suggestSimplification } from './lib/motion-density.js';
+import { extractStoryBrief } from './lib/story-brief.js';
+import { planStoryBeats } from './lib/story-beats.js';
+import { scoreCandidateVideo, DEFAULT_WEIGHTS as SCORE_WEIGHTS } from './lib/scoring.js';
+import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
+import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -1475,6 +1480,95 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['manifest', 'scenes'],
       },
     },
+    // ── Autonomous direction loop ───────────────────────────────────────
+    {
+      name: 'extract_story_brief',
+      description:
+        'Extract a structured story brief from project context. Parses brief markdown, matches sequence archetypes, infers personality/style from brand. Returns audience, promise, tone, features, proof points, closing beat, and narrative template.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: { type: 'object', description: 'project.json contents' },
+          brief: { type: 'string', description: 'Brief markdown text' },
+          storyboard: { type: 'object', description: 'Storyboard JSON (optional)' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Scene definitions' },
+          brand: { type: 'object', description: 'Brand package (optional)' },
+          overrides: { type: 'object', description: 'Explicit field overrides' },
+        },
+      },
+    },
+    {
+      name: 'plan_story_beats',
+      description:
+        'Map a story brief onto a sequence archetype to produce a concrete beat plan with durations, camera intents, transitions, and continuity opportunities. Optionally snaps to audio beats.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          story_brief: { type: 'object', description: 'Output of extract_story_brief' },
+          archetype_slug: { type: 'string', description: 'Sequence archetype slug (brand-teaser, feature-reveal, etc.)' },
+          audio_beats: { type: 'object', description: 'Beat data from analyze_beats (optional)' },
+          options: {
+            type: 'object',
+            properties: {
+              duration_target_s: { type: 'number' },
+              strategy: { type: 'string', enum: ['tight', 'loose', 'cinematic'] },
+            },
+          },
+        },
+        required: ['story_brief', 'archetype_slug'],
+      },
+    },
+    {
+      name: 'score_candidate_video',
+      description:
+        'Score a candidate video manifest across 6 dimensions: hook, narrative_arc, clarity, visual_hierarchy, motion_quality, brand_finish. Runs all existing evaluators (sequence eval, per-scene critic, motion density, brand compliance, product clarity, audio sync) and returns a unified 0-1 score card with findings and revision recommendations.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: { type: 'object', description: 'Sequence manifest' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Scene definitions' },
+          style: { type: 'string', description: 'Style pack name' },
+          brand: { type: 'object', description: 'Brand package (optional)' },
+          audio_beats: { type: 'object', description: 'Beat data (optional)' },
+          weights: { type: 'object', description: 'Custom dimension weights (optional)' },
+        },
+        required: ['manifest', 'scenes'],
+      },
+    },
+    {
+      name: 'revise_candidate_video',
+      description:
+        'Apply bounded revision operations to a manifest. Operations: trim, extend_hold, swap_transition, reorder, boost_hierarchy, compress, add_continuity, adjust_density. Returns revised manifest, scenes, and a diff log.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: { type: 'object', description: 'Sequence manifest to revise' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Scene definitions' },
+          revisions: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Array of revision ops: { op, target, ...params }',
+          },
+        },
+        required: ['manifest', 'revisions'],
+      },
+    },
+    {
+      name: 'compare_candidate_videos',
+      description:
+        'Rank 2-3 scored video candidates. Returns overall rankings, per-dimension winners, and a recommendation with rationale and trade-off analysis.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          candidates: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Array of { candidate_id, strategy, score_card, manifest }',
+          },
+        },
+        required: ['candidates'],
+      },
+    },
   ],
 }));
 
@@ -1606,6 +1700,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleSuggestMatchCuts(args);
     case 'plan_continuity_links':
       return handlePlanContinuityLinks(args);
+    // ── Autonomous direction loop ───────────────────────────────────────
+    case 'extract_story_brief':
+      return handleExtractStoryBrief(args);
+    case 'plan_story_beats':
+      return handlePlanStoryBeats(args);
+    case 'score_candidate_video':
+      return handleScoreCandidateVideo(args);
+    case 'revise_candidate_video':
+      return handleReviseCandidateVideo(args);
+    case 'compare_candidate_videos':
+      return handleCompareCandidateVideos(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -4597,6 +4702,141 @@ function handlePlanContinuityLinks(args) {
       }, null, 2),
     }],
   };
+}
+
+// ── extract_story_brief ─────────────────────────────────────────────────────
+
+function handleExtractStoryBrief(args) {
+  const result = extractStoryBrief({
+    project: args.project,
+    brief: args.brief,
+    storyboard: args.storyboard,
+    scenes: args.scenes,
+    brand: args.brand,
+    overrides: args.overrides,
+  });
+
+  return {
+    content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+  };
+}
+
+// ── plan_story_beats ────────────────────────────────────────────────────────
+
+function handlePlanStoryBeats(args) {
+  const { story_brief, archetype_slug, audio_beats, options } = args;
+
+  if (!story_brief || !archetype_slug) {
+    return {
+      content: [{ type: 'text', text: 'story_brief and archetype_slug are required' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const result = planStoryBeats({ story_brief, archetype_slug, audio_beats, options });
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Error: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+// ── score_candidate_video ───────────────────────────────────────────────────
+
+function handleScoreCandidateVideo(args) {
+  const { manifest, scenes, style, brand, audio_beats, weights } = args;
+
+  if (!manifest || !scenes) {
+    return {
+      content: [{ type: 'text', text: 'manifest and scenes are required' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const result = scoreCandidateVideo({ manifest, scenes, style, brand, audio_beats, weights });
+
+    // Format summary header
+    const header = `## Score Card\n\n**Overall: ${result.overall.toFixed(3)}**\n\n` +
+      Object.entries(result.subscores)
+        .map(([dim, sub]) => `- ${dim}: ${sub.score.toFixed(3)}`)
+        .join('\n') +
+      '\n';
+
+    return {
+      content: [{ type: 'text', text: header + '\n' + JSON.stringify(result, null, 2) }],
+    };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Error: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+// ── revise_candidate_video ──────────────────────────────────────────────────
+
+function handleReviseCandidateVideo(args) {
+  const { manifest, scenes, revisions } = args;
+
+  if (!manifest || !revisions) {
+    return {
+      content: [{ type: 'text', text: 'manifest and revisions are required' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const result = reviseCandidateVideo({ manifest, scenes, revisions });
+
+    const diffSummary = result.diff
+      .map(d => `- **${d.op}** ${d.target}: ${d.before} → ${d.after} (${d.reason})`)
+      .join('\n');
+
+    return {
+      content: [{ type: 'text', text: `## Revisions Applied: ${result.revision_count}\n\n${diffSummary}\n\n` + JSON.stringify(result, null, 2) }],
+    };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Error: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+// ── compare_candidate_videos ────────────────────────────────────────────────
+
+function handleCompareCandidateVideos(args) {
+  const { candidates } = args;
+
+  if (!candidates || !Array.isArray(candidates)) {
+    return {
+      content: [{ type: 'text', text: 'candidates array is required' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const result = compareCandidateVideos({ candidates });
+
+    const summary = `## Comparison\n\n**Winner: ${result.recommendation.winner}** (margin: ${result.recommendation.margin.toFixed(3)})\n\n` +
+      `${result.recommendation.rationale}\n\n### Rankings\n\n` +
+      result.rankings.map(r => `${r.rank}. ${r.candidate_id} (${r.strategy}) — ${r.overall.toFixed(3)}`).join('\n');
+
+    return {
+      content: [{ type: 'text', text: summary + '\n\n' + JSON.stringify(result, null, 2) }],
+    };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Error: ${err.message}` }],
+      isError: true,
+    };
+  }
 }
 
 async function main() {

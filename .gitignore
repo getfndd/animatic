@@ -24,3 +24,5 @@ renders/
 node_modules/
 package-lock.json
 ../animatic-corrupted-backup/
+out/
+package-lock 2.json

@@ -322,15 +322,22 @@ async function captureFrames(duration) {
     await page.evaluateOnNewDocument(VIRTUAL_TIME_SCRIPT);
   }
 
-  // Set transparent background via CDP
   const cdp = await page.createCDPSession();
-  await cdp.send('Emulation.setDefaultBackgroundColorOverride', {
-    color: { r: 0, g: 0, b: 0, a: 0 },
-  });
 
-  // Navigate to file with ?embed parameter (pathToFileURL handles spaces/unicode)
+  // Only use transparent background when alpha output is needed (WebM, HEVC, ProRes)
+  const alphaFormats = ['webm', 'hevc', 'prores', 'all'];
+  const needsAlpha = alphaFormats.includes(config.format);
+  if (needsAlpha) {
+    await cdp.send('Emulation.setDefaultBackgroundColorOverride', {
+      color: { r: 0, g: 0, b: 0, a: 0 },
+    });
+  }
+  // For opaque formats (MP4, GIF, AV1), keep the page's own background — no override
+
+  // Navigate with ?embed&capture parameters
   const parsedUrl = pathToFileURL(config.inputFile);
   parsedUrl.searchParams.set('embed', '');
+  parsedUrl.searchParams.set('capture', '');
   await page.goto(parsedUrl.href, { waitUntil: 'domcontentloaded' });
 
   try {
@@ -435,7 +442,7 @@ async function encodeMp4(tmpDir, outputPath, encoders) {
     return false;
   }
   console.log('  Encoding MP4 (H.264)...');
-  const crf = Math.round(51 - (config.quality / 100 * 33)); // quality 90 → crf ~21, quality 100 → crf 18
+  const crf = Math.round(51 - (config.quality / 100 * 39)); // quality 90 → crf ~16, quality 100 → crf 12 (lower = better gradients)
   try {
     await execFileAsync('ffmpeg', [
       '-y', '-framerate', String(config.fps),

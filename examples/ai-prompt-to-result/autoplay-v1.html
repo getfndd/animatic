@@ -402,7 +402,11 @@ body {
 /* ── Embed ─────────────────────────────────────────────────── */
 body.embed { background: transparent; }
 body.embed .playback { display: none; }
-body.embed .grain { display: none; }
+
+/* ── Capture mode — optimized for video encoding ──────────── */
+/* Capture adds ?embed too, so override transparent back to the designed gradient */
+body.capture { background: radial-gradient(ellipse at 50% 45%, #12122a 0%, #0a0a0f 55%); }
+body.capture .playback { display: none; }
 
 /* ── Reduced motion ────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
@@ -533,6 +537,9 @@ const clearTimers = () => { timers.forEach(t => clearTimeout(t)); timers = []; }
 if (new URLSearchParams(location.search).has('embed')) {
   document.body.classList.add('embed');
 }
+if (new URLSearchParams(location.search).has('capture')) {
+  document.body.classList.add('capture');
+}
 
 // ── Transitions ───────────────────────────────────────────────
 function transitionTo(phase) {
@@ -574,7 +581,6 @@ function onPhaseEnter(phase) {
 }
 
 function enterContext() {
-  $('#ambient').classList.add('visible');
   push(() => $('#ctx-text').classList.add('visible'), 200);
   push(() => $('#ctx-sub').classList.add('visible'), 800);
 }
@@ -641,7 +647,6 @@ function enterResults() {
 }
 
 function enterCTA() {
-  $('#ambient').classList.add('visible');
   push(() => $('#cta-logo').classList.add('visible'), 200);
   push(() => $('#cta-headline').classList.add('visible'), 200);
   push(() => $('#cta-divider').classList.add('visible'), 200);
@@ -655,7 +660,6 @@ function resetAll() {
   // Context
   $('#ctx-text').classList.remove('visible');
   $('#ctx-sub').classList.remove('visible');
-  $('#ambient').classList.remove('visible');
 
   // Prompt
   $('#prompt-wrap').classList.remove('visible');

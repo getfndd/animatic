@@ -1,4 +1,4 @@
-import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig, interpolate, staticFile } from 'remotion';
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame, useVideoConfig, interpolate, staticFile } from 'remotion';
 import { SceneComposition } from './SceneComposition.jsx';
 import { TransitionWrapper, TransitionOutWrapper } from './transitions.jsx';
 import { getDefaultTransitionDuration, calculateLayout, resolveLayoutSlots } from '../lib.js';
@@ -16,7 +16,13 @@ import { getDefaultTransitionDuration, calculateLayout, resolveLayoutSlots } fro
  * @param {object} props.manifest - Sequence manifest JSON
  * @param {object} props.sceneDefs - Scene definitions keyed by scene_id
  */
-export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }) => {
+/**
+ * @param {object} props.sceneRoutes - Optional render target routing map.
+ *   Keyed by scene_id: { render_target, plate_src?, plate_format? }
+ *   When a scene has render_target === 'browser_capture' and plate_src,
+ *   renders the captured plate video instead of SceneComposition.
+ */
+export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {}, sceneRoutes = {} }) => {
   const { fps } = useVideoConfig();
   const scenes = manifest.scenes || [];
 
@@ -84,7 +90,12 @@ export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }
             >
               {/* Incoming transition wrapper (handles entrance from previous scene) */}
               <TransitionWrapper transition={transition} transitionFrames={transitionFrames} matchGeometry={matchGeometry}>
-                <SceneComposition scene={sceneWithOverrides} timeline={timelines[entry.scene] || null} />
+                <SceneContent
+                  scene={sceneWithOverrides}
+                  timeline={timelines[entry.scene] || null}
+                  route={sceneRoutes[entry.scene]}
+                  fps={fps}
+                />
               </TransitionWrapper>
             </TransitionOutWrapper>
 
@@ -109,6 +120,53 @@ export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }
       })}
     </AbsoluteFill>
   );
+};
+
+/**
+ * SceneContent — Routes between native Remotion rendering and captured plate assets.
+ *
+ * When a scene has a plate asset (from browser capture), renders it via <OffthreadVideo>.
+ * For hybrid scenes, renders the plate as background with native Remotion layers on top.
+ * Otherwise falls back to standard SceneComposition.
+ */
+const SceneContent = ({ scene, timeline, route, fps }) => {
+  const plateSrc = route?.plate_src;
+  const target = route?.render_target || scene.render_target;
+
+  // browser_capture with plate asset → render the captured video
+  if (target === 'browser_capture' && plateSrc) {
+    const resolvedSrc = plateSrc.startsWith('http') || plateSrc.startsWith('/') ? plateSrc : staticFile(plateSrc);
+    return (
+      <AbsoluteFill>
+        <OffthreadVideo
+          src={resolvedSrc}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          muted
+          playbackRate={1}
+        />
+      </AbsoluteFill>
+    );
+  }
+
+  // hybrid → plate as background + native Remotion layers on top
+  if (target === 'hybrid' && plateSrc) {
+    const resolvedSrc = plateSrc.startsWith('http') || plateSrc.startsWith('/') ? plateSrc : staticFile(plateSrc);
+    return (
+      <AbsoluteFill>
+        <OffthreadVideo
+          src={resolvedSrc}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          muted
+          playbackRate={1}
+        />
+        {/* Native Remotion layers rendered on top of the plate */}
+        <SceneComposition scene={scene} timeline={timeline} />
+      </AbsoluteFill>
+    );
+  }
+
+  // remotion_native or no route → standard rendering
+  return <SceneComposition scene={scene} timeline={timeline} />;
 };
 
 /**

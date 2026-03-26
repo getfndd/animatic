@@ -68,6 +68,7 @@ import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.
 import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
 import { resolveRenderTargets } from './lib/render-routing.js';
+import { assembleVideoSequence, buildRenderCommand } from './lib/video-assembly.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -1684,6 +1685,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['scenes'],
       },
     },
+    {
+      name: 'assemble_video_sequence',
+      description:
+        'Assemble a video from mixed render sources: browser-captured plate assets + native Remotion scenes. Resolves render targets, verifies plates, builds Remotion render-props, and returns a CLI render command. Handles graceful fallback when plates are missing.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: { type: 'object', description: 'Sequence manifest' },
+          scene_defs: { type: 'object', description: 'Scene definitions keyed by scene_id' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Scene array (alternative to scene_defs)' },
+          plates: { type: 'object', description: 'Plate assets keyed by scene_id: { src, format }' },
+          timelines: { type: 'object', description: 'Compiled timelines keyed by scene_id' },
+          output_dir: { type: 'string', description: 'Directory to write render-props.json' },
+          output_path: { type: 'string', description: 'Final video output path' },
+        },
+        required: ['manifest'],
+      },
+    },
   ],
 }));
 
@@ -1840,6 +1859,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleScoreFrameStrip(args);
     case 'resolve_render_targets':
       return handleResolveRenderTargets(args);
+    case 'assemble_video_sequence':
+      return handleAssembleVideoSequence(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -5004,6 +5025,63 @@ function handleAutoReviseLoop(args) {
     return {
       content: [{ type: 'text', text: summary + '\n```json\n' + JSON.stringify(result, null, 2) + '\n```' }],
     };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
+  }
+}
+
+// ── assemble_video_sequence ──────────────────────────────────────────────────
+
+function handleAssembleVideoSequence(args) {
+  const { manifest, scene_defs, scenes, plates, timelines, output_dir, output_path } = args;
+  if (!manifest) {
+    return { content: [{ type: 'text', text: 'manifest is required' }], isError: true };
+  }
+
+  try {
+    const result = assembleVideoSequence({
+      manifest,
+      sceneDefs: scene_defs || {},
+      scenes,
+      plates: plates || {},
+      timelines: timelines || {},
+      outputDir: output_dir,
+    });
+
+    let summary = `## Video Assembly\n\n`;
+
+    // Plate status
+    const ready = Object.values(result.plateStatus).filter(p => p.status === 'ready').length;
+    const native = Object.values(result.plateStatus).filter(p => p.status === 'native').length;
+    const missing = Object.values(result.plateStatus).filter(p => p.status === 'missing' || p.status === 'not_captured').length;
+
+    summary += `**Scenes:** ${manifest.scenes.length} | **Plates ready:** ${ready} | **Native:** ${native} | **Missing:** ${missing}\n\n`;
+
+    for (const [sceneId, route] of Object.entries(result.sceneRoutes)) {
+      const ps = result.plateStatus[sceneId];
+      const icon = route.render_target === 'browser_capture' ? 'B' : route.render_target === 'hybrid' ? 'H' : 'R';
+      summary += `[${icon}] ${sceneId} → ${route.render_target}`;
+      if (ps?.status === 'ready') summary += ` (plate: ${route.plate_src})`;
+      if (ps?.status === 'missing') summary += ` (plate MISSING — fallback to native)`;
+      summary += '\n';
+    }
+
+    if (result.warnings.length > 0) {
+      summary += '\n### Warnings\n';
+      for (const w of result.warnings) summary += `- ${w}\n`;
+    }
+
+    // Render command
+    if (output_dir || output_path) {
+      const propsPath = output_dir ? `${output_dir}/render-props.json` : 'render-props.json';
+      const cmd = buildRenderCommand({
+        propsPath,
+        outputPath: output_path || 'out/sequence.mp4',
+      });
+      summary += `\n### Render Command\n\`\`\`\n${cmd}\n\`\`\`\n`;
+    }
+
+    return { content: [{ type: 'text', text: summary }] };
   } catch (err) {
     return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
   }

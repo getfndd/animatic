@@ -375,12 +375,30 @@ async function captureFrames(duration) {
 
     console.log(`  Capturing ${totalFrames} frames at ${config.fps}fps (${config.width}x${viewportHeight} @${deviceScaleFactor}x)...`);
 
+    // In deterministic mode, pause CSS animations and sync them to virtual time
+    if (config.deterministic) {
+      await cdp.send('Animation.enable');
+      await cdp.send('Animation.setPlaybackRate', { playbackRate: 0 });
+    }
+
     for (let i = 0; i < totalFrames; i++) {
       // In deterministic mode, advance virtual time per frame
       if (config.deterministic && i > 0) {
         await page.evaluate((delta) => window.__advanceFrame(delta), frameDelta);
       } else if (!config.deterministic && i > 0) {
         await new Promise(r => setTimeout(r, frameDelta));
+      }
+
+      // Sync CSS animations to virtual time
+      if (config.deterministic) {
+        const virtualMs = i * frameDelta;
+        await page.evaluate((t) => {
+          document.getAnimations({ subtree: true }).forEach(a => {
+            if (a.playState !== 'finished') {
+              a.currentTime = t;
+            }
+          });
+        }, virtualMs);
       }
 
       // Capture frame via CDP (supports alpha channel)

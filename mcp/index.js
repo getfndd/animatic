@@ -67,6 +67,7 @@ import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
 import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
+import { resolveRenderTargets } from './lib/render-routing.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -1671,6 +1672,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['contact_sheet', 'scenes'],
       },
     },
+    {
+      name: 'resolve_render_targets',
+      description:
+        'Route scenes to optimal render targets: web_native (real DOM), browser_capture (Puppeteer→plate), remotion_native (direct Remotion), or hybrid. Pure routing — deterministic, no side effects. Returns target + reason + capture config per scene.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Annotated scene definitions' },
+        },
+        required: ['scenes'],
+      },
+    },
   ],
 }));
 
@@ -1825,6 +1838,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleGenerateBriefStub(args);
     case 'score_frame_strip':
       return handleScoreFrameStrip(args);
+    case 'resolve_render_targets':
+      return handleResolveRenderTargets(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -4992,6 +5007,28 @@ function handleAutoReviseLoop(args) {
   } catch (err) {
     return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
   }
+}
+
+// ── resolve_render_targets ───────────────────────────────────────────────────
+
+function handleResolveRenderTargets(args) {
+  const { scenes } = args;
+  if (!scenes || !Array.isArray(scenes)) {
+    return { content: [{ type: 'text', text: 'scenes must be a non-empty array' }], isError: true };
+  }
+
+  const result = resolveRenderTargets(scenes);
+
+  let summary = `## Render Target Routing\n\n`;
+  summary += `**${result.routes.length} scenes** → ${result.summary.browser_capture} browser_capture, ${result.summary.remotion_native} remotion_native, ${result.summary.web_native} web_native, ${result.summary.hybrid} hybrid\n\n`;
+
+  for (const r of result.routes) {
+    const icon = r.render_target === 'browser_capture' ? 'B' : r.render_target === 'remotion_native' ? 'R' : r.render_target === 'hybrid' ? 'H' : 'W';
+    summary += `**[${icon}] ${r.scene_id}** → \`${r.render_target}\` (${r.confidence.toFixed(2)})\n`;
+    summary += `  _${r.reason}_\n`;
+  }
+
+  return { content: [{ type: 'text', text: summary }] };
 }
 
 // ── score_frame_strip ───────────────────────────────────────────────────────

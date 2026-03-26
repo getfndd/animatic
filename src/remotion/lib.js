@@ -590,6 +590,14 @@ export function validateScene(scene) {
   }
 
   // mode
+  // render_target (optional)
+  if (scene.render_target != null) {
+    const validTargets = ['web_native', 'browser_capture', 'remotion_native', 'hybrid'];
+    if (!validTargets.includes(scene.render_target)) {
+      errors.push(`render_target "${scene.render_target}" is not valid (must be one of: ${validTargets.join(', ')})`);
+    }
+  }
+
   if (scene.mode != null) {
     const validModes = ['product', 'editorial_canvas'];
     if (!validModes.includes(scene.mode)) {

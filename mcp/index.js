@@ -69,6 +69,7 @@ import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
 import { resolveRenderTargets } from './lib/render-routing.js';
 import { assembleVideoSequence, buildRenderCommand } from './lib/video-assembly.js';
+import { getDeliveryProfile, listDeliveryProfiles, getProfileForChannel } from './lib/delivery-profiles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -1703,6 +1704,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['manifest'],
       },
     },
+    {
+      name: 'get_delivery_profile',
+      description:
+        'Get encoding settings for a delivery channel. Maps channels (youtube, instagram-feed, email, tiktok, etc.) to optimal resolution, fps, codec, CRF, and max file size. Use slug for exact profile or channel name for auto-matching.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          slug: { type: 'string', description: 'Profile slug (web-hero, social-feed, story-reel, email-gif, presentation, master)' },
+          channel: { type: 'string', description: 'Channel name (youtube, instagram-feed, email, tiktok, etc.) — auto-matches to best profile' },
+        },
+      },
+    },
   ],
 }));
 
@@ -1861,6 +1874,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleResolveRenderTargets(args);
     case 'assemble_video_sequence':
       return handleAssembleVideoSequence(args);
+    case 'get_delivery_profile':
+      return handleGetDeliveryProfile(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -5028,6 +5043,28 @@ function handleAutoReviseLoop(args) {
   } catch (err) {
     return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
   }
+}
+
+// ── get_delivery_profile ─────────────────────────────────────────────────────
+
+function handleGetDeliveryProfile(args) {
+  if (args.slug) {
+    const profile = getDeliveryProfile(args.slug);
+    if (!profile) return { content: [{ type: 'text', text: `Unknown profile: ${args.slug}` }], isError: true };
+    return { content: [{ type: 'text', text: `## ${profile.name}\n\n${profile.description}\n\n\`\`\`json\n${JSON.stringify(profile, null, 2)}\n\`\`\`` }] };
+  }
+  if (args.channel) {
+    const profile = getProfileForChannel(args.channel);
+    if (!profile) return { content: [{ type: 'text', text: `No profile matches channel: ${args.channel}` }], isError: true };
+    return { content: [{ type: 'text', text: `## ${profile.name} (matched "${args.channel}")\n\n${profile.description}\n\n\`\`\`json\n${JSON.stringify(profile, null, 2)}\n\`\`\`` }] };
+  }
+  // List all
+  const profiles = listDeliveryProfiles();
+  let out = '## Delivery Profiles\n\n| Profile | Resolution | FPS | Codec | CRF | Channels |\n|---------|-----------|-----|-------|-----|----------|\n';
+  for (const p of profiles) {
+    out += `| ${p.name} | ${p.resolution.w}x${p.resolution.h} | ${p.fps} | ${p.codec} | ${p.crf ?? '—'} | ${p.channels.slice(0, 3).join(', ')} |\n`;
+  }
+  return { content: [{ type: 'text', text: out }] };
 }
 
 // ── assemble_video_sequence ──────────────────────────────────────────────────

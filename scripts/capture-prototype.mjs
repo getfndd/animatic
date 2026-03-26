@@ -218,6 +218,16 @@ const VIRTUAL_TIME_SCRIPT = `
   const timers = [];
   let timerIdCounter = 1;
 
+  // Seeded PRNG — deterministic but natural-feeling random values.
+  // Replaces Math.random so typewriter delays, stagger jitter, etc. are
+  // reproducible across captures while still looking organic.
+  let seed = 42;
+  const seededRandom = () => {
+    seed = (seed * 16807 + 0) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+  Math.random = seededRandom;
+
   // Patch Date.now and performance.now
   Date.now = () => virtualTime;
   performance.now = () => virtualTime;
@@ -460,11 +470,17 @@ async function encodeMp4(tmpDir, outputPath, encoders) {
     return false;
   }
   console.log('  Encoding MP4 (H.264)...');
-  const crf = Math.round(51 - (config.quality / 100 * 39)); // quality 90 → crf ~16, quality 100 → crf 12 (lower = better gradients)
+  const crf = Math.round(51 - (config.quality / 100 * 39)); // quality 90 → crf ~16, quality 100 → crf 12
+  // Dithering: add subtle noise to break up gradient banding in dark scenes.
+  // The noise filter adds imperceptible randomness that prevents H.264's
+  // quantizer from collapsing similar colors into visible bands.
+  // Subtle noise dithering — just enough to break up banding (strength 1 per channel)
+  const deband = 'noise=c0s=1:c1s=1:c2s=1:allf=t';
   try {
     await execFileAsync('ffmpeg', [
       '-y', '-framerate', String(config.fps),
       '-i', path.join(tmpDir, 'frame_%06d.png'),
+      '-vf', deband,
       '-c:v', 'libx264',
       '-pix_fmt', 'yuv420p',
       '-crf', String(crf),

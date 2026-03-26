@@ -1,0 +1,70 @@
+[
+  {
+    "slug": "square",
+    "aspect_ratio": "1:1",
+    "resolution": { "w": 1080, "h": 1080 },
+    "safe_areas": { "top": 5, "right": 5, "bottom": 5, "left": 5 },
+    "typography_scale": 0.85,
+    "max_scene_duration_s": 5,
+    "recommended_duration_range": { "min_s": 6, "max_s": 15 },
+    "layout_adjustments": {
+      "center_bias": true,
+      "reduce_horizontal_spread": 0.2,
+      "stack_vertical": true
+    },
+    "personality_affinities": ["montage", "editorial"],
+    "when_to_use": ["Instagram feed", "LinkedIn posts", "Product teasers"],
+    "pacing_rules": "Faster cuts, less camera movement, bigger type"
+  },
+  {
+    "slug": "portrait_4_5",
+    "aspect_ratio": "4:5",
+    "resolution": { "w": 1080, "h": 1350 },
+    "safe_areas": { "top": 6, "right": 5, "bottom": 8, "left": 5 },
+    "typography_scale": 0.9,
+    "max_scene_duration_s": 6,
+    "recommended_duration_range": { "min_s": 8, "max_s": 20 },
+    "layout_adjustments": {
+      "center_bias": true,
+      "reduce_horizontal_spread": 0.15,
+      "stack_vertical": true
+    },
+    "personality_affinities": ["editorial", "montage"],
+    "when_to_use": ["Instagram portrait", "Pinterest pins", "Mobile-first social"],
+    "pacing_rules": "Moderate pacing, vertical stacking preferred, reduce horizontal pan moves"
+  },
+  {
+    "slug": "vertical_story",
+    "aspect_ratio": "9:16",
+    "resolution": { "w": 1080, "h": 1920 },
+    "safe_areas": { "top": 10, "right": 5, "bottom": 12, "left": 5 },
+    "typography_scale": 0.95,
+    "max_scene_duration_s": 5,
+    "recommended_duration_range": { "min_s": 5, "max_s": 15 },
+    "layout_adjustments": {
+      "center_bias": true,
+      "reduce_horizontal_spread": 0.3,
+      "stack_vertical": true
+    },
+    "personality_affinities": ["montage", "cinematic-dark"],
+    "when_to_use": ["Instagram/TikTok stories", "YouTube Shorts", "Reels"],
+    "pacing_rules": "Fast cuts, vertical-only camera moves, large type, top/bottom safe zones for platform UI"
+  },
+  {
+    "slug": "landscape",
+    "aspect_ratio": "16:9",
+    "resolution": { "w": 1920, "h": 1080 },
+    "safe_areas": { "top": 3, "right": 3, "bottom": 3, "left": 3 },
+    "typography_scale": 1.0,
+    "max_scene_duration_s": 30,
+    "recommended_duration_range": { "min_s": 10, "max_s": 120 },
+    "layout_adjustments": {
+      "center_bias": false,
+      "reduce_horizontal_spread": 0,
+      "stack_vertical": false
+    },
+    "personality_affinities": ["cinematic-dark", "editorial", "neutral-light", "montage"],
+    "when_to_use": ["YouTube", "Website hero", "Presentations", "Demo videos"],
+    "pacing_rules": "Default baseline — full range of camera moves and pacing"
+  }
+]

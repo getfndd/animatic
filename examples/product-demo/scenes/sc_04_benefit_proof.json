@@ -1,0 +1,84 @@
+{
+  "scene_id": "sc_04_benefit_proof",
+  "format_version": 2,
+  "duration_s": 5,
+  "brand": "fintech-demo",
+  "camera": {
+    "move": "pull_out",
+    "intensity": 0.1,
+    "easing": "ease_out"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
+  "assets": [],
+  "product_role": "proof",
+  "primary_subject": "metrics_dashboard",
+  "outcome": "Demonstrate measurable value with metrics dashboard and pull-out reveal",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#fafafa\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "metrics_dashboard",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:40px\"><div style=\"background:#ffffff;border:1px solid rgba(0,0,0,0.08);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.06);padding:24px;width:100%;max-width:820px\"><div style=\"font-family:Inter,system-ui,sans-serif;font-size:16px;font-weight:600;color:#1a1a1a;margin-bottom:20px\">Team Performance</div><div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px\"><div style=\"background:#f9fafb;border:1px solid rgba(0,0,0,0.04);border-radius:12px;padding:20px\"><div style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:0.05em\">Tasks Completed</div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:32px;font-weight:300;color:#1a1a1a;margin-top:8px\">247</div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:#22c55e;margin-top:4px\">+18% vs last sprint</div></div><div style=\"background:#f9fafb;border:1px solid rgba(0,0,0,0.04);border-radius:12px;padding:20px\"><div style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:0.05em\">Cycle Time</div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:32px;font-weight:300;color:#1a1a1a;margin-top:8px\">2.4d</div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:#22c55e;margin-top:4px\">-0.8d improvement</div></div><div style=\"background:#f9fafb;border:1px solid rgba(0,0,0,0.04);border-radius:12px;padding:20px\"><div style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:0.05em\">On-Time Rate</div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:32px;font-weight:300;color:#1a1a1a;margin-top:8px\">94%</div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:#22c55e;margin-top:4px\">+6pts this month</div></div></div></div></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "data_viz",
+      "clarity_weight": 5
+    },
+    {
+      "id": "subtle_grid",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:repeating-linear-gradient(90deg, rgba(0,0,0,0.02) 0px, transparent 1px, transparent 80px);opacity:0.5\"></div>",
+      "depth_class": "midground",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": [
+          "metrics_dashboard"
+        ],
+        "primitive": "as-fadeIn",
+        "delay_ms": 200
+      },
+      {
+        "targets": [
+          "subtle_grid"
+        ],
+        "primitive": "as-fadeIn",
+        "delay_ms": 500
+      }
+    ],
+    "camera": {
+      "move": "pull_out",
+      "intensity": 0.1,
+      "sync": {
+        "peak_at": 0.4
+      }
+    }
+  },
+  "metadata": {
+    "motion_energy": "high",
+    "intent_tags": [
+      "proof"
+    ]
+  }
+}

@@ -1,0 +1,214 @@
+[
+  {
+    "name": "Moodboard — Staggered Grid",
+    "slug": "bd-moodboard",
+    "source": "compound",
+    "category": "compound-entrance",
+    "requires_js": true,
+    "description": "Grid of images/colors with staggered fade-in, soft shadows, and slight rotation randomness. Creates an editorial moodboard feel — each cell fades in sequentially with a subtle rotation offset, building visual texture.",
+    "default_duration": "3000ms",
+    "personality_affinity": ["editorial", "cinematic-dark"],
+    "entry_point": "src/remotion/physics/moodboard.js",
+    "remotion_component": "src/remotion/compositions/MoodboardLayer.jsx",
+    "config_schema": {
+      "columns": { "type": "number", "default": 3, "description": "Number of grid columns" },
+      "rows": { "type": "number", "default": 3, "description": "Number of grid rows" },
+      "gap": { "type": "number", "default": 12, "description": "Gap between cells in pixels" },
+      "rotation_range": { "type": "number", "default": 3, "description": "Max rotation in degrees (applied deterministically per cell)" },
+      "stagger_ms": { "type": "number", "default": 120, "description": "Delay between each cell's fade-in" },
+      "cell_shadow": { "type": "string", "default": "0 4px 16px rgba(0,0,0,0.25)", "description": "Box shadow for each cell" },
+      "cell_radius": { "type": "number", "default": 8, "description": "Border radius for cells" }
+    },
+    "content_schema": {
+      "items": {
+        "type": "array",
+        "items": {
+          "src": "string (image URL or path)",
+          "alt": "string (optional)",
+          "accent_color": "string (optional, CSS color — used as background while loading)"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "bd-moodboard-stagger-fade",
+        "name": "Moodboard Stagger Fade",
+        "extractable_as_css": true,
+        "description": "Sequential fade-in with slight rotation. Each cell enters with opacity 0→1 and a small rotation settle.",
+        "css": "@keyframes moodboard-cell-in { from { opacity: 0; transform: rotate(var(--rot)) scale(0.95); } to { opacity: 1; transform: rotate(var(--rot)) scale(1); } }"
+      }
+    ],
+    "when_to_use": [
+      "Visual inspiration boards — showing design references or style tiles",
+      "Photo galleries with editorial pacing",
+      "Brand color/texture showcases"
+    ],
+    "when_to_avoid": [
+      "Small content sets (fewer than 4 items) — grid feels sparse",
+      "Rapid-fire sequences where individual images don't need attention",
+      "Text-heavy content — use result_grid instead"
+    ],
+    "ai_guidance": "Use layer type 'moodboard' with an 'items' array of { src, alt?, accent_color? }. Configure grid via moodboard_config overrides. The stagger runs ~3s through all cells."
+  },
+  {
+    "name": "Result Grid — Row Fill",
+    "slug": "bd-result-grid",
+    "source": "compound",
+    "category": "compound-entrance",
+    "requires_js": true,
+    "description": "Search results or cards in a responsive grid that fills row by row. Each card slides in with a stagger, and an optional highlight pulse draws attention to a selected card.",
+    "default_duration": "2500ms",
+    "personality_affinity": ["editorial", "neutral-light"],
+    "entry_point": "src/remotion/physics/result-grid.js",
+    "remotion_component": "src/remotion/compositions/ResultGridLayer.jsx",
+    "config_schema": {
+      "columns": { "type": "number", "default": 3, "description": "Number of grid columns" },
+      "gap": { "type": "number", "default": 16, "description": "Gap between cards in pixels" },
+      "card_height": { "type": "number", "default": 140, "description": "Height of each card in pixels" },
+      "stagger_ms": { "type": "number", "default": 100, "description": "Delay between each card's entrance" },
+      "highlight_index": { "type": "number", "default": -1, "description": "Index of card to highlight (-1 for none)" },
+      "highlight_delay_ms": { "type": "number", "default": 800, "description": "Delay before highlight pulse starts" },
+      "card_radius": { "type": "number", "default": 12, "description": "Border radius for cards" }
+    },
+    "content_schema": {
+      "items": {
+        "type": "array",
+        "items": {
+          "title": "string",
+          "subtitle": "string (optional)",
+          "thumbnail": "string (optional, image URL)",
+          "badge": "string (optional, e.g. 'New', '★ 4.9')"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "bd-result-row-fill",
+        "name": "Result Row Fill",
+        "extractable_as_css": true,
+        "description": "Cards enter row by row with translateY + opacity stagger.",
+        "css": "@keyframes result-card-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }"
+      },
+      {
+        "id": "bd-result-highlight-pulse",
+        "name": "Result Highlight Pulse",
+        "extractable_as_css": true,
+        "description": "Subtle border glow pulse on the highlighted card.",
+        "css": "@keyframes result-highlight { 0% { box-shadow: 0 0 0 0 rgba(99,102,241,0); } 50% { box-shadow: 0 0 0 3px rgba(99,102,241,0.4); } 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); } }"
+      }
+    ],
+    "when_to_use": [
+      "Search result displays in product demos",
+      "Feature comparison grids",
+      "Dashboard card layouts filling in with data"
+    ],
+    "when_to_avoid": [
+      "Image-heavy content — use moodboard instead",
+      "Single-item focus — too much grid infrastructure for one card",
+      "Very long lists (>12 items) — grid becomes crowded"
+    ],
+    "ai_guidance": "Use layer type 'result_grid' with an 'items' array of { title, subtitle?, thumbnail?, badge? }. Configure via grid_config overrides. Set highlight_index to draw attention to a specific result."
+  },
+  {
+    "name": "Stacked Thumbs — Fan Reveal",
+    "slug": "bd-stacked-thumbs",
+    "source": "compound",
+    "category": "compound-entrance",
+    "requires_js": true,
+    "description": "Overlapping thumbnails stacked at slight offsets, fanning out to reveal all items. Creates a casual, hand-dealt card feel — items start piled up and spread apart with rotation offsets.",
+    "default_duration": "2000ms",
+    "personality_affinity": ["cinematic-dark", "editorial"],
+    "entry_point": "src/remotion/physics/stacked-thumbs.js",
+    "remotion_component": "src/remotion/compositions/StackedThumbsLayer.jsx",
+    "config_schema": {
+      "stack_offset_x": { "type": "number", "default": 8, "description": "Horizontal offset per stacked item in pixels" },
+      "stack_offset_y": { "type": "number", "default": 6, "description": "Vertical offset per stacked item in pixels" },
+      "fan_angle": { "type": "number", "default": 12, "description": "Max rotation angle when fanned out (degrees)" },
+      "max_visible": { "type": "number", "default": 6, "description": "Maximum number of visible thumbnails" },
+      "thumb_width": { "type": "number", "default": 320, "description": "Thumbnail width in pixels" },
+      "thumb_height": { "type": "number", "default": 220, "description": "Thumbnail height in pixels" },
+      "fan_spread": { "type": "number", "default": 180, "description": "Horizontal spread distance when fanned" },
+      "spring_stiffness": { "type": "number", "default": 260, "description": "Spring stiffness for fan motion" },
+      "spring_damping": { "type": "number", "default": 24, "description": "Spring damping for fan motion" }
+    },
+    "content_schema": {
+      "items": {
+        "type": "array",
+        "items": {
+          "src": "string (image URL or path)",
+          "label": "string (optional, caption below thumbnail)"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "bd-stack-fan-out",
+        "name": "Stack Fan Out",
+        "extractable_as_css": true,
+        "description": "Cards spread from stacked position to fanned layout with spring physics.",
+        "css": "@keyframes stack-fan { from { transform: translate(0, 0) rotate(0deg); } to { transform: translate(var(--fan-x), 0) rotate(var(--fan-rot)); } }"
+      }
+    ],
+    "when_to_use": [
+      "Photo stack reveals — showing a collection of images",
+      "Portfolio or gallery previews",
+      "Media library thumbnails fanning out for selection"
+    ],
+    "when_to_avoid": [
+      "More than 6-8 items — overlap becomes unreadable",
+      "Text-heavy content — thumbnails work best with images",
+      "Grids or structured layouts — use result_grid or moodboard instead"
+    ],
+    "ai_guidance": "Use layer type 'stacked_thumbs' with an 'items' array of { src, label? }. Configure via thumbs_config overrides. The fan animation runs ~2s with spring physics."
+  },
+  {
+    "name": "Media Strip — Horizontal Scroll",
+    "slug": "bd-media-strip",
+    "source": "compound",
+    "category": "compound-continuous",
+    "requires_js": true,
+    "description": "Horizontal scrolling filmstrip of images or video thumbnails. Continuous scroll with optional pause-at points for editorial pacing. Creates a cinematic film reel or timeline scrubbing feel.",
+    "default_duration": "4000ms",
+    "personality_affinity": ["montage", "editorial"],
+    "entry_point": "src/remotion/physics/media-strip.js",
+    "remotion_component": "src/remotion/compositions/MediaStripLayer.jsx",
+    "config_schema": {
+      "item_width": { "type": "number", "default": 360, "description": "Width of each strip item in pixels" },
+      "gap": { "type": "number", "default": 12, "description": "Gap between items in pixels" },
+      "scroll_speed": { "type": "number", "default": 200, "description": "Scroll speed in pixels per second" },
+      "pause_at": { "type": "array", "items": { "type": "number" }, "default": [], "description": "Array of indices to pause at briefly during scroll" },
+      "pause_duration_ms": { "type": "number", "default": 400, "description": "Duration of each pause in milliseconds" },
+      "item_height": { "type": "number", "default": 240, "description": "Height of each strip item in pixels" },
+      "item_radius": { "type": "number", "default": 8, "description": "Border radius for strip items" },
+      "strip_y": { "type": "number", "default": 420, "description": "Vertical position of the strip center" }
+    },
+    "content_schema": {
+      "items": {
+        "type": "array",
+        "items": {
+          "src": "string (image URL or path)",
+          "caption": "string (optional, shown below the item)"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "bd-strip-scroll",
+        "name": "Strip Scroll",
+        "extractable_as_css": false,
+        "description": "Continuous horizontal scroll with eased pause points. Physics-driven for smooth deceleration at pause markers."
+      }
+    ],
+    "when_to_use": [
+      "Film reel / timeline scrubbing through content",
+      "Horizontal gallery browsing in product demos",
+      "Sizzle reel B-roll showing multiple screenshots or frames"
+    ],
+    "when_to_avoid": [
+      "Fewer than 4 items — strip feels empty",
+      "Content requiring focused reading — scroll moves too quickly",
+      "Vertical layouts — this is inherently horizontal"
+    ],
+    "ai_guidance": "Use layer type 'media_strip' with an 'items' array of { src, caption? }. Configure via strip_config overrides. Set pause_at to indices where the scroll should briefly pause. The scroll runs ~4s."
+  }
+]

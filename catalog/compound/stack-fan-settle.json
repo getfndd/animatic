@@ -1,0 +1,60 @@
+{
+  "name": "Stack Fan Settle — Playing Card Spread",
+  "slug": "bd-stack-fan-settle",
+  "source": "compound",
+  "category": "compound-entrance",
+  "requires_js": true,
+  "description": "Cards start stacked at center, fan out in a rotated spread like fanning playing cards, then spring-settle into a final grid or list layout. Physics-driven settle with configurable damping creates an organic, weighty feel.",
+  "default_duration": "2800ms",
+  "personality_affinity": ["cinematic-dark", "editorial"],
+  "entry_point": "src/remotion/physics/stack-fan-settle.js",
+  "remotion_component": "src/remotion/compositions/StackFanSettleLayer.jsx",
+  "config_schema": {
+    "fanAngle": { "type": "number", "default": 35, "description": "Maximum rotation angle in degrees for the outermost cards during fan" },
+    "spreadRadius": { "type": "number", "default": 320, "description": "Radius of the fan spread in pixels from center" },
+    "settleDelay": { "type": "number", "default": 120, "description": "Stagger delay in ms between each card starting its settle phase" },
+    "cardCount": { "type": "number", "default": 5, "description": "Number of cards to display" },
+    "springStiffness": { "type": "number", "default": 280, "description": "Spring stiffness for the settle phase" },
+    "springDamping": { "type": "number", "default": 22, "description": "Spring damping for the settle phase" },
+    "gridColumns": { "type": "number", "default": 3, "description": "Number of columns in the final grid layout" },
+    "gridGap": { "type": "number", "default": 16, "description": "Gap between cards in the final grid in pixels" },
+    "cardWidth": { "type": "number", "default": 280, "description": "Width of each card in pixels" },
+    "cardHeight": { "type": "number", "default": 180, "description": "Height of each card in pixels" }
+  },
+  "content_schema": {
+    "cards": {
+      "type": "array",
+      "items": {
+        "title": "string",
+        "description": "string",
+        "icon": "string (optional, emoji or symbol)"
+      }
+    }
+  },
+  "sub_primitives": [
+    {
+      "id": "bd-fan-spread",
+      "name": "Fan Spread",
+      "extractable_as_css": true,
+      "description": "Rotational fan-out from a stacked center point with staggered timing. Each card rotates to its arc position.",
+      "css": "@keyframes fan-spread { 0%{transform:rotate(0) translateX(0)} 100%{transform:rotate(var(--fan-angle)) translateX(var(--spread-radius))} }"
+    },
+    {
+      "id": "bd-spring-settle",
+      "name": "Spring Settle",
+      "extractable_as_css": false,
+      "description": "Damped spring animation from fan position to final grid/list target. Requires JS physics — spring stiffness and damping drive the settle curve."
+    }
+  ],
+  "when_to_use": [
+    "Feature comparisons — revealing multiple options from a single source",
+    "Option reveals — showing choices that emerge from a unified concept",
+    "Portfolio showcases — spreading out work samples with theatrical flair"
+  ],
+  "when_to_avoid": [
+    "More than 8 cards — visual clutter during the fan phase",
+    "Scenes under 2 seconds — fan+settle needs time to read",
+    "Neutral-light personality — too theatrical for tutorial contexts"
+  ],
+  "ai_guidance": "Use layer type 'stack_fan_settle' with a 'cards' array of { title, description, icon }. Configure physics via fan_config overrides. Phase 1 (0-40%) fans cards out with rotation stagger, Phase 2 (40-100%) spring-settles to grid. Duration ~2.8s."
+}

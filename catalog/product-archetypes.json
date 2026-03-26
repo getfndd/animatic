@@ -1,0 +1,104 @@
+[
+  {
+    "slug": "empty-to-filled",
+    "name": "Empty to Filled State",
+    "description": "Shows an empty/blank UI element being populated with data, demonstrating the product's value proposition through the contrast between absence and presence.",
+    "duration_range": { "min_s": 3, "max_s": 6 },
+    "phases": [
+      { "id": "empty", "pct": 0.3, "description": "Show empty/zero state", "camera_intent": "inspect" },
+      { "id": "trigger", "pct": 0.1, "description": "User action triggers fill", "camera_intent": "spotlight" },
+      { "id": "populate", "pct": 0.4, "description": "Data populates with stagger", "camera_intent": "reveal" },
+      { "id": "settle", "pct": 0.2, "description": "Final state with context", "camera_intent": "confirm" }
+    ],
+    "recommended_interactions": ["type_text", "insert_items", "focus"],
+    "recommended_primitives": ["cd-focus-stagger", "ed-slide-stagger"],
+    "personalities": ["editorial", "neutral-light"],
+    "when_to_use": ["Onboarding demos", "Feature reveals", "Before/after comparisons"],
+    "when_to_avoid": ["When data is pre-populated", "Dense dashboards"]
+  },
+  {
+    "slug": "query-to-result",
+    "name": "Query to Result",
+    "description": "User enters a search or prompt, system processes it, and results appear. Demonstrates intelligence and responsiveness — the product thinking on the user's behalf.",
+    "duration_range": { "min_s": 4, "max_s": 8 },
+    "phases": [
+      { "id": "input", "pct": 0.25, "description": "User types query or prompt", "camera_intent": "inspect" },
+      { "id": "process", "pct": 0.15, "description": "Loading/thinking state", "camera_intent": "spotlight" },
+      { "id": "results", "pct": 0.4, "description": "Results appear with stagger", "camera_intent": "reveal" },
+      { "id": "context", "pct": 0.2, "description": "Pull back to show results in context", "camera_intent": "recap" }
+    ],
+    "recommended_interactions": ["type_text", "click", "scroll"],
+    "recommended_primitives": ["cd-typewriter", "cd-focus-stagger", "ed-slide-stagger", "nl-spotlight"],
+    "personalities": ["cinematic-dark", "editorial", "neutral-light"],
+    "when_to_use": ["AI/ML feature demos", "Search interfaces", "Command palettes", "Chat-based UIs"],
+    "when_to_avoid": ["Static content pages", "Settings screens"]
+  },
+  {
+    "slug": "list-to-detail",
+    "name": "List to Detail",
+    "description": "User selects an item from a list or grid, and the detail panel expands or navigates to show rich information. Demonstrates depth of content behind each item.",
+    "duration_range": { "min_s": 3, "max_s": 7 },
+    "phases": [
+      { "id": "overview", "pct": 0.25, "description": "Show list/grid of items", "camera_intent": "inspect" },
+      { "id": "select", "pct": 0.15, "description": "User clicks or hovers on item", "camera_intent": "spotlight" },
+      { "id": "expand", "pct": 0.35, "description": "Detail panel opens or page transitions", "camera_intent": "reveal" },
+      { "id": "explore", "pct": 0.25, "description": "Browse detail content", "camera_intent": "confirm" }
+    ],
+    "recommended_interactions": ["click", "hover", "scroll"],
+    "recommended_primitives": ["ed-slide-stagger", "cd-focus-stagger", "nl-cursor-to"],
+    "personalities": ["editorial", "cinematic-dark"],
+    "when_to_use": ["E-commerce product pages", "Portfolio showcases", "Data tables with drill-in", "File browsers"],
+    "when_to_avoid": ["Single-item views", "Forms without list context"]
+  },
+  {
+    "slug": "dashboard-drilldown",
+    "name": "Dashboard Drilldown",
+    "description": "Overview of a dashboard or chart, user clicks into a specific segment, and the view zooms into a detailed breakdown. Demonstrates analytical depth.",
+    "duration_range": { "min_s": 4, "max_s": 8 },
+    "phases": [
+      { "id": "overview", "pct": 0.3, "description": "Show full dashboard or chart", "camera_intent": "inspect" },
+      { "id": "focus", "pct": 0.1, "description": "Highlight specific data point or segment", "camera_intent": "spotlight" },
+      { "id": "drilldown", "pct": 0.35, "description": "Zoom into detailed breakdown", "camera_intent": "reveal" },
+      { "id": "contextualize", "pct": 0.25, "description": "Pull back to show insight in context", "camera_intent": "recap" }
+    ],
+    "recommended_interactions": ["click", "hover", "scroll"],
+    "recommended_primitives": ["cd-focus-stagger", "nl-spotlight", "nl-cursor-to", "ed-slide-stagger"],
+    "personalities": ["editorial", "neutral-light", "cinematic-dark"],
+    "when_to_use": ["Analytics dashboards", "Chart interactions", "Data visualization demos", "Reporting tools"],
+    "when_to_avoid": ["Simple metrics with no drill-down", "Static reports"]
+  },
+  {
+    "slug": "upload-process-success",
+    "name": "Upload → Process → Success",
+    "description": "User uploads a file or triggers a process, system shows progress, and success state confirms completion. Demonstrates reliability and speed.",
+    "duration_range": { "min_s": 3, "max_s": 6 },
+    "phases": [
+      { "id": "initiate", "pct": 0.2, "description": "User drags file or clicks upload", "camera_intent": "inspect" },
+      { "id": "progress", "pct": 0.35, "description": "Progress bar, spinner, or processing state", "camera_intent": "spotlight" },
+      { "id": "complete", "pct": 0.25, "description": "Success confirmation with result", "camera_intent": "confirm" },
+      { "id": "result", "pct": 0.2, "description": "Show processed output", "camera_intent": "reveal" }
+    ],
+    "recommended_interactions": ["drag_drop", "click", "focus"],
+    "recommended_primitives": ["cd-focus-stagger", "ed-slide-stagger", "nl-step-progress"],
+    "personalities": ["neutral-light", "editorial"],
+    "when_to_use": ["File upload flows", "Import wizards", "Build/deploy pipelines", "Form submissions"],
+    "when_to_avoid": ["Instant actions with no processing time", "Destructive operations"]
+  },
+  {
+    "slug": "compare-before-after",
+    "name": "Compare Before/After",
+    "description": "Side-by-side or morph transition between two states, showing transformation or improvement. Demonstrates impact through direct visual contrast.",
+    "duration_range": { "min_s": 3, "max_s": 7 },
+    "phases": [
+      { "id": "before", "pct": 0.3, "description": "Show the 'before' state clearly", "camera_intent": "inspect" },
+      { "id": "transition", "pct": 0.15, "description": "Visual transition between states", "camera_intent": "compare" },
+      { "id": "after", "pct": 0.35, "description": "Show the 'after' state", "camera_intent": "reveal" },
+      { "id": "contrast", "pct": 0.2, "description": "Hold on final state or show side-by-side", "camera_intent": "confirm" }
+    ],
+    "recommended_interactions": ["click", "toggle", "slider"],
+    "recommended_primitives": ["cd-focus-stagger", "ed-slide-stagger", "ed-blur-reveal"],
+    "personalities": ["editorial", "cinematic-dark"],
+    "when_to_use": ["Feature upgrade demos", "Design tool showcases", "Performance improvements", "Theme/mode toggles"],
+    "when_to_avoid": ["When difference is subtle or hard to see", "When 'before' state is embarrassing"]
+  }
+]

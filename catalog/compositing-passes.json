@@ -1,0 +1,61 @@
+[
+  {
+    "slug": "bloom",
+    "name": "Bloom",
+    "description": "Soft glow on bright areas, simulating lens bloom",
+    "category": "lens",
+    "defaults": { "intensity": 0.3, "threshold": 0.7, "radius": 20 },
+    "css_filter": "brightness({{intensity}}) blur({{radius}}px)",
+    "blend_mode": "screen",
+    "personality_affinity": ["cinematic-dark"]
+  },
+  {
+    "slug": "vignette",
+    "name": "Vignette",
+    "description": "Darkened edges drawing focus to center",
+    "category": "lens",
+    "defaults": { "spread": 0.7, "opacity": 0.35, "color": "#000000" },
+    "css_implementation": "radial-gradient(ellipse at center, transparent {{spread*100}}%, {{color}} 100%)",
+    "personality_affinity": ["cinematic-dark", "editorial"]
+  },
+  {
+    "slug": "film-grain",
+    "name": "Film Grain",
+    "description": "Organic noise texture overlay for analog feel",
+    "category": "texture",
+    "defaults": { "opacity": 0.04, "blend": "overlay", "size": 1 },
+    "personality_affinity": ["cinematic-dark"]
+  },
+  {
+    "slug": "chromatic-softness",
+    "name": "Chromatic Softness",
+    "description": "Subtle color channel offset for dreamy quality",
+    "category": "lens",
+    "defaults": { "offset_px": 1.5, "opacity": 0.15 },
+    "personality_affinity": ["cinematic-dark", "editorial"]
+  },
+  {
+    "slug": "light-sweep",
+    "name": "Light Sweep",
+    "description": "Animated light band sweeping across frame",
+    "category": "lighting",
+    "defaults": { "angle_deg": 45, "width_pct": 15, "speed_s": 3, "opacity": 0.08, "color": "rgba(255,255,255,0.8)" },
+    "personality_affinity": ["cinematic-dark", "montage"]
+  },
+  {
+    "slug": "masked-highlight",
+    "name": "Masked Highlight",
+    "description": "Soft spotlight on a specific frame region",
+    "category": "lighting",
+    "defaults": { "x_pct": 50, "y_pct": 50, "radius_pct": 30, "intensity": 0.12 },
+    "personality_affinity": ["cinematic-dark", "editorial", "neutral-light"]
+  },
+  {
+    "slug": "shallow-dof",
+    "name": "Shallow Depth of Field",
+    "description": "Gaussian blur on edges simulating shallow focus",
+    "category": "lens",
+    "defaults": { "focus_x_pct": 50, "focus_y_pct": 50, "focus_radius_pct": 40, "blur_max": 6 },
+    "personality_affinity": ["cinematic-dark"]
+  }
+]

@@ -1,0 +1,76 @@
+{
+  "scene_id": "sc_06_cta_close",
+  "format_version": 2,
+  "duration_s": 3,
+  "brand": "fintech-demo",
+  "camera": {
+    "move": "static"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
+  "assets": [],
+  "product_role": "cta",
+  "primary_subject": "cta_text",
+  "outcome": "Close with clear call-to-action and product name for conversion",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#fafafa\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "cta_text",
+      "type": "text",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:38px;font-weight:400;color:#1a1a1a;letter-spacing:-0.02em\">Start free. Stay organized.</span><div style=\"background:#1a1a1a;border-radius:10px;padding:12px 32px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:15px;font-weight:500;color:#ffffff\">Try Taskflow</span></div></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "typography",
+      "clarity_weight": 5
+    },
+    {
+      "id": "brand_mark",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:48px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:rgba(0,0,0,0.25);letter-spacing:0.1em\">TASKFLOW</span></div>",
+      "depth_class": "midground",
+      "product_role": "supporting",
+      "content_class": "branding",
+      "clarity_weight": 2
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": [
+          "cta_text"
+        ],
+        "primitive": "as-fadeIn",
+        "delay_ms": 200
+      },
+      {
+        "targets": [
+          "brand_mark"
+        ],
+        "primitive": "as-fadeIn",
+        "delay_ms": 600
+      }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "static",
+    "intent_tags": [
+      "closing",
+      "cta"
+    ]
+  }
+}

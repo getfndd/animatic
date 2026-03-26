@@ -322,15 +322,22 @@ async function captureFrames(duration) {
     await page.evaluateOnNewDocument(VIRTUAL_TIME_SCRIPT);
   }
 
-  // Set transparent background via CDP
   const cdp = await page.createCDPSession();
-  await cdp.send('Emulation.setDefaultBackgroundColorOverride', {
-    color: { r: 0, g: 0, b: 0, a: 0 },
-  });
 
-  // Navigate to file with ?embed parameter (pathToFileURL handles spaces/unicode)
+  // Only use transparent background when alpha output is needed (WebM, HEVC, ProRes)
+  const alphaFormats = ['webm', 'hevc', 'prores', 'all'];
+  const needsAlpha = alphaFormats.includes(config.format);
+  if (needsAlpha) {
+    await cdp.send('Emulation.setDefaultBackgroundColorOverride', {
+      color: { r: 0, g: 0, b: 0, a: 0 },
+    });
+  }
+  // For opaque formats (MP4, GIF, AV1), keep the page's own background — no override
+
+  // Navigate with ?embed&capture parameters
   const parsedUrl = pathToFileURL(config.inputFile);
   parsedUrl.searchParams.set('embed', '');
+  parsedUrl.searchParams.set('capture', '');
   await page.goto(parsedUrl.href, { waitUntil: 'domcontentloaded' });
 
   try {
@@ -368,12 +375,30 @@ async function captureFrames(duration) {
 
     console.log(`  Capturing ${totalFrames} frames at ${config.fps}fps (${config.width}x${viewportHeight} @${deviceScaleFactor}x)...`);
 
+    // In deterministic mode, pause CSS animations and sync them to virtual time
+    if (config.deterministic) {
+      await cdp.send('Animation.enable');
+      await cdp.send('Animation.setPlaybackRate', { playbackRate: 0 });
+    }
+
     for (let i = 0; i < totalFrames; i++) {
       // In deterministic mode, advance virtual time per frame
       if (config.deterministic && i > 0) {
         await page.evaluate((delta) => window.__advanceFrame(delta), frameDelta);
       } else if (!config.deterministic && i > 0) {
         await new Promise(r => setTimeout(r, frameDelta));
+      }
+
+      // Sync CSS animations to virtual time
+      if (config.deterministic) {
+        const virtualMs = i * frameDelta;
+        await page.evaluate((t) => {
+          document.getAnimations({ subtree: true }).forEach(a => {
+            if (a.playState !== 'finished') {
+              a.currentTime = t;
+            }
+          });
+        }, virtualMs);
       }
 
       // Capture frame via CDP (supports alpha channel)
@@ -435,7 +460,7 @@ async function encodeMp4(tmpDir, outputPath, encoders) {
     return false;
   }
   console.log('  Encoding MP4 (H.264)...');
-  const crf = Math.round(51 - (config.quality / 100 * 33)); // quality 90 → crf ~21, quality 100 → crf 18
+  const crf = Math.round(51 - (config.quality / 100 * 39)); // quality 90 → crf ~16, quality 100 → crf 12 (lower = better gradients)
   try {
     await execFileAsync('ffmpeg', [
       '-y', '-framerate', String(config.fps),

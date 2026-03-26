@@ -1,0 +1,494 @@
+[
+  {
+    "slug": "brand-teaser",
+    "name": "Brand Teaser",
+    "description": "Short-form brand impression piece. Establishes mood, delivers a single statement, teases the product, and resolves to logo. Optimized for top-of-funnel awareness where emotional resonance matters more than feature comprehension.",
+    "duration_range": { "min_s": 15, "max_s": 30 },
+    "loop": false,
+    "scenes": [
+      {
+        "role": "atmosphere_open",
+        "purpose": "Set mood and visual tone before any content appears",
+        "duration_pct": 0.2,
+        "energy": "low",
+        "camera": { "move": "drift", "intensity": 0.3 },
+        "transition_in": null,
+        "recommended_layers": ["background_video", "text_overlay"],
+        "recommended_primitives": ["cd-focus-stagger", "as-fadeIn", "bk-sparse-breathe"]
+      },
+      {
+        "role": "brand_statement",
+        "purpose": "Deliver the core brand message or positioning line",
+        "duration_pct": 0.25,
+        "energy": "medium",
+        "camera": { "move": "push_in", "intensity": 0.4 },
+        "transition_in": { "type": "focus_dissolve", "duration_ms": 500 },
+        "recommended_layers": ["text_hero", "background_ambient"],
+        "recommended_primitives": ["mo-text-hero", "cd-typewriter", "as-fadeInUp"]
+      },
+      {
+        "role": "product_glimpse",
+        "purpose": "Brief visual tease of the product — enough to intrigue, not explain",
+        "duration_pct": 0.25,
+        "energy": "high",
+        "camera": { "move": "breathe", "intensity": 0.5 },
+        "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
+        "recommended_layers": ["product_screenshot", "ui_overlay", "background_gradient"],
+        "recommended_primitives": ["cd-focus-stagger", "mo-scale-entrance", "as-zoomIn"]
+      },
+      {
+        "role": "tagline_close",
+        "purpose": "Reinforce the brand promise with a closing tagline",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "crossfade", "duration_ms": 400 },
+        "recommended_layers": ["text_hero", "background_solid"],
+        "recommended_primitives": ["mo-text-hero", "as-fadeIn", "ed-blur-reveal"]
+      },
+      {
+        "role": "logo_lockup",
+        "purpose": "Brand identity resolve — logo, wordmark, optional URL",
+        "duration_pct": 0.15,
+        "energy": "still",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "hard_cut", "duration_ms": 0 },
+        "recommended_layers": ["logo", "background_solid"],
+        "recommended_primitives": ["as-fadeIn", "fade-in"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "build",
+      "energy_curve": ["low", "medium", "high", "medium", "still"],
+      "contrast_rule": "Never place two high-energy scenes back-to-back without a breath"
+    },
+    "personalities": ["cinematic-dark", "montage"],
+    "style_packs": ["prestige", "dramatic"],
+    "when_to_use": [
+      "Top-of-funnel brand awareness campaigns",
+      "Pre-launch teaser content for social or landing pages",
+      "Conference or event intro loops",
+      "Homepage hero background video"
+    ],
+    "when_to_avoid": [
+      "When the audience needs to understand specific features",
+      "Products requiring detailed explanation before appeal",
+      "Internal stakeholder presentations expecting substance"
+    ]
+  },
+  {
+    "slug": "feature-reveal",
+    "name": "Feature Reveal",
+    "description": "Problem-solution narrative that frames a pain point, demonstrates a feature in context, zooms into detail, and closes with a clear benefit. Ideal for mid-funnel content where comprehension drives conversion.",
+    "duration_range": { "min_s": 20, "max_s": 45 },
+    "loop": false,
+    "scenes": [
+      {
+        "role": "context_setup",
+        "purpose": "Establish the world the user lives in — familiar environment, recognizable workflow",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": null,
+        "recommended_layers": ["ui_screenshot", "text_overlay"],
+        "recommended_primitives": ["ed-slide-stagger", "as-fadeIn", "nl-slide-stagger"]
+      },
+      {
+        "role": "problem_frame",
+        "purpose": "Surface the friction or gap — make the viewer feel the problem",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "push_in", "intensity": 0.3 },
+        "transition_in": { "type": "crossfade", "duration_ms": 400 },
+        "recommended_layers": ["ui_screenshot", "annotation_overlay", "text_callout"],
+        "recommended_primitives": ["ed-slide-stagger", "bk-content-line-stagger", "as-fadeInUp"]
+      },
+      {
+        "role": "feature_demo",
+        "purpose": "Show the feature in action — the 'aha' moment",
+        "duration_pct": 0.25,
+        "energy": "high",
+        "camera": { "move": "drift", "intensity": 0.4 },
+        "transition_in": { "type": "parallax_crossfade", "duration_ms": 500 },
+        "recommended_layers": ["ui_screenshot", "cursor_overlay", "highlight_ring"],
+        "recommended_primitives": ["cd-focus-stagger", "nl-cursor-to", "bk-chat-typewriter-submit"]
+      },
+      {
+        "role": "detail_zoom",
+        "purpose": "Zoom into the key detail — data, interaction, or result",
+        "duration_pct": 0.2,
+        "energy": "high",
+        "camera": { "move": "push_in", "intensity": 0.6 },
+        "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
+        "recommended_layers": ["ui_detail", "annotation_overlay"],
+        "recommended_primitives": ["ct-camera-push-in", "cd-panel-drilldown", "as-zoomIn"]
+      },
+      {
+        "role": "benefit_proof",
+        "purpose": "Show the outcome — metrics, success state, or before/after",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "pull_out", "intensity": 0.3 },
+        "transition_in": { "type": "match_cut_scale", "duration_ms": 350 },
+        "recommended_layers": ["metric_card", "ui_screenshot", "text_overlay"],
+        "recommended_primitives": ["ed-count-up", "bk-stat-card-count-up", "cd-draw-checks"]
+      },
+      {
+        "role": "cta_close",
+        "purpose": "Clear call-to-action — what the viewer should do next",
+        "duration_pct": 0.1,
+        "energy": "low",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "crossfade", "duration_ms": 400 },
+        "recommended_layers": ["text_hero", "logo", "background_solid"],
+        "recommended_primitives": ["as-fadeIn", "ed-slide-stagger", "fade-in"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "build-and-resolve",
+      "energy_curve": ["medium", "medium", "high", "high", "medium", "low"],
+      "contrast_rule": "The two high-energy scenes (demo + zoom) form a sustained peak — resolve must follow immediately"
+    },
+    "personalities": ["editorial", "cinematic-dark"],
+    "style_packs": ["minimal", "corporate"],
+    "when_to_use": [
+      "Product marketing feature announcements",
+      "Changelog or release note video companions",
+      "Sales enablement — showing a specific capability",
+      "Landing page explainer sections"
+    ],
+    "when_to_avoid": [
+      "Brand-only messaging with no product to show",
+      "Multiple features in one video — use launch-reel instead",
+      "Audiences unfamiliar with the product category — use onboarding-explainer"
+    ]
+  },
+  {
+    "slug": "onboarding-explainer",
+    "name": "Onboarding Explainer",
+    "description": "Sequential walkthrough that guides the viewer through a multi-step process. Consistent pacing with clear visual hierarchy between steps. Designed for clarity over drama.",
+    "duration_range": { "min_s": 30, "max_s": 60 },
+    "loop": false,
+    "scenes": [
+      {
+        "role": "welcome",
+        "purpose": "Orient the viewer — what they will learn and why it matters",
+        "duration_pct": 0.12,
+        "energy": "low",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": null,
+        "recommended_layers": ["text_hero", "background_gradient"],
+        "recommended_primitives": ["nl-slide-stagger", "as-fadeIn", "ed-slide-stagger"]
+      },
+      {
+        "role": "step_1",
+        "purpose": "First action in the workflow — establish the interaction pattern",
+        "duration_pct": 0.2,
+        "energy": "medium",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "crossfade", "duration_ms": 400 },
+        "recommended_layers": ["ui_screenshot", "cursor_overlay", "step_indicator"],
+        "recommended_primitives": ["nl-cursor-to", "nl-spotlight", "nl-step-progress"]
+      },
+      {
+        "role": "step_2",
+        "purpose": "Second action — build on the established pattern",
+        "duration_pct": 0.2,
+        "energy": "medium",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "parallax_crossfade", "duration_ms": 500 },
+        "recommended_layers": ["ui_screenshot", "cursor_overlay", "step_indicator"],
+        "recommended_primitives": ["nl-cursor-to", "nl-spotlight", "nl-step-progress"]
+      },
+      {
+        "role": "step_3",
+        "purpose": "Third action — complete the workflow sequence",
+        "duration_pct": 0.2,
+        "energy": "medium",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "parallax_crossfade", "duration_ms": 500 },
+        "recommended_layers": ["ui_screenshot", "cursor_overlay", "step_indicator"],
+        "recommended_primitives": ["nl-cursor-to", "nl-spotlight", "nl-step-progress"]
+      },
+      {
+        "role": "success_state",
+        "purpose": "Show the completed result — the payoff for following the steps",
+        "duration_pct": 0.16,
+        "energy": "high",
+        "camera": { "move": "breathe", "intensity": 0.2 },
+        "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
+        "recommended_layers": ["ui_screenshot", "success_overlay", "metric_card"],
+        "recommended_primitives": ["cd-draw-checks", "ed-count-up", "bk-stat-card-count-up"]
+      },
+      {
+        "role": "next_steps",
+        "purpose": "Point the viewer to further resources or the next workflow",
+        "duration_pct": 0.12,
+        "energy": "low",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "crossfade", "duration_ms": 400 },
+        "recommended_layers": ["text_list", "logo", "background_solid"],
+        "recommended_primitives": ["nl-slide-stagger", "as-fadeIn", "fade-in"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "plateau",
+      "energy_curve": ["low", "medium", "medium", "medium", "high", "low"],
+      "contrast_rule": "Steps must maintain consistent energy — the only peak is the success payoff"
+    },
+    "personalities": ["neutral-light", "editorial"],
+    "style_packs": ["minimal", "corporate"],
+    "when_to_use": [
+      "New user onboarding flows",
+      "Help center and documentation video companions",
+      "Internal training and process documentation",
+      "Tutorial content for complex multi-step features"
+    ],
+    "when_to_avoid": [
+      "Marketing contexts where excitement matters more than clarity",
+      "Single-action features that do not need sequential explanation",
+      "Audiences who already know the product — will feel patronizing"
+    ]
+  },
+  {
+    "slug": "launch-reel",
+    "name": "Launch Reel",
+    "description": "High-energy montage for product launches and announcements. Rapid cuts, kinetic transitions, and sustained intensity. Designed to generate excitement and compress multiple features into an impactful sequence.",
+    "duration_range": { "min_s": 30, "max_s": 60 },
+    "loop": false,
+    "scenes": [
+      {
+        "role": "countdown_tease",
+        "purpose": "Build anticipation — abstract visuals or countdown before the reveal",
+        "duration_pct": 0.1,
+        "energy": "high",
+        "camera": { "move": "handheld", "intensity": 0.6 },
+        "transition_in": null,
+        "recommended_layers": ["background_video", "text_overlay", "particle_overlay"],
+        "recommended_primitives": ["mo-scale-entrance", "ct-camera-handheld", "bk-concentric-pulse"]
+      },
+      {
+        "role": "brand_flash",
+        "purpose": "Quick brand identity hit — logo or wordmark with impact",
+        "duration_pct": 0.08,
+        "energy": "impact",
+        "camera": { "move": "push_in", "intensity": 0.7 },
+        "transition_in": { "type": "hard_cut", "duration_ms": 0 },
+        "recommended_layers": ["logo", "background_solid"],
+        "recommended_primitives": ["mo-scale-entrance", "as-zoomIn", "mo-text-hero"]
+      },
+      {
+        "role": "hero_product",
+        "purpose": "The main product reveal — the centerpiece moment",
+        "duration_pct": 0.2,
+        "energy": "high",
+        "camera": { "move": "drift", "intensity": 0.5 },
+        "transition_in": { "type": "match_cut_scale", "duration_ms": 300 },
+        "recommended_layers": ["product_screenshot", "ui_overlay", "background_gradient"],
+        "recommended_primitives": ["cd-focus-stagger", "mo-scale-entrance", "cd-card-cascade"]
+      },
+      {
+        "role": "feature_montage",
+        "purpose": "Rapid-fire feature highlights — quick cuts across capabilities",
+        "duration_pct": 0.25,
+        "energy": "high",
+        "camera": { "move": "handheld", "intensity": 0.5 },
+        "transition_in": { "type": "whip_right", "duration_ms": 250 },
+        "recommended_layers": ["ui_screenshot", "text_callout", "background_gradient"],
+        "recommended_primitives": ["mo-hard-cut", "mo-whip-wipe", "mo-grid-reveal"]
+      },
+      {
+        "role": "social_proof",
+        "purpose": "Credibility beat — metrics, logos, testimonials, or press quotes",
+        "duration_pct": 0.15,
+        "energy": "medium",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "hard_cut", "duration_ms": 0 },
+        "recommended_layers": ["metric_card", "logo_grid", "text_overlay"],
+        "recommended_primitives": ["mo-stat-reveal", "ed-count-up", "bk-stat-card-count-up"]
+      },
+      {
+        "role": "launch_cta",
+        "purpose": "Call-to-action with urgency — sign up, preorder, join waitlist",
+        "duration_pct": 0.12,
+        "energy": "medium",
+        "camera": { "move": "breathe", "intensity": 0.2 },
+        "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
+        "recommended_layers": ["text_hero", "cta_button", "background_gradient"],
+        "recommended_primitives": ["mo-text-hero", "as-fadeIn", "ed-blur-reveal"]
+      },
+      {
+        "role": "logo_resolve",
+        "purpose": "Final brand resolve — clean logo on solid background",
+        "duration_pct": 0.1,
+        "energy": "still",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "focus_dissolve", "duration_ms": 500 },
+        "recommended_layers": ["logo", "background_solid"],
+        "recommended_primitives": ["as-fadeIn", "fade-in"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "sustained-peak",
+      "energy_curve": ["high", "impact", "high", "high", "medium", "medium", "still"],
+      "contrast_rule": "Social proof scene must provide a breath before the CTA — do not extend the high-energy run past three scenes"
+    },
+    "personalities": ["montage", "cinematic-dark"],
+    "style_packs": ["energy", "kinetic"],
+    "when_to_use": [
+      "Product launch announcements and keynotes",
+      "App Store and Play Store preview videos",
+      "Social media launch campaigns",
+      "Investor demo day sizzle reels"
+    ],
+    "when_to_avoid": [
+      "Products requiring careful explanation before appeal",
+      "Enterprise audiences expecting measured, professional tone",
+      "Tutorials or onboarding — too fast for comprehension"
+    ]
+  },
+  {
+    "slug": "testimonial-cutdown",
+    "name": "Testimonial Cutdown",
+    "description": "Quote-driven social proof piece that frames a customer voice with supporting visuals and a key metric. Restrained pacing lets the words carry the weight. Designed for trust-building at any funnel stage.",
+    "duration_range": { "min_s": 15, "max_s": 30 },
+    "loop": false,
+    "scenes": [
+      {
+        "role": "quote_open",
+        "purpose": "Lead with the strongest line from the testimonial — text on screen",
+        "duration_pct": 0.25,
+        "energy": "still",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": null,
+        "recommended_layers": ["text_hero", "background_solid", "attribution_line"],
+        "recommended_primitives": ["ed-slide-stagger", "as-fadeIn", "cd-typewriter"]
+      },
+      {
+        "role": "context_visual",
+        "purpose": "Show the product or environment the quote refers to",
+        "duration_pct": 0.25,
+        "energy": "low",
+        "camera": { "move": "drift", "intensity": 0.2 },
+        "transition_in": { "type": "crossfade", "duration_ms": 500 },
+        "recommended_layers": ["ui_screenshot", "device_mockup", "background_gradient"],
+        "recommended_primitives": ["ed-slide-stagger", "as-fadeInUp", "ed-camera-drift"]
+      },
+      {
+        "role": "key_metric",
+        "purpose": "Quantify the impact — a number that validates the quote",
+        "duration_pct": 0.2,
+        "energy": "medium",
+        "camera": { "move": "push_in", "intensity": 0.3 },
+        "transition_in": { "type": "parallax_crossfade", "duration_ms": 500 },
+        "recommended_layers": ["metric_card", "text_overlay", "background_solid"],
+        "recommended_primitives": ["ed-count-up", "bk-stat-card-count-up", "ed-blur-reveal"]
+      },
+      {
+        "role": "quote_close",
+        "purpose": "Return to the human voice — closing line or attribution",
+        "duration_pct": 0.15,
+        "energy": "still",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
+        "recommended_layers": ["text_hero", "portrait", "background_solid"],
+        "recommended_primitives": ["as-fadeIn", "ed-slide-stagger", "fade-in"]
+      },
+      {
+        "role": "logo_lockup",
+        "purpose": "Brand resolve with optional customer logo pairing",
+        "duration_pct": 0.15,
+        "energy": "still",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "crossfade", "duration_ms": 400 },
+        "recommended_layers": ["logo", "customer_logo", "background_solid"],
+        "recommended_primitives": ["as-fadeIn", "fade-in"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "gentle-arc",
+      "energy_curve": ["still", "low", "medium", "still", "still"],
+      "contrast_rule": "Energy must never exceed medium — this archetype relies on restraint and credibility"
+    },
+    "personalities": ["editorial"],
+    "style_packs": ["intimate", "minimal"],
+    "when_to_use": [
+      "Customer story and case study video companions",
+      "Social proof sections on landing pages",
+      "Sales enablement — sharing customer voice with prospects",
+      "Post-purchase reinforcement and retention content"
+    ],
+    "when_to_avoid": [
+      "When no real customer quote or metric exists — never fabricate",
+      "Products too early for social proof — use brand-teaser instead",
+      "High-energy contexts like launch events — tone mismatch"
+    ]
+  },
+  {
+    "slug": "social-loop",
+    "name": "Social Loop",
+    "description": "Ultra-short looping format optimized for social feeds. Punchy hook, rapid product flash, single value proposition, logo tag. Designed to capture attention in the first frame and reward replay.",
+    "duration_range": { "min_s": 6, "max_s": 15 },
+    "loop": true,
+    "scenes": [
+      {
+        "role": "hook_frame",
+        "purpose": "Stop the scroll — bold visual or provocative statement in the first 0.5s",
+        "duration_pct": 0.25,
+        "energy": "impact",
+        "camera": { "move": "push_in", "intensity": 0.7 },
+        "transition_in": null,
+        "recommended_layers": ["text_hero", "background_bold", "product_screenshot"],
+        "recommended_primitives": ["mo-scale-entrance", "mo-text-hero", "as-zoomIn"]
+      },
+      {
+        "role": "product_flash",
+        "purpose": "Quick product shot — just enough to register what this is",
+        "duration_pct": 0.3,
+        "energy": "high",
+        "camera": { "move": "handheld", "intensity": 0.5 },
+        "transition_in": { "type": "hard_cut", "duration_ms": 0 },
+        "recommended_layers": ["product_screenshot", "ui_overlay"],
+        "recommended_primitives": ["mo-hard-cut", "mo-scale-entrance", "ct-camera-handheld"]
+      },
+      {
+        "role": "value_prop",
+        "purpose": "Single benefit statement — one line, maximum clarity",
+        "duration_pct": 0.25,
+        "energy": "medium",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "whip_right", "duration_ms": 250 },
+        "recommended_layers": ["text_hero", "background_solid"],
+        "recommended_primitives": ["mo-text-hero", "as-fadeIn", "mo-stat-reveal"]
+      },
+      {
+        "role": "logo_tag",
+        "purpose": "Logo and optional handle — seamless loop point back to hook",
+        "duration_pct": 0.2,
+        "energy": "still",
+        "camera": { "move": "static", "intensity": 0 },
+        "transition_in": { "type": "hard_cut", "duration_ms": 0 },
+        "recommended_layers": ["logo", "social_handle", "background_solid"],
+        "recommended_primitives": ["as-fadeIn", "fade-in"]
+      }
+    ],
+    "pacing_profile": {
+      "pattern": "front-loaded",
+      "energy_curve": ["impact", "high", "medium", "still"],
+      "contrast_rule": "Hook must be the highest energy scene — if it does not stop the scroll, nothing else matters"
+    },
+    "personalities": ["montage"],
+    "style_packs": ["energy", "kinetic"],
+    "when_to_use": [
+      "Instagram Reels, TikTok, and YouTube Shorts",
+      "Paid social ad creative — awareness and retargeting",
+      "Product Hunt and launch day social assets",
+      "Looping displays at events and trade shows"
+    ],
+    "when_to_avoid": [
+      "Audiences expecting substance or explanation",
+      "Complex products that cannot be communicated in under 15 seconds",
+      "Platforms where autoplay is disabled — the loop loses its effect"
+    ]
+  }
+]

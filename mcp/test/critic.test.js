@@ -22,6 +22,12 @@ import {
   detectOrphanLayers,
   detectCameraMotionMismatch,
   detectExcessiveSimultaneity,
+  detectFlatPacing,
+  detectMissingSecondaryMotion,
+  detectWeakContrast,
+  detectSimultaneousTransitions,
+  detectDeadAudioSync,
+  detectTextOnMotion,
 } from '../lib/critic.js';
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
@@ -468,6 +474,425 @@ describe('detectExcessiveSimultaneity', () => {
 
     const issues = detectExcessiveSimultaneity(layers, 240);
     assert.equal(issues.length, 0);
+  });
+});
+
+// ── Flat pacing detection ─────────────────────────────────────────────────
+
+describe('detectFlatPacing', () => {
+  it('detects 3+ consecutive scenes with same energy', () => {
+    const ctx = {
+      scenes: [
+        { duration_s: 2, transition_type: 'hard_cut', energy: 'high' },
+        { duration_s: 2, transition_type: 'hard_cut', energy: 'high' },
+        { duration_s: 2, transition_type: 'hard_cut', energy: 'high' },
+      ],
+      currentIndex: 0,
+    };
+
+    const issues = detectFlatPacing(ctx);
+    assert.ok(issues.length > 0, 'should detect flat pacing');
+    assert.equal(issues[0].rule, 'flat_pacing');
+    assert.equal(issues[0].severity, 'warning');
+  });
+
+  it('infers energy from duration and transition type', () => {
+    // All short + hard_cut = all high
+    const ctx = {
+      scenes: [
+        { duration_s: 2, transition_type: 'hard_cut' },
+        { duration_s: 1.5, transition_type: 'whip_left' },
+        { duration_s: 2.5, transition_type: 'hard_cut' },
+      ],
+      currentIndex: 0,
+    };
+
+    const issues = detectFlatPacing(ctx);
+    assert.ok(issues.length > 0, 'should infer and detect flat pacing');
+    assert.equal(issues[0].rule, 'flat_pacing');
+  });
+
+  it('does not flag varied energy levels', () => {
+    const ctx = {
+      scenes: [
+        { duration_s: 2, transition_type: 'hard_cut', energy: 'high' },
+        { duration_s: 6, transition_type: 'crossfade', energy: 'low' },
+        { duration_s: 2, transition_type: 'hard_cut', energy: 'high' },
+      ],
+      currentIndex: 0,
+    };
+
+    const issues = detectFlatPacing(ctx);
+    assert.equal(issues.length, 0);
+  });
+
+  it('does not flag fewer than 3 scenes', () => {
+    const ctx = {
+      scenes: [
+        { duration_s: 2, energy: 'high' },
+        { duration_s: 2, energy: 'high' },
+      ],
+      currentIndex: 0,
+    };
+
+    const issues = detectFlatPacing(ctx);
+    assert.equal(issues.length, 0);
+  });
+});
+
+// ── Missing secondary motion detection ───────────────────────────────────
+
+describe('detectMissingSecondaryMotion', () => {
+  it('detects hero animating but midground/background static', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 24, value: 1 }],
+        translateY: [{ frame: 0, value: 20 }, { frame: 24, value: 0 }],
+      },
+      // background has no tracks
+    };
+
+    const scene = makeScene([
+      { id: 'title', type: 'text', depth_class: 'foreground' },
+      { id: 'bg', type: 'image', depth_class: 'background' },
+    ]);
+
+    const issues = detectMissingSecondaryMotion(layers, scene);
+    assert.ok(issues.length > 0, 'should detect missing secondary motion');
+    assert.equal(issues[0].rule, 'missing_secondary_motion');
+    assert.equal(issues[0].severity, 'warning');
+  });
+
+  it('does not flag when supporting layers also animate', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 24, value: 1 }],
+      },
+      bg: {
+        translateY: [{ frame: 0, value: 5 }, { frame: 60, value: 0 }],
+      },
+    };
+
+    const scene = makeScene([
+      { id: 'title', type: 'text', depth_class: 'foreground' },
+      { id: 'bg', type: 'image', depth_class: 'background' },
+    ]);
+
+    const issues = detectMissingSecondaryMotion(layers, scene);
+    assert.equal(issues.length, 0);
+  });
+
+  it('does not flag single-layer scenes', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 24, value: 1 }],
+      },
+    };
+
+    const scene = makeScene([
+      { id: 'title', type: 'text', depth_class: 'foreground' },
+    ]);
+
+    const issues = detectMissingSecondaryMotion(layers, scene);
+    assert.equal(issues.length, 0);
+  });
+});
+
+// ── Weak contrast detection ──────────────────────────────────────────────
+
+describe('detectWeakContrast', () => {
+  it('flags sequence with no still moment', () => {
+    const ctx = {
+      scenes: [
+        { camera_move: 'push_in', has_entrances: true, energy: 'high' },
+        { camera_move: 'pan_left', has_entrances: true, energy: 'medium' },
+        { camera_move: 'drift', has_entrances: true, energy: 'medium' },
+      ],
+    };
+
+    const issues = detectWeakContrast(ctx);
+    assert.ok(issues.length > 0, 'should detect weak contrast');
+    assert.equal(issues[0].rule, 'weak_contrast');
+    assert.equal(issues[0].severity, 'info');
+  });
+
+  it('does not flag when a still moment exists', () => {
+    const ctx = {
+      scenes: [
+        { camera_move: 'push_in', has_entrances: true, energy: 'high' },
+        { camera_move: 'static', has_entrances: false, energy: 'low' },
+        { camera_move: 'pan_left', has_entrances: true, energy: 'high' },
+      ],
+    };
+
+    const issues = detectWeakContrast(ctx);
+    assert.equal(issues.length, 0);
+  });
+
+  it('does not flag single-scene sequences', () => {
+    const ctx = {
+      scenes: [{ camera_move: 'push_in', has_entrances: true }],
+    };
+
+    const issues = detectWeakContrast(ctx);
+    assert.equal(issues.length, 0);
+  });
+});
+
+// ── Simultaneous transitions detection ───────────────────────────────────
+
+describe('detectSimultaneousTransitions', () => {
+  it('flags >2 layers starting in same 5-frame window during transition zone', () => {
+    // All 3 layers start in frames 0-2, which is within the opening transition zone
+    const layers = {
+      'layer-a': { opacity: [{ frame: 0, value: 0 }, { frame: 20, value: 1 }] },
+      'layer-b': { opacity: [{ frame: 1, value: 0 }, { frame: 21, value: 1 }] },
+      'layer-c': { opacity: [{ frame: 2, value: 0 }, { frame: 22, value: 1 }] },
+    };
+
+    const scene = makeScene([
+      { id: 'layer-a', type: 'html', depth_class: 'foreground' },
+      { id: 'layer-b', type: 'html', depth_class: 'midground' },
+      { id: 'layer-c', type: 'html', depth_class: 'background' },
+    ]);
+
+    const issues = detectSimultaneousTransitions(layers, scene, 240);
+    assert.ok(issues.length > 0, 'should detect simultaneous transitions');
+    assert.equal(issues[0].rule, 'simultaneous_transitions');
+    assert.equal(issues[0].severity, 'warning');
+  });
+
+  it('does not flag staggered entrances during transition zone', () => {
+    // Layers start far enough apart
+    const layers = {
+      'layer-a': { opacity: [{ frame: 0, value: 0 }, { frame: 20, value: 1 }] },
+      'layer-b': { opacity: [{ frame: 10, value: 0 }, { frame: 30, value: 1 }] },
+      'layer-c': { opacity: [{ frame: 20, value: 0 }, { frame: 40, value: 1 }] },
+    };
+
+    const scene = makeScene([
+      { id: 'layer-a', type: 'html', depth_class: 'foreground' },
+      { id: 'layer-b', type: 'html', depth_class: 'midground' },
+      { id: 'layer-c', type: 'html', depth_class: 'background' },
+    ]);
+
+    const issues = detectSimultaneousTransitions(layers, scene, 240);
+    assert.equal(issues.length, 0);
+  });
+
+  it('does not flag with only 2 layers', () => {
+    const layers = {
+      'layer-a': { opacity: [{ frame: 0, value: 0 }, { frame: 20, value: 1 }] },
+    };
+
+    const issues = detectSimultaneousTransitions(layers, makeScene([
+      { id: 'layer-a', type: 'html', depth_class: 'foreground' },
+    ]), 240);
+    assert.equal(issues.length, 0);
+  });
+});
+
+// ── Dead audio sync detection ────────────────────────────────────────────
+
+describe('detectDeadAudioSync', () => {
+  it('flags beat points with no nearby transition or entrance', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 24, value: 1 }],
+      },
+    };
+
+    // Beat at 3 seconds (frame 180 at 60fps) — far from any layer animation
+    const scene = {
+      ...makeScene(),
+      audio_beats: [3.0],
+    };
+
+    const issues = detectDeadAudioSync(layers, scene, 60);
+    assert.ok(issues.length > 0, 'should detect dead audio sync');
+    assert.equal(issues[0].rule, 'dead_audio_sync');
+    assert.equal(issues[0].severity, 'info');
+  });
+
+  it('does not flag beats aligned with layer entrances', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 24, value: 1 }],
+      },
+    };
+
+    // Beat at 0.3s (frame 18 at 60fps) — close to entrance at frame 0-24
+    const scene = {
+      ...makeScene(),
+      audio_beats: [0.3],
+    };
+
+    const issues = detectDeadAudioSync(layers, scene, 60);
+    assert.equal(issues.length, 0);
+  });
+
+  it('skips when no audio beats present', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 24, value: 1 }],
+      },
+    };
+
+    const issues = detectDeadAudioSync(layers, makeScene(), 60);
+    assert.equal(issues.length, 0);
+  });
+
+  it('handles beats in milliseconds', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 24, value: 1 }],
+      },
+    };
+
+    // Beat at 3000ms (frame 180 at 60fps) — far from any animation
+    const scene = {
+      ...makeScene(),
+      audio_beats: [3000],
+    };
+
+    const issues = detectDeadAudioSync(layers, scene, 60);
+    assert.ok(issues.length > 0, 'should detect dead audio sync for ms-valued beats');
+  });
+});
+
+// ── Text on motion detection ─────────────────────────────────────────────
+
+describe('detectTextOnMotion', () => {
+  it('flags text layer with entrance during camera move', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 30, value: 1 }],
+        translateY: [{ frame: 0, value: 20 }, { frame: 30, value: 0 }],
+      },
+    };
+
+    const camera = {
+      scale: [
+        { frame: 0, value: 1 },
+        { frame: 60, value: 1.05 },
+      ],
+    };
+
+    const scene = makeScene([
+      { id: 'title', type: 'text', depth_class: 'foreground' },
+    ]);
+
+    const issues = detectTextOnMotion(layers, camera, scene);
+    assert.ok(issues.length > 0, 'should detect text on motion');
+    assert.equal(issues[0].rule, 'text_on_motion');
+    assert.equal(issues[0].severity, 'info');
+    assert.equal(issues[0].layer, 'title');
+  });
+
+  it('does not flag text entering after camera settles', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 80, value: 0 }, { frame: 100, value: 1 }],
+      },
+    };
+
+    const camera = {
+      scale: [
+        { frame: 0, value: 1 },
+        { frame: 60, value: 1.05 },
+        // Camera is static after frame 60
+        { frame: 240, value: 1.05 },
+      ],
+    };
+
+    const scene = makeScene([
+      { id: 'title', type: 'text', depth_class: 'foreground' },
+    ]);
+
+    const issues = detectTextOnMotion(layers, camera, scene);
+    assert.equal(issues.length, 0);
+  });
+
+  it('does not flag non-text layers', () => {
+    const layers = {
+      card: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 30, value: 1 }],
+      },
+    };
+
+    const camera = {
+      scale: [
+        { frame: 0, value: 1 },
+        { frame: 60, value: 1.05 },
+      ],
+    };
+
+    const scene = makeScene([
+      { id: 'card', type: 'html', depth_class: 'foreground' },
+    ]);
+
+    const issues = detectTextOnMotion(layers, camera, scene);
+    assert.equal(issues.length, 0);
+  });
+
+  it('handles no camera motion', () => {
+    const layers = {
+      title: {
+        opacity: [{ frame: 0, value: 0 }, { frame: 30, value: 1 }],
+      },
+    };
+
+    const issues = detectTextOnMotion(layers, {}, makeScene([
+      { id: 'title', type: 'text', depth_class: 'foreground' },
+    ]));
+    assert.equal(issues.length, 0);
+  });
+});
+
+// ── Enhanced repetitive easing (transition types) ────────────────────────
+
+describe('detectRepetitiveEasing — transition type enhancement', () => {
+  it('flags >60% same transition type in sequence', () => {
+    const layers = {};
+    const ctx = {
+      scenes: [
+        { transition_type: 'crossfade' },
+        { transition_type: 'crossfade' },
+        { transition_type: 'crossfade' },
+        { transition_type: 'hard_cut' },
+      ],
+    };
+
+    const issues = detectRepetitiveEasing(layers, ctx);
+    assert.ok(issues.some(i => i.message.includes('scene transitions')), 'should flag repetitive transition types');
+  });
+
+  it('does not flag diverse transition types', () => {
+    const layers = {};
+    const ctx = {
+      scenes: [
+        { transition_type: 'crossfade' },
+        { transition_type: 'hard_cut' },
+        { transition_type: 'whip_left' },
+        { transition_type: 'crossfade' },
+      ],
+    };
+
+    const issues = detectRepetitiveEasing(layers, ctx);
+    assert.equal(issues.filter(i => i.message.includes('scene transitions')).length, 0);
+  });
+
+  it('skips transition check with fewer than 3 scenes', () => {
+    const layers = {};
+    const ctx = {
+      scenes: [
+        { transition_type: 'crossfade' },
+        { transition_type: 'crossfade' },
+      ],
+    };
+
+    const issues = detectRepetitiveEasing(layers, ctx);
+    assert.equal(issues.filter(i => i.message.includes('scene transitions')).length, 0);
   });
 });
 

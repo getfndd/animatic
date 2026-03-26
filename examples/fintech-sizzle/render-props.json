@@ -1,0 +1,622 @@
+{
+  "manifest": {
+    "sequence_id": "seq_fintech_sizzle",
+    "resolution": {
+      "w": 1920,
+      "h": 1080
+    },
+    "fps": 60,
+    "style": "prestige",
+    "scenes": [
+      {
+        "scene": "sc_01_tagline_open",
+        "duration_s": 3
+      },
+      {
+        "scene": "sc_02_insight_cards",
+        "duration_s": 5,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 600
+        }
+      },
+      {
+        "scene": "sc_03_prompt_input",
+        "duration_s": 4,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 400
+        }
+      },
+      {
+        "scene": "sc_04_chart_drilldown",
+        "duration_s": 5,
+        "transition_in": {
+          "type": "hard_cut"
+        }
+      },
+      {
+        "scene": "sc_05_followup",
+        "duration_s": 3.5,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 400
+        }
+      },
+      {
+        "scene": "sc_06_dashboard",
+        "duration_s": 5,
+        "transition_in": {
+          "type": "hard_cut"
+        }
+      },
+      {
+        "scene": "sc_07_tagline_intro",
+        "duration_s": 3,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 600
+        }
+      },
+      {
+        "scene": "sc_08_tagline_close",
+        "duration_s": 2.5,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 400
+        }
+      },
+      {
+        "scene": "sc_09_logo",
+        "duration_s": 2.5,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 400
+        }
+      }
+    ]
+  },
+  "sceneDefs": {
+    "sc_01_tagline_open": {
+      "scene_id": "sc_01_tagline_open",
+      "format_version": 2,
+      "duration_s": 3,
+      "brand": "fintech-demo",
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+          "depth_class": "background"
+        },
+        {
+          "id": "tagline",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:38px;font-weight:300;color:#f3f4f6;letter-spacing:-0.02em\">Clarity takes craft.</span></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": ["tagline"],
+            "primitive": "as-fadeIn"
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "subtle",
+        "intent_tags": ["opening"]
+      }
+    },
+    "sc_02_insight_cards": {
+      "scene_id": "sc_02_insight_cards",
+      "format_version": 2,
+      "duration_s": 5,
+      "brand": "fintech-demo",
+      "camera": {
+        "move": "push_in",
+        "intensity": 0.12,
+        "easing": "ease_out"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+          "depth_class": "background"
+        },
+        {
+          "id": "insight_conveyor",
+          "type": "card_conveyor",
+          "depth_class": "foreground",
+          "stories": [
+            { "title": "12% revenue growth", "excerpt": "From January to June revenue increased from $12,459 to $13,954.", "meta": "treasury report · 2 days ago", "trend": "↗", "trendColor": "#34d399" },
+            { "title": "Decreased Credit card spend", "excerpt": "Credit card spend saw a decrease of 8% from $3,490 in August to $3,210.", "meta": "spend analytics · 3 days ago", "trend": "↘", "trendColor": "#94a3b8" },
+            { "title": "Increased software spend", "excerpt": "Software spend saw an increase of 16% from $3,283 in February to $3,808.", "meta": "spend analytics · 2 days ago", "trend": "↗", "trendColor": "#94a3b8" },
+            { "title": "Spike in spend on software", "excerpt": "Current spend in September totaled $5,807, up 41% from $4,099 in August.", "meta": "internal analytics · 1 day ago", "trend": "↗", "trendColor": "#34d399" },
+            { "title": "Revenue trend reversal in Q3", "excerpt": "Revenue patterns shifted significantly in Q3, driven by seasonal changes.", "meta": "quarterly review · 4 days ago", "trend": "↗", "trendColor": "#34d399" },
+            { "title": "Vendor consolidation opportunity", "excerpt": "Four overlapping SaaS subscriptions identified across engineering and design.", "meta": "procurement · 2 days ago", "trend": "↘", "trendColor": "#94a3b8" },
+            { "title": "Operating expenses down 6%", "excerpt": "Operational costs decreased from $28,400 to $26,696 due to facility optimization.", "meta": "finance ops · 3 days ago", "trend": "↘", "trendColor": "#34d399" },
+            { "title": "Accounts receivable aging alert", "excerpt": "Three invoices totaling $14,200 have exceeded 60-day payment terms.", "meta": "collections · 1 day ago", "trend": "↗", "trendColor": "#f87171" }
+          ]
+        }
+      ],
+      "motion": {
+        "camera": {
+          "move": "push_in",
+          "intensity": 0.12,
+          "sync": { "peak_at": 0.7 }
+        }
+      },
+      "metadata": {
+        "motion_energy": "high",
+        "intent_tags": ["hero", "detail"]
+      }
+    },
+    "sc_03_prompt_input": {
+      "scene_id": "sc_03_prompt_input",
+      "format_version": 2,
+      "duration_s": 4,
+      "brand": "fintech-demo",
+      "camera": {
+        "move": "drift",
+        "intensity": 0.04
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+          "depth_class": "background"
+        },
+        {
+          "id": "prompt",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;padding:40px\"><div style=\"background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:28px;padding:14px 20px;width:100%;max-width:580px;display:flex;align-items:center;gap:12px\"><div style=\"flex:1;font-family:Inter,system-ui,sans-serif;font-size:15px;color:#f3f4f6\">Tell me more about: Increased software spend.</div><div style=\"width:18px;height:18px;color:rgba(243,244,246,0.3);font-size:16px\">↑</div><div style=\"width:34px;height:34px;background:#6366f1;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:15px\">↵</div></div></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "groups": [
+          { "targets": ["prompt"], "primitive": "cd-panel-drilldown" }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "moderate",
+        "intent_tags": ["detail"]
+      }
+    },
+    "sc_04_chart_drilldown": {
+      "scene_id": "sc_04_chart_drilldown",
+      "format_version": 2,
+      "duration_s": 5,
+      "brand": "fintech-demo",
+      "camera": {
+        "move": "push_in",
+        "intensity": 0.08,
+        "easing": "ease_out"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+          "depth_class": "background"
+        },
+        {
+          "id": "panel",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:40px\"><div style=\"background:#1f2937;border:1px solid rgba(255,255,255,0.08);border-radius:18px;box-shadow:0 32px 80px rgba(0,0,0,0.5);padding:28px 32px;width:100%;max-width:580px\"><div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:17px;font-weight:600;color:#f3f4f6\">Increased software spend</span><div style=\"display:flex;gap:10px;color:rgba(243,244,246,0.3);font-size:16px\"><span>+</span><span>☺</span><span>✕</span></div></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;color:rgba(243,244,246,0.5);margin-bottom:24px\">Your software spend increase was driven by these 4 vendors</div><div style=\"margin-bottom:6px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:500;color:#f3f4f6\">Top software vendors</span><span style=\"float:right;font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(243,244,246,0.35)\">— Money Out</span></div><div style=\"display:flex;align-items:flex-end;gap:24px;height:140px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06)\"><div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:6px\"><div style=\"width:100%;height:120px;background:rgba(255,255,255,0.15);border-radius:4px 4px 0 0\"></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(243,244,246,0.5)\">Anthropic</span></div><div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:6px\"><div style=\"width:100%;height:90px;background:rgba(255,255,255,0.15);border-radius:4px 4px 0 0\"></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(243,244,246,0.5)\">Cloudflare</span></div><div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:6px\"><div style=\"width:100%;height:68px;background:rgba(255,255,255,0.15);border-radius:4px 4px 0 0\"></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(243,244,246,0.5)\">Zoom</span></div><div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:6px\"><div style=\"width:100%;height:52px;background:rgba(255,255,255,0.15);border-radius:4px 4px 0 0\"></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(243,244,246,0.5)\">Notion</span></div></div><div style=\"display:flex;justify-content:space-between;padding-top:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(243,244,246,0.25)\">~$1K</span></div><div style=\"margin-top:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:28px;padding:12px 18px;display:flex;align-items:center;gap:10px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;color:rgba(243,244,246,0.35);flex:1\">Ask anything...</span><div style=\"width:30px;height:30px;background:#6366f1;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:13px\">↵</div></div></div></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": ["panel"],
+            "primitive": "cd-panel-drilldown"
+          }
+        ],
+        "camera": {
+          "move": "push_in",
+          "intensity": 0.08,
+          "sync": { "peak_at": 0.5 }
+        }
+      },
+      "metadata": {
+        "motion_energy": "high",
+        "intent_tags": ["detail"]
+      }
+    },
+    "sc_05_followup": {
+      "scene_id": "sc_05_followup",
+      "format_version": 2,
+      "duration_s": 3.5,
+      "brand": "fintech-demo",
+      "camera": {
+        "move": "drift",
+        "intensity": 0.04
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+          "depth_class": "background"
+        },
+        {
+          "id": "followup",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:40px\"><div style=\"opacity:0.35;display:flex;gap:14px;align-items:flex-end;height:70px\"><div style=\"width:50px;height:60px;background:rgba(255,255,255,0.12);border-radius:3px 3px 0 0\"></div><div style=\"width:50px;height:45px;background:rgba(255,255,255,0.12);border-radius:3px 3px 0 0\"></div><div style=\"width:50px;height:34px;background:rgba(255,255,255,0.12);border-radius:3px 3px 0 0\"></div><div style=\"width:50px;height:26px;background:rgba(255,255,255,0.12);border-radius:3px 3px 0 0\"></div></div><div style=\"background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:28px;padding:14px 20px;width:100%;max-width:580px;display:flex;align-items:center;gap:12px\"><div style=\"flex:1;font-family:Inter,system-ui,sans-serif;font-size:15px;color:#f3f4f6\">Show me my largest transactions overall in March</div><div style=\"width:18px;height:18px;color:rgba(243,244,246,0.3);font-size:16px\">↑</div><div style=\"width:34px;height:34px;background:rgba(99,102,241,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:15px\">↵</div></div></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "groups": [
+          { "targets": ["followup"], "primitive": "cd-card-cascade" }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "moderate",
+        "intent_tags": ["detail"]
+      }
+    },
+    "sc_06_dashboard": {
+      "scene_id": "sc_06_dashboard",
+      "format_version": 2,
+      "duration_s": 5,
+      "brand": "fintech-demo",
+      "camera": {
+        "move": "pull_out",
+        "intensity": 0.3,
+        "easing": "cinematic_scurve"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+          "depth_class": "background"
+        },
+        {
+          "id": "dashboard",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex\"><div style=\"width:200px;background:#0f172a;border-right:1px solid rgba(255,255,255,0.06);padding:20px 14px;box-sizing:border-box;flex-shrink:0\"><div style=\"font-family:Inter,system-ui,sans-serif\"><div style=\"display:flex;align-items:center;gap:8px;margin-bottom:28px\"><div style=\"width:22px;height:22px;background:rgba(99,102,241,0.3);border-radius:6px\"></div><span style=\"font-size:14px;font-weight:600;color:#f3f4f6\">Acme Finance</span></div><div style=\"display:flex;flex-direction:column;gap:2px\"><div style=\"padding:7px 10px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Home</div><div style=\"padding:7px 10px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Tasks <span style=\"background:rgba(99,102,241,0.25);color:#818cf8;padding:1px 7px;border-radius:8px;font-size:10px;margin-left:4px\">10</span></div><div style=\"padding:7px 10px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Transactions</div><div style=\"padding:7px 10px;border-radius:7px;background:rgba(255,255,255,0.06);font-size:12px;color:#f3f4f6;font-weight:500\">Insights</div><div style=\"padding:7px 10px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Payments</div></div></div></div><div style=\"flex:1;padding:24px 32px;font-family:Inter,system-ui,sans-serif;overflow:hidden\"><div style=\"font-size:22px;font-weight:600;color:#f3f4f6;margin-bottom:14px\">Insights</div><div style=\"display:flex;gap:6px;margin-bottom:22px\"><span style=\"padding:5px 14px;border-radius:7px;background:rgba(255,255,255,0.07);font-size:12px;font-weight:500;color:#f3f4f6\">Overview</span><span style=\"padding:5px 14px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Money In</span><span style=\"padding:5px 14px;border-radius:7px;font-size:12px;color:rgba(243,244,246,0.4)\">Money Out</span></div><div style=\"display:flex;gap:40px;margin-bottom:22px\"><div><div style=\"font-size:11px;color:rgba(243,244,246,0.4);margin-bottom:3px\">Net Cashflow</div><div style=\"font-size:26px;font-weight:600;color:#f3f4f6\">$11,007</div></div><div><div style=\"font-size:11px;color:rgba(243,244,246,0.4);margin-bottom:3px\">Money In</div><div style=\"font-size:17px;font-weight:500;color:#f3f4f6\">$56,102</div></div><div><div style=\"font-size:11px;color:rgba(243,244,246,0.4);margin-bottom:3px\">Money Out</div><div style=\"font-size:17px;font-weight:500;color:rgba(243,244,246,0.45)\">−$45,100</div></div></div><div style=\"display:flex;gap:24px\"><div style=\"flex:1\"><div style=\"display:flex;align-items:center;gap:5px;margin-bottom:6px\"><span style=\"color:#34d399;font-size:13px\">↗</span><span style=\"font-size:13px;font-weight:500;color:#f3f4f6\">12% revenue growth</span></div><div style=\"font-size:12px;color:rgba(243,244,246,0.4);margin-bottom:12px\">From January to June revenue increased from $12,460 to $13,954</div><div style=\"display:flex;align-items:center;gap:5px\"><span style=\"color:#94a3b8;font-size:13px\">↗</span><span style=\"font-size:13px;font-weight:500;color:#f3f4f6\">Increased software spend</span></div></div><div style=\"flex:1\"><div style=\"display:flex;align-items:flex-end;gap:8px;height:100px\"><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:28px;background:#6366f1;border-radius:2px\"></div><div style=\"height:16px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:36px;background:#6366f1;border-radius:2px\"></div><div style=\"height:18px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:12px;background:#6366f1;border-radius:2px\"></div><div style=\"height:22px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:20px;background:#6366f1;border-radius:2px\"></div><div style=\"height:14px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:24px;background:#6366f1;border-radius:2px\"></div><div style=\"height:20px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:32px;background:#6366f1;border-radius:2px\"></div><div style=\"height:16px;background:rgba(148,163,184,0.3);border-radius:2px\"></div></div></div></div></div></div></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": ["dashboard"],
+            "primitive": "cd-card-cascade"
+          }
+        ],
+        "camera": {
+          "move": "pull_out",
+          "intensity": 0.3,
+          "sync": { "peak_at": 0.8 }
+        }
+      },
+      "metadata": {
+        "motion_energy": "high",
+        "intent_tags": ["hero"]
+      }
+    },
+    "sc_07_tagline_intro": {
+      "scene_id": "sc_07_tagline_intro",
+      "format_version": 2,
+      "duration_s": 3,
+      "brand": "fintech-demo",
+      "camera": {
+        "move": "drift",
+        "intensity": 0.04
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+          "depth_class": "background"
+        },
+        {
+          "id": "taglines",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:40px;font-weight:300;color:#f3f4f6;letter-spacing:-0.025em\">Introducing Insights.</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:40px;font-weight:300;color:#f3f4f6;letter-spacing:-0.025em\">An intelligent view of your finances.</span></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": ["taglines"],
+            "primitive": "as-fadeIn"
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "subtle",
+        "intent_tags": ["closing"]
+      }
+    },
+    "sc_08_tagline_close": {
+      "scene_id": "sc_08_tagline_close",
+      "format_version": 2,
+      "duration_s": 2.5,
+      "brand": "fintech-demo",
+      "camera": {
+        "move": "drift",
+        "intensity": 0.04
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+          "depth_class": "background"
+        },
+        {
+          "id": "tagline",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:40px;font-weight:300;color:#f3f4f6;letter-spacing:-0.025em\">Radically different banking.</span></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": ["tagline"],
+            "primitive": "as-fadeIn"
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "subtle",
+        "intent_tags": ["closing"]
+      }
+    },
+    "sc_09_logo": {
+      "scene_id": "sc_09_logo",
+      "format_version": 2,
+      "duration_s": 2.5,
+      "brand": "fintech-demo",
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+          "depth_class": "background"
+        },
+        {
+          "id": "logo",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px\"><div style=\"display:flex;align-items:center;gap:14px\"><div style=\"width:48px;height:48px;border:1.5px solid rgba(243,244,246,0.6);border-radius:12px;display:flex;align-items:center;justify-content:center\"><div style=\"width:20px;height:20px;background:rgba(99,102,241,0.5);border-radius:4px\"></div></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:24px;font-weight:400;letter-spacing:0.15em;color:#f3f4f6\">ACME FINANCE</span></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(243,244,246,0.25);max-width:600px;text-align:center\">Acme Finance is a technology company. Banking services provided through partner institutions.</div></div>",
+          "depth_class": "foreground"
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": ["logo"],
+            "primitive": "as-fadeIn"
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "static",
+        "intent_tags": ["closing"]
+      }
+    }
+  },
+  "timelines": {
+    "sc_01_tagline_open": {
+      "scene_id": "sc_01_tagline_open",
+      "duration_frames": 180,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "tagline": {
+            "opacity": [
+              { "frame": 0, "value": 0 },
+              { "frame": 24, "value": 1, "easing": "cubic-bezier(0.25,0.46,0.45,0.94)" }
+            ]
+          }
+        }
+      }
+    },
+    "sc_03_prompt_input": {
+      "scene_id": "sc_03_prompt_input",
+      "duration_frames": 240,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "prompt": {
+            "opacity": [
+              { "frame": 0, "value": 0 },
+              { "frame": 30, "value": 1, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ],
+            "translateY": [
+              { "frame": 0, "value": 20 },
+              { "frame": 30, "value": 0, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ],
+            "scale": [
+              { "frame": 0, "value": 0.97 },
+              { "frame": 30, "value": 1, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ]
+          }
+        }
+      }
+    },
+    "sc_04_chart_drilldown": {
+      "scene_id": "sc_04_chart_drilldown",
+      "duration_frames": 300,
+      "fps": 60,
+      "tracks": {
+        "camera": {
+          "scale": [
+            { "frame": 0, "value": 1 },
+            { "frame": 150, "value": 1.0112, "easing": "cubic-bezier(0.33,0,0.2,1)" }
+          ]
+        },
+        "layers": {
+          "panel": {
+            "opacity": [
+              { "frame": 0, "value": 0 },
+              { "frame": 30, "value": 1, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ],
+            "translateY": [
+              { "frame": 0, "value": 20 },
+              { "frame": 30, "value": 0, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ],
+            "scale": [
+              { "frame": 0, "value": 0.97 },
+              { "frame": 30, "value": 1, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ]
+          }
+        }
+      }
+    },
+    "sc_05_followup": {
+      "scene_id": "sc_05_followup",
+      "duration_frames": 210,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "followup": {
+            "opacity": [
+              { "frame": 0, "value": 0 },
+              { "frame": 17, "value": 1, "easing": "cubic-bezier(0.16,1,0.3,1)" },
+              { "frame": 24, "value": 1, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ],
+            "translateY": [
+              { "frame": 0, "value": 16 },
+              { "frame": 17, "value": 2, "easing": "cubic-bezier(0.16,1,0.3,1)" },
+              { "frame": 24, "value": 0, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ]
+          }
+        }
+      }
+    },
+    "sc_06_dashboard": {
+      "scene_id": "sc_06_dashboard",
+      "duration_frames": 300,
+      "fps": 60,
+      "tracks": {
+        "camera": {
+          "scale": [
+            { "frame": 0, "value": 1.042 },
+            { "frame": 240, "value": 1, "easing": "cubic-bezier(0.33,0,0.2,1)" }
+          ]
+        },
+        "layers": {
+          "dashboard": {
+            "opacity": [
+              { "frame": 0, "value": 0 },
+              { "frame": 17, "value": 1, "easing": "cubic-bezier(0.16,1,0.3,1)" },
+              { "frame": 24, "value": 1, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ],
+            "translateY": [
+              { "frame": 0, "value": 16 },
+              { "frame": 17, "value": 2, "easing": "cubic-bezier(0.16,1,0.3,1)" },
+              { "frame": 24, "value": 0, "easing": "cubic-bezier(0.16,1,0.3,1)" }
+            ]
+          }
+        }
+      }
+    },
+    "sc_07_tagline_intro": {
+      "scene_id": "sc_07_tagline_intro",
+      "duration_frames": 180,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "taglines": {
+            "opacity": [
+              { "frame": 0, "value": 0 },
+              { "frame": 24, "value": 1, "easing": "cubic-bezier(0.25,0.46,0.45,0.94)" }
+            ]
+          }
+        }
+      }
+    },
+    "sc_08_tagline_close": {
+      "scene_id": "sc_08_tagline_close",
+      "duration_frames": 150,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "tagline": {
+            "opacity": [
+              { "frame": 0, "value": 0 },
+              { "frame": 24, "value": 1, "easing": "cubic-bezier(0.25,0.46,0.45,0.94)" }
+            ]
+          }
+        }
+      }
+    },
+    "sc_09_logo": {
+      "scene_id": "sc_09_logo",
+      "duration_frames": 150,
+      "fps": 60,
+      "tracks": {
+        "camera": {},
+        "layers": {
+          "logo": {
+            "opacity": [
+              { "frame": 0, "value": 0 },
+              { "frame": 24, "value": 1, "easing": "cubic-bezier(0.25,0.46,0.45,0.94)" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "scene_id": "sc_05_cta",
+  "format_version": 2,
+  "duration_s": 4,
+  "brand": "atlas-ai",
+  "product_role": "cta",
+  "primary_subject": "brand_lockup",
+  "outcome": "Brand identity resolves: tagline and logo close with clear product positioning",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "camera": { "move": "static" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:radial-gradient(ellipse at 50% 50%,#1a1a2e 0%,#0d0d1a 100%)\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "brand_lockup",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px\"><div style=\"display:flex;align-items:center;gap:16px\"><div style=\"width:48px;height:48px;border:1.5px solid rgba(124,58,237,0.6);border-radius:14px;display:flex;align-items:center;justify-content:center\"><div style=\"width:22px;height:22px;background:rgba(124,58,237,0.5);border-radius:6px\"></div></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:28px;font-weight:500;letter-spacing:0.08em;color:#e8e0f0\">ATLAS AI</span></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:20px;font-weight:300;color:rgba(232,224,240,0.6);letter-spacing:-0.01em\">Research reimagined</span></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "branding",
+      "clarity_weight": 5
+    },
+    {
+      "id": "legal",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:60px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(232,224,240,0.15)\">atlas.ai</span></div>",
+      "depth_class": "foreground",
+      "product_role": "functional",
+      "content_class": "typography",
+      "clarity_weight": 2
+    }
+  ],
+  "motion": {
+    "groups": [
+      { "targets": ["brand_lockup"], "primitive": "as-fadeIn" },
+      { "targets": ["legal"], "primitive": "as-fadeIn", "delay_ms": 600 }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "subtle",
+    "intent_tags": ["closing"],
+    "content_type": "brand_mark"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "scene_id": "sc_04_tagline_close",
+  "format_version": 2,
+  "duration_s": 4,
+  "brand": "fintech-demo",
+  "camera": {
+    "move": "static"
+  },
+  "layout": {
+    "template": "hero-center"
+  },
+  "assets": [],
+  "product_role": "atmosphere",
+  "primary_subject": "tagline",
+  "outcome": "Deliver closing tagline with confident stillness before logo lockup",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "tagline",
+      "type": "text",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:38px;font-weight:300;color:#f3f4f6;letter-spacing:-0.02em\">Canvas</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:18px;font-weight:400;color:rgba(243,244,246,0.6);letter-spacing:0.02em\">Made for makers</span></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "typography",
+      "clarity_weight": 5
+    }
+  ],
+  "motion": {
+    "groups": [
+      {
+        "targets": [
+          "tagline"
+        ],
+        "primitive": "as-fadeIn",
+        "delay_ms": 200
+      }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "static",
+    "intent_tags": [
+      "closing"
+    ]
+  }
+}

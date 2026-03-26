@@ -1,7 +1,7 @@
-import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig, interpolate, staticFile } from 'remotion';
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, useCurrentFrame, useVideoConfig, interpolate, staticFile } from 'remotion';
 import { SceneComposition } from './SceneComposition.jsx';
 import { TransitionWrapper, TransitionOutWrapper } from './transitions.jsx';
-import { getDefaultTransitionDuration, calculateLayout } from '../lib.js';
+import { getDefaultTransitionDuration, calculateLayout, resolveLayoutSlots } from '../lib.js';
 
 /**
  * SequenceComposition — Renders a sequence manifest (multi-scene video).
@@ -16,7 +16,13 @@ import { getDefaultTransitionDuration, calculateLayout } from '../lib.js';
  * @param {object} props.manifest - Sequence manifest JSON
  * @param {object} props.sceneDefs - Scene definitions keyed by scene_id
  */
-export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }) => {
+/**
+ * @param {object} props.sceneRoutes - Optional render target routing map.
+ *   Keyed by scene_id: { render_target, plate_src?, plate_format? }
+ *   When a scene has render_target === 'browser_capture' and plate_src,
+ *   renders the captured plate video instead of SceneComposition.
+ */
+export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {}, sceneRoutes = {} }) => {
   const { fps } = useVideoConfig();
   const scenes = manifest.scenes || [];
 
@@ -71,6 +77,9 @@ export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }
         const transitionDurationMs = transition.duration_ms ?? getDefaultTransitionDuration(transition.type);
         const transitionFrames = Math.round((transitionDurationMs / 1000) * fps);
 
+        // Resolve continuity match geometry for match-cut transitions
+        const matchGeometry = resolveMatchGeometry(transition, index, scenes, sceneDefs);
+
         return (
           <Sequence key={entry.scene + '-' + index} from={startFrame} durationInFrames={durationFrames}>
             {/* Outgoing transition wrapper (handles exit during overlap with next scene) */}
@@ -80,8 +89,13 @@ export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }
               sceneFrames={durationFrames}
             >
               {/* Incoming transition wrapper (handles entrance from previous scene) */}
-              <TransitionWrapper transition={transition} transitionFrames={transitionFrames}>
-                <SceneComposition scene={sceneWithOverrides} timeline={timelines[entry.scene] || null} />
+              <TransitionWrapper transition={transition} transitionFrames={transitionFrames} matchGeometry={matchGeometry}>
+                <SceneContent
+                  scene={sceneWithOverrides}
+                  timeline={timelines[entry.scene] || null}
+                  route={sceneRoutes[entry.scene]}
+                  fps={fps}
+                />
               </TransitionWrapper>
             </TransitionOutWrapper>
 
@@ -106,6 +120,53 @@ export const SequenceComposition = ({ manifest, sceneDefs = {}, timelines = {} }
       })}
     </AbsoluteFill>
   );
+};
+
+/**
+ * SceneContent — Routes between native Remotion rendering and captured plate assets.
+ *
+ * When a scene has a plate asset (from browser capture), renders it via <OffthreadVideo>.
+ * For hybrid scenes, renders the plate as background with native Remotion layers on top.
+ * Otherwise falls back to standard SceneComposition.
+ */
+const SceneContent = ({ scene, timeline, route, fps }) => {
+  const plateSrc = route?.plate_src;
+  const target = route?.render_target || scene.render_target;
+
+  // browser_capture with plate asset → render the captured video
+  if (target === 'browser_capture' && plateSrc) {
+    const resolvedSrc = plateSrc.startsWith('http') || plateSrc.startsWith('/') ? plateSrc : staticFile(plateSrc);
+    return (
+      <AbsoluteFill>
+        <OffthreadVideo
+          src={resolvedSrc}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          muted
+          playbackRate={1}
+        />
+      </AbsoluteFill>
+    );
+  }
+
+  // hybrid → plate as background + native Remotion layers on top
+  if (target === 'hybrid' && plateSrc) {
+    const resolvedSrc = plateSrc.startsWith('http') || plateSrc.startsWith('/') ? plateSrc : staticFile(plateSrc);
+    return (
+      <AbsoluteFill>
+        <OffthreadVideo
+          src={resolvedSrc}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          muted
+          playbackRate={1}
+        />
+        {/* Native Remotion layers rendered on top of the plate */}
+        <SceneComposition scene={scene} timeline={timeline} />
+      </AbsoluteFill>
+    );
+  }
+
+  // remotion_native or no route → standard rendering
+  return <SceneComposition scene={scene} timeline={timeline} />;
 };
 
 /**
@@ -145,6 +206,64 @@ function createPlaceholderScene(entry, index) {
       },
     ],
   };
+}
+
+/**
+ * Resolve continuity match geometry from transition_in.match config.
+ *
+ * Looks up the source layer (in previous scene) and target layer (in current scene)
+ * by continuity_id, extracts their position data, and returns geometry that
+ * TransitionWrapper can use for match-cut transitions.
+ *
+ * @returns {{ strategy: string, sourcePosition?: object, targetPosition?: object, originX?: string, originY?: string } | null}
+ */
+function resolveMatchGeometry(transition, sceneIndex, scenes, sceneDefs) {
+  const match = transition?.match;
+  if (!match || sceneIndex === 0) return null;
+
+  const prevEntry = scenes[sceneIndex - 1];
+  const prevDef = sceneDefs[prevEntry?.scene];
+  const currEntry = scenes[sceneIndex];
+  const currDef = sceneDefs[currEntry?.scene];
+  if (!prevDef?.layers || !currDef?.layers) return null;
+
+  const sourceCid = match.source_continuity_id;
+  const targetCid = match.target_continuity_id || sourceCid;
+
+  const sourceLayer = prevDef.layers.find(l => l.continuity_id === sourceCid);
+  const targetLayer = currDef.layers.find(l => l.continuity_id === targetCid);
+  if (!sourceLayer && !targetLayer) return null;
+
+  const geo = { strategy: match.strategy || 'scale' };
+
+  // Resolve layer positions — check explicit position first, then slot-based layout
+  const resolveLayerPosition = (layer, sceneDef) => {
+    if (layer?.position) return layer.position;
+    // Resolve from layout slots if the layer has a slot assignment
+    if (layer?.slot && sceneDef?.layout) {
+      const canvasW = sceneDef.canvas?.w ?? 1920;
+      const canvasH = sceneDef.canvas?.h ?? 1080;
+      const slotMap = resolveLayoutSlots(sceneDef.layout, canvasW, canvasH);
+      if (slotMap?.[layer.slot]) return slotMap[layer.slot];
+    }
+    return null;
+  };
+
+  const sourcePos = resolveLayerPosition(sourceLayer, prevDef);
+  const targetPos = resolveLayerPosition(targetLayer, currDef);
+
+  if (sourcePos) geo.sourcePosition = sourcePos;
+  if (targetPos) geo.targetPosition = targetPos;
+
+  // Compute transform-origin from source layer center (for scale transitions)
+  if (sourcePos) {
+    const cx = (sourcePos.x || 0) + (sourcePos.w || 1920) / 2;
+    const cy = (sourcePos.y || 0) + (sourcePos.h || 1080) / 2;
+    geo.originX = `${cx}px`;
+    geo.originY = `${cy}px`;
+  }
+
+  return geo;
 }
 
 /**

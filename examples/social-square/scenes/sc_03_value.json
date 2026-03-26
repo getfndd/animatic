@@ -1,0 +1,57 @@
+{
+  "scene_id": "sc_03_value",
+  "format_version": 2,
+  "duration_s": 3,
+  "brand": "freshly",
+  "product_role": "result",
+  "primary_subject": "price_tag",
+  "outcome": "System presents result: $0 delivery value proposition reinforces urgency",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "camera": { "move": "static" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#1a1a1a\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "price_tag",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px\"><div style=\"background:#ff6b35;border-radius:24px;padding:20px 48px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:64px;font-weight:900;color:#ffffff;letter-spacing:-0.03em\">$0</span></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:28px;font-weight:700;color:#ffffff;text-transform:uppercase\">Delivery Fee</span></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "typography",
+      "clarity_weight": 5
+    },
+    {
+      "id": "subtext",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:120px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:16px;color:rgba(255,255,255,0.5)\">Every order. No minimum.</span></div>",
+      "depth_class": "foreground",
+      "product_role": "supporting",
+      "content_class": "typography",
+      "clarity_weight": 3
+    }
+  ],
+  "motion": {
+    "groups": [
+      { "targets": ["price_tag"], "primitive": "as-bounceIn" },
+      { "targets": ["subtext"], "primitive": "as-fadeIn", "delay_ms": 400 }
+    ]
+  },
+  "metadata": {
+    "motion_energy": "high",
+    "intent_tags": ["detail"]
+  }
+}

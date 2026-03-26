@@ -1,0 +1,462 @@
+[
+  {
+    "name": "Product Freeze Frame",
+    "slug": "hm-product-freeze-frame",
+    "source": "compound",
+    "category": "hero-moment",
+    "requires_js": true,
+    "description": "Product UI freezes mid-motion, zooms in slightly (1→1.06 scale over 600ms), and a spotlight highlight sweeps left-to-right across the surface. Creates a cinematic 'hold for applause' beat that lets the audience absorb the product.",
+    "default_duration": "1800ms",
+    "personality_affinity": ["cinematic-dark", "editorial"],
+    "config_schema": {
+      "zoomScale": { "type": "number", "default": 1.06, "description": "Scale factor at peak zoom" },
+      "zoomDurationMs": { "type": "number", "default": 600, "description": "Duration of the zoom-in phase" },
+      "zoomEasing": { "type": "string", "default": "cubic-bezier(0.22, 1, 0.36, 1)", "description": "Easing for zoom" },
+      "sweepWidthPercent": { "type": "number", "default": 30, "description": "Width of the spotlight sweep as percentage of element width" },
+      "sweepDurationMs": { "type": "number", "default": 900, "description": "Duration of the spotlight sweep" },
+      "sweepDelayMs": { "type": "number", "default": 500, "description": "Delay before sweep begins (after zoom settles)" },
+      "sweepOpacity": { "type": "number", "default": 0.15, "description": "Opacity of the sweep highlight" },
+      "holdDurationMs": { "type": "number", "default": 400, "description": "Static hold at end before next scene" }
+    },
+    "content_schema": {
+      "product_element": {
+        "type": "object",
+        "properties": {
+          "selector": "string — CSS selector or layer ID for the element to freeze",
+          "alt_text": "string — Accessible description of what is being highlighted"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "hm-freeze-zoom",
+        "name": "Freeze Zoom",
+        "extractable_as_css": true,
+        "description": "Smooth scale-up from 1 to target with deceleration easing. 600ms.",
+        "css": "@keyframes freeze-zoom { from { transform: scale(1) } to { transform: scale(1.06) } }"
+      },
+      {
+        "id": "hm-spotlight-sweep",
+        "name": "Spotlight Sweep",
+        "extractable_as_css": true,
+        "description": "Linear gradient highlight translates across element left-to-right. 900ms.",
+        "css": "@keyframes spotlight-sweep { from { mask-position: -30% 0 } to { mask-position: 130% 0 } }"
+      }
+    ],
+    "when_to_use": [
+      "Hero product shot — pausing on the UI to let the audience absorb it",
+      "Post-demo beat — after showing a feature, freeze to emphasize the result",
+      "Transition anchor — freeze before a scene change to create a visual bookmark"
+    ],
+    "when_to_avoid": [
+      "Fast-paced montage sections — the hold kills momentum",
+      "Multiple freeze frames in one sequence — loses impact with repetition",
+      "Scenes under 2 seconds — needs time for zoom + sweep + hold"
+    ],
+    "ai_guidance": "Use as the 'pause for effect' moment after a product demo or feature reveal. Place at the emotional peak of a scene — not at the beginning. The sweep is subtle; resist the urge to increase sweepOpacity above 0.2 or it reads as a lens flare gimmick."
+  },
+  {
+    "name": "Zoom Through",
+    "slug": "hm-zoom-through",
+    "source": "compound",
+    "category": "hero-moment",
+    "requires_js": true,
+    "description": "Camera pushes through a UI element as it scales past frame edges, revealing the next layer behind. Creates a spatial transition that feels like diving into the interface — the foreground element grows beyond the viewport while the background layer fades up.",
+    "default_duration": "1200ms",
+    "personality_affinity": ["cinematic-dark", "montage"],
+    "config_schema": {
+      "throughScale": { "type": "number", "default": 3.5, "description": "Scale factor when foreground exits frame" },
+      "throughDurationMs": { "type": "number", "default": 800, "description": "Duration of the scale-through phase" },
+      "throughEasing": { "type": "string", "default": "cubic-bezier(0.65, 0, 0.35, 1)", "description": "Easing for the push-through" },
+      "revealDelayMs": { "type": "number", "default": 300, "description": "Delay before background layer begins fading in" },
+      "revealDurationMs": { "type": "number", "default": 500, "description": "Duration of the background reveal fade" },
+      "blurAmount": { "type": "number", "default": 8, "description": "Blur applied to foreground as it scales past (simulates DOF)" },
+      "focalPoint": { "type": "string", "default": "center", "description": "Transform origin for zoom: center, top-left, top-right, etc." }
+    },
+    "content_schema": {
+      "foreground": {
+        "type": "object",
+        "properties": {
+          "layer_id": "string — Layer that scales through",
+          "focal_selector": "string — Optional sub-element to center the zoom on"
+        }
+      },
+      "background": {
+        "type": "object",
+        "properties": {
+          "layer_id": "string — Layer revealed behind the foreground"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "hm-scale-through",
+        "name": "Scale Through",
+        "extractable_as_css": true,
+        "description": "Element scales from 1 to 3.5x while gaining blur, exiting viewport. 800ms.",
+        "css": "@keyframes scale-through { from { transform: scale(1); filter: blur(0) } to { transform: scale(3.5); filter: blur(8px) } }"
+      },
+      {
+        "id": "hm-layer-reveal",
+        "name": "Layer Reveal",
+        "extractable_as_css": true,
+        "description": "Background layer fades from 0 to 1 opacity. 500ms.",
+        "css": "@keyframes layer-reveal { from { opacity: 0 } to { opacity: 1 } }"
+      }
+    ],
+    "when_to_use": [
+      "Spatial navigation — drilling from overview into a detail view",
+      "Scene transitions that imply depth and layers in a product",
+      "Montage sequences where speed and energy need a dramatic push"
+    ],
+    "when_to_avoid": [
+      "Editorial personality — the blur and 3D depth violate editorial rules",
+      "Sequences with more than 2 zoom-throughs — creates nausea",
+      "Scenes where the background layer isn't ready to be revealed yet"
+    ],
+    "ai_guidance": "This is a transition-as-hero-moment. Use it when moving between two related views where the spatial relationship matters (e.g., dashboard → detail panel). The focalPoint config is critical — zoom into the element the user would naturally look at. Avoid center zoom unless the content is symmetrical."
+  },
+  {
+    "name": "Metric Explosion",
+    "slug": "hm-metric-explosion",
+    "source": "compound",
+    "category": "hero-moment",
+    "requires_js": true,
+    "description": "A number counts up rapidly (odometer style), then 'pops' at its final value with a radial particle burst and brief glow pulse. Designed for hero stats — revenue numbers, user counts, performance metrics — where the number itself is the star.",
+    "default_duration": "2400ms",
+    "personality_affinity": ["cinematic-dark", "editorial"],
+    "config_schema": {
+      "countUpDurationMs": { "type": "number", "default": 1600, "description": "Duration of the number counting phase" },
+      "countUpEasing": { "type": "string", "default": "cubic-bezier(0.16, 1, 0.3, 1)", "description": "Easing for count-up (decelerates toward final value)" },
+      "popScale": { "type": "number", "default": 1.12, "description": "Scale overshoot on pop" },
+      "popDurationMs": { "type": "number", "default": 300, "description": "Duration of the pop animation" },
+      "particleCount": { "type": "number", "default": 12, "description": "Number of radial particles" },
+      "particleRadius": { "type": "number", "default": 80, "description": "Max radius particles travel from center" },
+      "particleDurationMs": { "type": "number", "default": 600, "description": "Particle burst duration" },
+      "glowColor": { "type": "string", "default": "currentColor", "description": "Color of the glow pulse (inherits text color by default)" },
+      "glowDurationMs": { "type": "number", "default": 400, "description": "Duration of the glow pulse" },
+      "holdDurationMs": { "type": "number", "default": 400, "description": "Static hold after pop settles" }
+    },
+    "content_schema": {
+      "metric": {
+        "type": "object",
+        "properties": {
+          "value": "number — Final value to display",
+          "prefix": "string — Optional prefix (e.g., '$', '+')",
+          "suffix": "string — Optional suffix (e.g., '%', 'M', 'users')",
+          "format": "string — Number formatting: 'integer', 'decimal', 'compact' (default: 'integer')"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "hm-count-up",
+        "name": "Count Up",
+        "extractable_as_css": false,
+        "description": "JS-driven number interpolation from 0 to target value with eased timing. 1600ms."
+      },
+      {
+        "id": "hm-value-pop",
+        "name": "Value Pop",
+        "extractable_as_css": true,
+        "description": "Scale overshoot (1→1.12→1) with spring settle at final value. 300ms.",
+        "css": "@keyframes value-pop { 0% { transform: scale(1) } 50% { transform: scale(1.12) } 100% { transform: scale(1) } }"
+      },
+      {
+        "id": "hm-radial-burst",
+        "name": "Radial Burst",
+        "extractable_as_css": false,
+        "description": "12 particles radiate outward from center with fade-out. JS required for dynamic positioning. 600ms."
+      },
+      {
+        "id": "hm-glow-pulse",
+        "name": "Glow Pulse",
+        "extractable_as_css": true,
+        "description": "Box-shadow glow expands and fades. 400ms.",
+        "css": "@keyframes glow-pulse { 0% { box-shadow: 0 0 0 0 currentColor } 50% { box-shadow: 0 0 20px 4px currentColor } 100% { box-shadow: 0 0 0 0 transparent } }"
+      }
+    ],
+    "when_to_use": [
+      "Hero stat reveal — the single most important number in a pitch or demo",
+      "Growth metrics in investor decks — ARR, user count, performance gains",
+      "Dashboard reveals where a KPI is the punchline"
+    ],
+    "when_to_avoid": [
+      "Multiple metrics in sequence — pick one hero number, show the rest quietly",
+      "Small or unimpressive numbers — the explosion amplifies the number, so it must be worth it",
+      "Neutral-light personality — particles and glow are too theatrical for tutorials"
+    ],
+    "ai_guidance": "This is the 'mic drop' number. Reserve it for the single most impressive metric in a sequence. The count-up builds tension and the pop delivers the payoff. If you need to show multiple stats, use metric-explosion for the hero number and a simpler fade-in for supporting stats. The glowColor should match the brand or data color, not be arbitrary."
+  },
+  {
+    "name": "Card Fan Out",
+    "slug": "hm-card-fan-out",
+    "source": "compound",
+    "category": "hero-moment",
+    "requires_js": true,
+    "description": "Stacked cards spread into a fan arrangement, revealing all options simultaneously. Cards begin in a centered stack and rotate outward to evenly-spaced angles while translating apart, creating a hand-of-cards reveal that shows breadth of options.",
+    "default_duration": "2000ms",
+    "personality_affinity": ["editorial", "cinematic-dark"],
+    "config_schema": {
+      "cardCount": { "type": "number", "default": 5, "description": "Number of cards in the fan (3–7 recommended)" },
+      "fanAngle": { "type": "number", "default": 40, "description": "Total spread angle in degrees (divided among cards)" },
+      "fanRadius": { "type": "number", "default": 300, "description": "Radius of the fan arc in pixels" },
+      "spreadDurationMs": { "type": "number", "default": 1200, "description": "Duration of the fan-out spread" },
+      "spreadEasing": { "type": "string", "default": "cubic-bezier(0.34, 1.56, 0.64, 1)", "description": "Easing with slight overshoot for organic feel" },
+      "staggerMs": { "type": "number", "default": 80, "description": "Stagger delay between each card's spread start" },
+      "liftY": { "type": "number", "default": -20, "description": "Y offset during spread (cards rise slightly)" },
+      "holdDurationMs": { "type": "number", "default": 600, "description": "Hold time after fan completes" }
+    },
+    "content_schema": {
+      "cards": {
+        "type": "array",
+        "items": {
+          "title": "string",
+          "description": "string (optional)",
+          "icon": "string (optional — icon identifier or path)",
+          "highlight": "boolean (optional — emphasize this card)"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "hm-stack-spread",
+        "name": "Stack Spread",
+        "extractable_as_css": false,
+        "description": "Cards rotate and translate from stacked center to fan positions. JS required for per-card angle calculation. 1200ms."
+      },
+      {
+        "id": "hm-card-lift",
+        "name": "Card Lift",
+        "extractable_as_css": true,
+        "description": "Subtle Y translation during spread for organic arc feel. 1200ms.",
+        "css": "@keyframes card-lift { from { transform: translateY(0) } 50% { transform: translateY(-20px) } to { transform: translateY(0) } }"
+      },
+      {
+        "id": "hm-highlight-pulse",
+        "name": "Highlight Pulse",
+        "extractable_as_css": true,
+        "description": "Optional border/shadow pulse on the highlighted card after fan settles. 400ms.",
+        "css": "@keyframes highlight-pulse { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.3) } 100% { box-shadow: 0 0 0 8px transparent } }"
+      }
+    ],
+    "when_to_use": [
+      "Feature comparison — showing multiple plan tiers or product options at once",
+      "Portfolio reveal — displaying a range of capabilities simultaneously",
+      "Options/choices moment — 'here are your paths forward'"
+    ],
+    "when_to_avoid": [
+      "More than 7 cards — fan becomes unreadable and cards overlap",
+      "Cards with dense content — the rotated angle makes text hard to read",
+      "Sequences needing fast pacing — the 2s duration is a deliberate pause"
+    ],
+    "ai_guidance": "The fan is a reveal of breadth — use it when you want the audience to see 'look at all these options.' Mark at most one card as highlight: true to draw attention after the fan settles. For editorial personality, keep fanAngle under 30 degrees for a more restrained spread."
+  },
+  {
+    "name": "Chart to Insight Reveal",
+    "slug": "hm-chart-to-insight-reveal",
+    "source": "compound",
+    "category": "hero-moment",
+    "requires_js": true,
+    "description": "Chart data animates in (bars grow, lines draw, points plot), then a callout annotation flies in pointing to the key insight with a connector line. Two-phase primitive: first the data tells the story, then the annotation delivers the punchline.",
+    "default_duration": "2800ms",
+    "personality_affinity": ["editorial"],
+    "config_schema": {
+      "chartType": { "type": "string", "default": "bar", "description": "Chart type: bar, line, donut, area" },
+      "chartBuildDurationMs": { "type": "number", "default": 1400, "description": "Duration of chart data animation" },
+      "chartBuildEasing": { "type": "string", "default": "cubic-bezier(0.22, 1, 0.36, 1)", "description": "Easing for data elements" },
+      "chartStaggerMs": { "type": "number", "default": 60, "description": "Stagger between data elements (bars, points)" },
+      "calloutDelayMs": { "type": "number", "default": 200, "description": "Gap between chart build completion and callout entry" },
+      "calloutDurationMs": { "type": "number", "default": 500, "description": "Duration of callout fly-in" },
+      "calloutDirection": { "type": "string", "default": "right", "description": "Direction callout enters from: left, right, top, bottom" },
+      "connectorDurationMs": { "type": "number", "default": 300, "description": "Duration of connector line drawing" },
+      "holdDurationMs": { "type": "number", "default": 500, "description": "Hold time after callout settles" }
+    },
+    "content_schema": {
+      "chart": {
+        "type": "object",
+        "properties": {
+          "data_points": "array — Numeric values for the chart",
+          "labels": "array — Labels for each data point",
+          "highlight_index": "number — Index of the data point the callout points to"
+        }
+      },
+      "callout": {
+        "type": "object",
+        "properties": {
+          "text": "string — Insight text (e.g., '3x growth in Q4')",
+          "subtext": "string (optional) — Supporting detail"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "hm-chart-build",
+        "name": "Chart Build",
+        "extractable_as_css": false,
+        "description": "Data elements animate in sequence — bars grow from baseline, lines draw with stroke-dashoffset, points scale in. JS required for per-element orchestration. 1400ms."
+      },
+      {
+        "id": "hm-callout-fly-in",
+        "name": "Callout Fly-In",
+        "extractable_as_css": true,
+        "description": "Annotation card slides in from configured direction with fade. 500ms.",
+        "css": "@keyframes callout-fly-in { from { opacity: 0; transform: translateX(40px) } to { opacity: 1; transform: translateX(0) } }"
+      },
+      {
+        "id": "hm-connector-draw",
+        "name": "Connector Draw",
+        "extractable_as_css": true,
+        "description": "SVG line draws from callout to data point using stroke-dashoffset. 300ms.",
+        "css": "@keyframes connector-draw { from { stroke-dashoffset: 100% } to { stroke-dashoffset: 0 } }"
+      }
+    ],
+    "when_to_use": [
+      "Data storytelling — showing a chart then highlighting the key takeaway",
+      "Investor pitch decks — metrics that need a 'so what?' annotation",
+      "Product analytics features — demonstrating insight discovery"
+    ],
+    "when_to_avoid": [
+      "Charts with no clear insight — if there's no punchline, just build the chart",
+      "Scenes under 3 seconds — the two-phase animation needs breathing room",
+      "Montage pacing — too slow and detailed for rapid-cut sequences"
+    ],
+    "ai_guidance": "This is data storytelling in motion. The chart build is act one (the evidence), the callout is act two (the insight). The highlight_index must point to the most interesting data point — don't annotate the obvious. For editorial personality, this is a natural fit. For cinematic-dark, increase contrast and add a subtle glow to the highlighted bar/point."
+  },
+  {
+    "name": "Logo Resolve",
+    "slug": "hm-logo-resolve",
+    "source": "compound",
+    "category": "hero-moment",
+    "requires_js": true,
+    "description": "Logo elements assemble from separate parts — icon and wordmark arrive independently with spring physics, then settle into final lockup position. The icon lands first with a bounce, the wordmark slides into alignment, and a subtle scale-settle confirms the resolve.",
+    "default_duration": "2200ms",
+    "personality_affinity": ["cinematic-dark", "montage"],
+    "config_schema": {
+      "iconEntryDirection": { "type": "string", "default": "top", "description": "Direction icon enters from: top, bottom, left, right" },
+      "iconSpringStiffness": { "type": "number", "default": 180, "description": "Spring stiffness for icon landing" },
+      "iconSpringDamping": { "type": "number", "default": 12, "description": "Spring damping for icon bounce" },
+      "iconDurationMs": { "type": "number", "default": 800, "description": "Duration of icon entry + settle" },
+      "wordmarkDelayMs": { "type": "number", "default": 400, "description": "Delay between icon settle and wordmark entry" },
+      "wordmarkDurationMs": { "type": "number", "default": 600, "description": "Duration of wordmark slide-in" },
+      "wordmarkEasing": { "type": "string", "default": "cubic-bezier(0.22, 1, 0.36, 1)", "description": "Easing for wordmark translation" },
+      "resolveDurationMs": { "type": "number", "default": 300, "description": "Final scale-settle of complete lockup" },
+      "resolveScale": { "type": "number", "default": 1.02, "description": "Slight scale overshoot before settling to 1" },
+      "holdDurationMs": { "type": "number", "default": 500, "description": "Hold time after resolve completes" }
+    },
+    "content_schema": {
+      "logo": {
+        "type": "object",
+        "properties": {
+          "icon_src": "string — Path or URL to icon/mark asset",
+          "wordmark_src": "string — Path or URL to wordmark asset (or text)",
+          "lockup": "string — Final arrangement: horizontal, vertical, stacked (default: horizontal)"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "hm-icon-spring-land",
+        "name": "Icon Spring Land",
+        "extractable_as_css": false,
+        "description": "Icon enters from configured direction and lands with spring physics bounce. JS spring simulation required. 800ms."
+      },
+      {
+        "id": "hm-wordmark-slide",
+        "name": "Wordmark Slide",
+        "extractable_as_css": true,
+        "description": "Wordmark translates into position alongside icon with deceleration. 600ms.",
+        "css": "@keyframes wordmark-slide { from { opacity: 0; transform: translateX(30px) } to { opacity: 1; transform: translateX(0) } }"
+      },
+      {
+        "id": "hm-lockup-settle",
+        "name": "Lockup Settle",
+        "extractable_as_css": true,
+        "description": "Complete logo scales from 1.02 to 1 for a satisfying micro-settle. 300ms.",
+        "css": "@keyframes lockup-settle { from { transform: scale(1.02) } to { transform: scale(1) } }"
+      }
+    ],
+    "when_to_use": [
+      "Video endings — the final logo moment before fade to black",
+      "Brand reveals in sizzle reels — logo as the climactic resolve",
+      "Opening sequences where brand identity needs a premium entrance"
+    ],
+    "when_to_avoid": [
+      "Mid-sequence logo appearances — this is an opener or closer, not a watermark",
+      "Editorial personality — spring physics feel too theatrical for content-forward work",
+      "Sequences with multiple brand logos — this is for the primary brand only"
+    ],
+    "ai_guidance": "This is the logo's hero moment — typically the last 2-3 seconds of a video or the opening brand reveal. The spring physics on the icon are critical for premium feel; don't replace with CSS easing. For montage, increase stiffness (220+) for snappier landing. Always pair with a clean background — no competing elements."
+  },
+  {
+    "name": "Before-After Morph",
+    "slug": "hm-before-after-morph",
+    "source": "compound",
+    "category": "hero-moment",
+    "requires_js": true,
+    "description": "Two states crossfade with a sliding divider line, morphing between before and after views. A vertical divider sweeps across the frame — content on the left shows the 'before' state, content on the right reveals the 'after' state. Classic comparison pattern elevated with smooth animation.",
+    "default_duration": "3000ms",
+    "personality_affinity": ["editorial", "neutral-light"],
+    "config_schema": {
+      "dividerStartPercent": { "type": "number", "default": 5, "description": "Starting position of divider (percentage from left)" },
+      "dividerEndPercent": { "type": "number", "default": 95, "description": "Ending position of divider" },
+      "sweepDurationMs": { "type": "number", "default": 2000, "description": "Duration of the divider sweep" },
+      "sweepEasing": { "type": "string", "default": "cubic-bezier(0.22, 1, 0.36, 1)", "description": "Easing for divider sweep" },
+      "dividerWidth": { "type": "number", "default": 2, "description": "Width of the divider line in pixels" },
+      "dividerColor": { "type": "string", "default": "rgba(255,255,255,0.8)", "description": "Color of the divider line" },
+      "labelFadeDurationMs": { "type": "number", "default": 400, "description": "Duration of before/after label fade-in" },
+      "holdDurationMs": { "type": "number", "default": 600, "description": "Hold time at end position" },
+      "showLabels": { "type": "boolean", "default": true, "description": "Show 'Before'/'After' labels" }
+    },
+    "content_schema": {
+      "before": {
+        "type": "object",
+        "properties": {
+          "layer_id": "string — Layer or image for the 'before' state",
+          "label": "string (optional) — Custom label, defaults to 'Before'"
+        }
+      },
+      "after": {
+        "type": "object",
+        "properties": {
+          "layer_id": "string — Layer or image for the 'after' state",
+          "label": "string (optional) — Custom label, defaults to 'After'"
+        }
+      }
+    },
+    "sub_primitives": [
+      {
+        "id": "hm-divider-sweep",
+        "name": "Divider Sweep",
+        "extractable_as_css": true,
+        "description": "Vertical divider line translates from left to right across the frame. 2000ms.",
+        "css": "@keyframes divider-sweep { from { left: 5% } to { left: 95% } }"
+      },
+      {
+        "id": "hm-clip-reveal",
+        "name": "Clip Reveal",
+        "extractable_as_css": true,
+        "description": "After-state clip-path expands in sync with divider position. 2000ms.",
+        "css": "@keyframes clip-reveal { from { clip-path: inset(0 95% 0 0) } to { clip-path: inset(0 5% 0 0) } }"
+      },
+      {
+        "id": "hm-label-fade",
+        "name": "Label Fade",
+        "extractable_as_css": true,
+        "description": "Before/After labels fade in at start and end of sweep. 400ms.",
+        "css": "@keyframes label-fade { from { opacity: 0 } to { opacity: 1 } }"
+      }
+    ],
+    "when_to_use": [
+      "Product transformation demos — showing old vs new UI, before vs after optimization",
+      "Design comparisons — wireframe to final, legacy to modern",
+      "Tutorial explanations — showing the effect of a setting or configuration"
+    ],
+    "when_to_avoid": [
+      "States that are too similar — the morph needs visible contrast to be meaningful",
+      "Montage pacing — 3 seconds is too slow for rapid-cut sequences",
+      "Content where before/after framing is misleading or reductive"
+    ],
+    "ai_guidance": "The before-after morph is persuasion through contrast. The sweep speed controls how much time the audience spends comparing — faster sweep for obvious differences, slower for subtle ones. For editorial, use a thin divider (1-2px) and muted labels. For neutral-light tutorials, thicker divider and prominent labels help comprehension."
+  }
+]

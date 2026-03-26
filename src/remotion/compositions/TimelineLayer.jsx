@@ -28,6 +28,8 @@ const SEMANTIC_KEYS = [
   'selection_start', 'selection_end',
   'list_insert_progress', 'list_remove_progress', 'list_reorder_progress',
   'counter_value',
+  'menu_open_progress', 'menu_selected_index',
+  'focus_pulse_progress',
 ];
 
 export const TimelineLayer = ({ layer, tracks, children, style: parentStyle }) => {

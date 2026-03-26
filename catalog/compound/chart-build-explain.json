@@ -1,0 +1,62 @@
+{
+  "name": "Chart Build Explain — Bar Growth with Annotation",
+  "slug": "bd-chart-build-explain",
+  "source": "compound",
+  "category": "compound-entrance",
+  "requires_js": true,
+  "description": "Bar chart grows from zero height with staggered timing, then a highlight pulse draws attention to a specific bar while others dim, and finally a callout annotation slides in with a connecting line to explain the insight.",
+  "default_duration": "3200ms",
+  "personality_affinity": ["editorial", "cinematic-dark"],
+  "entry_point": "src/remotion/physics/chart-build-explain.js",
+  "remotion_component": "src/remotion/compositions/ChartBuildExplainLayer.jsx",
+  "config_schema": {
+    "barCount": { "type": "number", "default": 6, "description": "Number of bars in the chart" },
+    "maxBarHeight": { "type": "number", "default": 320, "description": "Maximum bar height in pixels" },
+    "highlightIndex": { "type": "number", "default": 3, "description": "Index of the bar to highlight and annotate (0-based)" },
+    "annotationDelay": { "type": "number", "default": 200, "description": "Delay in ms after highlight before annotation appears" },
+    "barWidth": { "type": "number", "default": 56, "description": "Width of each bar in pixels" },
+    "barGap": { "type": "number", "default": 24, "description": "Gap between bars in pixels" },
+    "barRadius": { "type": "number", "default": 6, "description": "Border radius of bar tops" },
+    "growStagger": { "type": "number", "default": 80, "description": "Stagger delay in ms between each bar starting its growth" },
+    "highlightScale": { "type": "number", "default": 1.06, "description": "Scale factor for the highlighted bar pulse" },
+    "dimOpacity": { "type": "number", "default": 0.4, "description": "Opacity of non-highlighted bars during annotation phase" }
+  },
+  "content_schema": {
+    "bars": {
+      "type": "array",
+      "items": {
+        "label": "string",
+        "value": "number (0-1 normalized, or absolute if maxBarHeight adjusts)",
+        "color": "string (optional, CSS color)"
+      }
+    },
+    "annotation": "string (insight text for the callout)"
+  },
+  "sub_primitives": [
+    {
+      "id": "bd-bar-grow",
+      "name": "Bar Grow",
+      "extractable_as_css": true,
+      "description": "Height animation from 0 to target with eased-out cubic timing. Staggered per bar.",
+      "css": "@keyframes bar-grow { 0%{transform:scaleY(0);transform-origin:bottom} 100%{transform:scaleY(1);transform-origin:bottom} }"
+    },
+    {
+      "id": "bd-callout-appear",
+      "name": "Callout Appear",
+      "extractable_as_css": true,
+      "description": "Annotation callout slides in from the right with opacity fade and a connecting line draws from the bar to the label.",
+      "css": "@keyframes callout-appear { 0%{opacity:0;transform:translateX(24px)} 100%{opacity:1;transform:translateX(0)} }"
+    }
+  ],
+  "when_to_use": [
+    "Data reveals — building a chart to highlight a key metric",
+    "Metric highlights — drawing attention to a standout value",
+    "Financial presentations — showing growth with editorial annotation"
+  ],
+  "when_to_avoid": [
+    "More than 10 bars — readability degrades at small sizes",
+    "Scenes under 2.5 seconds — the 3-phase animation needs time",
+    "Montage personality — hard cuts conflict with gradual bar build"
+  ],
+  "ai_guidance": "Use layer type 'chart_build_explain' with a 'bars' array of { label, value, color? } and an 'annotation' string. Configure via chart_config overrides. Phase 1 (0-50%) grows bars, Phase 2 (50-75%) highlights target bar, Phase 3 (75-100%) slides in annotation. Duration ~3.2s."
+}

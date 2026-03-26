@@ -1,0 +1,14 @@
+{
+  "project": "social-square",
+  "expected_scores": {
+    "overall": { "min": 0.55, "max": 1.0 },
+    "hook": { "min": 0.55, "max": 1.0 },
+    "clarity": { "min": 0.50, "max": 1.0 },
+    "motion_quality": { "min": 0.60, "max": 1.0 },
+    "brand_finish": { "min": 0.55, "max": 1.0 }
+  },
+  "expected_audit": {
+    "quality_min": 0.85,
+    "strict_pass": true
+  }
+}

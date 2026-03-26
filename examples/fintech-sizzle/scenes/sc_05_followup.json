@@ -1,0 +1,27 @@
+{
+  "scene_id": "sc_05_followup",
+  "format_version": 2,
+  "duration_s": 3.5,
+  "brand": "fintech-demo",
+  "camera": { "move": "drift", "intensity": 0.04 },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+      "depth_class": "background"
+    },
+    {
+      "id": "followup",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:40px\"><div style=\"opacity:0.35;display:flex;gap:14px;align-items:flex-end;height:70px\"><div style=\"width:50px;height:60px;background:rgba(255,255,255,0.12);border-radius:3px 3px 0 0\"></div><div style=\"width:50px;height:45px;background:rgba(255,255,255,0.12);border-radius:3px 3px 0 0\"></div><div style=\"width:50px;height:34px;background:rgba(255,255,255,0.12);border-radius:3px 3px 0 0\"></div><div style=\"width:50px;height:26px;background:rgba(255,255,255,0.12);border-radius:3px 3px 0 0\"></div></div><div style=\"background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:28px;padding:14px 20px;width:100%;max-width:580px;display:flex;align-items:center;gap:12px\"><div style=\"flex:1;font-family:Inter,system-ui,sans-serif;font-size:15px;color:#f3f4f6\">Show me my largest transactions overall in March</div><div style=\"width:18px;height:18px;color:rgba(243,244,246,0.3);font-size:16px\">↑</div><div style=\"width:34px;height:34px;background:rgba(99,102,241,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:15px\">↵</div></div></div>",
+      "depth_class": "foreground"
+    }
+  ],
+  "motion": {
+    "groups": [{ "targets": ["followup"], "primitive": "cd-card-cascade" }]
+  },
+  "metadata": { "motion_energy": "moderate", "intent_tags": ["detail"] }
+}

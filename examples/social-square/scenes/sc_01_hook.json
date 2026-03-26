@@ -1,0 +1,45 @@
+{
+  "scene_id": "sc_01_hook",
+  "format_version": 2,
+  "duration_s": 2,
+  "brand": "freshly",
+  "product_role": "atmosphere",
+  "primary_subject": "hero_text",
+  "outcome": "Visual tone established: bold hook captures scroll-stopping attention",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": false,
+    "timing_realistic": false
+  },
+  "camera": { "move": "static" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:linear-gradient(135deg,#ff6b35 0%,#f7931e 100%)\"></div>",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1
+    },
+    {
+      "id": "hero_text",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px\"><span style=\"font-family:'Inter',system-ui,sans-serif;font-size:56px;font-weight:800;color:#ffffff;text-transform:uppercase;letter-spacing:-0.03em;text-align:center;line-height:1.05\">Dinner in<br>15 minutes</span></div>",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "typography",
+      "clarity_weight": 5
+    }
+  ],
+  "motion": {
+    "groups": [{ "targets": ["hero_text"], "primitive": "as-bounceIn" }]
+  },
+  "metadata": {
+    "motion_energy": "high",
+    "intent_tags": ["opening"]
+  }
+}

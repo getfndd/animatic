@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas AI — Research Reimagined</title>
+<style>
+/* ── Tokens ────────────────────────────────────────────────── */
+:root {
+  --bg: #0a0a0f;
+  --surface: #141420;
+  --surface-2: #1c1c2e;
+  --surface-3: rgba(99,102,241,0.06);
+  --border: rgba(255,255,255,0.06);
+  --border-accent: rgba(99,102,241,0.3);
+  --text: #f1f0f5;
+  --text-2: rgba(241,240,245,0.6);
+  --text-3: rgba(241,240,245,0.35);
+  --accent: #818cf8;
+  --accent-dim: rgba(129,140,248,0.12);
+  --accent-glow: rgba(99,102,241,0.15);
+  --green: #6ee7b7;
+  --green-dim: rgba(110,231,183,0.1);
+  --amber: #fcd34d;
+  --amber-dim: rgba(252,211,77,0.08);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --spring: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: radial-gradient(ellipse at 50% 45%, #12122a 0%, #0a0a0f 55%);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ── Scene ─────────────────────────────────────────────────── */
+.scene {
+  width: 100%;
+  max-width: 720px;
+  height: 1080px;
+  padding: 32px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ── Phases ─────────────────────────────────────────────────── */
+.phase {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out);
+  pointer-events: none;
+  padding: 32px;
+}
+.phase.active {
+  position: relative;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* ── Phase 0: Context ──────────────────────────────────────── */
+.context-text {
+  font-size: 42px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 800ms var(--ease-out), transform 800ms var(--ease-out);
+}
+.context-text.visible { opacity: 1; transform: translateY(0); }
+.context-sub {
+  font-size: 16px;
+  color: var(--text-3);
+  text-align: center;
+  margin-top: 16px;
+  opacity: 0;
+  transition: opacity 600ms var(--ease-out) 400ms;
+}
+.context-sub.visible { opacity: 1; }
+
+/* ── Phase 1: Prompt ───────────────────────────────────────── */
+.prompt-container {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out);
+}
+.prompt-container.visible { opacity: 1; transform: translateY(0); }
+
+.prompt-label {
+  font-size: 13px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+.prompt-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 400ms var(--ease-out), box-shadow 400ms var(--ease-out);
+}
+.prompt-box.focused {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 1px var(--accent-dim), 0 8px 32px rgba(99,102,241,0.08);
+}
+.prompt-input {
+  flex: 1;
+  font-size: 15px;
+  color: var(--text);
+  font-family: inherit;
+  min-height: 22px;
+  position: relative;
+}
+.prompt-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 18px;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+.prompt-send {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 300ms var(--ease-out), transform 400ms var(--spring);
+}
+.prompt-send.visible { opacity: 1; transform: scale(1); }
+.prompt-send svg { width: 18px; height: 18px; color: #0a0a0f; }
+
+.suggestions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.suggestion {
+  font-size: 12px;
+  color: var(--text-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+}
+.suggestion.visible { opacity: 1; transform: translateY(0); }
+
+/* ── Phase 2: Processing ───────────────────────────────────── */
+.processing-container { text-align: center; }
+.processing-query {
+  font-size: 14px;
+  color: var(--text-2);
+  margin-bottom: 32px;
+  opacity: 0;
+  transition: opacity 500ms var(--ease-out);
+}
+.processing-query.visible { opacity: 1; }
+.processing-query em { color: var(--accent); font-style: normal; }
+
+.thinking-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+.thinking-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.3;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }
+
+.processing-steps {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 auto;
+}
+.proc-step {
+  font-size: 13px;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateX(-12px);
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out), color 300ms;
+}
+.proc-step.visible { opacity: 1; transform: translateX(0); }
+.proc-step.done { color: var(--green); }
+.proc-step .check {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 300ms, background 300ms;
+}
+.proc-step.done .check {
+  border-color: var(--green);
+  background: var(--green-dim);
+}
+.proc-step .check svg { width: 10px; height: 10px; opacity: 0; transition: opacity 300ms; }
+.proc-step.done .check svg { opacity: 1; color: var(--green); }
+
+/* ── Phase 3: Results ──────────────────────────────────────── */
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out);
+}
+.results-header.visible { opacity: 1; transform: translateY(0); }
+.results-title { font-size: 18px; font-weight: 600; }
+.results-meta { font-size: 13px; color: var(--text-3); }
+
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 10px;
+  opacity: 0;
+  transform: translateY(16px) scale(0.97);
+  transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out), border-color 300ms;
+}
+.result-card.visible { opacity: 1; transform: translateY(0) scale(1); }
+.result-card:hover { border-color: var(--border-accent); }
+.result-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.result-card-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.result-card-citation {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.result-card-body { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+.result-card-relevance {
+  margin-top: 10px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.result-card-relevance-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  width: 0%;
+  transition: width 800ms var(--ease-out) 200ms;
+}
+.result-card.visible .result-card-relevance-bar { width: var(--relevance); }
+
+/* ── Phase 4: CTA ──────────────────────────────────────────── */
+.cta-container { text-align: center; }
+.cta-logo {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 600ms var(--ease-out), transform 600ms var(--spring);
+}
+.cta-logo.visible { opacity: 1; transform: scale(1); }
+.cta-headline {
+  font-size: 36px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text);
+  margin-bottom: 24px;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 600ms var(--ease-out) 200ms, transform 600ms var(--ease-out) 200ms;
+}
+.cta-headline.visible { opacity: 1; transform: translateY(0); }
+.cta-divider {
+  width: 40px;
+  height: 1px;
+  background: var(--border-accent);
+  margin: 0 auto 20px;
+  transform: scaleX(0);
+  transition: transform 500ms var(--ease-out) 500ms;
+}
+.cta-divider.visible { transform: scaleX(1); }
+.cta-url {
+  font-size: 14px;
+  color: var(--text-3);
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out) 700ms;
+}
+.cta-url.visible { opacity: 1; }
+
+/* ── Playback ──────────────────────────────────────────────── */
+.playback {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 8px 16px;
+  z-index: 100;
+}
+.playback-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: background 300ms, transform 300ms;
+}
+.playback-dot.active { background: var(--accent); transform: scale(1.4); }
+.playback-label {
+  font-size: 11px;
+  color: var(--text-3);
+  min-width: 70px;
+  text-align: center;
+}
+
+/* ── Ambient ───────────────────────────────────────────────── */
+.ambient-glow {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 800px;
+  height: 800px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(99,102,241,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1200ms var(--ease-out);
+  z-index: -1;
+}
+.ambient-glow.visible { opacity: 1; }
+
+/* ── Grain ─────────────────────────────────────────────────── */
+.grain {
+  position: fixed;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: overlay;
+}
+
+/* ── Embed ─────────────────────────────────────────────────── */
+body.embed { background: transparent; }
+body.embed .playback { display: none; }
+body.embed .grain { display: none; }
+
+/* ── Reduced motion ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.1ms !important; }
+}
+</style>
+</head>
+<body>
+
+
+<div class="scene">
+  <!-- Phase 0: Context -->
+  <div class="phase active" id="phase-0">
+    <div class="context-text" id="ctx-text">Research takes<br>too long.</div>
+    <div class="context-sub" id="ctx-sub">Hours of reading. Minutes of insight.</div>
+  </div>
+
+  <!-- Phase 1: Prompt -->
+  <div class="phase" id="phase-1">
+    <div class="prompt-container" id="prompt-wrap">
+      <div class="prompt-label">Ask Atlas</div>
+      <div class="prompt-box" id="prompt-box">
+        <div class="prompt-input"><span id="prompt-text"></span><span class="prompt-cursor" id="cursor"></span></div>
+        <div class="prompt-send" id="send-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </div>
+      <div class="suggestions">
+        <div class="suggestion" id="sug-0">Compare architectures</div>
+        <div class="suggestion" id="sug-1">Find citations</div>
+        <div class="suggestion" id="sug-2">Summarize methods</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2: Processing -->
+  <div class="phase" id="phase-2">
+    <div class="processing-container">
+      <div class="processing-query" id="proc-query">Searching for <em>transformer efficiency</em></div>
+      <div class="thinking-dots">
+        <div class="thinking-dot"></div>
+        <div class="thinking-dot"></div>
+        <div class="thinking-dot"></div>
+      </div>
+      <div class="processing-steps">
+        <div class="proc-step" id="step-0"><div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>Scanning 2,847 papers</div>
+        <div class="proc-step" id="step-1"><div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>Extracting key findings</div>
+        <div class="proc-step" id="step-2"><div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>Ranking by relevance</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3: Results -->
+  <div class="phase" id="phase-3">
+    <div class="results-header" id="results-hdr">
+      <div class="results-title">Results — Transformer Efficiency</div>
+      <div class="results-meta">12 papers · 4.2s</div>
+    </div>
+    <div class="result-card" id="card-0" style="--relevance:96%">
+      <div class="result-card-header">
+        <div class="result-card-title">FlashAttention-2: Faster Attention with Better Parallelism</div>
+        <div class="result-card-citation">Dao, 2023</div>
+      </div>
+      <div class="result-card-body">2x speedup over FlashAttention through work partitioning between GPU thread blocks, reducing non-matmul FLOPs and enabling longer sequences.</div>
+      <div class="result-card-relevance"><div class="result-card-relevance-bar"></div></div>
+    </div>
+    <div class="result-card" id="card-1" style="--relevance:89%">
+      <div class="result-card-header">
+        <div class="result-card-title">GQA: Generalized Multi-Query Attention</div>
+        <div class="result-card-citation">Ainslie et al., 2023</div>
+      </div>
+      <div class="result-card-body">Grouped-query attention interpolates between MHA and MQA, achieving near-MHA quality with MQA-comparable speed on inference.</div>
+      <div class="result-card-relevance"><div class="result-card-relevance-bar"></div></div>
+    </div>
+    <div class="result-card" id="card-2" style="--relevance:82%">
+      <div class="result-card-header">
+        <div class="result-card-title">Efficient Transformers: A Survey</div>
+        <div class="result-card-citation">Tay et al., 2022</div>
+      </div>
+      <div class="result-card-body">Comprehensive taxonomy of efficient transformer methods: fixed patterns, learnable patterns, memory, low-rank, and kernel methods.</div>
+      <div class="result-card-relevance"><div class="result-card-relevance-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- Phase 4: CTA -->
+  <div class="phase" id="phase-4">
+    <div class="cta-container">
+      <div class="cta-logo" id="cta-logo">ATLAS AI</div>
+      <div class="cta-headline" id="cta-headline">Research<br>reimagined.</div>
+      <div class="cta-divider" id="cta-divider"></div>
+      <div class="cta-url" id="cta-url">atlas.ai</div>
+    </div>
+  </div>
+</div>
+
+<!-- Playback -->
+<div class="playback" id="playback">
+  <div class="playback-dot active" data-phase="0"></div>
+  <div class="playback-dot" data-phase="1"></div>
+  <div class="playback-dot" data-phase="2"></div>
+  <div class="playback-dot" data-phase="3"></div>
+  <div class="playback-dot" data-phase="4"></div>
+  <div class="playback-label" id="pb-label">Context</div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────
+const PHASES = [
+  { id: 0, label: 'Context',    dwell: 2800 },
+  { id: 1, label: 'Prompt',     dwell: 5500 },
+  { id: 2, label: 'Processing', dwell: 4200 },
+  { id: 3, label: 'Results',    dwell: 5500 },
+  { id: 4, label: 'CTA',        dwell: 3500 },
+];
+
+const TYPEWRITER_TEXT = 'Summarize recent papers on transformer efficiency';
+const LOOP_PAUSE = 2000;
+
+// ── State ─────────────────────────────────────────────────────
+let current = 0;
+let playing = true;
+let timers = [];
+
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const push = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
+const clearTimers = () => { timers.forEach(t => clearTimeout(t)); timers = []; };
+
+// ── Embed ─────────────────────────────────────────────────────
+if (new URLSearchParams(location.search).has('embed')) {
+  document.body.classList.add('embed');
+}
+
+// ── Transitions ───────────────────────────────────────────────
+function transitionTo(phase) {
+  // Deactivate current
+  const prev = $(`#phase-${current}`);
+  if (prev) prev.classList.remove('active');
+
+  current = phase;
+  const next = $(`#phase-${current}`);
+  if (next) next.classList.add('active');
+
+  // Playback dots
+  $$('.playback-dot').forEach((d, i) => d.classList.toggle('active', i === current));
+  $('#pb-label').textContent = PHASES[current].label;
+
+  // Run phase entrance
+  onPhaseEnter(current);
+
+  // Schedule next
+  if (playing) {
+    const nextPhase = (current + 1) % PHASES.length;
+    const delay = nextPhase === 0 ? PHASES[current].dwell + LOOP_PAUSE : PHASES[current].dwell;
+    push(() => {
+      if (nextPhase === 0) resetAll();
+      transitionTo(nextPhase);
+    }, delay);
+  }
+}
+
+// ── Phase Enter Callbacks ─────────────────────────────────────
+function onPhaseEnter(phase) {
+  switch (phase) {
+    case 0: enterContext(); break;
+    case 1: enterPrompt(); break;
+    case 2: enterProcessing(); break;
+    case 3: enterResults(); break;
+    case 4: enterCTA(); break;
+  }
+}
+
+function enterContext() {
+  $('#ambient').classList.add('visible');
+  push(() => $('#ctx-text').classList.add('visible'), 200);
+  push(() => $('#ctx-sub').classList.add('visible'), 800);
+}
+
+function enterPrompt() {
+  push(() => {
+    $('#prompt-wrap').classList.add('visible');
+  }, 100);
+
+  // Suggestions stagger
+  push(() => $('#sug-0').classList.add('visible'), 400);
+  push(() => $('#sug-1').classList.add('visible'), 550);
+  push(() => $('#sug-2').classList.add('visible'), 700);
+
+  // Focus the input
+  push(() => $('#prompt-box').classList.add('focused'), 800);
+
+  // Typewriter
+  push(() => typewrite($('#prompt-text'), TYPEWRITER_TEXT, () => {
+    push(() => {
+      $('#send-btn').classList.add('visible');
+      $('#cursor').style.display = 'none';
+    }, 300);
+
+    // Send button press
+    push(() => {
+      $('#send-btn').style.transform = 'scale(0.85)';
+      push(() => $('#send-btn').style.transform = 'scale(1.05)', 120);
+      push(() => $('#send-btn').style.transform = 'scale(1)', 250);
+    }, 800);
+  }), 1200);
+}
+
+function typewrite(el, text, cb) {
+  let i = 0;
+  const type = () => {
+    if (i < text.length) {
+      el.textContent += text[i];
+      i++;
+      push(type, 30 + Math.random() * 25);
+    } else if (cb) {
+      cb();
+    }
+  };
+  type();
+}
+
+function enterProcessing() {
+  push(() => $('#proc-query').classList.add('visible'), 200);
+
+  // Steps stagger with completion
+  const steps = ['step-0', 'step-1', 'step-2'];
+  steps.forEach((id, i) => {
+    push(() => $(`#${id}`).classList.add('visible'), 600 + i * 400);
+    push(() => $(`#${id}`).classList.add('done'), 1200 + i * 800);
+  });
+}
+
+function enterResults() {
+  push(() => $('#results-hdr').classList.add('visible'), 100);
+  push(() => $('#card-0').classList.add('visible'), 350);
+  push(() => $('#card-1').classList.add('visible'), 600);
+  push(() => $('#card-2').classList.add('visible'), 850);
+}
+
+function enterCTA() {
+  $('#ambient').classList.add('visible');
+  push(() => $('#cta-logo').classList.add('visible'), 200);
+  push(() => $('#cta-headline').classList.add('visible'), 200);
+  push(() => $('#cta-divider').classList.add('visible'), 200);
+  push(() => $('#cta-url').classList.add('visible'), 200);
+}
+
+// ── Reset ─────────────────────────────────────────────────────
+function resetAll() {
+  clearTimers();
+
+  // Context
+  $('#ctx-text').classList.remove('visible');
+  $('#ctx-sub').classList.remove('visible');
+  $('#ambient').classList.remove('visible');
+
+  // Prompt
+  $('#prompt-wrap').classList.remove('visible');
+  $('#prompt-box').classList.remove('focused');
+  $('#prompt-text').textContent = '';
+  $('#cursor').style.display = '';
+  $('#send-btn').classList.remove('visible');
+  $('#send-btn').style.transform = '';
+  $$('.suggestion').forEach(s => s.classList.remove('visible'));
+
+  // Processing
+  $('#proc-query').classList.remove('visible');
+  $$('.proc-step').forEach(s => { s.classList.remove('visible', 'done'); });
+
+  // Results
+  $('#results-hdr').classList.remove('visible');
+  $$('.result-card').forEach(c => c.classList.remove('visible'));
+
+  // CTA
+  $('#cta-logo').classList.remove('visible');
+  $('#cta-headline').classList.remove('visible');
+  $('#cta-divider').classList.remove('visible');
+  $('#cta-url').classList.remove('visible');
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  transitionTo(0);
+});
+</script>
+</body>
+</html>

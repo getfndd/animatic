@@ -157,3 +157,42 @@ The evaluation engine re-derives expected transitions independently from the pla
 **Why equal 25% weights?** All four dimensions are equally important for a good sequence. Pacing without variety is monotonous; variety without flow is chaotic; flow without adherence drifts from the style; adherence without pacing feels mechanical.
 
 **Why 100 for short sequences?** With 1-2 scenes there's not enough data to meaningfully score variety, flow, or arc. Penalizing would create noisy false negatives.
+
+## Per-Scene Scoring & Unified Score Card
+
+`scoreCandidateVideo` in `mcp/lib/scoring.js` wraps all evaluators into a unified 6-dimension score card that operates alongside the sequence-level evaluation above.
+
+### Dimensions & Weights
+
+| Dimension | Weight |
+|-----------|--------|
+| hook | 0.20 |
+| narrative_arc | 0.20 |
+| clarity | 0.20 |
+| visual_hierarchy | 0.15 |
+| motion_quality | 0.15 |
+| brand_finish | 0.10 |
+
+Scores are **0-1** (not 0-100 like `evaluateSequence`).
+
+### Per-Scene Subscores
+
+Each scene in the sequence receives its own subscores:
+
+- `clarity` — how clearly the scene communicates its content
+- `hierarchy` — visual hierarchy effectiveness
+- `pacing` — duration appropriateness relative to content
+- `motion_quality` — animation smoothness and intentionality
+- `continuity_to_next` — how well the scene flows into the next
+
+### Revision Recommendations
+
+Revision recommendations are generated per-scene from the weakest dimensions. The system identifies which dimensions drag a scene's score down and produces targeted suggestions (e.g., adjust hold duration, simplify layering, strengthen transition).
+
+### Auto-Revise Loop
+
+`auto_revise_loop` repeats a score-revise-re-score cycle until the score converges (improvement falls below threshold) or a maximum number of rounds is reached. Each round applies the revision recommendations from the previous scoring pass.
+
+### Confidence Gating
+
+Structural revisions — such as `boost_hierarchy` and `add_continuity` — are blocked when annotation confidence is below 0.6. This prevents the auto-revise loop from making aggressive changes based on uncertain scene classifications. Non-structural revisions (timing adjustments, transition tweaks) are still permitted at lower confidence levels.

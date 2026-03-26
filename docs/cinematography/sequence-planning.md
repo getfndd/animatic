@@ -319,3 +319,59 @@ To add a new style pack:
 3. Define `hold_durations`, `transitions`, and `camera_overrides` using the rule types above
 4. The planner automatically picks it up — no code changes needed
 5. Add tests to verify the new pack's behavior
+
+## Autonomous Story Planning
+
+The planning pipeline extends beyond style-pack-driven sequence assembly into fully autonomous story planning — from brief parsing through beat-level shot plans.
+
+### Brief Extraction
+
+`extractStoryBrief` parses brief markdown and infers structured fields:
+
+- **audience** — target viewer profile
+- **promise** — the core value proposition or story thesis
+- **tone** — emotional register (maps to personality/style selection)
+- **features** — product capabilities or story beats to highlight
+- **proof_points** — evidence, metrics, or testimonials
+- **closing_beat** — desired ending (CTA, logo resolve, callback)
+
+`brief_quality` is a 0-1 score tracking how many core fields come from explicit brief text vs. defaults. Higher scores indicate the brief provided rich guidance; lower scores mean the planner is filling in gaps.
+
+`generateBriefStub` creates structured markdown brief from project context when no brief exists, providing a starting point for the planning pipeline.
+
+### Story Beat Planning
+
+`planStoryBeats` maps a story brief onto a sequence archetype. Six archetypes are available:
+
+| Archetype | Use Case |
+|-----------|----------|
+| brand-teaser | Short brand awareness pieces |
+| feature-reveal | Product capability showcases |
+| onboarding-explainer | Tutorial and walkthrough flows |
+| launch-reel | Product launch sizzle content |
+| testimonial-cutdown | Social proof / customer story edits |
+| social-loop | Looping social media content |
+
+Each beat plan includes:
+
+- `duration_s` — target hold time for the beat
+- `energy` — motion energy level (maps to camera intensity)
+- `camera_intent` — recommended camera intent for the beat
+- `transition_in` — suggested transition into this beat
+- `continuity_opportunities` — where visual threads can connect adjacent beats
+- `recommended_primitives` — animation primitives suited to the beat's role
+
+### Audio Beat Snapping
+
+When beat data is available (from `analyze_beats`), `syncSequenceToBeats` adjusts scene boundaries so transitions land on musical beats. This integrates with the existing beat-sync editing from ANI-37 but operates at the story-planning level rather than the duration-assignment level.
+
+### Benchmark Projects
+
+4 benchmark projects validate the planning pipeline end-to-end:
+
+| Benchmark | Archetype | Key Validation |
+|-----------|-----------|----------------|
+| brand-teaser | brand-teaser | Brief extraction, tone mapping, short-form pacing |
+| product-demo | feature-reveal | Feature sequencing, proof point placement |
+| social-square | social-loop | Loop continuity, square format constraints |
+| ai-prompt-to-result | feature-reveal | Input-processing-result narrative arc |

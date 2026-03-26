@@ -171,3 +171,65 @@ Constants: `CONTENT_TYPES`, `VISUAL_WEIGHTS`, `MOTION_ENERGIES`, `INTENT_TAGS`
 npm test                              # run all tests
 node --test mcp/test/analyze.test.js  # run analyze tests only
 ```
+
+## Semantic Annotations
+
+`analyzeScene` now also produces semantic annotations via `annotateScene` from `mcp/lib/scene-annotations.js`. These annotations enrich the base classification metadata with product-aware and narrative-aware labels.
+
+### Scene-Level Annotations
+
+| Field | Values | Description |
+|-------|--------|-------------|
+| `product_role` | input, processing, result, proof, dashboard, cta, atmosphere, transition | What role this scene plays in a product narrative |
+| `primary_subject` | string | The dominant subject or concept in the scene |
+| `outcome` | string | What the scene communicates or proves |
+| `interaction_truth` | string | The real user interaction being depicted |
+
+### Layer-Level Annotations
+
+Each layer within a scene receives:
+
+| Field | Values | Description |
+|-------|--------|-------------|
+| `product_role` | hero, supporting, functional, decorative | The layer's role within the scene composition |
+| `content_class` | string | Classification of the layer's content type |
+| `clarity_weight` | 1-5 | How important this layer is to scene comprehension |
+
+### Confidence Scoring
+
+Each annotation field carries a confidence score (0-1):
+
+- **1.0** — Explicit values provided in scene metadata
+- **0.8** — Keyword matches in scene_id, layer names, or content
+- **0.3** — Fallback/default values
+
+Overall annotation confidence is compositional (weakest link) — a scene's confidence is determined by its lowest-confidence field.
+
+### Annotation Quality Auditing
+
+`auditAnnotationQuality` validates annotations in two modes:
+
+- **Advisory mode** — generates warnings for low-confidence fields without blocking downstream processing
+- **Strict mode** — generates errors that block revisions; prevents the auto-revise loop from acting on unreliable annotations
+
+`upgradeProjectConfidence` applies safe metadata patches (renaming scene_ids, adding explicit product_role hints) to raise annotation confidence without changing scene content.
+
+## Render Target Routing
+
+`resolveRenderTargets` from `mcp/lib/render-routing.js` determines the optimal render pipeline for each scene based on its content and annotations.
+
+### Render Targets
+
+| Target | Description |
+|--------|-------------|
+| `web_native` | Lightweight browser rendering for simple content |
+| `browser_capture` | Full browser capture for complex HTML hero scenes |
+| `remotion_native` | Remotion compositor for animation-heavy scenes |
+| `hybrid` | Split rendering across multiple targets |
+
+### Routing Rules
+
+- **Atmosphere / CTA scenes** (by `product_role`) route to `remotion_native`
+- **Complex HTML hero scenes** (rich interactive content) route to `browser_capture`
+- **Text / SVG / compound primitive scenes** route to `remotion_native`
+- All other scenes are evaluated by layer complexity and content class

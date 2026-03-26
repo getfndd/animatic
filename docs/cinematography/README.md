@@ -1,90 +1,65 @@
 # AI Cinematography Pipeline
 
-From prototype animations to produced sizzle reels.
+59 MCP tools. 1822 tests. Autonomous video direction with governance.
 
 ## What This Is
 
-An extension of Animatic's existing animation pipeline that adds multi-scene sequencing, mixed media compositing, and AI-directed editing. The current pipeline produces single looping autoplay demos from HTML prototypes. This pipeline produces edited multi-shot videos from collections of scenes.
+A complete AI cinematography pipeline: brief → scenes → scoring → revision → render → delivery. Includes autonomous direction (`/direct`), scene semantic annotations with confidence scoring, dual render targets (browser capture + Remotion native), and 4 benchmark projects.
 
-**Current pipeline:**
+**Two render paths from one scene model:**
 ```
-/prototype → /animate → capture → single looping video
+Scene JSON (semantics, timing, hierarchy, continuity)
+    ↓
+resolve_render_targets
+    ├── browser_capture → Puppeteer → plate asset → Remotion assembly
+    └── remotion_native → direct Remotion render
+            ↓
+    assemble_video_sequence → master → delivery (MP4/WebM/GIF/social)
 ```
 
-**Cinematography pipeline:**
+**Autonomous direction loop (`/direct`):**
 ```
-Scenes (HTML + media) → Sequence Manifest (JSON) → Remotion → edited multi-shot video
+/direct <project-slug>
+  → extract_story_brief (quality score + warnings)
+  → plan_story_beats (×3 strategies)
+  → score_candidate_video (per-scene: clarity, hierarchy, pacing, motion, continuity)
+  → compare → pick winner
+  → auto_revise_loop (targeted, confidence-gated)
+  → annotate → audit → upgrade confidence
+  → resolve targets → capture → assemble → deliver
 ```
-
-The current pipeline is not replaced. It continues to serve its purpose (product demo loops for landing pages, email, embed). The cinematography pipeline builds on top of it for longer-form, multi-shot content like sizzle reels, brand films, and product launch videos.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Asset Inputs                             │
-│  Video clips  |  Images  |  HTML prototypes  |  Text content    │
-└──────────────────────────────┬──────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     Scene Definitions                           │
-│  Each scene = self-contained composition (canvas + layers +     │
-│  assets + camera directive + duration + metadata)               │
-│  Format: scene-format.json (see docs/cinematography/specs/)     │
-└──────────────────────────────┬──────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              Sequence Manifest (Edit Decision List)              │
-│  Ordered scenes + durations + transitions + style pack          │
-│  Format: sequence-manifest.json                                 │
-│  Authored by hand (Phase 1-3) or AI planner (Phase 4+)         │
-└──────────────────────────────┬──────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Remotion Renderer                          │
-│  React compositions rendered frame-by-frame via headless        │
-│  Chromium + ffmpeg. Handles sequencing, transitions, camera     │
-│  interpolation, and media compositing.                          │
-└──────────────────────────────┬──────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        Video Output                             │
-│  MP4 / WebM / ProRes / GIF (same formats as current capture)    │
-└─────────────────────────────────────────────────────────────────┘
+Brief + Brand + Scenes
+        ↓
+extract_story_brief → plan_story_beats (×3) → score → compare → revise
+        ↓
+annotate_scenes → audit_annotation_quality → upgrade_project_confidence
+        ↓
+resolve_render_targets
+        ├── browser_capture → Puppeteer (2x DPR, deterministic, dithered)
+        │       → PNG sequence / ProRes plate
+        └── remotion_native → direct Remotion render
+                → SceneComposition (camera, layers, transitions)
+        ↓
+assemble_video_sequence (Remotion compositor)
+        ├── captured plates via <OffthreadVideo>
+        ├── native scenes via SceneComposition
+        └── transitions, camera, audio handled by Remotion
+        ↓
+get_delivery_profile → encode per channel
+        → web-hero (1920x1080 60fps CRF 14)
+        → social-feed (1080x1080 30fps)
+        → story-reel (1080x1920 30fps)
+        → email-gif (600x338 15fps)
+        → master (ProRes 4444 lossless)
 ```
 
-### AI Director Layer (Phase 4-5) — Shipped
+### Key Principle
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   Creative Brief + Assets                        │
-│  Template-driven brief (product-launch, brand-story, etc.)      │
-│  + classified assets → scene generation (ANI-31)                │
-└──────────────────────────────┬──────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Scene Analysis Engine                         │
-│  Classifies content type, visual weight, motion energy,         │
-│  complexity, emotional tone. Rule-based v1. (ANI-22)            │
-└──────────────────────────────┬──────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     Sequence Planner                            │
-│  Given analyzed scenes + style pack → produces sequence         │
-│  manifest. Decides shot order, hold durations, transitions,     │
-│  camera moves. Rule-based v1. (ANI-23/24)                      │
-└──────────────────────────────┬──────────────────────────────────┘
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  Evaluation + Guardrails                         │
-│  Quality scoring (pacing, variety, flow, adherence) + camera    │
-│  physics validation per personality. (ANI-28/29)                │
-└──────────────────────────────┬──────────────────────────────────┘
-                               ▼
-                    Sequence Manifest (JSON)
-                               ▼
-                       Remotion Renderer
-```
+**Separate scene intent from render implementation.** A scene declares what the hero is, what happens, how long it lasts, and what continuity it carries. Each render target decides how to produce it best.
 
 ## Key Concepts
 

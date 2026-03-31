@@ -4,6 +4,9 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "animatic": "./bin/animatic.mjs"
+  },
   "scripts": {
     "sync": "node scripts/sync-to-preset.mjs",
     "sync:dry": "node scripts/sync-to-preset.mjs --dry-run",

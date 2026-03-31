@@ -1,0 +1,18 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": false,
+  "json.schemas": [
+    {
+      "fileMatch": ["examples/*/scenes/*.json", "projects/*/scenes/*.json"],
+      "url": "./docs/cinematography/specs/scene-format.md"
+    }
+  ],
+  "files.associations": {
+    "*.json": "json"
+  },
+  "search.exclude": {
+    "out/**": true,
+    "node_modules/**": true,
+    "renders/**": true
+  }
+}

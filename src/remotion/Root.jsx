@@ -3,6 +3,15 @@ import { SceneComposition } from './compositions/SceneComposition.jsx';
 import { SequenceComposition } from './compositions/SequenceComposition.jsx';
 import { calculateDuration } from './lib.js';
 
+// Preview props — loaded by scripts/preview.mjs for live project preview.
+// Falls back to defaults if the file doesn't exist.
+let previewProps = null;
+try {
+  previewProps = require('./preview-props.json');
+} catch {
+  // No preview props — use defaults
+}
+
 /**
  * Remotion Root — registers all video compositions.
  *
@@ -85,7 +94,12 @@ export const RemotionRoot = () => {
         fps={60}
         width={1920}
         height={1080}
-        defaultProps={{
+        defaultProps={previewProps ? {
+          manifest: previewProps.manifest,
+          sceneDefs: previewProps.sceneDefs || {},
+          timelines: previewProps.timelines || {},
+          sceneRoutes: previewProps.sceneRoutes || {},
+        } : {
           manifest: {
             sequence_id: 'seq_test',
             fps: 60,

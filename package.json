@@ -11,6 +11,7 @@
     "start:mcp": "node mcp/index.js",
     "test": "node --test mcp/test/ src/remotion/test/",
     "capture": "node scripts/capture-prototype.mjs",
+    "preview": "node scripts/preview.mjs",
     "remotion:studio": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx remotion studio",
     "remotion:render": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx remotion render",
     "remotion:render:scene": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx remotion render Scene --output renders/scene.mp4",

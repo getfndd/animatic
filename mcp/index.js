@@ -1705,6 +1705,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: 'preview_video',
+      description:
+        'Launch a live video preview in Remotion Studio. Pass a render-props.json path, manifest.json, or project directory. Opens the browser with the Sequence composition loaded with your scenes.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          input: { type: 'string', description: 'Path to render-props.json, manifest.json, or project directory' },
+        },
+        required: ['input'],
+      },
+    },
+    {
       name: 'get_delivery_profile',
       description:
         'Get encoding settings for a delivery channel. Maps channels (youtube, instagram-feed, email, tiktok, etc.) to optimal resolution, fps, codec, CRF, and max file size. Use slug for exact profile or channel name for auto-matching.',
@@ -1874,6 +1886,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleResolveRenderTargets(args);
     case 'assemble_video_sequence':
       return handleAssembleVideoSequence(args);
+    case 'preview_video':
+      return handlePreviewVideo(args);
     case 'get_delivery_profile':
       return handleGetDeliveryProfile(args);
     default:
@@ -5042,6 +5056,34 @@ function handleAutoReviseLoop(args) {
     };
   } catch (err) {
     return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
+  }
+}
+
+// ── preview_video ───────────────────────────────────────────────────────────
+
+function handlePreviewVideo(args) {
+  const { input } = args;
+  if (!input) {
+    return { content: [{ type: 'text', text: 'input path is required' }], isError: true };
+  }
+
+  try {
+    const { execFileSync } = require('node:child_process');
+    const scriptPath = resolve(ROOT, 'scripts/preview.mjs');
+    const output = execFileSync('node', [scriptPath, input], {
+      cwd: ROOT,
+      stdio: 'pipe',
+      timeout: 30000,
+    });
+
+    return {
+      content: [{ type: 'text', text: `Preview launched for: ${input}\n\n${output.toString()}\n\nOpen http://localhost:3000/Sequence` }],
+    };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Preview failed: ${err.stderr?.toString() || err.message}` }],
+      isError: true,
+    };
   }
 }
 

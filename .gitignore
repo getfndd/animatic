@@ -26,3 +26,4 @@ package-lock.json
 ../animatic-corrupted-backup/
 out/
 package-lock 2.json
+src/remotion/preview-props.json

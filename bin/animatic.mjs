@@ -40,6 +40,7 @@ Commands:
   preview <path>                 Open live preview in Remotion Studio
   brief <project-dir>            Generate brief stub markdown
   mcp                            Start MCP server (stdio)
+  telemetry [on|off|status]      Manage anonymous usage telemetry
 
 Examples:
   npx animatic analyze examples/ai-prompt-to-result/scenes/sc_02_prompt_input.json
@@ -70,6 +71,14 @@ function printJSON(obj) {
 // ── Commands ────────────────────────────────────────────────────────────────
 
 async function run() {
+  // Track CLI usage (fire and forget, non-blocking)
+  if (command !== 'telemetry' && command !== '--help' && command !== '-h') {
+    try {
+      const { trackCLI } = await import('../mcp/lib/telemetry.js');
+      trackCLI(command);
+    } catch {}
+  }
+
   switch (command) {
     case 'analyze': {
       const { analyzeScene } = await import('../mcp/lib/analyze.js');
@@ -185,9 +194,27 @@ async function run() {
     }
 
     case 'mcp': {
-      // Just exec the MCP server
       const { execFileSync } = await import('node:child_process');
       execFileSync('node', [resolve(ROOT, 'mcp/index.js')], { cwd: ROOT, stdio: 'inherit' });
+      break;
+    }
+
+    case 'telemetry': {
+      const { isEnabled, optOut, optIn } = await import('../mcp/lib/telemetry.js');
+      const sub = args[0];
+      if (sub === 'off') {
+        optOut();
+        console.log('Telemetry disabled. No data will be collected.');
+      } else if (sub === 'on') {
+        optIn();
+        console.log('Telemetry enabled. Anonymous usage stats will be collected.');
+      } else {
+        console.log(`Telemetry: ${isEnabled() ? 'ON' : 'OFF'}`);
+        console.log('Run "animatic telemetry off" to disable.');
+        console.log('Run "animatic telemetry on" to enable.');
+        console.log('\nWhat we collect: command name, OS, node version, tool count.');
+        console.log('What we never collect: file contents, paths, scene data, identity.');
+      }
       break;
     }
 

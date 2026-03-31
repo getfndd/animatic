@@ -70,6 +70,7 @@ import { scoreFrameStrip } from './lib/frame-critique.js';
 import { resolveRenderTargets } from './lib/render-routing.js';
 import { assembleVideoSequence, buildRenderCommand } from './lib/video-assembly.js';
 import { getDeliveryProfile, listDeliveryProfiles, getProfileForChannel } from './lib/delivery-profiles.js';
+import { trackBoot, trackTool } from './lib/telemetry.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -1735,6 +1736,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args = {} } = request.params;
+  trackTool(name);
 
   switch (name) {
     case 'search_primitives':
@@ -5312,6 +5314,7 @@ function handleAnnotateScenes(args) {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  trackBoot(71);
   console.error('Animatic MCP Server running on stdio');
 }
 

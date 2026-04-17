@@ -17,12 +17,14 @@ import {
 // ── Registry tests ───────────────────────────────────────────────────────────
 
 describe('STATE_MACHINES registry', () => {
-  it('has 4 component machines', () => {
-    assert.equal(STATE_MACHINES.size, 4);
-    assert.ok(STATE_MACHINES.has('prompt_card'));
-    assert.ok(STATE_MACHINES.has('dropdown_menu'));
-    assert.ok(STATE_MACHINES.has('result_stack'));
-    assert.ok(STATE_MACHINES.has('stacked_cards'));
+  it('has one machine for each v3 component type', () => {
+    assert.equal(STATE_MACHINES.size, 8);
+    for (const type of [
+      'prompt_card', 'dropdown_menu', 'result_stack', 'stacked_cards',
+      'input_field', 'icon_label_row', 'upload_zone', 'chip_row',
+    ]) {
+      assert.ok(STATE_MACHINES.has(type), `missing machine for ${type}`);
+    }
   });
 
   it('all machine types match their map key', () => {
@@ -69,7 +71,7 @@ describe('STATE_MACHINES registry', () => {
 
 describe('resolveStateOverrides', () => {
   it('returns null for component type without a machine', () => {
-    assert.equal(resolveStateOverrides('input_field', 'focus'), null);
+    assert.equal(resolveStateOverrides('nonexistent_component', 'focus'), null);
   });
 
   it('returns null for null/undefined component type', () => {
@@ -112,7 +114,7 @@ describe('getComponentStates', () => {
   });
 
   it('returns null for unknown type', () => {
-    assert.equal(getComponentStates('input_field'), null);
+    assert.equal(getComponentStates('nonexistent_component'), null);
   });
 });
 
@@ -185,5 +187,76 @@ describe('stacked_cards overrides', () => {
     const scale = result.effects.find(e => e.type === 'scale');
     assert.equal(scale.from, 1.08);
     assert.equal(scale.duration_ms, 450);
+  });
+});
+
+// ── input_field overrides (ANI-107) ──────────────────────────────────────────
+
+describe('input_field overrides', () => {
+  it('focus scale peak is 1.01 (subtler than prompt_card\'s 1.02)', () => {
+    const result = resolveStateOverrides('input_field', 'focus');
+    const scaleUp = result.effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleUp.to, 1.01);
+  });
+
+  it('focus uses sibling_dim_opacity of 0.5 (lighter than prompt_card)', () => {
+    const result = resolveStateOverrides('input_field', 'focus');
+    assert.equal(result.sibling_dim_opacity, 0.5);
+  });
+
+  it('settle animates scale from 1.01 back to 1', () => {
+    const result = resolveStateOverrides('input_field', 'settle');
+    const scale = result.effects.find(e => e.type === 'scale');
+    assert.equal(scale.from, 1.01);
+    assert.equal(scale.to, 1);
+  });
+});
+
+// ── icon_label_row overrides (ANI-107) ───────────────────────────────────────
+
+describe('icon_label_row overrides', () => {
+  it('pulse_focus override replaces generic count-based pulse', () => {
+    const result = resolveStateOverrides('icon_label_row', 'pulse_focus');
+    assert.ok(result);
+    assert.ok(Array.isArray(result.effects));
+    const opacity = result.effects.find(e => e.type === 'opacity' && e.from === 1);
+    assert.equal(opacity.to, 0.6, 'opacity dips to 0.6 for a soft ping');
+    const scaleUp = result.effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleUp.to, 1.03, 'scale peak stays modest for background rows');
+  });
+});
+
+// ── upload_zone overrides (ANI-107) ──────────────────────────────────────────
+
+describe('upload_zone overrides', () => {
+  it('focus scale peak is 1.03 with longer 400ms duration', () => {
+    const result = resolveStateOverrides('upload_zone', 'focus');
+    const scaleUp = result.effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleUp.to, 1.03);
+    assert.equal(result.duration_ms, 400);
+  });
+
+  it('focus uses tighter sibling_dim_opacity of 0.25', () => {
+    const result = resolveStateOverrides('upload_zone', 'focus');
+    assert.equal(result.sibling_dim_opacity, 0.25);
+  });
+});
+
+// ── chip_row overrides (ANI-107) ─────────────────────────────────────────────
+
+describe('chip_row overrides', () => {
+  it('select_item starts at 0.75 opacity (gentler than generic 0.5)', () => {
+    const result = resolveStateOverrides('chip_row', 'select_item');
+    const opacity = result.effects.find(e => e.type === 'opacity');
+    assert.equal(opacity.from, 0.75);
+    assert.equal(opacity.to, 1);
+  });
+
+  it('select_item adds a scale nudge (1 → 1.02 → 1)', () => {
+    const result = resolveStateOverrides('chip_row', 'select_item');
+    const scaleUp = result.effects.find(e => e.type === 'scale' && e.from === 1);
+    const scaleDown = result.effects.find(e => e.type === 'scale' && e.from === 1.02);
+    assert.equal(scaleUp.to, 1.02);
+    assert.equal(scaleDown.to, 1);
   });
 });

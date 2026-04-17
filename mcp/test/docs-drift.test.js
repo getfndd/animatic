@@ -1,14 +1,16 @@
 /**
  * Tests that catch doc/spec/code drift before it compounds.
  *
- * Keeps three things in sync automatically:
+ * Keeps four things in sync automatically:
  *  1. Tool count in README.md vs docs/cinematography/mcp-tools.md vs mcp/index.js
  *  2. Transition types in sequence-manifest.md spec vs validator in src/remotion/lib.js
+ *  3. v3 component type enum in semantic-scene-format.md vs state-machines.js
+ *  4. v3 component type enum in semantic-scene-format.md vs layout-constraints.js
  *
  * When these fall out of alignment, this test fails with a clear message
  * telling the author which source to update.
  *
- * Related: ANI-109.
+ * Related: ANI-109, ANI-107.
  */
 
 import { describe, it } from 'node:test';
@@ -16,6 +18,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { STATE_MACHINES } from '../lib/state-machines.js';
+import { COMPONENT_SIZE_DEFAULTS } from '../lib/layout-constraints.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
@@ -111,6 +116,61 @@ describe('docs/spec/code drift guards (ANI-109)', () => {
       assert.deepEqual(inSpecNotValidator, [],
         `Spec declares transition types not accepted by validator: ${inSpecNotValidator.join(', ')}. ` +
         `Either add them to the validator or remove from the spec.`);
+    });
+  });
+
+  describe('v3 component types (ANI-107)', () => {
+    // Pulls the `type` enum from the first ```json ... ``` block inside the
+    // "Component Definition" section of semantic-scene-format.md.
+    function extractV3ComponentTypes() {
+      const spec = readFileSync(
+        resolve(ROOT, 'docs/cinematography/specs/semantic-scene-format.md'),
+        'utf-8',
+      );
+      const section = spec.split(/^###?\s/m).find(s => s.startsWith('Component Definition'));
+      assert.ok(section, 'Could not find "Component Definition" section in spec');
+      const enumMatch = section.match(/"enum":\s*\[([^\]]+)\]/);
+      assert.ok(enumMatch, 'Could not parse component type enum from spec');
+      return enumMatch[1]
+        .split(',')
+        .map(s => s.trim().replace(/^"|"$/g, ''))
+        .filter(Boolean);
+    }
+
+    it('spec enum matches STATE_MACHINES registry', () => {
+      const specTypes = extractV3ComponentTypes();
+      const machineTypes = [...STATE_MACHINES.keys()];
+
+      const specSet = new Set(specTypes);
+      const machineSet = new Set(machineTypes);
+
+      const inMachinesNotSpec = machineTypes.filter(t => !specSet.has(t));
+      const inSpecNotMachines = specTypes.filter(t => !machineSet.has(t));
+
+      assert.deepEqual(inMachinesNotSpec, [],
+        `state-machines.js registers types missing from semantic-scene-format.md: ${inMachinesNotSpec.join(', ')}. ` +
+        `Either add them to the spec enum or remove them from the registry.`);
+      assert.deepEqual(inSpecNotMachines, [],
+        `semantic-scene-format.md declares types without state machines: ${inSpecNotMachines.join(', ')}. ` +
+        `Add entries to mcp/lib/state-machines.js.`);
+    });
+
+    it('spec enum matches COMPONENT_SIZE_DEFAULTS layout hints', () => {
+      const specTypes = extractV3ComponentTypes();
+      const sizeTypes = Object.keys(COMPONENT_SIZE_DEFAULTS);
+
+      const specSet = new Set(specTypes);
+      const sizeSet = new Set(sizeTypes);
+
+      const inSizeNotSpec = sizeTypes.filter(t => !specSet.has(t));
+      const inSpecNotSize = specTypes.filter(t => !sizeSet.has(t));
+
+      assert.deepEqual(inSizeNotSpec, [],
+        `layout-constraints.js has size hints for types not in semantic-scene-format.md: ${inSizeNotSpec.join(', ')}. ` +
+        `Either add them to the spec enum or remove them from COMPONENT_SIZE_DEFAULTS.`);
+      assert.deepEqual(inSpecNotSize, [],
+        `semantic-scene-format.md declares types without layout hints: ${inSpecNotSize.join(', ')}. ` +
+        `Add entries to mcp/lib/layout-constraints.js COMPONENT_SIZE_DEFAULTS.`);
     });
   });
 });

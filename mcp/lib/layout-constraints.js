@@ -29,6 +29,8 @@ const COMPONENT_SIZE_DEFAULTS = {
   result_stack:   { w: 0.5,  h: 0.35 },
   stacked_cards:  { w: 0.35, h: 0.3 },
   icon_label_row: { w: 0.4,  h: 0.05 },
+  upload_zone:    { w: 0.4,  h: 0.35 },
+  chip_row:       { w: 0.5,  h: 0.06 },
 };
 
 const DEFAULT_SIZE = { w: 0.3, h: 0.2 };

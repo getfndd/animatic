@@ -111,6 +111,116 @@ const STATE_MACHINES = new Map([
       },
     },
   }],
+
+  ['input_field', {
+    type: 'input_field',
+    states: {
+      idle:    { opacity: 1, scale: 1 },
+      focused: { opacity: 1, scale: 1.01 },
+      typing:  { opacity: 1, scale: 1.01 },
+      settled: { opacity: 1, scale: 1 },
+    },
+    overrides: {
+      // Subtle, fast focus pulse — typing usually follows and we don't want
+      // the input jumping around underneath the typewriter effect.
+      focus: {
+        effects: [
+          { type: 'scale', from: 1, to: 1.01, duration_ms: 100, easing: null },
+          { type: 'scale', from: 1.01, to: 1, duration_ms: 100, delay_ms: 100, easing: null },
+        ],
+        sibling_dim_opacity: 0.5,
+        duration_ms: 200,
+      },
+      settle: {
+        effects: [
+          { type: 'scale', from: 1.01, to: 1, duration_ms: 250, easing: null },
+        ],
+        duration_ms: 250,
+      },
+    },
+  }],
+
+  ['icon_label_row', {
+    type: 'icon_label_row',
+    states: {
+      idle:    { opacity: 1, scale: 1 },
+      pulsing: { opacity: 1, scale: 1.03 },
+      settled: { opacity: 1, scale: 1 },
+    },
+    overrides: {
+      // Single soft pulse — these are supporting/background status rows.
+      // Replaces the generic count-based pulse with a tasteful ping.
+      pulse_focus: {
+        effects: [
+          { type: 'opacity', from: 1, to: 0.6, duration_ms: 180, easing: null },
+          { type: 'opacity', from: 0.6, to: 1, duration_ms: 180, delay_ms: 180, easing: null },
+          { type: 'scale', from: 1, to: 1.03, duration_ms: 180, easing: null },
+          { type: 'scale', from: 1.03, to: 1, duration_ms: 180, delay_ms: 180, easing: null },
+        ],
+        duration_ms: 360,
+      },
+      settle: {
+        effects: [
+          { type: 'scale', from: 1.03, to: 1, duration_ms: 220, easing: null },
+        ],
+        duration_ms: 220,
+      },
+    },
+  }],
+
+  ['upload_zone', {
+    type: 'upload_zone',
+    states: {
+      idle:      { opacity: 1, scale: 1 },
+      focused:   { opacity: 1, scale: 1.03 },
+      receiving: { opacity: 1, scale: 1.02 },
+      settled:   { opacity: 1, scale: 1 },
+    },
+    overrides: {
+      // Deliberate focus — drop zones read as "attention is landing here."
+      focus: {
+        effects: [
+          { type: 'scale', from: 1, to: 1.03, duration_ms: 200, easing: null },
+          { type: 'scale', from: 1.03, to: 1, duration_ms: 200, delay_ms: 200, easing: null },
+        ],
+        sibling_dim_opacity: 0.25,
+        duration_ms: 400,
+      },
+      settle: {
+        effects: [
+          { type: 'scale', from: 1.03, to: 1, duration_ms: 450, easing: null },
+        ],
+        duration_ms: 450,
+      },
+    },
+  }],
+
+  ['chip_row', {
+    type: 'chip_row',
+    states: {
+      idle:     { opacity: 1, scale: 1 },
+      selected: { opacity: 1, scale: 1.02 },
+      settled:  { opacity: 1, scale: 1 },
+    },
+    overrides: {
+      // Gentler than generic select_item (0.5→1 opacity): chips start mostly
+      // visible and just brighten + nudge in place when picked.
+      select_item: {
+        effects: [
+          { type: 'opacity', from: 0.75, to: 1, duration_ms: 180, easing: null },
+          { type: 'scale', from: 1, to: 1.02, duration_ms: 180, easing: null },
+          { type: 'scale', from: 1.02, to: 1, duration_ms: 180, delay_ms: 180, easing: null },
+        ],
+        duration_ms: 360,
+      },
+      settle: {
+        effects: [
+          { type: 'scale', from: 1.02, to: 1, duration_ms: 260, easing: null },
+        ],
+        duration_ms: 260,
+      },
+    },
+  }],
 ]);
 
 // ── Valid kinds (for validation) ─────────────────────────────────────────────

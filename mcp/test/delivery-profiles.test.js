@@ -94,4 +94,60 @@ describe('buildFfmpegArgs', () => {
     assert.ok(args.includes('prores_ks'));
     assert.ok(!args.some(a => a.includes('noise')), 'master should not dither');
   });
+
+  it('strips audio (-an) when no audioInput is provided', () => {
+    const p = getDeliveryProfile('web-hero');
+    const args = buildFfmpegArgs(p, 'frames/frame_%06d.png', 'out.mp4');
+    assert.ok(args.includes('-an'), 'must explicitly strip audio when none supplied');
+    assert.ok(!args.includes('-c:a'), 'should not emit audio codec flag without input');
+  });
+
+  it('emits audio codec flags from profile when audioInput is provided', () => {
+    const p = getDeliveryProfile('web-hero');
+    const args = buildFfmpegArgs(p, 'frames/frame_%06d.png', 'out.mp4', {
+      audioInput: 'music.wav',
+    });
+    assert.ok(args.includes('-i') && args.indexOf('-i', args.indexOf('-i') + 1) >= 0,
+      'should have two -i flags (video + audio)');
+    assert.ok(!args.includes('-an'), 'must not strip audio when input supplied');
+    assert.ok(args.includes('-c:a'));
+    assert.ok(args.includes('aac'));
+    assert.ok(args.includes('-b:a'));
+    assert.ok(args.includes('192k'));
+    assert.ok(args.includes('-ar'));
+    assert.ok(args.includes('48000'));
+    assert.ok(args.includes('-ac'));
+    assert.ok(args.includes('2'));
+    assert.ok(args.includes('-shortest'), '-shortest prevents audio outlasting video');
+  });
+
+  it('email-gif strips audio even when audioInput is supplied (profile.audio === null)', () => {
+    const p = getDeliveryProfile('email-gif');
+    assert.equal(p.audio, null, 'email-gif must have audio: null');
+    const args = buildFfmpegArgs(p, 'frames/frame_%06d.png', 'out.gif', {
+      audioInput: 'music.wav',
+    });
+    assert.ok(args.includes('-an'), 'gif must strip audio even with audioInput');
+    assert.ok(!args.includes('-c:a'));
+  });
+
+  it('master profile uses PCM codec with no bitrate', () => {
+    const p = getDeliveryProfile('master');
+    const args = buildFfmpegArgs(p, 'frames/frame_%06d.png', 'out.mov', {
+      audioInput: 'music.wav',
+    });
+    assert.ok(args.includes('-c:a'));
+    assert.ok(args.includes('pcm_s24le'));
+    assert.ok(!args.includes('-b:a'), 'PCM is lossless — no bitrate flag');
+  });
+
+  it('every h264 profile declares AAC audio config', () => {
+    const slugs = ['web-hero', 'web-embed', 'social-feed', 'social-landscape', 'story-reel', 'presentation'];
+    for (const slug of slugs) {
+      const p = getDeliveryProfile(slug);
+      assert.ok(p.audio, `${slug} must declare audio config`);
+      assert.equal(p.audio.codec, 'aac', `${slug} should use AAC`);
+      assert.ok(p.audio.bitrate_kbps > 0, `${slug} needs positive bitrate`);
+    }
+  });
 });

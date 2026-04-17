@@ -229,6 +229,16 @@
       "versions": 1,
       "createdAt": "2026-03-13T20:30:00Z",
       "tags": ["marketing", "positioning", "landing-page", "ANI-46"]
+    },
+    {
+      "id": "2026-03-31-animatic-discover",
+      "name": "Animatic Discover",
+      "description": "Four-in-one gallery: Primitive Gallery (live CSS animations, faceted filters), Rendered Showcase (filmstrip scrub hover), Contact Sheet Browser (expandable frames), dark gallery chrome with personality accent switching. Inspired by Kive.ai.",
+      "fidelity": "concept",
+      "chrome": "none",
+      "versions": 1,
+      "createdAt": "2026-03-31T00:00:00Z",
+      "tags": ["gallery", "discover", "primitives", "showcase", "contact-sheet", "kive"]
     }
   ]
 }

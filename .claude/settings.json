@@ -1,5 +1,19 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "ENABLE_PROMPT_CACHING_1H": "1"
+  },
+  "permissions": {
+    "allow": [
+      "mcp__linear-server__get_issue",
+      "mcp__linear-server__list_issues",
+      "mcp__linear__list_issues",
+      "mcp__knowledge-mcp__knowledge_query",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__team-mcp__compose_team",
+      "Bash(vercel inspect *)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {

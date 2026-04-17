@@ -193,6 +193,8 @@ Code review only (deep technical analysis).
 5. **Performance** - Any obvious performance issues?
 6. **Edge Cases** - Are error states handled?
 
+**Escalation to `/ultrareview`:** For pre-merge review on feature branches with non-trivial scope (new MCP tools, pipeline changes, cross-cutting refactors), use `/ultrareview` instead. It runs parallel multi-agent analysis in the cloud with diffstat + animated state — better signal than a single-agent review. Rule of thumb: `@dex review` for inline checks during development, `/ultrareview` as the gate before `@dex pr`.
+
 ### `@dex pr`
 
 Create pull request with summary, risks, and checklist.

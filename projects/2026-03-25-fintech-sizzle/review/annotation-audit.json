@@ -1,0 +1,35 @@
+{
+  "quality": 0.856,
+  "pass": false,
+  "issues": [
+    {
+      "severity": "error",
+      "scene": "sc_02_insight_cards",
+      "field": "product_role",
+      "confidence": 0.5,
+      "message": "sc_02_insight_cards: product_role \"result\" inferred with low confidence (0.50)"
+    },
+    {
+      "severity": "warning",
+      "scene": "sc_02_insight_cards",
+      "field": "overall",
+      "confidence": 0.5,
+      "message": "sc_02_insight_cards: overall annotation confidence 0.50 — consider adding explicit annotations"
+    },
+    {
+      "severity": "error",
+      "scene": "sc_05_followup",
+      "field": "product_role",
+      "confidence": 0.5,
+      "message": "sc_05_followup: product_role \"result\" inferred with low confidence (0.50)"
+    },
+    {
+      "severity": "warning",
+      "scene": "sc_05_followup",
+      "field": "overall",
+      "confidence": 0.5,
+      "message": "sc_05_followup: overall annotation confidence 0.50 — consider adding explicit annotations"
+    }
+  ],
+  "summary": "Annotation quality: 0.86 | 9/9 scenes with hero | 2 low-confidence | 2 errors, 2 warnings"
+}

@@ -1,0 +1,89 @@
+{
+  "sequence_id": "seq_fintech_sizzle",
+  "resolution": {
+    "w": 1920,
+    "h": 1080
+  },
+  "fps": 60,
+  "style": "prestige",
+  "scenes": [
+    {
+      "scene": "sc_01_tagline_open",
+      "duration_s": 3
+    },
+    {
+      "scene": "sc_02_insight_cards",
+      "duration_s": 5,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 600
+      }
+    },
+    {
+      "scene": "sc_03_prompt_input",
+      "duration_s": 4,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400,
+        "match": {
+          "source_continuity_id": "sc_02_insight_cards_to_sc_03_prompt_input",
+          "strategy": "position"
+        }
+      }
+    },
+    {
+      "scene": "sc_04_chart_drilldown",
+      "duration_s": 5,
+      "transition_in": {
+        "type": "hard_cut",
+        "match": {
+          "source_continuity_id": "sc_03_prompt_input_to_sc_04_chart_drilldown",
+          "strategy": "position"
+        }
+      }
+    },
+    {
+      "scene": "sc_05_followup",
+      "duration_s": 3.5,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      }
+    },
+    {
+      "scene": "sc_06_dashboard",
+      "duration_s": 5,
+      "transition_in": {
+        "type": "hard_cut",
+        "match": {
+          "source_continuity_id": "sc_05_followup_to_sc_06_dashboard",
+          "strategy": "position"
+        }
+      }
+    },
+    {
+      "scene": "sc_07_tagline_intro",
+      "duration_s": 3,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 600
+      }
+    },
+    {
+      "scene": "sc_08_tagline_close",
+      "duration_s": 2.5,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      }
+    },
+    {
+      "scene": "sc_09_logo",
+      "duration_s": 2.5,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      }
+    }
+  ]
+}

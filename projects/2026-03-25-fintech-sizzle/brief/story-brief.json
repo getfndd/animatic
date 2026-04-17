@@ -1,0 +1,27 @@
+{
+  "audience": "General audience",
+  "promise": "Mercury Insights — AI Finance Demo Sizzle",
+  "emotional_tone": "aspirational",
+  "must_show_features": [
+    "<div style=\"width:100%;height:100%;background:#111827\"></div>"
+  ],
+  "proof_points": [],
+  "closing_beat": "logo_lockup",
+  "narrative_template": "feature-reveal",
+  "inferred_personality": "cinematic-dark",
+  "inferred_style_pack": "prestige",
+  "duration_target_s": 30,
+  "scene_count": 9,
+  "brief_quality": 0,
+  "warnings": [
+    "audience: defaulted — add ## Audience to brief or brand.guidelines.target_audience",
+    "proof_points: empty — add ## Proof to brief for stronger credibility"
+  ],
+  "_sources": {
+    "audience": "default",
+    "promise": "project",
+    "must_show_features": "inferred",
+    "proof_points": "empty",
+    "emotional_tone": "personality"
+  }
+}

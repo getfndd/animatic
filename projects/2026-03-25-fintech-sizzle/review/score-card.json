@@ -1,0 +1,928 @@
+{
+  "overall": 0.747,
+  "subscores": {
+    "hook": {
+      "score": 0.801,
+      "findings": []
+    },
+    "narrative_arc": {
+      "score": 0.795,
+      "findings": [
+        "Scene 4 transition \"hard_cut\" differs from expected \"crossfade\"",
+        "Scene 6 transition \"hard_cut\" differs from expected \"crossfade\""
+      ]
+    },
+    "clarity": {
+      "score": 0.655,
+      "findings": [
+        "No interaction layers found — product demos should show user actions",
+        "No camera intents declared — scenes should specify intent for clarity",
+        "Scenes lack role metadata — assign roles for clear narrative structure"
+      ]
+    },
+    "visual_hierarchy": {
+      "score": 0.5,
+      "findings": []
+    },
+    "motion_quality": {
+      "score": 0.811,
+      "findings": [
+        "sc_01_tagline_open: Layer \"bg\" is defined in the scene but has no animation tracks",
+        "sc_01_tagline_open: Hero layer \"tagline\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+        "sc_02_insight_cards: Layer \"bg\" is defined in the scene but has no animation tracks",
+        "sc_02_insight_cards: Layer \"insight_conveyor\" is defined in the scene but has no animation tracks",
+        "sc_02_insight_cards: Camera peaks at frame 210 but no layer animation occurs nearby",
+        "sc_03_prompt_input: Layer \"bg\" is defined in the scene but has no animation tracks",
+        "sc_03_prompt_input: Hero layer \"prompt\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+        "sc_04_chart_drilldown: Layer \"bg\" is defined in the scene but has no animation tracks",
+        "sc_04_chart_drilldown: Camera peaks at frame 150 but no layer animation occurs nearby",
+        "sc_04_chart_drilldown: Hero layer \"panel\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+        "sc_05_followup: Layer \"bg\" is defined in the scene but has no animation tracks",
+        "sc_05_followup: Hero layer \"followup\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+        "sc_06_dashboard: Layer \"bg\" is defined in the scene but has no animation tracks",
+        "sc_06_dashboard: Camera peaks at frame 240 but no layer animation occurs nearby",
+        "sc_06_dashboard: Hero layer \"dashboard\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+        "sc_07_tagline_intro: Layer \"bg\" is defined in the scene but has no animation tracks",
+        "sc_07_tagline_intro: Hero layer \"taglines\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+        "sc_08_tagline_close: Layer \"bg\" is defined in the scene but has no animation tracks",
+        "sc_08_tagline_close: Hero layer \"tagline\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+        "sc_09_logo: Layer \"bg\" is defined in the scene but has no animation tracks",
+        "sc_09_logo: Hero layer \"logo\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger"
+      ]
+    },
+    "brand_finish": {
+      "score": 1,
+      "findings": []
+    }
+  },
+  "weights_used": {
+    "hook": 0.2,
+    "narrative_arc": 0.2,
+    "clarity": 0.2,
+    "visual_hierarchy": 0.15,
+    "motion_quality": 0.15,
+    "brand_finish": 0.1
+  },
+  "findings": [
+    {
+      "dimension": "narrative_arc",
+      "severity": "info",
+      "message": "Scene 4 transition \"hard_cut\" differs from expected \"crossfade\""
+    },
+    {
+      "dimension": "narrative_arc",
+      "severity": "info",
+      "message": "Scene 6 transition \"hard_cut\" differs from expected \"crossfade\""
+    },
+    {
+      "dimension": "clarity",
+      "severity": "warning",
+      "message": "No interaction layers found — product demos should show user actions"
+    },
+    {
+      "dimension": "clarity",
+      "severity": "warning",
+      "message": "No camera intents declared — scenes should specify intent for clarity"
+    },
+    {
+      "dimension": "clarity",
+      "severity": "warning",
+      "message": "Scenes lack role metadata — assign roles for clear narrative structure"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_01_tagline_open: Layer \"bg\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_01_tagline_open: Hero layer \"tagline\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_02_insight_cards: Layer \"bg\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_02_insight_cards: Layer \"insight_conveyor\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_02_insight_cards: Camera peaks at frame 210 but no layer animation occurs nearby"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_03_prompt_input: Layer \"bg\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_03_prompt_input: Hero layer \"prompt\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_04_chart_drilldown: Layer \"bg\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_04_chart_drilldown: Camera peaks at frame 150 but no layer animation occurs nearby"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_04_chart_drilldown: Hero layer \"panel\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_05_followup: Layer \"bg\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_05_followup: Hero layer \"followup\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_06_dashboard: Layer \"bg\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_06_dashboard: Camera peaks at frame 240 but no layer animation occurs nearby"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_06_dashboard: Hero layer \"dashboard\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_07_tagline_intro: Layer \"bg\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_07_tagline_intro: Hero layer \"taglines\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_08_tagline_close: Layer \"bg\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_08_tagline_close: Hero layer \"tagline\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_09_logo: Layer \"bg\" is defined in the scene but has no animation tracks"
+    },
+    {
+      "dimension": "motion_quality",
+      "severity": "warning",
+      "message": "sc_09_logo: Hero layer \"logo\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger"
+    }
+  ],
+  "recommended_revisions": [
+    {
+      "op": "add_continuity",
+      "from_scene": "sc_03_prompt_input",
+      "to_scene": "sc_04_chart_drilldown",
+      "strategy": "position",
+      "reason": "sc_03_prompt_input→sc_04_chart_drilldown: no continuity link — add match cut"
+    },
+    {
+      "op": "add_continuity",
+      "from_scene": "sc_06_dashboard",
+      "to_scene": "sc_07_tagline_intro",
+      "strategy": "position",
+      "reason": "sc_06_dashboard→sc_07_tagline_intro: no continuity link — add match cut"
+    },
+    {
+      "op": "add_continuity",
+      "from_scene": "sc_04_chart_drilldown",
+      "to_scene": "sc_05_followup",
+      "strategy": "position",
+      "reason": "sc_04_chart_drilldown→sc_05_followup: no continuity link — add match cut"
+    },
+    {
+      "op": "add_continuity",
+      "from_scene": "sc_01_tagline_open",
+      "to_scene": "sc_02_insight_cards",
+      "strategy": "position",
+      "reason": "sc_01_tagline_open→sc_02_insight_cards: no continuity link — add match cut"
+    },
+    {
+      "op": "add_continuity",
+      "from_scene": "sc_07_tagline_intro",
+      "to_scene": "sc_08_tagline_close",
+      "strategy": "position",
+      "reason": "sc_07_tagline_intro→sc_08_tagline_close: no continuity link — add match cut"
+    },
+    {
+      "op": "add_continuity",
+      "from_scene": "sc_08_tagline_close",
+      "to_scene": "sc_09_logo",
+      "strategy": "position",
+      "reason": "sc_08_tagline_close→sc_09_logo: no continuity link — add match cut"
+    }
+  ],
+  "per_scene": [
+    {
+      "scene_id": "sc_01_tagline_open",
+      "overall": 0.728,
+      "clarity": 0.5,
+      "hierarchy": 0.9,
+      "pacing": 0.7,
+      "motion_quality": 0.84,
+      "continuity_to_next": 0.7,
+      "duration_s": 3,
+      "product_role": "atmosphere",
+      "findings": []
+    },
+    {
+      "scene_id": "sc_02_insight_cards",
+      "overall": 0.74,
+      "clarity": 0.5,
+      "hierarchy": 0.7,
+      "pacing": 0.7,
+      "motion_quality": 0.8,
+      "continuity_to_next": 1,
+      "duration_s": 5,
+      "product_role": "result",
+      "findings": []
+    },
+    {
+      "scene_id": "sc_03_prompt_input",
+      "overall": 0.688,
+      "clarity": 0.5,
+      "hierarchy": 0.9,
+      "pacing": 0.7,
+      "motion_quality": 0.84,
+      "continuity_to_next": 0.5,
+      "duration_s": 4,
+      "product_role": "input",
+      "findings": []
+    },
+    {
+      "scene_id": "sc_04_chart_drilldown",
+      "overall": 0.712,
+      "clarity": 0.5,
+      "hierarchy": 0.9,
+      "pacing": 0.7,
+      "motion_quality": 0.76,
+      "continuity_to_next": 0.7,
+      "duration_s": 5,
+      "product_role": "result",
+      "findings": []
+    },
+    {
+      "scene_id": "sc_05_followup",
+      "overall": 0.742,
+      "clarity": 0.5,
+      "hierarchy": 0.9,
+      "pacing": 0.7,
+      "motion_quality": 0.81,
+      "continuity_to_next": 0.8,
+      "duration_s": 3.5,
+      "product_role": "result",
+      "findings": []
+    },
+    {
+      "scene_id": "sc_06_dashboard",
+      "overall": 0.706,
+      "clarity": 0.5,
+      "hierarchy": 0.9,
+      "pacing": 0.7,
+      "motion_quality": 0.73,
+      "continuity_to_next": 0.7,
+      "duration_s": 5,
+      "product_role": "dashboard",
+      "findings": []
+    },
+    {
+      "scene_id": "sc_07_tagline_intro",
+      "overall": 0.728,
+      "clarity": 0.5,
+      "hierarchy": 0.9,
+      "pacing": 0.7,
+      "motion_quality": 0.84,
+      "continuity_to_next": 0.7,
+      "duration_s": 3,
+      "product_role": "atmosphere",
+      "findings": [
+        "sc_07_tagline_intro→sc_08_tagline_close: no continuity link — consider add_continuity"
+      ]
+    },
+    {
+      "scene_id": "sc_08_tagline_close",
+      "overall": 0.728,
+      "clarity": 0.5,
+      "hierarchy": 0.9,
+      "pacing": 0.7,
+      "motion_quality": 0.84,
+      "continuity_to_next": 0.7,
+      "duration_s": 2.5,
+      "product_role": "atmosphere",
+      "findings": [
+        "sc_08_tagline_close→sc_09_logo: no continuity link — consider add_continuity"
+      ]
+    },
+    {
+      "scene_id": "sc_09_logo",
+      "overall": 0.735,
+      "clarity": 0.5,
+      "hierarchy": 0.9,
+      "pacing": 0.7,
+      "motion_quality": 0.84,
+      "continuity_to_next": null,
+      "duration_s": 2.5,
+      "product_role": "cta",
+      "findings": []
+    }
+  ],
+  "raw": {
+    "evaluate": {
+      "score": 73,
+      "dimensions": {
+        "pacing": {
+          "score": 74,
+          "findings": [
+            {
+              "severity": "warning",
+              "dimension": "pacing",
+              "message": "Scene 2 duration (5s) deviates from expected (3.5s) for high energy",
+              "scene_index": 1
+            },
+            {
+              "severity": "warning",
+              "dimension": "pacing",
+              "message": "Scene 4 duration (5s) deviates from expected (3.5s) for high energy",
+              "scene_index": 3
+            },
+            {
+              "severity": "warning",
+              "dimension": "pacing",
+              "message": "Scene 6 duration (5s) deviates from expected (3.5s) for high energy",
+              "scene_index": 5
+            },
+            {
+              "severity": "info",
+              "dimension": "pacing",
+              "message": "Total duration (33.5s) outside personality loop_time range (17-19s)"
+            }
+          ]
+        },
+        "variety": {
+          "score": 100,
+          "findings": []
+        },
+        "flow": {
+          "score": 85,
+          "findings": [
+            {
+              "severity": "info",
+              "dimension": "flow",
+              "message": "Scene 4 transition \"hard_cut\" differs from expected \"crossfade\"",
+              "scene_index": 3
+            },
+            {
+              "severity": "info",
+              "dimension": "flow",
+              "message": "Scene 6 transition \"hard_cut\" differs from expected \"crossfade\"",
+              "scene_index": 5
+            }
+          ]
+        },
+        "adherence": {
+          "score": 73,
+          "findings": [
+            {
+              "severity": "warning",
+              "dimension": "adherence",
+              "message": "Scene 2 camera \"none\" differs from expected \"push_in\"",
+              "scene_index": 1
+            },
+            {
+              "severity": "warning",
+              "dimension": "adherence",
+              "message": "Scene 3 camera \"none\" differs from expected \"drift\"",
+              "scene_index": 2
+            },
+            {
+              "severity": "warning",
+              "dimension": "adherence",
+              "message": "Scene 4 camera \"none\" differs from expected \"drift\"",
+              "scene_index": 3
+            },
+            {
+              "severity": "warning",
+              "dimension": "adherence",
+              "message": "Scene 5 camera \"none\" differs from expected \"drift\"",
+              "scene_index": 4
+            },
+            {
+              "severity": "warning",
+              "dimension": "adherence",
+              "message": "Scene 6 camera \"none\" differs from expected \"push_in\"",
+              "scene_index": 5
+            },
+            {
+              "severity": "warning",
+              "dimension": "adherence",
+              "message": "Scene 4 transition \"hard_cut\" differs from expected \"crossfade\"",
+              "scene_index": 3
+            },
+            {
+              "severity": "warning",
+              "dimension": "adherence",
+              "message": "Scene 6 transition \"hard_cut\" differs from expected \"crossfade\"",
+              "scene_index": 5
+            }
+          ]
+        },
+        "motion": {
+          "score": 33,
+          "findings": [
+            {
+              "severity": "info",
+              "dimension": "motion",
+              "message": "No recipes used — consider named recipes for consistent choreography"
+            },
+            {
+              "severity": "info",
+              "dimension": "motion",
+              "message": "No stagger directives — consider staggered entrances for visual rhythm"
+            },
+            {
+              "severity": "info",
+              "dimension": "motion",
+              "message": "No cue synchronization — groups animate independently without coordination"
+            }
+          ]
+        }
+      },
+      "findings": [
+        {
+          "severity": "warning",
+          "dimension": "pacing",
+          "message": "Scene 2 duration (5s) deviates from expected (3.5s) for high energy",
+          "scene_index": 1
+        },
+        {
+          "severity": "warning",
+          "dimension": "pacing",
+          "message": "Scene 4 duration (5s) deviates from expected (3.5s) for high energy",
+          "scene_index": 3
+        },
+        {
+          "severity": "warning",
+          "dimension": "pacing",
+          "message": "Scene 6 duration (5s) deviates from expected (3.5s) for high energy",
+          "scene_index": 5
+        },
+        {
+          "severity": "info",
+          "dimension": "pacing",
+          "message": "Total duration (33.5s) outside personality loop_time range (17-19s)"
+        },
+        {
+          "severity": "info",
+          "dimension": "flow",
+          "message": "Scene 4 transition \"hard_cut\" differs from expected \"crossfade\"",
+          "scene_index": 3
+        },
+        {
+          "severity": "info",
+          "dimension": "flow",
+          "message": "Scene 6 transition \"hard_cut\" differs from expected \"crossfade\"",
+          "scene_index": 5
+        },
+        {
+          "severity": "warning",
+          "dimension": "adherence",
+          "message": "Scene 2 camera \"none\" differs from expected \"push_in\"",
+          "scene_index": 1
+        },
+        {
+          "severity": "warning",
+          "dimension": "adherence",
+          "message": "Scene 3 camera \"none\" differs from expected \"drift\"",
+          "scene_index": 2
+        },
+        {
+          "severity": "warning",
+          "dimension": "adherence",
+          "message": "Scene 4 camera \"none\" differs from expected \"drift\"",
+          "scene_index": 3
+        },
+        {
+          "severity": "warning",
+          "dimension": "adherence",
+          "message": "Scene 5 camera \"none\" differs from expected \"drift\"",
+          "scene_index": 4
+        },
+        {
+          "severity": "warning",
+          "dimension": "adherence",
+          "message": "Scene 6 camera \"none\" differs from expected \"push_in\"",
+          "scene_index": 5
+        },
+        {
+          "severity": "warning",
+          "dimension": "adherence",
+          "message": "Scene 4 transition \"hard_cut\" differs from expected \"crossfade\"",
+          "scene_index": 3
+        },
+        {
+          "severity": "warning",
+          "dimension": "adherence",
+          "message": "Scene 6 transition \"hard_cut\" differs from expected \"crossfade\"",
+          "scene_index": 5
+        },
+        {
+          "severity": "info",
+          "dimension": "motion",
+          "message": "No recipes used — consider named recipes for consistent choreography"
+        },
+        {
+          "severity": "info",
+          "dimension": "motion",
+          "message": "No stagger directives — consider staggered entrances for visual rhythm"
+        },
+        {
+          "severity": "info",
+          "dimension": "motion",
+          "message": "No cue synchronization — groups animate independently without coordination"
+        }
+      ]
+    },
+    "critic_per_scene": [
+      {
+        "scene_id": "sc_01_tagline_open",
+        "score": 84,
+        "issues": [
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "bg",
+            "message": "Layer \"bg\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"bg\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "missing_secondary_motion",
+            "severity": "warning",
+            "layer": null,
+            "message": "Hero layer \"tagline\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+            "suggestion": "Add subtle parallax offsets or staggered entrance delays to midground/background layers for depth"
+          }
+        ],
+        "summary": "Good (score: 84) — 2 warnings"
+      },
+      {
+        "scene_id": "sc_02_insight_cards",
+        "score": 80,
+        "issues": [
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "bg",
+            "message": "Layer \"bg\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"bg\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "insight_conveyor",
+            "message": "Layer \"insight_conveyor\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"insight_conveyor\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "camera_motion_mismatch",
+            "severity": "warning",
+            "layer": null,
+            "message": "Camera peaks at frame 210 but no layer animation occurs nearby",
+            "suggestion": "Sync camera peak_at with a group on_complete cue, or add layer motion during camera movement"
+          }
+        ],
+        "summary": "Good (score: 80) — 3 warnings"
+      },
+      {
+        "scene_id": "sc_03_prompt_input",
+        "score": 84,
+        "issues": [
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "bg",
+            "message": "Layer \"bg\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"bg\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "missing_secondary_motion",
+            "severity": "warning",
+            "layer": null,
+            "message": "Hero layer \"prompt\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+            "suggestion": "Add subtle parallax offsets or staggered entrance delays to midground/background layers for depth"
+          }
+        ],
+        "summary": "Good (score: 84) — 2 warnings"
+      },
+      {
+        "scene_id": "sc_04_chart_drilldown",
+        "score": 76,
+        "issues": [
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "bg",
+            "message": "Layer \"bg\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"bg\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "camera_motion_mismatch",
+            "severity": "warning",
+            "layer": null,
+            "message": "Camera peaks at frame 150 but no layer animation occurs nearby",
+            "suggestion": "Sync camera peak_at with a group on_complete cue, or add layer motion during camera movement"
+          },
+          {
+            "rule": "missing_secondary_motion",
+            "severity": "warning",
+            "layer": null,
+            "message": "Hero layer \"panel\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+            "suggestion": "Add subtle parallax offsets or staggered entrance delays to midground/background layers for depth"
+          }
+        ],
+        "summary": "Needs attention (score: 76) — 3 warnings"
+      },
+      {
+        "scene_id": "sc_05_followup",
+        "score": 81,
+        "issues": [
+          {
+            "rule": "repetitive_easing",
+            "severity": "info",
+            "layer": null,
+            "message": "100% of keyframes use \"cubic-bezier(0.16,1,0.3,1)\" — motion feels monotonous",
+            "suggestion": "Mix easing curves: use expo_out for hero entrances, ease_out for supporting, linear for ambient"
+          },
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "bg",
+            "message": "Layer \"bg\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"bg\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "missing_secondary_motion",
+            "severity": "warning",
+            "layer": null,
+            "message": "Hero layer \"followup\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+            "suggestion": "Add subtle parallax offsets or staggered entrance delays to midground/background layers for depth"
+          }
+        ],
+        "summary": "Good (score: 81) — 2 warnings, 1 suggestion"
+      },
+      {
+        "scene_id": "sc_06_dashboard",
+        "score": 73,
+        "issues": [
+          {
+            "rule": "repetitive_easing",
+            "severity": "info",
+            "layer": null,
+            "message": "100% of keyframes use \"cubic-bezier(0.16,1,0.3,1)\" — motion feels monotonous",
+            "suggestion": "Mix easing curves: use expo_out for hero entrances, ease_out for supporting, linear for ambient"
+          },
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "bg",
+            "message": "Layer \"bg\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"bg\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "camera_motion_mismatch",
+            "severity": "warning",
+            "layer": null,
+            "message": "Camera peaks at frame 240 but no layer animation occurs nearby",
+            "suggestion": "Sync camera peak_at with a group on_complete cue, or add layer motion during camera movement"
+          },
+          {
+            "rule": "missing_secondary_motion",
+            "severity": "warning",
+            "layer": null,
+            "message": "Hero layer \"dashboard\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+            "suggestion": "Add subtle parallax offsets or staggered entrance delays to midground/background layers for depth"
+          }
+        ],
+        "summary": "Needs attention (score: 73) — 3 warnings, 1 suggestion"
+      },
+      {
+        "scene_id": "sc_07_tagline_intro",
+        "score": 84,
+        "issues": [
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "bg",
+            "message": "Layer \"bg\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"bg\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "missing_secondary_motion",
+            "severity": "warning",
+            "layer": null,
+            "message": "Hero layer \"taglines\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+            "suggestion": "Add subtle parallax offsets or staggered entrance delays to midground/background layers for depth"
+          }
+        ],
+        "summary": "Good (score: 84) — 2 warnings"
+      },
+      {
+        "scene_id": "sc_08_tagline_close",
+        "score": 84,
+        "issues": [
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "bg",
+            "message": "Layer \"bg\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"bg\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "missing_secondary_motion",
+            "severity": "warning",
+            "layer": null,
+            "message": "Hero layer \"tagline\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+            "suggestion": "Add subtle parallax offsets or staggered entrance delays to midground/background layers for depth"
+          }
+        ],
+        "summary": "Good (score: 84) — 2 warnings"
+      },
+      {
+        "scene_id": "sc_09_logo",
+        "score": 84,
+        "issues": [
+          {
+            "rule": "orphan_layer",
+            "severity": "warning",
+            "layer": "bg",
+            "message": "Layer \"bg\" is defined in the scene but has no animation tracks",
+            "suggestion": "Add \"bg\" to a motion group or give it an entrance primitive"
+          },
+          {
+            "rule": "missing_secondary_motion",
+            "severity": "warning",
+            "layer": null,
+            "message": "Hero layer \"logo\" animates but all supporting layers (\"bg\") are static — no parallax or entrance stagger",
+            "suggestion": "Add subtle parallax offsets or staggered entrance delays to midground/background layers for depth"
+          }
+        ],
+        "summary": "Good (score: 84) — 2 warnings"
+      }
+    ],
+    "motion_density": {
+      "score": 0,
+      "suggestions": [],
+      "hot_spots": [],
+      "scenes_audited": 9
+    },
+    "brand_finish": {
+      "recommended_stack": [
+        {
+          "slug": "vignette",
+          "name": "Vignette",
+          "category": "lens",
+          "overrides": {
+            "spread": 0.65,
+            "opacity": 0.45
+          },
+          "css": {
+            "position": "absolute",
+            "inset": 0,
+            "pointerEvents": "none",
+            "zIndex": 1000,
+            "background": "radial-gradient(ellipse at center, transparent 65%, #000000 100%)",
+            "opacity": 0.45
+          }
+        },
+        {
+          "slug": "film-grain",
+          "name": "Film Grain",
+          "category": "texture",
+          "overrides": {
+            "opacity": 0.04
+          },
+          "css": {
+            "position": "absolute",
+            "inset": 0,
+            "pointerEvents": "none",
+            "zIndex": 1000,
+            "opacity": 0.04,
+            "mixBlendMode": "overlay",
+            "backgroundImage": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+            "backgroundSize": "128px 128px"
+          }
+        },
+        {
+          "slug": "bloom",
+          "name": "Bloom",
+          "category": "lens",
+          "overrides": {
+            "intensity": 0.25,
+            "radius": 16,
+            "opacity": 0.35
+          },
+          "css": {
+            "position": "absolute",
+            "inset": 0,
+            "pointerEvents": "none",
+            "zIndex": 1000,
+            "filter": "brightness(1.25) blur(16px)",
+            "mixBlendMode": "screen",
+            "opacity": 0.35
+          }
+        },
+        {
+          "slug": "shallow-dof",
+          "name": "Shallow Depth of Field",
+          "category": "lens",
+          "overrides": {
+            "blur_max": 4
+          },
+          "css": {
+            "position": "absolute",
+            "inset": 0,
+            "pointerEvents": "none",
+            "zIndex": 1000,
+            "backdropFilter": "blur(4px)",
+            "WebkitBackdropFilter": "blur(4px)",
+            "maskImage": "radial-gradient(ellipse at 50% 50%, transparent 40%, black 60%)",
+            "WebkitMaskImage": "radial-gradient(ellipse at 50% 50%, transparent 40%, black 60%)"
+          }
+        }
+      ],
+      "quality_score": {
+        "score": 100,
+        "max": 100,
+        "breakdown": {
+          "vignette": 10,
+          "grain": 10,
+          "bloom": 10,
+          "dof": 10,
+          "compatibility": 30,
+          "balance": 20,
+          "personality_match": 10
+        }
+      },
+      "notes": []
+    },
+    "brand_compliance": [],
+    "product_clarity": {
+      "score": 58,
+      "max": 100,
+      "breakdown": [
+        {
+          "dimension": "interaction_truthfulness",
+          "score": 0,
+          "max": 25
+        },
+        {
+          "dimension": "camera_intent_consistency",
+          "score": 20,
+          "max": 30
+        },
+        {
+          "dimension": "pacing_variety",
+          "score": 23,
+          "max": 25
+        },
+        {
+          "dimension": "clear_hierarchy",
+          "score": 15,
+          "max": 20
+        }
+      ],
+      "warnings": [
+        "No interaction layers found — product demos should show user actions",
+        "No camera intents declared — scenes should specify intent for clarity",
+        "Scenes lack role metadata — assign roles for clear narrative structure"
+      ]
+    },
+    "audio_sync": null
+  }
+}

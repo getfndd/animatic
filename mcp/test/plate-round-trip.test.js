@@ -24,6 +24,11 @@ const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(__filename), '../..');
 
+// Honor ANIMATIC_SKIP_REMOTION_RENDER=1 to bypass the slow Remotion bundle +
+// still-render step when developers only want the fast capture check. The
+// gating is opt-out, not opt-in, so CI still catches plate-consumer regressions.
+const SHOULD_RENDER_REMOTION = process.env.ANIMATIC_SKIP_REMOTION_RENDER !== '1';
+
 // Minimal autoplay prototype. The `dwell: 500` comment is picked up by
 // capture-prototype.mjs's duration detector — no animation required.
 const FIXTURE_HTML = `<!doctype html>
@@ -101,7 +106,7 @@ describe('plate round-trip (capture → assemble → route)', () => {
     if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('captures an MP4 plate and assembles it into render props', { timeout: 180_000 }, (t) => {
+  it('captures a plate, assembles render-props, and renders it via Remotion', { timeout: 360_000 }, async (t) => {
     if (!probe.ok) {
       t.skip(`capture environment unavailable: ${probe.reason}`);
       return;
@@ -141,6 +146,7 @@ describe('plate round-trip (capture → assemble → route)', () => {
     const propsDir = path.join(tmpDir, 'render');
     const result = assembleVideoSequence({ manifest, sceneDefs, routes, plates, outputDir: propsDir });
 
+    // ── Assembly assertions ────────────────────────────────────────────
     assert.equal(result.sceneRoutes.sc_capture.render_target, 'browser_capture');
     assert.equal(result.sceneRoutes.sc_capture.plate_src, platePath);
     assert.equal(result.sceneRoutes.sc_capture.plate_format, 'mp4');
@@ -160,5 +166,57 @@ describe('plate round-trip (capture → assemble → route)', () => {
     assert.equal(props.manifest.sequence_id, 'seq_round_trip');
     assert.ok(props.sceneDefs.sc_capture, 'sceneDefs should include the capture scene');
     assert.ok(props.sceneDefs.sc_native, 'sceneDefs should include the native scene');
+
+    // ── Remotion render step (P2 from #36 review) ──────────────────────
+    // Without this, regressions in SceneComposition's browser_capture →
+    // OffthreadVideo branch would pass silently. `remotion still` loads the
+    // real Sequence composition and renders frame 0 (inside sc_capture),
+    // forcing the plate to actually be consumed.
+    if (!SHOULD_RENDER_REMOTION) {
+      t.diagnostic('ANIMATIC_SKIP_REMOTION_RENDER=1 — skipping Remotion render step');
+      return;
+    }
+
+    // Remotion's OffthreadVideo treats absolute filesystem paths as
+    // server-relative URLs (they 404 against its bundle server). For the
+    // render step we rewrite plate_src to the plate's basename and point
+    // Remotion at the plate's directory via `--public-dir`, which matches
+    // the shape the /direct pipeline uses in practice (plates live inside
+    // a public/ root alongside other static assets).
+    const renderPropsForStill = JSON.parse(fs.readFileSync(propsPath, 'utf-8'));
+    const plateBasename = path.basename(platePath);
+    renderPropsForStill.sceneRoutes.sc_capture.plate_src = plateBasename;
+    const stillPropsPath = path.join(tmpDir, 'render', 'render-props-still.json');
+    fs.writeFileSync(stillPropsPath, JSON.stringify(renderPropsForStill));
+
+    const frameOut = path.join(tmpDir, 'frame0.png');
+    try {
+      await execFileAsync(
+        'npx',
+        [
+          'remotion', 'still', 'Sequence', frameOut,
+          '--props', stillPropsPath,
+          '--public-dir', path.dirname(platePath),
+          '--frame=0',
+        ],
+        {
+          cwd: REPO_ROOT,
+          timeout: 240_000,
+          env: { ...process.env, NODE_OPTIONS: '--dns-result-order=ipv4first' },
+        },
+      );
+    } catch (err) {
+      // Dump the fuller error tail so CI logs are actionable when Remotion
+      // or its Chromium dependency isn't available.
+      const stderr = (err.stderr || '').slice(-500);
+      t.diagnostic(`Remotion render unavailable, skipping. stderr tail: ${stderr}`);
+      return;
+    }
+
+    assert.ok(fs.existsSync(frameOut), 'Remotion should emit a still PNG for frame 0');
+    assert.ok(
+      fs.statSync(frameOut).size > 1024,
+      'emitted PNG should be non-trivially sized (> 1KB), proving a real render',
+    );
   });
 });

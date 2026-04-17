@@ -77,16 +77,30 @@ const CAMERA_INTENT_TO_BEHAVIOR = {
   impact: 'drift',
 };
 
-// Ordered: first regex match wins. Role naming is archetype-driven and stable
-// (see catalog/sequence-archetypes.json), so pattern-based inference works.
-const ROLE_INTERACTION_PATTERNS = [
-  [/step_|_setup$|^welcome$/, 'typing'],
-  [/reveal|_proof|success|metric|benefit/, 'reveal'],
-  [/demo|product|feature|hero|glimpse|flash/, 'reveal'],
-  [/cta|close|lockup|tagline|_tag$|logo|brand_flash|brand_statement|next_steps|launch_/, 'transition'],
-  [/atmosphere|hook_|context_|countdown|problem_/, 'transition'],
-  [/value_prop/, 'reveal'],
-];
+// Explicit allowlist of beat roles whose default scene content is plausibly
+// a real v3 interactive component. Branding, logo, atmosphere, closing, and
+// narrative-framing roles are intentionally *not* listed — they should fall
+// through to default scene generation rather than get a prompt-card seed
+// (ANI-116 review follow-up: previously these roles were mapped to
+// `transition`, which semantic-planner resolves to `prompt_card`, producing
+// nonsense recommendations for logo / tagline / atmosphere beats).
+const ROLE_TO_INTERACTION_TYPE = {
+  // Reveal — content being unveiled
+  feature_demo: 'reveal',
+  feature_montage: 'reveal',
+  hero_product: 'reveal',
+  detail_zoom: 'reveal',
+  key_metric: 'reveal',
+  success_state: 'reveal',
+  social_proof: 'reveal',
+  benefit_proof: 'reveal',
+  product_glimpse: 'reveal',
+  // Typing — user typing into an input. Deliberately narrow: `context_setup`
+  // is the only role that implies a setup-style interactive input. Tutorial
+  // step roles (step_1/2/3) could mean click, select, or type; leaving them
+  // out avoids biasing toward a specific interaction kind.
+  context_setup: 'typing',
+};
 
 /**
  * Infer a semantic classification for a beat from its energy, camera intent,
@@ -112,15 +126,10 @@ export function inferBeatClassification(beat) {
     classification.camera_behavior = CAMERA_INTENT_TO_BEHAVIOR[beat.camera_intent];
   }
 
-  if (beat.role) {
-    for (const [pattern, interactionType] of ROLE_INTERACTION_PATTERNS) {
-      if (pattern.test(beat.role)) {
-        classification.interaction_type = interactionType;
-        break;
-      }
-    }
-    // Steps / setups are typically typed interactions
-    if (/step_|_setup$/.test(beat.role)) {
+  if (beat.role && ROLE_TO_INTERACTION_TYPE[beat.role]) {
+    const interactionType = ROLE_TO_INTERACTION_TYPE[beat.role];
+    classification.interaction_type = interactionType;
+    if (interactionType === 'typing') {
       classification.text_behavior = 'typing';
     }
   }

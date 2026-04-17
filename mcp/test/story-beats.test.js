@@ -248,18 +248,29 @@ describe('inferBeatClassification', () => {
     assert.equal(inferBeatClassification({ camera_intent: 'impact' }).camera_behavior, 'drift');
   });
 
-  it('maps role patterns → interaction_type', () => {
-    assert.equal(inferBeatClassification({ role: 'result_reveal' }).interaction_type, 'reveal');
-    assert.equal(inferBeatClassification({ role: 'cta_close' }).interaction_type, 'transition');
-    assert.equal(inferBeatClassification({ role: 'context_setup' }).interaction_type, 'typing');
+  it('maps allowlisted roles → interaction_type', () => {
+    assert.equal(inferBeatClassification({ role: 'feature_demo' }).interaction_type, 'reveal');
     assert.equal(inferBeatClassification({ role: 'hero_product' }).interaction_type, 'reveal');
-    assert.equal(inferBeatClassification({ role: 'logo_lockup' }).interaction_type, 'transition');
+    assert.equal(inferBeatClassification({ role: 'context_setup' }).interaction_type, 'typing');
   });
 
-  it('adds text_behavior: typing for step/setup roles', () => {
-    assert.equal(inferBeatClassification({ role: 'step_1' }).text_behavior, 'typing');
+  it('does not classify branding / logo / closing / atmosphere roles', () => {
+    // Review finding: these roles should fall through to default scene
+    // generation, not get a prompt_card seed via `transition`.
+    for (const role of ['logo_lockup', 'cta_close', 'tagline_close', 'brand_statement',
+      'atmosphere_open', 'brand_flash', 'welcome', 'hook_frame', 'problem_frame',
+      'next_steps', 'launch_cta', 'quote_close', 'logo_resolve']) {
+      const c = inferBeatClassification({ role });
+      assert.equal(c.interaction_type, undefined, `${role} should not receive interaction_type`);
+    }
+  });
+
+  it('adds text_behavior: typing when interaction_type is typing', () => {
     assert.equal(inferBeatClassification({ role: 'context_setup' }).text_behavior, 'typing');
     assert.equal(inferBeatClassification({ role: 'hero_product' }).text_behavior, undefined);
+    // step_N no longer biased toward typing — could mean click or view
+    assert.equal(inferBeatClassification({ role: 'step_1' }).text_behavior, undefined);
+    assert.equal(inferBeatClassification({ role: 'step_1' }).interaction_type, undefined);
   });
 
   it('returns empty object for unknown / empty inputs', () => {
@@ -325,20 +336,30 @@ describe('planStoryBeats — semantic recommendations', () => {
     }
   });
 
-  it('omits semantic_recommendation when no classification applies', () => {
-    // Use a tiny fake archetype via the same flow: check that atmosphere_open
-    // or similar low-signal roles don't force a bogus recommendation.
+  it('does not attach recommendations to branding / logo / atmosphere / closing beats', () => {
+    // Regression guard for the ANI-116 review finding: the brand-teaser
+    // archetype is made almost entirely of branding roles (atmosphere_open,
+    // brand_statement, tagline_close, logo_lockup). Only `product_glimpse`
+    // should receive a recommendation.
     const result = planStoryBeats({
       story_brief: sampleBrief,
       archetype_slug: 'brand-teaser',
     });
 
-    // Every attached recommendation should have components (the contract)
     for (const beat of result.beats) {
-      if (beat.semantic_recommendation) {
-        assert.ok(beat.semantic_recommendation.components.length > 0,
-          `beat ${beat.role} has empty semantic_recommendation`);
+      if (['atmosphere_open', 'brand_statement', 'tagline_close', 'logo_lockup',
+           'cta_close', 'hook_frame', 'problem_frame', 'next_steps', 'launch_cta',
+           'welcome', 'logo_resolve', 'quote_close'].includes(beat.role)) {
+        assert.equal(beat.semantic_recommendation, undefined,
+          `${beat.role} must not receive a semantic_recommendation`);
       }
+    }
+
+    // At least product_glimpse should still get one
+    const glimpse = result.beats.find(b => b.role === 'product_glimpse');
+    if (glimpse) {
+      assert.ok(glimpse.semantic_recommendation,
+        'product_glimpse should still carry a recommendation');
     }
   });
 });

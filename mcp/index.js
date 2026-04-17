@@ -50,7 +50,7 @@ import { compileMotion } from './lib/compiler.js';
 import { critiqueTimeline } from './lib/critic.js';
 import { runBenchmarks, QUALITY_THRESHOLD } from './lib/benchmark.js';
 import { generateVideo } from './lib/video.js';
-import { initProject, listProjects, getProject, getProjectContext, saveProjectArtifact } from './lib/projects.js';
+import { initProject, listProjects, getProject, getProjectContext, saveProjectArtifact, reviewProject, renderProject } from './lib/projects.js';
 import { getArtDirection, listArtDirections, ART_DIRECTION_SLUGS } from './lib/art-direction.js';
 import { loadBrand, listBrands, createBrandPackage, resolveBrandDefaults, validateBrandCompliance } from './lib/brands.js';
 import { scoreBrandFinish, COMPOSITING_PASS_SLUGS } from './lib/compositing.js';
@@ -4026,97 +4026,13 @@ async function handleSaveProjectArtifact(args) {
 }
 
 async function handleRenderProject(args) {
-  // Get project context to resolve manifest path
-  const project = await getProject({ project: args.project });
-  if (!project) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: `Project "${args.project}" not found` }) }] };
-  }
-
-  const manifestPath = args.manifest || project.entrypoints?.root_manifest;
-  if (!manifestPath) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: 'No manifest specified and no root_manifest in project.json' }) }] };
-  }
-
-  const { join } = await import('node:path');
-  const { readFileSync } = await import('node:fs');
-
-  const fullManifestPath = join(project.project_root, manifestPath);
-  let manifest;
-  try {
-    manifest = JSON.parse(readFileSync(fullManifestPath, 'utf-8'));
-  } catch {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: `Cannot read manifest at ${fullManifestPath}` }) }] };
-  }
-
-  const outputName = args.output || `renders/draft/${project.slug}-render.mp4`;
-  const outputPath = join(project.project_root, outputName);
-
-  // Use generateVideo with the resolved paths
-  const videoResult = await generateVideo({
-    prompt: `Render project ${project.title}`,
-    manifest,
-    outputPath,
-  });
-
-  // Update entrypoint if requested
-  if (args.mark_as_latest !== false) {
-    await saveProjectArtifact({
-      project: args.project,
-      kind: 'render',
-      role: 'latest_render',
-      path: outputName,
-    });
-  }
-
-  return { content: [{ type: 'text', text: JSON.stringify({ ...videoResult, output: outputPath }) }] };
+  const result = await renderProject(args);
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
 }
 
 async function handleReviewProject(args) {
-  const project = await getProject({ project: args.project });
-  if (!project) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: `Project "${args.project}" not found` }) }] };
-  }
-
-  const { join } = await import('node:path');
-  const { readFileSync, writeFileSync } = await import('node:fs');
-
-  const manifestPath = args.manifest || project.entrypoints?.root_manifest;
-  if (!manifestPath) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: 'No manifest to review' }) }] };
-  }
-
-  const fullManifestPath = join(project.project_root, manifestPath);
-  let manifest;
-  try {
-    manifest = JSON.parse(readFileSync(fullManifestPath, 'utf-8'));
-  } catch {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: `Cannot read manifest at ${fullManifestPath}` }) }] };
-  }
-
-  // Run validation
-  const validationResult = validateFullManifest(manifest, cameraGuardrails);
-
-  // Run evaluation if scene definitions are available
-  let evaluationResult = null;
-  if (manifest.sceneDefs) {
-    const scenes = Object.values(manifest.sceneDefs);
-    evaluationResult = evaluateSequence(scenes, {
-      personality: project.personality || 'cinematic-dark',
-    });
-  }
-
-  // Write results to review/
-  const reviewDir = join(project.project_root, 'review');
-  const evaluationOutput = {
-    validation: validationResult,
-    evaluation: evaluationResult,
-    reviewed_at: new Date().toISOString(),
-    manifest: manifestPath,
-  };
-
-  writeFileSync(join(reviewDir, 'evaluation.json'), JSON.stringify(evaluationOutput, null, 2));
-
-  return { content: [{ type: 'text', text: JSON.stringify(evaluationOutput, null, 2) }] };
+  const result = await reviewProject(args);
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
 }
 
 // ── get_art_direction ───────────────────────────────────────────────────────

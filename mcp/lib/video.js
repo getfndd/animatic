@@ -265,3 +265,41 @@ export async function generateVideo(prompt, options = {}) {
     summary,
   };
 }
+
+// ── renderRemotionSequence ───────────────────────────────────────────────────
+
+/**
+ * Render a sequence via Remotion CLI.
+ * Writes props to a temp file, spawns `npx remotion render Sequence`.
+ *
+ * @param {{ manifest: object, sceneDefs: object }} props - Render props.
+ * @param {string} outputPath - Absolute path for output MP4.
+ * @param {object} [opts]
+ * @param {string} [opts.cwd] - Working directory (defaults to process.cwd()).
+ * @param {number} [opts.timeoutMs=600000] - Render timeout.
+ */
+export async function renderRemotionSequence(props, outputPath, opts = {}) {
+  const { execFile } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const execFileAsync = promisify(execFile);
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'animatic-render-'));
+  const propsPath = path.join(tmpDir, 'props.json');
+
+  try {
+    fs.writeFileSync(propsPath, JSON.stringify(props, null, 2));
+    await execFileAsync('npx', [
+      'remotion', 'render', 'Sequence',
+      '--props', propsPath,
+      '--output', outputPath,
+    ], {
+      cwd: opts.cwd || process.cwd(),
+      timeout: opts.timeoutMs ?? 600_000,
+    });
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}

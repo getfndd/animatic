@@ -668,4 +668,41 @@ describe('renderProject — dry_run path (assembly)', () => {
     assert.ok(!result.error);
     assert.equal(result.output, join(root, 'renders/draft/custom-name.mp4'));
   });
+
+  it('preserves manifest.audio through the render-prop assembly (ANI-106)', async () => {
+    cleanup();
+    const result = await initProject({
+      title: 'Audio End-to-End',
+      slug: TEST_SLUG_REVIEW,
+      date_prefix: false,
+      style_pack: 'prestige',
+    });
+    const root = result.project_root;
+    const scenes = ['sc_a', 'sc_b'];
+    for (const id of scenes) {
+      writeFileSync(join(root, `scenes/${id}.json`), JSON.stringify(makeSceneJSON(id), null, 2));
+      await saveProjectArtifact({ project: TEST_SLUG_REVIEW, kind: 'scene', scene_id: id, path: `scenes/${id}.json` });
+    }
+    const manifestWithAudio = {
+      sequence_id: 'seq_audio_test',
+      style: 'prestige',
+      audio: { src: 'audio/bg.mp3', volume: 0.7, fade_in_ms: 500, fade_out_ms: 1000, offset_s: 2 },
+      scenes: [
+        { scene: 'sc_a', duration_s: 3 },
+        { scene: 'sc_b', duration_s: 3 },
+      ],
+    };
+    writeFileSync(join(root, 'motion/manifests/root.json'), JSON.stringify(manifestWithAudio, null, 2));
+    await saveProjectArtifact({ project: TEST_SLUG_REVIEW, kind: 'manifest', path: 'motion/manifests/root.json' });
+
+    const render = await renderProject({ project: TEST_SLUG_REVIEW, dry_run: true });
+
+    assert.ok(!render.error, `unexpected error: ${render.error}`);
+    assert.ok(render.props.manifest.audio, 'audio field must survive to props.manifest');
+    assert.equal(render.props.manifest.audio.src, 'audio/bg.mp3');
+    assert.equal(render.props.manifest.audio.volume, 0.7);
+    assert.equal(render.props.manifest.audio.fade_in_ms, 500);
+    assert.equal(render.props.manifest.audio.fade_out_ms, 1000);
+    assert.equal(render.props.manifest.audio.offset_s, 2);
+  });
 });

@@ -308,3 +308,74 @@ describe('scoreCandidateVideo — brand', () => {
     assert.equal(result.raw.brand_compliance.violations?.length ?? 0, 0);
   });
 });
+
+// ── Semantic critic integration into /direct scoring (ANI-116) ──────────────
+
+describe('scoreCandidateVideo — semantic critic flow', () => {
+  // Build a v3 scene where the only problem is a semantic-critic rule:
+  // TYPING_SPEED_MIN_MS = 20ms/char; 5ms/char must trigger
+  // `semantic_bad_typing_cadence`. The timeline critic has no equivalent rule.
+  function makeV3SceneWithFastTyping() {
+    return {
+      scene_id: 'sc_01',
+      format_version: 3,
+      duration_s: 3,
+      camera: { move: 'static' },
+      layers: [],
+      semantic: {
+        components: [
+          { id: 'cmp_input', type: 'input_field', role: 'hero', anchor: { x: 0.5, y: 0.4 } },
+        ],
+        interactions: [
+          {
+            id: 'int_type',
+            target: 'cmp_input',
+            kind: 'type_text',
+            // 5ms/char — well below the 20ms/char readability floor
+            params: { text: 'hello world', speed: 5 },
+            timing: { at_ms: 200 },
+          },
+        ],
+      },
+    };
+  }
+
+  it('surfaces semantic_bad_typing_cadence into critic_per_scene', () => {
+    const manifest = {
+      sequence_id: 'seq_semantic',
+      scenes: [{ scene: 'sc_01', duration_s: 3 }],
+    };
+    const scenes = [makeV3SceneWithFastTyping()];
+
+    const result = scoreCandidateVideo({ manifest, scenes, style: 'prestige' });
+    const perScene = result.raw.critic_per_scene;
+    assert.ok(Array.isArray(perScene) && perScene.length === 1);
+
+    const issues = perScene[0].issues || [];
+    assert.ok(
+      issues.some(i => i.rule === 'semantic_bad_typing_cadence'),
+      `expected semantic_bad_typing_cadence in ${JSON.stringify(issues.map(i => i.rule))}`,
+    );
+  });
+
+  it('v3 semantic violation lowers critic score vs. the same scene with safe cadence', () => {
+    const manifest = {
+      sequence_id: 'seq_semantic',
+      scenes: [{ scene: 'sc_01', duration_s: 3 }],
+    };
+
+    const bad = makeV3SceneWithFastTyping();
+    const good = makeV3SceneWithFastTyping();
+    good.semantic.interactions[0].params.speed = 50; // well within the readability band
+
+    const badResult = scoreCandidateVideo({ manifest, scenes: [bad], style: 'prestige' });
+    const goodResult = scoreCandidateVideo({ manifest, scenes: [good], style: 'prestige' });
+
+    const badScore = badResult.raw.critic_per_scene[0].score;
+    const goodScore = goodResult.raw.critic_per_scene[0].score;
+    assert.ok(
+      badScore < goodScore,
+      `expected fast-typing scene to score lower; bad=${badScore} good=${goodScore}`,
+    );
+  });
+});

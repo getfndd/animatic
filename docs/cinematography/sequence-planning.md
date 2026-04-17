@@ -360,6 +360,7 @@ Each beat plan includes:
 - `transition_in` — suggested transition into this beat
 - `continuity_opportunities` — where visual threads can connect adjacent beats
 - `recommended_primitives` — animation primitives suited to the beat's role
+- `semantic_recommendation` *(optional)* — v3 semantic block (components, interactions, camera_behavior) produced by running the beat's inferred classification through the semantic-planner. Present only when the role + energy + camera_intent combination yields a confident recommendation. Downstream scene generation can use this as a v3 seed.
 
 ### Audio Beat Snapping
 

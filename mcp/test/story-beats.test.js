@@ -14,6 +14,8 @@ import {
   matchBriefSections,
   detectContinuityOpportunities,
   snapToAudioBeats,
+  inferBeatClassification,
+  recommendSemanticForBeat,
 } from '../lib/story-beats.js';
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
@@ -226,5 +228,117 @@ describe('detectContinuityOpportunities', () => {
     const ops = detectContinuityOpportunities(scenes);
     assert.equal(ops[0].length, 0);
     assert.equal(ops[1].length, 0);
+  });
+});
+
+// ── Semantic-planner integration (ANI-116) ──────────────────────────────────
+
+describe('inferBeatClassification', () => {
+  it('maps energy → pacing', () => {
+    assert.equal(inferBeatClassification({ energy: 'still' }).pacing, 'contemplative');
+    assert.equal(inferBeatClassification({ energy: 'low' }).pacing, 'deliberate');
+    assert.equal(inferBeatClassification({ energy: 'medium' }).pacing, 'moderate');
+    assert.equal(inferBeatClassification({ energy: 'high' }).pacing, 'rapid');
+    assert.equal(inferBeatClassification({ energy: 'impact' }).pacing, 'rapid');
+  });
+
+  it('maps camera_intent → camera_behavior', () => {
+    assert.equal(inferBeatClassification({ camera_intent: 'reveal' }).camera_behavior, 'push_in');
+    assert.equal(inferBeatClassification({ camera_intent: 'inspect' }).camera_behavior, 'static');
+    assert.equal(inferBeatClassification({ camera_intent: 'impact' }).camera_behavior, 'drift');
+  });
+
+  it('maps role patterns → interaction_type', () => {
+    assert.equal(inferBeatClassification({ role: 'result_reveal' }).interaction_type, 'reveal');
+    assert.equal(inferBeatClassification({ role: 'cta_close' }).interaction_type, 'transition');
+    assert.equal(inferBeatClassification({ role: 'context_setup' }).interaction_type, 'typing');
+    assert.equal(inferBeatClassification({ role: 'hero_product' }).interaction_type, 'reveal');
+    assert.equal(inferBeatClassification({ role: 'logo_lockup' }).interaction_type, 'transition');
+  });
+
+  it('adds text_behavior: typing for step/setup roles', () => {
+    assert.equal(inferBeatClassification({ role: 'step_1' }).text_behavior, 'typing');
+    assert.equal(inferBeatClassification({ role: 'context_setup' }).text_behavior, 'typing');
+    assert.equal(inferBeatClassification({ role: 'hero_product' }).text_behavior, undefined);
+  });
+
+  it('returns empty object for unknown / empty inputs', () => {
+    assert.deepEqual(inferBeatClassification({}), {});
+    assert.deepEqual(inferBeatClassification(null), {});
+    assert.deepEqual(inferBeatClassification({ role: 'unknown_weird_role' }), {});
+  });
+});
+
+describe('recommendSemanticForBeat', () => {
+  it('produces a v3 semantic block for typing roles', () => {
+    const rec = recommendSemanticForBeat({
+      role: 'context_setup',
+      energy: 'medium',
+      camera_intent: 'reveal',
+    });
+    assert.ok(rec, 'typing role should produce a recommendation');
+    assert.ok(Array.isArray(rec.components));
+    assert.ok(rec.components.length > 0);
+    assert.equal(rec.components[0].role, 'hero');
+    assert.ok(rec.components.some(c => c.type === 'prompt_card'), 'typing → prompt_card');
+    assert.ok(Array.isArray(rec.interactions));
+    assert.ok(rec.camera_behavior);
+    assert.ok(rec.classification, 'should include the classification used');
+  });
+
+  it('produces a reveal recommendation for hero/product roles', () => {
+    const rec = recommendSemanticForBeat({
+      role: 'hero_product',
+      energy: 'high',
+      camera_intent: 'reveal',
+    });
+    assert.ok(rec);
+    assert.ok(rec.components.some(c => c.type === 'result_stack'), 'reveal → result_stack');
+  });
+
+  it('returns null when classification produces no components', () => {
+    // A beat with only pacing + camera (no interaction_type) yields no components
+    assert.equal(recommendSemanticForBeat({ energy: 'medium', camera_intent: 'reveal' }), null);
+  });
+
+  it('returns null for beats with unknown role and no other hints', () => {
+    assert.equal(recommendSemanticForBeat({ role: 'something_weird' }), null);
+  });
+});
+
+describe('planStoryBeats — semantic recommendations', () => {
+  it('attaches semantic_recommendation to beats with inferable classification', () => {
+    const result = planStoryBeats({
+      story_brief: sampleBrief,
+      archetype_slug: 'feature-reveal',
+    });
+
+    const withRecs = result.beats.filter(b => b.semantic_recommendation);
+    assert.ok(withRecs.length > 0, 'at least one beat should carry a recommendation');
+
+    for (const beat of withRecs) {
+      const rec = beat.semantic_recommendation;
+      assert.ok(rec.classification, 'rec includes classification');
+      assert.ok(Array.isArray(rec.components), 'rec has components');
+      assert.ok(rec.components.length > 0);
+      assert.ok(rec.camera_behavior, 'rec has camera_behavior');
+    }
+  });
+
+  it('omits semantic_recommendation when no classification applies', () => {
+    // Use a tiny fake archetype via the same flow: check that atmosphere_open
+    // or similar low-signal roles don't force a bogus recommendation.
+    const result = planStoryBeats({
+      story_brief: sampleBrief,
+      archetype_slug: 'brand-teaser',
+    });
+
+    // Every attached recommendation should have components (the contract)
+    for (const beat of result.beats) {
+      if (beat.semantic_recommendation) {
+        assert.ok(beat.semantic_recommendation.components.length > 0,
+          `beat ${beat.role} has empty semantic_recommendation`);
+      }
+    }
   });
 });

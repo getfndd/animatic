@@ -15,6 +15,8 @@ Generate the best possible video manifest for a project. Runs a multi-candidate 
 /direct <project-slug> [options]
 ```
 
+**Recommended effort:** Run `/direct` with `/effort xhigh` (Opus 4.7). The autonomous scoring/revision loop benefits materially from xhigh over the default; `max` is rarely worth the cost on this workload.
+
 ### Parameters
 
 | Parameter | Values | Default | Description |

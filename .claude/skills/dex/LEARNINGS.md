@@ -1,7 +1,6 @@
-# Dex Learnings
+# Dex — Learnings
 
-Project-specific process learnings captured from corrections, overrides, and platform changes.
-
----
-
-<!-- This file accumulates per-project. install.sh never overwrites it. -->
+> **Deprecated** — Learnings are captured in the knowledge graph.
+>
+> To query: `knowledge_query --tags learning,persona:dex`
+> To capture: Corrections trigger REFLEX.md step 5 → `knowledge_ingest`

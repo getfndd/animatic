@@ -1,0 +1,36 @@
+{
+  "scene_id": "sc_02_insight_cards",
+  "format_version": 2,
+  "duration_s": 5,
+  "brand": "fintech-demo",
+  "camera": { "move": "push_in", "intensity": 0.12, "easing": "ease_out" },
+  "layout": { "template": "hero-center" },
+  "assets": [],
+  "layers": [
+    {
+      "id": "bg",
+      "type": "html",
+      "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+      "depth_class": "background"
+    },
+    {
+      "id": "insight_conveyor",
+      "type": "card_conveyor",
+      "depth_class": "foreground",
+      "stories": [
+        { "title": "12% revenue growth", "excerpt": "From January to June revenue increased from $12,459 to $13,954.", "meta": "treasury report · 2 days ago", "trend": "↗", "trendColor": "#34d399" },
+        { "title": "Decreased Credit card spend", "excerpt": "Credit card spend saw a decrease of 8% from $3,490 in August to $3,210.", "meta": "spend analytics · 3 days ago", "trend": "↘", "trendColor": "#94a3b8" },
+        { "title": "Increased software spend", "excerpt": "Software spend saw an increase of 16% from $3,283 in February to $3,808.", "meta": "spend analytics · 2 days ago", "trend": "↗", "trendColor": "#94a3b8" },
+        { "title": "Spike in spend on software", "excerpt": "Current spend in September totaled $5,807, up 41% from $4,099 in August.", "meta": "internal analytics · 1 day ago", "trend": "↗", "trendColor": "#34d399" },
+        { "title": "Revenue trend reversal in Q3", "excerpt": "Revenue patterns shifted significantly in Q3, driven by seasonal changes.", "meta": "quarterly review · 4 days ago", "trend": "↗", "trendColor": "#34d399" },
+        { "title": "Vendor consolidation opportunity", "excerpt": "Four overlapping SaaS subscriptions identified across engineering and design.", "meta": "procurement · 2 days ago", "trend": "↘", "trendColor": "#94a3b8" },
+        { "title": "Operating expenses down 6%", "excerpt": "Operational costs decreased from $28,400 to $26,696 due to facility optimization.", "meta": "finance ops · 3 days ago", "trend": "↘", "trendColor": "#34d399" },
+        { "title": "Accounts receivable aging alert", "excerpt": "Three invoices totaling $14,200 have exceeded 60-day payment terms.", "meta": "collections · 1 day ago", "trend": "↗", "trendColor": "#f87171" }
+      ]
+    }
+  ],
+  "motion": {
+    "camera": { "move": "push_in", "intensity": 0.12, "sync": { "peak_at": 0.7 } }
+  },
+  "metadata": { "motion_energy": "high", "intent_tags": ["hero", "detail"] }
+}

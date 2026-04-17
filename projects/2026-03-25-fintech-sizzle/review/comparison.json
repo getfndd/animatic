@@ -1,0 +1,78 @@
+{
+  "rankings": [
+    {
+      "rank": 1,
+      "candidate_id": "dramatic",
+      "strategy": "dramatic",
+      "overall": 0.747,
+      "subscores": {
+        "hook": 0.801,
+        "narrative_arc": 0.795,
+        "clarity": 0.655,
+        "visual_hierarchy": 0.5,
+        "motion_quality": 0.811,
+        "brand_finish": 1
+      }
+    },
+    {
+      "rank": 2,
+      "candidate_id": "prestige",
+      "strategy": "prestige",
+      "overall": 0.695,
+      "subscores": {
+        "hook": 0.696,
+        "narrative_arc": 0.645,
+        "clarity": 0.65,
+        "visual_hierarchy": 0.5,
+        "motion_quality": 0.811,
+        "brand_finish": 1
+      }
+    },
+    {
+      "rank": 3,
+      "candidate_id": "energy",
+      "strategy": "energy",
+      "overall": 0.631,
+      "subscores": {
+        "hook": 0.634,
+        "narrative_arc": 0.565,
+        "clarity": 0.475,
+        "visual_hierarchy": 0.5,
+        "motion_quality": 0.811,
+        "brand_finish": 1
+      }
+    }
+  ],
+  "per_dimension_winner": {
+    "hook": {
+      "winner": "dramatic",
+      "score": 0.801
+    },
+    "narrative_arc": {
+      "winner": "dramatic",
+      "score": 0.795
+    },
+    "clarity": {
+      "winner": "dramatic",
+      "score": 0.655
+    },
+    "visual_hierarchy": {
+      "winner": "dramatic",
+      "score": 0.5
+    },
+    "motion_quality": {
+      "winner": "dramatic",
+      "score": 0.811
+    },
+    "brand_finish": {
+      "winner": "dramatic",
+      "score": 1
+    }
+  },
+  "recommendation": {
+    "winner": "dramatic",
+    "rationale": "dramatic leads overall by 0.05, strongest in brand_finish and motion_quality.",
+    "margin": 0.052,
+    "trade_offs": []
+  }
+}

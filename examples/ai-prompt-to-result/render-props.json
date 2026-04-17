@@ -1,0 +1,418 @@
+{
+  "manifest": {
+    "sequence_id": "seq_ai_prompt_to_result",
+    "resolution": {
+      "w": 1920,
+      "h": 1080
+    },
+    "fps": 60,
+    "style": "dramatic",
+    "personality": "cinematic-dark",
+    "archetype": "ai-demo",
+    "scenes": [
+      {
+        "scene": "sc_01_context",
+        "duration_s": 3
+      },
+      {
+        "scene": "sc_02_prompt_input",
+        "duration_s": 5,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 600
+        }
+      },
+      {
+        "scene": "sc_03_processing",
+        "duration_s": 3,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 400
+        }
+      },
+      {
+        "scene": "sc_04_result_reveal",
+        "duration_s": 7,
+        "transition_in": {
+          "type": "focus_dissolve",
+          "duration_ms": 800
+        }
+      },
+      {
+        "scene": "sc_05_cta",
+        "duration_s": 4,
+        "transition_in": {
+          "type": "crossfade",
+          "duration_ms": 600
+        }
+      }
+    ]
+  },
+  "sceneDefs": {
+    "sc_01_context": {
+      "scene_id": "sc_01_context",
+      "format_version": 2,
+      "duration_s": 3,
+      "brand": "atlas-ai",
+      "product_role": "atmosphere",
+      "primary_subject": "context_text",
+      "outcome": "Visual tone established: pain point resonates with research audience",
+      "interaction_truth": {
+        "has_cursor": false,
+        "has_typing": false,
+        "has_state_change": false,
+        "timing_realistic": false
+      },
+      "camera": {
+        "move": "drift",
+        "intensity": 0.03
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:radial-gradient(ellipse at 50% 50%,#1a1a2e 0%,#0d0d1a 100%)\"></div>",
+          "depth_class": "background",
+          "product_role": "decorative",
+          "content_class": "atmosphere",
+          "clarity_weight": 1
+        },
+        {
+          "id": "context_text",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:42px;font-weight:300;color:#e8e0f0;letter-spacing:-0.02em;text-align:center;line-height:1.3\">Research takes too long.</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:18px;color:rgba(232,224,240,0.4);text-align:center\">Hours reading. Days synthesizing. Weeks behind.</span></div>",
+          "depth_class": "foreground",
+          "product_role": "hero",
+          "content_class": "typography",
+          "clarity_weight": 5
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "context_text"
+            ],
+            "primitive": "as-fadeIn"
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "subtle",
+        "intent_tags": [
+          "opening"
+        ],
+        "content_type": "typography"
+      }
+    },
+    "sc_02_prompt_input": {
+      "scene_id": "sc_02_prompt_input",
+      "format_version": 2,
+      "duration_s": 5,
+      "brand": "atlas-ai",
+      "product_role": "input",
+      "primary_subject": "chat_input",
+      "outcome": "User initiates interaction: natural language research query demonstrates conversational interface",
+      "interaction_truth": {
+        "has_cursor": true,
+        "has_typing": true,
+        "has_state_change": false,
+        "timing_realistic": true
+      },
+      "camera": {
+        "move": "push_in",
+        "intensity": 0.06,
+        "easing": "ease_out"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#0d0d1a\"></div>",
+          "depth_class": "background",
+          "product_role": "decorative",
+          "content_class": "atmosphere",
+          "clarity_weight": 1
+        },
+        {
+          "id": "chat_input",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px\"><div style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;color:rgba(232,224,240,0.3);text-transform:uppercase;letter-spacing:0.1em\">Atlas AI</div><div style=\"background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:16px 24px;width:100%;max-width:640px;display:flex;align-items:center;gap:14px\"><div style=\"flex:1;font-family:Inter,system-ui,sans-serif;font-size:16px;color:#e8e0f0\">Summarize recent papers on transformer efficiency<span style=\"display:inline-block;width:2px;height:18px;background:#7c3aed;margin-left:2px;vertical-align:text-bottom\"></span></div><div style=\"width:36px;height:36px;background:#7c3aed;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px\">↵</div></div></div>",
+          "depth_class": "foreground",
+          "product_role": "hero",
+          "content_class": "ui_control",
+          "clarity_weight": 5
+        },
+        {
+          "id": "cursor",
+          "type": "html",
+          "content": "",
+          "depth_class": "foreground",
+          "product_role": "functional",
+          "content_class": "interaction",
+          "clarity_weight": 2
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "chat_input"
+            ],
+            "primitive": "cd-typewriter",
+            "stagger": 40
+          },
+          {
+            "targets": [
+              "cursor"
+            ],
+            "primitive": "cd-cursor-blink",
+            "delay_ms": 200
+          }
+        ],
+        "camera": {
+          "move": "push_in",
+          "intensity": 0.06,
+          "sync": {
+            "peak_at": 0.7
+          }
+        }
+      },
+      "metadata": {
+        "motion_energy": "moderate",
+        "intent_tags": [
+          "detail"
+        ],
+        "content_type": "interaction"
+      }
+    },
+    "sc_03_processing": {
+      "scene_id": "sc_03_processing",
+      "format_version": 2,
+      "duration_s": 3,
+      "brand": "atlas-ai",
+      "product_role": "processing",
+      "primary_subject": "thinking_indicator",
+      "outcome": "System processes request: pulsing animation communicates active computation",
+      "interaction_truth": {
+        "has_cursor": false,
+        "has_typing": false,
+        "has_state_change": false,
+        "timing_realistic": false
+      },
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#0d0d1a\"></div>",
+          "depth_class": "background",
+          "product_role": "decorative",
+          "content_class": "atmosphere",
+          "clarity_weight": 1
+        },
+        {
+          "id": "thinking_indicator",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px\"><div style=\"display:flex;gap:10px\"><div style=\"width:10px;height:10px;background:#7c3aed;border-radius:50%;opacity:0.6\"></div><div style=\"width:10px;height:10px;background:#7c3aed;border-radius:50%;opacity:0.8\"></div><div style=\"width:10px;height:10px;background:#7c3aed;border-radius:50%;opacity:1\"></div></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:14px;color:rgba(232,224,240,0.4)\">Analyzing 2,847 papers...</span></div>",
+          "depth_class": "foreground",
+          "product_role": "hero",
+          "content_class": "ui_control",
+          "clarity_weight": 5
+        },
+        {
+          "id": "status_text",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:200px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:rgba(232,224,240,0.2)\">Extracting citations · Summarizing findings · Ranking relevance</span></div>",
+          "depth_class": "foreground",
+          "product_role": "supporting",
+          "content_class": "typography",
+          "clarity_weight": 3
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "thinking_indicator"
+            ],
+            "primitive": "cd-pulse-dots"
+          },
+          {
+            "targets": [
+              "status_text"
+            ],
+            "primitive": "as-fadeIn",
+            "delay_ms": 500
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "moderate",
+        "intent_tags": [
+          "detail"
+        ]
+      }
+    },
+    "sc_04_result_reveal": {
+      "scene_id": "sc_04_result_reveal",
+      "format_version": 2,
+      "duration_s": 7,
+      "brand": "atlas-ai",
+      "product_role": "result",
+      "primary_subject": "results_panel",
+      "outcome": "System presents result: structured paper summaries with citations demonstrate core value",
+      "interaction_truth": {
+        "has_cursor": false,
+        "has_typing": false,
+        "has_state_change": true,
+        "timing_realistic": true
+      },
+      "camera": {
+        "move": "pull_out",
+        "intensity": 0.15,
+        "easing": "cinematic_scurve"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:#0d0d1a\"></div>",
+          "depth_class": "background",
+          "product_role": "decorative",
+          "content_class": "atmosphere",
+          "clarity_weight": 1
+        },
+        {
+          "id": "results_panel",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:40px\"><div style=\"background:#1a1a2e;border:1px solid rgba(255,255,255,0.06);border-radius:20px;box-shadow:0 40px 100px rgba(0,0,0,0.6);padding:32px;width:100%;max-width:720px\"><div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:20px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:18px;font-weight:600;color:#e8e0f0\">Results — Transformer Efficiency</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:12px;color:rgba(232,224,240,0.3)\">12 papers · 4.2s</span></div><div style=\"display:flex;flex-direction:column;gap:16px\"><div style=\"background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px 20px\"><div style=\"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:600;color:#e8e0f0;flex:1\">FlashAttention-2: Faster Attention with Better Parallelism</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:#7c3aed;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:8px;white-space:nowrap;margin-left:12px\">Dao, 2023</span></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;color:rgba(232,224,240,0.5);line-height:1.5\">2x speedup over FlashAttention through work partitioning between GPU thread blocks, reducing non-matmul FLOPs and enabling longer sequences.</div></div><div style=\"background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px 20px\"><div style=\"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:600;color:#e8e0f0;flex:1\">GQA: Training Generalized Multi-Query Attention</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:#7c3aed;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:8px;white-space:nowrap;margin-left:12px\">Ainslie et al., 2023</span></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;color:rgba(232,224,240,0.5);line-height:1.5\">Grouped-query attention interpolates between MHA and MQA, achieving near-MHA quality with MQA-comparable speed on inference.</div></div><div style=\"background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px 20px\"><div style=\"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:600;color:#e8e0f0;flex:1\">Efficient Transformers: A Survey</span><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:#7c3aed;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:8px;white-space:nowrap;margin-left:12px\">Tay et al., 2022</span></div><div style=\"font-family:Inter,system-ui,sans-serif;font-size:13px;color:rgba(232,224,240,0.5);line-height:1.5\">Comprehensive taxonomy of efficient transformer methods: fixed patterns, learnable patterns, memory, low-rank, and kernel methods.</div></div></div></div></div>",
+          "depth_class": "foreground",
+          "product_role": "hero",
+          "content_class": "data_viz",
+          "clarity_weight": 5
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "results_panel"
+            ],
+            "primitive": "cd-card-cascade",
+            "stagger": 200
+          }
+        ],
+        "camera": {
+          "move": "pull_out",
+          "intensity": 0.15,
+          "sync": {
+            "peak_at": 0.7
+          }
+        }
+      },
+      "metadata": {
+        "motion_energy": "high",
+        "intent_tags": [
+          "hero"
+        ],
+        "content_type": "data_visualization"
+      }
+    },
+    "sc_05_cta": {
+      "scene_id": "sc_05_cta",
+      "format_version": 2,
+      "duration_s": 4,
+      "brand": "atlas-ai",
+      "product_role": "cta",
+      "primary_subject": "brand_lockup",
+      "outcome": "Brand identity resolves: tagline and logo close with clear product positioning",
+      "interaction_truth": {
+        "has_cursor": false,
+        "has_typing": false,
+        "has_state_change": false,
+        "timing_realistic": false
+      },
+      "camera": {
+        "move": "static"
+      },
+      "layout": {
+        "template": "hero-center"
+      },
+      "assets": [],
+      "layers": [
+        {
+          "id": "bg",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;background:radial-gradient(ellipse at 50% 50%,#1a1a2e 0%,#0d0d1a 100%)\"></div>",
+          "depth_class": "background",
+          "product_role": "decorative",
+          "content_class": "atmosphere",
+          "clarity_weight": 1
+        },
+        {
+          "id": "brand_lockup",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px\"><div style=\"display:flex;align-items:center;gap:16px\"><div style=\"width:48px;height:48px;border:1.5px solid rgba(124,58,237,0.6);border-radius:14px;display:flex;align-items:center;justify-content:center\"><div style=\"width:22px;height:22px;background:rgba(124,58,237,0.5);border-radius:6px\"></div></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:28px;font-weight:500;letter-spacing:0.08em;color:#e8e0f0\">ATLAS AI</span></div><span style=\"font-family:Inter,system-ui,sans-serif;font-size:20px;font-weight:300;color:rgba(232,224,240,0.6);letter-spacing:-0.01em\">Research reimagined</span></div>",
+          "depth_class": "foreground",
+          "product_role": "hero",
+          "content_class": "branding",
+          "clarity_weight": 5
+        },
+        {
+          "id": "legal",
+          "type": "html",
+          "content": "<div style=\"width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:60px\"><span style=\"font-family:Inter,system-ui,sans-serif;font-size:11px;color:rgba(232,224,240,0.15)\">atlas.ai</span></div>",
+          "depth_class": "foreground",
+          "product_role": "functional",
+          "content_class": "typography",
+          "clarity_weight": 2
+        }
+      ],
+      "motion": {
+        "groups": [
+          {
+            "targets": [
+              "brand_lockup"
+            ],
+            "primitive": "as-fadeIn"
+          },
+          {
+            "targets": [
+              "legal"
+            ],
+            "primitive": "as-fadeIn",
+            "delay_ms": 600
+          }
+        ]
+      },
+      "metadata": {
+        "motion_energy": "subtle",
+        "intent_tags": [
+          "closing"
+        ],
+        "content_type": "brand_mark"
+      }
+    }
+  },
+  "timelines": {},
+  "sceneRoutes": {}
+}

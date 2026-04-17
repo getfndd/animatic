@@ -1,7 +1,6 @@
-# Maya Learnings
+# Maya — Learnings
 
-Project-specific empirical corrections. Check before finalizing recommendations.
-
----
-
-<!-- This file accumulates per-project. install.sh never overwrites it. -->
+> **Deprecated** — Learnings are captured in the knowledge graph.
+>
+> To query: `knowledge_query --tags learning,persona:maya`
+> To capture: Corrections trigger REFLEX.md step 5 → `knowledge_ingest`

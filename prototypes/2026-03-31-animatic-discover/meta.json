@@ -1,0 +1,17 @@
+{
+  "id": "2026-03-31-animatic-discover",
+  "name": "Animatic Discover",
+  "description": "Four-in-one gallery experience for Animatic: Primitive Gallery with live CSS animation previews and faceted filtering, Rendered Showcase Gallery with filmstrip-scrub hover, Contact Sheet Browser with expandable frame details, all wrapped in a dark gallery chrome with personality-switching accent colors. Inspired by Kive.ai's visual-first discovery pattern.",
+  "prompt": "/prototype all — primitive gallery, rendered showcase, contact sheet browser, dark gallery chrome shell",
+  "fidelity": "concept",
+  "chrome": "none",
+  "versions": [
+    { "file": "concept-v1.html", "notes": "Single-page tabbed experience with all four views. 22 primitives with live CSS animations (play on hover), 8 showcase cards with gradient filmstrip scrub, 3 contact sheets with click-to-expand frame details. Personality accent switcher tints all accent-colored elements across the entire UI." }
+  ],
+  "designSystemUsage": {
+    "tokens": ["--surface-primary", "--surface-secondary", "--surface-tertiary", "--surface-card", "--text-primary", "--text-secondary", "--text-tertiary", "--border-default", "--border-subtle", "--border-strong", "--accent", "--radius"],
+    "presets": [],
+    "patterns": ["dark-first chrome", "filter pills", "hover-reveal overlay", "tab navigation with animated underline", "filmstrip scrub", "modal detail view", "personality-driven CSS custom properties"]
+  },
+  "createdAt": "2026-03-31T00:00:00Z"
+}

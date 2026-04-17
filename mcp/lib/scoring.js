@@ -15,7 +15,7 @@
  */
 
 import { evaluateSequence } from './evaluate.js';
-import { critiqueTimeline, critiqueScene } from './critic.js';
+import { critiqueScene } from './critic.js';
 import { compileMotion } from './compiler.js';
 import { auditMotionDensity } from './motion-density.js';
 import { scoreBrandFinish } from './compositing.js';
@@ -570,7 +570,10 @@ function compileAndCritique(manifest, scenes) {
 
     try {
       const timeline = compileMotion(sceneDef, catalogs);
-      const critique = critiqueTimeline(timeline, sceneDef);
+      // critiqueScene merges timeline + semantic critiques when scene.semantic
+      // exists — required for v3 scenes to surface semantic issues into the
+      // scoring pipeline used by /direct (ANI-116).
+      const critique = critiqueScene(timeline, sceneDef);
       results.push({
         scene_id: sceneId,
         score: critique.score ?? 50,
@@ -578,18 +581,7 @@ function compileAndCritique(manifest, scenes) {
         summary: critique.summary || '',
       });
     } catch {
-      // If compilation fails, try scene-level critique
-      try {
-        const critique = critiqueScene(sceneDef);
-        results.push({
-          scene_id: sceneId,
-          score: critique.score ?? 50,
-          issues: critique.issues || [],
-          summary: critique.summary || '',
-        });
-      } catch {
-        results.push({ scene_id: sceneId, score: 50, issues: [], summary: 'Critique unavailable' });
-      }
+      results.push({ scene_id: sceneId, score: 50, issues: [], summary: 'Critique unavailable (compilation failed)' });
     }
   }
 

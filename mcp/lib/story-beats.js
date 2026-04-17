@@ -12,6 +12,8 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { recommendFromClassification } from './semantic-planner.js';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
 
@@ -56,6 +58,89 @@ function resolveIntent(archetypeScene, cameraIntents) {
 
   // Fall back to energy mapping
   return ENERGY_TO_INTENT[energy] || 'inspect';
+}
+
+// ── Semantic classification inference (ANI-116) ─────────────────────────────
+
+const ENERGY_TO_PACING = {
+  still: 'contemplative',
+  low: 'deliberate',
+  medium: 'moderate',
+  high: 'rapid',
+  impact: 'rapid',
+};
+
+const CAMERA_INTENT_TO_BEHAVIOR = {
+  reveal: 'push_in',
+  spotlight: 'push_in',
+  inspect: 'static',
+  impact: 'drift',
+};
+
+// Ordered: first regex match wins. Role naming is archetype-driven and stable
+// (see catalog/sequence-archetypes.json), so pattern-based inference works.
+const ROLE_INTERACTION_PATTERNS = [
+  [/step_|_setup$|^welcome$/, 'typing'],
+  [/reveal|_proof|success|metric|benefit/, 'reveal'],
+  [/demo|product|feature|hero|glimpse|flash/, 'reveal'],
+  [/cta|close|lockup|tagline|_tag$|logo|brand_flash|brand_statement|next_steps|launch_/, 'transition'],
+  [/atmosphere|hook_|context_|countdown|problem_/, 'transition'],
+  [/value_prop/, 'reveal'],
+];
+
+/**
+ * Infer a semantic classification for a beat from its energy, camera intent,
+ * and role. Used to drive semantic-planner recommendations during beat
+ * materialization (ANI-116).
+ *
+ * Returns a classification object compatible with semantic-planner's
+ * `classifyReference` input. Values are only set when the mapping is
+ * confident — callers should treat missing dimensions as "no opinion."
+ *
+ * @param {{ role?: string, energy?: string, camera_intent?: string }} beat
+ * @returns {object} Classification with zero or more dimensions set
+ */
+export function inferBeatClassification(beat) {
+  if (!beat) return {};
+  const classification = {};
+
+  if (beat.energy && ENERGY_TO_PACING[beat.energy]) {
+    classification.pacing = ENERGY_TO_PACING[beat.energy];
+  }
+
+  if (beat.camera_intent && CAMERA_INTENT_TO_BEHAVIOR[beat.camera_intent]) {
+    classification.camera_behavior = CAMERA_INTENT_TO_BEHAVIOR[beat.camera_intent];
+  }
+
+  if (beat.role) {
+    for (const [pattern, interactionType] of ROLE_INTERACTION_PATTERNS) {
+      if (pattern.test(beat.role)) {
+        classification.interaction_type = interactionType;
+        break;
+      }
+    }
+    // Steps / setups are typically typed interactions
+    if (/step_|_setup$/.test(beat.role)) {
+      classification.text_behavior = 'typing';
+    }
+  }
+
+  return classification;
+}
+
+/**
+ * Recommend a v3 semantic block for a beat. Returns null when the inferred
+ * classification doesn't produce any components — callers should treat null
+ * as "no recommendation, use default scene generation."
+ */
+export function recommendSemanticForBeat(beat) {
+  const classification = inferBeatClassification(beat);
+  if (Object.keys(classification).length === 0) return null;
+
+  const rec = recommendFromClassification(classification);
+  if (!rec.components || rec.components.length === 0) return null;
+
+  return { classification, ...rec };
 }
 
 // ── Brief section matching ──────────────────────────────────────────────────
@@ -231,19 +316,28 @@ export function planStoryBeats({ story_brief, archetype_slug, audio_beats, optio
   const continuityOps = detectContinuityOpportunities(archetype.scenes);
 
   // Build beats
-  const beats = archetype.scenes.map((scene, i) => ({
-    index: i,
-    role: scene.role,
-    brief_section: sectionMap[scene.role] || null,
-    duration_s: durations[i],
-    duration_pct: Math.round((durations[i] / totalDuration) * 1000) / 1000,
-    energy: scene.energy || 'medium',
-    camera_intent: resolveIntent(scene, cameraIntents),
-    transition_in: scene.transition_in || (i === 0 ? null : { type: 'crossfade', duration_ms: 400 }),
-    continuity_opportunities: continuityOps[i] || [],
-    recommended_layers: scene.recommended_layers || [],
-    recommended_primitives: scene.recommended_primitives || [],
-  }));
+  const beats = archetype.scenes.map((scene, i) => {
+    const beat = {
+      index: i,
+      role: scene.role,
+      brief_section: sectionMap[scene.role] || null,
+      duration_s: durations[i],
+      duration_pct: Math.round((durations[i] / totalDuration) * 1000) / 1000,
+      energy: scene.energy || 'medium',
+      camera_intent: resolveIntent(scene, cameraIntents),
+      transition_in: scene.transition_in || (i === 0 ? null : { type: 'crossfade', duration_ms: 400 }),
+      continuity_opportunities: continuityOps[i] || [],
+      recommended_layers: scene.recommended_layers || [],
+      recommended_primitives: scene.recommended_primitives || [],
+    };
+    // Attach semantic-planner recommendation when classification yields
+    // components. Downstream scene generation can use this as a v3 seed
+    // (ANI-116). Omit the key entirely when no recommendation applies so
+    // the beat shape stays unchanged for non-v3-friendly roles.
+    const semanticRec = recommendSemanticForBeat(beat);
+    if (semanticRec) beat.semantic_recommendation = semanticRec;
+    return beat;
+  });
 
   return {
     archetype: archetype_slug,

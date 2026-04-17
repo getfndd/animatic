@@ -9,6 +9,11 @@
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { analyzeScene } from './analyze.js';
+import { evaluateSequence } from './evaluate.js';
+import { validateFullManifest } from './guardrails.js';
+import { STYLE_PACKS, STYLE_TO_PERSONALITY } from './planner.js';
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const PROJECTS_ROOT = join(process.cwd(), 'projects');
@@ -447,4 +452,89 @@ export async function saveProjectArtifact(options) {
   await writeJSON(projectFile, projectData);
 
   return { ...projectData, project_root };
+}
+
+// ── reviewProject ────────────────────────────────────────────────────────────
+
+/**
+ * Validate and evaluate a project's manifest, writing results to review/evaluation.json.
+ *
+ * @param {object} options
+ * @param {string} options.project - Slug or path.
+ * @param {string} [options.manifest] - Optional manifest path override (relative to project_root).
+ * @param {string} [options.style] - Optional style pack override.
+ * @returns {Promise<{ validation, evaluation, evaluation_error, personality, style, reviewed_at, manifest } | { error: string }>}
+ */
+export async function reviewProject(options) {
+  const proj = await getProject({ project: options.project });
+  if (!proj) {
+    return { error: `Project "${options.project}" not found` };
+  }
+
+  const manifestPath = options.manifest || proj.entrypoints?.root_manifest;
+  if (!manifestPath) {
+    return { error: 'No manifest to review' };
+  }
+
+  const fullManifestPath = join(proj.project_root, manifestPath);
+  const manifest = await readJSON(fullManifestPath);
+  if (!manifest) {
+    return { error: `Cannot read manifest at ${fullManifestPath}` };
+  }
+
+  const style = options.style || proj.style_pack || null;
+  const personality = proj.personality
+    || (style ? STYLE_TO_PERSONALITY[style] : null)
+    || 'cinematic-dark';
+
+  const validationResult = validateFullManifest(manifest, personality);
+
+  let evaluationResult = null;
+  let evaluationError = null;
+  if (!style) {
+    evaluationError = 'No style_pack set on project — evaluation skipped';
+  } else if (!STYLE_PACKS.includes(style)) {
+    evaluationError = `Unknown style "${style}" — evaluation skipped`;
+  } else {
+    const analyzedScenes = [];
+    const loadErrors = [];
+    for (const entry of proj.scenes || []) {
+      const scenePath = entry.source || entry.path;
+      if (!scenePath) continue;
+      const sceneData = await readJSON(join(proj.project_root, scenePath));
+      if (!sceneData) {
+        loadErrors.push(scenePath);
+        continue;
+      }
+      const { metadata } = analyzeScene(sceneData);
+      analyzedScenes.push({ ...sceneData, metadata });
+    }
+    if (analyzedScenes.length === 0) {
+      evaluationError = loadErrors.length > 0
+        ? `No loadable scenes (errors: ${loadErrors.join(', ')}) — evaluation skipped`
+        : 'No scenes registered on project — evaluation skipped';
+    } else {
+      try {
+        evaluationResult = evaluateSequence({ manifest, scenes: analyzedScenes, style });
+      } catch (err) {
+        evaluationError = `Evaluation failed: ${err.message}`;
+      }
+    }
+  }
+
+  const reviewDir = join(proj.project_root, 'review');
+  await mkdir(reviewDir, { recursive: true });
+  const evaluationOutput = {
+    validation: validationResult,
+    evaluation: evaluationResult,
+    evaluation_error: evaluationError,
+    personality,
+    style,
+    reviewed_at: new Date().toISOString(),
+    manifest: manifestPath,
+  };
+
+  await writeJSON(join(reviewDir, 'evaluation.json'), evaluationOutput);
+
+  return evaluationOutput;
 }

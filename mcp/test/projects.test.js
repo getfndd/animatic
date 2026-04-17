@@ -10,7 +10,7 @@
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, rmSync, writeFileSync, readdirSync } from 'node:fs';
+import { existsSync, rmSync, writeFileSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
@@ -19,6 +19,7 @@ import {
   getProject,
   getProjectContext,
   saveProjectArtifact,
+  reviewProject,
   STATUS_PROJECT,
   STATUS_SCENE,
   STATUS_VERSION,
@@ -27,6 +28,7 @@ import {
 const PROJECTS_ROOT = join(process.cwd(), 'projects');
 const TEST_SLUG = '__test_project__';
 const TEST_SLUG_2 = '__test_project_2__';
+const TEST_SLUG_REVIEW = '__test_project_review__';
 let testProjectRoot;
 let testProjectRoot2;
 
@@ -43,7 +45,7 @@ after(() => {
 
 function cleanup() {
   // Remove test project directories
-  for (const slug of [TEST_SLUG, TEST_SLUG_2]) {
+  for (const slug of [TEST_SLUG, TEST_SLUG_2, TEST_SLUG_REVIEW]) {
     const entries = existsSync(PROJECTS_ROOT)
       ? readdirSync(PROJECTS_ROOT)
       : [];
@@ -400,5 +402,158 @@ describe('saveProjectArtifact', () => {
       }),
       { message: /not found/ }
     );
+  });
+});
+
+// ── reviewProject ──────────────────────────────────────────────────────────
+
+describe('reviewProject — end-to-end', () => {
+  // Minimal valid scene JSON (pre-analysis). analyzeScene fills metadata.
+  function makeSceneJSON(id) {
+    return {
+      scene_id: id,
+      duration_s: 3,
+      layers: [{ id: 'l1', type: 'text', depth_class: 'foreground', content: 'Hello' }],
+    };
+  }
+
+  // Minimal valid manifest referencing 3 scenes.
+  function makeManifest() {
+    return {
+      sequence_id: 'seq_smoke_test',
+      style: 'prestige',
+      scenes: [
+        { scene: 'sc_a', duration_s: 3 },
+        { scene: 'sc_b', duration_s: 3, transition_in: { type: 'crossfade', duration_ms: 400 } },
+        { scene: 'sc_c', duration_s: 3, transition_in: { type: 'crossfade', duration_ms: 400 } },
+      ],
+    };
+  }
+
+  async function buildProject(slug, { style_pack, personality } = {}) {
+    const result = await initProject({
+      title: 'Review Smoke Test',
+      slug,
+      date_prefix: false,
+      personality,
+      style_pack,
+    });
+    const root = result.project_root;
+
+    // Write three scene files.
+    const scenes = ['sc_a', 'sc_b', 'sc_c'];
+    for (const id of scenes) {
+      writeFileSync(join(root, `scenes/${id}.json`), JSON.stringify(makeSceneJSON(id), null, 2));
+      await saveProjectArtifact({
+        project: slug,
+        kind: 'scene',
+        scene_id: id,
+        path: `scenes/${id}.json`,
+      });
+    }
+
+    // Write manifest.
+    writeFileSync(join(root, 'motion/manifests/root.json'), JSON.stringify(makeManifest(), null, 2));
+    await saveProjectArtifact({
+      project: slug,
+      kind: 'manifest',
+      path: 'motion/manifests/root.json',
+    });
+
+    return root;
+  }
+
+  it('init → save manifest → review: produces validation + evaluation + written artifact', async () => {
+    cleanup();
+    const root = await buildProject(TEST_SLUG_REVIEW, { style_pack: 'prestige' });
+
+    const result = await reviewProject({ project: TEST_SLUG_REVIEW });
+
+    assert.ok(!result.error, `unexpected error: ${result.error}`);
+    assert.ok(result.validation, 'validation result missing');
+    assert.ok(['PASS', 'WARN', 'BLOCK'].includes(result.validation.verdict),
+      `unexpected verdict: ${result.validation.verdict}`);
+    assert.ok(result.evaluation, 'evaluation result missing when style is set');
+    assert.equal(typeof result.evaluation.score, 'number');
+    assert.ok(result.evaluation.score >= 0 && result.evaluation.score <= 100);
+    assert.equal(result.style, 'prestige');
+    assert.equal(result.personality, 'editorial'); // STYLE_TO_PERSONALITY[prestige]
+    assert.equal(result.evaluation_error, null);
+
+    // Artifact written.
+    const artifactPath = join(root, 'review/evaluation.json');
+    assert.ok(existsSync(artifactPath), 'evaluation.json not written');
+    const onDisk = JSON.parse(readFileSync(artifactPath, 'utf-8'));
+    assert.equal(onDisk.evaluation.score, result.evaluation.score);
+  });
+
+  it('skips evaluation gracefully when style_pack is unset', async () => {
+    cleanup();
+    await buildProject(TEST_SLUG_REVIEW, {}); // no style_pack
+
+    const result = await reviewProject({ project: TEST_SLUG_REVIEW });
+
+    assert.ok(!result.error);
+    assert.ok(result.validation, 'validation still runs without style');
+    assert.equal(result.evaluation, null);
+    assert.match(result.evaluation_error, /style_pack/);
+  });
+
+  it('accepts style override via args', async () => {
+    cleanup();
+    await buildProject(TEST_SLUG_REVIEW, {}); // no style_pack on project
+
+    const result = await reviewProject({ project: TEST_SLUG_REVIEW, style: 'energy' });
+
+    assert.ok(!result.error);
+    assert.ok(result.evaluation, 'evaluation should run with style override');
+    assert.equal(result.style, 'energy');
+  });
+
+  it('returns error for unknown project', async () => {
+    const result = await reviewProject({ project: '__does_not_exist__' });
+    assert.match(result.error, /not found/);
+  });
+
+  it('returns error when project has no manifest', async () => {
+    cleanup();
+    await initProject({
+      title: 'No Manifest',
+      slug: TEST_SLUG_REVIEW,
+      date_prefix: false,
+      style_pack: 'prestige',
+    });
+    const result = await reviewProject({ project: TEST_SLUG_REVIEW });
+    assert.match(result.error, /No manifest/);
+  });
+
+  it('reports loadable-scenes error when scene files are missing from disk', async () => {
+    cleanup();
+    const root = await initProject({
+      title: 'Missing Scenes',
+      slug: TEST_SLUG_REVIEW,
+      date_prefix: false,
+      style_pack: 'prestige',
+    });
+
+    // Register a scene but do not write the file.
+    await saveProjectArtifact({
+      project: TEST_SLUG_REVIEW,
+      kind: 'scene',
+      scene_id: 'sc_ghost',
+      path: 'scenes/ghost.json',
+    });
+    writeFileSync(join(root.project_root, 'motion/manifests/root.json'),
+      JSON.stringify(makeManifest(), null, 2));
+    await saveProjectArtifact({
+      project: TEST_SLUG_REVIEW,
+      kind: 'manifest',
+      path: 'motion/manifests/root.json',
+    });
+
+    const result = await reviewProject({ project: TEST_SLUG_REVIEW });
+    assert.ok(result.validation, 'validation runs despite missing scenes');
+    assert.equal(result.evaluation, null);
+    assert.match(result.evaluation_error, /No loadable scenes/);
   });
 });

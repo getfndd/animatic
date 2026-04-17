@@ -20,6 +20,7 @@ import {
   getProjectContext,
   saveProjectArtifact,
   reviewProject,
+  renderProject,
   STATUS_PROJECT,
   STATUS_SCENE,
   STATUS_VERSION,
@@ -555,5 +556,116 @@ describe('reviewProject — end-to-end', () => {
     assert.ok(result.validation, 'validation runs despite missing scenes');
     assert.equal(result.evaluation, null);
     assert.match(result.evaluation_error, /No loadable scenes/);
+  });
+});
+
+// ── renderProject ──────────────────────────────────────────────────────────
+
+describe('renderProject — dry_run path (assembly)', () => {
+  function makeSceneJSON(id) {
+    return {
+      scene_id: id,
+      duration_s: 3,
+      layers: [{ id: 'l1', type: 'text', depth_class: 'foreground', content: 'Hello' }],
+    };
+  }
+
+  function makeManifest() {
+    return {
+      sequence_id: 'seq_render_test',
+      style: 'prestige',
+      scenes: [
+        { scene: 'sc_a', duration_s: 3 },
+        { scene: 'sc_b', duration_s: 3 },
+      ],
+    };
+  }
+
+  async function buildProject(slug) {
+    const result = await initProject({
+      title: 'Render Smoke Test',
+      slug,
+      date_prefix: false,
+      style_pack: 'prestige',
+    });
+    const root = result.project_root;
+    for (const id of ['sc_a', 'sc_b']) {
+      writeFileSync(join(root, `scenes/${id}.json`), JSON.stringify(makeSceneJSON(id), null, 2));
+      await saveProjectArtifact({ project: slug, kind: 'scene', scene_id: id, path: `scenes/${id}.json` });
+    }
+    writeFileSync(join(root, 'motion/manifests/root.json'), JSON.stringify(makeManifest(), null, 2));
+    await saveProjectArtifact({ project: slug, kind: 'manifest', path: 'motion/manifests/root.json' });
+    return root;
+  }
+
+  it('assembles {manifest, sceneDefs} props with every manifest scene resolved', async () => {
+    cleanup();
+    const root = await buildProject(TEST_SLUG_REVIEW);
+
+    const result = await renderProject({ project: TEST_SLUG_REVIEW, dry_run: true });
+
+    assert.ok(!result.error, `unexpected error: ${result.error}`);
+    assert.equal(result.skipped, 'dry_run');
+    assert.ok(result.props.manifest, 'props.manifest missing');
+    assert.equal(result.props.manifest.sequence_id, 'seq_render_test');
+    assert.ok(result.props.sceneDefs.sc_a, 'sc_a missing from sceneDefs');
+    assert.ok(result.props.sceneDefs.sc_b, 'sc_b missing from sceneDefs');
+    assert.equal(result.output, join(root, 'renders/draft/' + TEST_SLUG_REVIEW + '-render.mp4'));
+  });
+
+  it('returns error when manifest references an unresolved scene_id', async () => {
+    cleanup();
+    const root = await initProject({
+      title: 'Unresolved Scene',
+      slug: TEST_SLUG_REVIEW,
+      date_prefix: false,
+      style_pack: 'prestige',
+    });
+
+    // Manifest references sc_missing but project has no such scene registered.
+    const manifest = {
+      sequence_id: 'seq_unresolved',
+      style: 'prestige',
+      scenes: [{ scene: 'sc_missing', duration_s: 3 }],
+    };
+    writeFileSync(join(root.project_root, 'motion/manifests/root.json'),
+      JSON.stringify(manifest, null, 2));
+    await saveProjectArtifact({
+      project: TEST_SLUG_REVIEW,
+      kind: 'manifest',
+      path: 'motion/manifests/root.json',
+    });
+
+    const result = await renderProject({ project: TEST_SLUG_REVIEW, dry_run: true });
+    assert.match(result.error, /not found in project: sc_missing/);
+  });
+
+  it('returns error for unknown project', async () => {
+    const result = await renderProject({ project: '__does_not_exist__', dry_run: true });
+    assert.match(result.error, /not found/);
+  });
+
+  it('returns error when project has no manifest', async () => {
+    cleanup();
+    await initProject({
+      title: 'No Manifest',
+      slug: TEST_SLUG_REVIEW,
+      date_prefix: false,
+      style_pack: 'prestige',
+    });
+    const result = await renderProject({ project: TEST_SLUG_REVIEW, dry_run: true });
+    assert.match(result.error, /No manifest/);
+  });
+
+  it('accepts output path override', async () => {
+    cleanup();
+    const root = await buildProject(TEST_SLUG_REVIEW);
+    const result = await renderProject({
+      project: TEST_SLUG_REVIEW,
+      output: 'renders/draft/custom-name.mp4',
+      dry_run: true,
+    });
+    assert.ok(!result.error);
+    assert.equal(result.output, join(root, 'renders/draft/custom-name.mp4'));
   });
 });

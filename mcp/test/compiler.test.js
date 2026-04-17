@@ -907,7 +907,7 @@ describe('interactionToGroup', () => {
     assert.equal(tw.duration_ms, 550); // 11 * 50
   });
 
-  it('focus → opacity/scale pulse + sibling dim group', () => {
+  it('focus → scale pulse + sibling dim group', () => {
     const groups = interactionToGroup({
       id: 'int_focus', target: 'cmp_search', kind: 'focus',
     }, cmpMap, null);
@@ -915,7 +915,6 @@ describe('interactionToGroup', () => {
     assert.ok(groups.length >= 2, 'should emit target group + sibling dim');
 
     const targetGroup = groups[0];
-    assert.ok(targetGroup.effects.some(e => e.type === 'opacity'), 'has opacity effect');
     assert.ok(targetGroup.effects.some(e => e.type === 'scale'), 'has scale effect');
 
     const dimGroup = groups[1];
@@ -923,7 +922,8 @@ describe('interactionToGroup', () => {
     // Should target all other components
     assert.ok(dimGroup.targets.length === components.length - 1);
     const dimEffect = dimGroup.effects.find(e => e.type === 'opacity');
-    assert.equal(dimEffect.to, 0.2, 'default dim is 0.2');
+    // input_field override sets sibling_dim_opacity to 0.5 (lighter than default 0.2)
+    assert.equal(dimEffect.to, 0.5, 'input_field override sets sibling dim to 0.5');
   });
 
   it('replace_text → text_replace + caret effects', () => {
@@ -1021,11 +1021,16 @@ describe('interactionToGroup', () => {
     assert.equal(scaleEffect.easing, 'ease_out');
   });
 
-  it('pulse_focus → scale oscillation × count', () => {
+  it('pulse_focus → scale oscillation × count (generic fallback)', () => {
+    // icon_label_row (cmp_badge) overrides pulse_focus with a single ping,
+    // so exercise the generic count-based path with a type that has no override.
+    const genericMap = makeComponentMap([
+      { id: 'cmp_generic', type: 'synthetic_no_machine', role: 'supporting' },
+    ]);
     const groups = interactionToGroup({
-      id: 'int_pulse', target: 'cmp_badge', kind: 'pulse_focus',
+      id: 'int_pulse', target: 'cmp_generic', kind: 'pulse_focus',
       params: { count: 3, intensity: 1.08 },
-    }, cmpMap, null);
+    }, genericMap, null);
 
     assert.equal(groups.length, 1);
     const scaleEffects = groups[0].effects.filter(e => e.type === 'scale');
@@ -1084,18 +1089,88 @@ describe('interactionToGroup', () => {
     assert.equal(dimEffect.to, 0.3, 'prompt_card sibling dim is 0.3');
   });
 
-  it('component without machine uses default values', () => {
-    // cmp_search is input_field — no machine
+  it('component without machine falls through to generic defaults', () => {
+    // All 8 v3 types now have state machines (ANI-107). Use a synthetic
+    // unknown type to exercise the compiler's fallback path.
+    const unknownMap = makeComponentMap([
+      { id: 'cmp_unknown', type: 'synthetic_no_machine', role: 'hero' },
+      { id: 'cmp_other', type: 'synthetic_no_machine', role: 'background' },
+    ]);
+    const groups = interactionToGroup({
+      id: 'int_focus', target: 'cmp_unknown', kind: 'focus',
+    }, unknownMap, null);
+
+    const scaleTo = groups[0].effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleTo.to, 1.05, 'unknown type uses default scale 1.05');
+
+    const dimGroup = groups[1];
+    const dimEffect = dimGroup.effects.find(e => e.type === 'opacity');
+    assert.equal(dimEffect.to, 0.2, 'default sibling dim is 0.2');
+  });
+
+  // ── ANI-107 state machine coverage ────────────────────────────────────────
+
+  it('input_field focus uses override scale 1.01 and sibling dim 0.5', () => {
     const groups = interactionToGroup({
       id: 'int_focus', target: 'cmp_search', kind: 'focus',
     }, cmpMap, null);
 
     const scaleTo = groups[0].effects.find(e => e.type === 'scale' && e.from === 1);
-    assert.equal(scaleTo.to, 1.05, 'input_field uses default 1.05');
+    assert.equal(scaleTo.to, 1.01, 'input_field uses subtle 1.01 peak');
 
-    const dimGroup = groups[1];
-    const dimEffect = dimGroup.effects.find(e => e.type === 'opacity');
-    assert.equal(dimEffect.to, 0.2, 'default sibling dim is 0.2');
+    const dimEffect = groups[1].effects.find(e => e.type === 'opacity');
+    assert.equal(dimEffect.to, 0.5, 'input_field keeps siblings at 0.5');
+  });
+
+  it('icon_label_row pulse_focus replaces generic count-based pulse', () => {
+    const labelMap = makeComponentMap([
+      { id: 'cmp_label', type: 'icon_label_row', role: 'background' },
+    ]);
+    const groups = interactionToGroup({
+      id: 'int_pulse', target: 'cmp_label', kind: 'pulse_focus',
+      params: { count: 5 }, // generic would emit 5 cycles, override emits single ping
+    }, labelMap, null);
+
+    assert.equal(groups.length, 1);
+    // Override emits a single opacity + scale ping, not 5 cycles
+    const scaleEffects = groups[0].effects.filter(e => e.type === 'scale');
+    assert.equal(scaleEffects.length, 2, 'single up/down pair, not count cycles');
+    const opacityDip = groups[0].effects.find(e => e.type === 'opacity' && e.from === 1);
+    assert.equal(opacityDip.to, 0.6, 'opacity dips to 0.6');
+  });
+
+  it('upload_zone focus uses override scale 1.03 and tighter sibling dim 0.25', () => {
+    const zoneMap = makeComponentMap([
+      { id: 'cmp_zone', type: 'upload_zone', role: 'hero' },
+      { id: 'cmp_cards', type: 'stacked_cards', role: 'supporting' },
+    ]);
+    const groups = interactionToGroup({
+      id: 'int_focus', target: 'cmp_zone', kind: 'focus',
+    }, zoneMap, null);
+
+    const scaleTo = groups[0].effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleTo.to, 1.03);
+
+    const dimEffect = groups[1].effects.find(e => e.type === 'opacity');
+    assert.equal(dimEffect.to, 0.25);
+  });
+
+  it('chip_row select_item uses override opacity 0.75→1 and scale nudge', () => {
+    const chipMap = makeComponentMap([
+      { id: 'cmp_chips', type: 'chip_row', role: 'supporting' },
+    ]);
+    const groups = interactionToGroup({
+      id: 'int_select', target: 'cmp_chips', kind: 'select_item',
+      params: { index: 2 },
+    }, chipMap, null);
+
+    assert.equal(groups.length, 1);
+    const opacity = groups[0].effects.find(e => e.type === 'opacity');
+    assert.equal(opacity.from, 0.75, 'gentler than generic 0.5');
+    assert.equal(opacity.to, 1);
+
+    const scaleUp = groups[0].effects.find(e => e.type === 'scale' && e.from === 1);
+    assert.equal(scaleUp.to, 1.02, 'adds a brief scale nudge');
   });
 
   it('override + personality constraints compose correctly', () => {

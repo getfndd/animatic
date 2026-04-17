@@ -8,7 +8,7 @@ Record autoplay prototypes to video, GIF, and distribution-ready assets.
 
 Capture mode takes a self-running autoplay HTML prototype and records it to video using headless Puppeteer for rendering and ffmpeg for encoding. The pipeline supports transparent backgrounds, deterministic timing, and a full distribution kit with social, embed, and email variants.
 
-**Status:** The capture script (`scripts/capture-prototype.mjs`) is specified but not yet implemented. This document describes the designed pipeline. The `/animate --mode capture` command interface is defined in the animate skill.
+**Status:** The capture script is implemented at `scripts/capture-prototype.mjs` and wired as `npm run capture`. The full distribution kit (web/social/embed/email variants) and the `/animate --mode capture` skill interface described below are both functional. See ANI-108 for the parallel `browser_capture` plate pipeline used by the dual render-target architecture, which reuses this same script but is still being tightened for production renders.
 
 ---
 

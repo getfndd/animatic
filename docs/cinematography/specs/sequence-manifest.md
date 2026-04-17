@@ -115,7 +115,19 @@ A sequence manifest is an ordered list of scenes with timing, transitions, and g
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["hard_cut", "crossfade", "whip_left", "whip_right", "whip_up", "whip_down"],
+          "enum": [
+            "hard_cut",
+            "crossfade",
+            "whip_left",
+            "whip_right",
+            "whip_up",
+            "whip_down",
+            "zoom_crossfade",
+            "parallax_crossfade",
+            "light_wipe",
+            "focus_dissolve",
+            "match_cut_scale"
+          ],
           "default": "hard_cut",
           "description": "Transition type between previous scene and this scene."
         },
@@ -142,8 +154,15 @@ A sequence manifest is an ordered list of scenes with timing, transitions, and g
 | `whip_right` | Clip-path `inset()` wipe from left to right | 250ms | Montage `mo-whip-wipe` |
 | `whip_up` | Clip-path `inset()` wipe from bottom to top | 250ms | Montage `mo-whip-wipe` |
 | `whip_down` | Clip-path `inset()` wipe from top to bottom | 250ms | Montage `mo-whip-wipe` |
+| `zoom_crossfade` | Scale + opacity blend between scenes | 500ms | Cinematic-dark |
+| `parallax_crossfade` | Depth blur + opacity blend, foreground leads | 600ms | Cinematic-dark |
+| `light_wipe` | Luminance sweep reveal from one side | 400ms | Montage / cinematic |
+| `focus_dissolve` | Outgoing scene defocuses while incoming refocuses | 500ms | Cinematic-dark |
+| `match_cut_scale` | Continuity transition — scales a shared element from outgoing to incoming position (requires `transition_in.match` config) | 400ms | All personalities |
 
-During crossfade and whip transitions, both the outgoing and incoming scenes render simultaneously for the transition duration. The total video duration includes transition overlap — a 3s scene with a 400ms crossfade in means the scene content starts 400ms before the previous scene fully exits.
+During crossfade, whip, and dissolve transitions, both the outgoing and incoming scenes render simultaneously for the transition duration. The total video duration includes transition overlap — a 3s scene with a 400ms crossfade in means the scene content starts 400ms before the previous scene fully exits.
+
+`match_cut_scale` additionally requires a `transition_in.match` object (see continuity docs) that identifies the element to bridge across the cut.
 
 ### Audio Track Definition
 

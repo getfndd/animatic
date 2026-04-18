@@ -1,0 +1,21 @@
+[
+  "-y",
+  "-framerate",
+  "30",
+  "-i",
+  "frames/frame_%06d.png",
+  "-vf",
+  "noise=c0s=3:c1s=3:c2s=3:allf=t,scale=1920:1080:flags=lanczos",
+  "-c:v",
+  "libx264",
+  "-pix_fmt",
+  "yuv420p",
+  "-crf",
+  "12",
+  "-preset",
+  "slow",
+  "-movflags",
+  "+faststart",
+  "-an",
+  "out/video.mp4"
+]

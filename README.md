@@ -243,10 +243,12 @@ npm run sizzle -- --scenes path/to/scenes/ --style cinematic-dark
 ## Testing
 
 ```bash
-npm test
+npm test                  # unit + integration + golden snapshot suite
+npm run test:golden       # focused golden snapshot run
+npm run test:golden:update  # regenerate goldens after an intentional change
 ```
 
-Runs all tests via Node's built-in test runner (`node --test`) across `mcp/test/` and `src/remotion/test/`.
+Runs via Node's built-in test runner (`node --test`) across `mcp/test/` and `src/remotion/test/`. Golden artifact snapshots live under `mcp/test/golden/fixtures/` — drift in archetypes, delivery profiles, or other deterministic pipeline outputs trips the harness. Regenerating a golden is an explicit, reviewable commit.
 
 ## License
 

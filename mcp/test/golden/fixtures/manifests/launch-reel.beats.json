@@ -1,0 +1,384 @@
+{
+  "archetype": "launch-reel",
+  "total_duration_s": 25,
+  "beats": [
+    {
+      "index": 0,
+      "role": "countdown_tease",
+      "brief_section": "Real-time collaboration",
+      "duration_s": 2.5,
+      "duration_pct": 0.1,
+      "energy": "high",
+      "camera_intent": "reveal",
+      "transition_in": null,
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "background_video",
+        "text_overlay",
+        "particle_overlay"
+      ],
+      "recommended_primitives": [
+        "mo-scale-entrance",
+        "ct-camera-handheld",
+        "bk-concentric-pulse"
+      ]
+    },
+    {
+      "index": 1,
+      "role": "brand_flash",
+      "brief_section": "Infinite canvas",
+      "duration_s": 2,
+      "duration_pct": 0.08,
+      "energy": "impact",
+      "camera_intent": "spotlight",
+      "transition_in": {
+        "type": "hard_cut",
+        "duration_ms": 0
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "logo",
+        "background_solid"
+      ],
+      "recommended_primitives": [
+        "mo-scale-entrance",
+        "as-zoomIn",
+        "mo-text-hero"
+      ]
+    },
+    {
+      "index": 2,
+      "role": "hero_product",
+      "brief_section": "Smart constraints",
+      "duration_s": 5,
+      "duration_pct": 0.2,
+      "energy": "high",
+      "camera_intent": "compare",
+      "transition_in": {
+        "type": "match_cut_scale",
+        "duration_ms": 300
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "product_screenshot",
+        "ui_overlay",
+        "background_gradient"
+      ],
+      "recommended_primitives": [
+        "cd-focus-stagger",
+        "mo-scale-entrance",
+        "cd-card-cascade"
+      ],
+      "semantic_recommendation": {
+        "classification": {
+          "pacing": "rapid",
+          "interaction_type": "reveal"
+        },
+        "components": [
+          {
+            "id": "cmp_0",
+            "type": "result_stack",
+            "role": "hero"
+          }
+        ],
+        "interactions": [
+          {
+            "id": "int_focus_cmp_0",
+            "target": "cmp_0",
+            "kind": "focus",
+            "timing": {
+              "at_ms": 0
+            },
+            "on_complete": {
+              "emit": "focus_done"
+            }
+          },
+          {
+            "id": "int_insert_cmp_0",
+            "target": "cmp_0",
+            "kind": "insert_items",
+            "params": {
+              "items": [
+                "Result 1",
+                "Result 2",
+                "Result 3"
+              ],
+              "stagger_ms": 80
+            },
+            "timing": {
+              "delay": {
+                "after": "focus_done",
+                "offset_ms": 200
+              }
+            },
+            "on_complete": {
+              "emit": "insert_done"
+            }
+          },
+          {
+            "id": "int_settle_cmp_0",
+            "target": "cmp_0",
+            "kind": "settle",
+            "timing": {
+              "delay": {
+                "after": "insert_done",
+                "offset_ms": 200
+              }
+            }
+          }
+        ],
+        "camera_behavior": {
+          "mode": "ambient"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "role": "feature_montage",
+      "brief_section": null,
+      "duration_s": 6.2,
+      "duration_pct": 0.248,
+      "energy": "high",
+      "camera_intent": "reveal",
+      "transition_in": {
+        "type": "whip_right",
+        "duration_ms": 250
+      },
+      "continuity_opportunities": [
+        {
+          "from_beat": 2,
+          "strategy": "position"
+        }
+      ],
+      "recommended_layers": [
+        "ui_screenshot",
+        "text_callout",
+        "background_gradient"
+      ],
+      "recommended_primitives": [
+        "mo-hard-cut",
+        "mo-whip-wipe",
+        "mo-grid-reveal"
+      ],
+      "semantic_recommendation": {
+        "classification": {
+          "pacing": "rapid",
+          "camera_behavior": "push_in",
+          "interaction_type": "reveal"
+        },
+        "components": [
+          {
+            "id": "cmp_0",
+            "type": "result_stack",
+            "role": "hero"
+          }
+        ],
+        "interactions": [
+          {
+            "id": "int_focus_cmp_0",
+            "target": "cmp_0",
+            "kind": "focus",
+            "timing": {
+              "at_ms": 0
+            },
+            "on_complete": {
+              "emit": "focus_done"
+            }
+          },
+          {
+            "id": "int_insert_cmp_0",
+            "target": "cmp_0",
+            "kind": "insert_items",
+            "params": {
+              "items": [
+                "Result 1",
+                "Result 2",
+                "Result 3"
+              ],
+              "stagger_ms": 80
+            },
+            "timing": {
+              "delay": {
+                "after": "focus_done",
+                "offset_ms": 200
+              }
+            },
+            "on_complete": {
+              "emit": "insert_done"
+            }
+          },
+          {
+            "id": "int_settle_cmp_0",
+            "target": "cmp_0",
+            "kind": "settle",
+            "timing": {
+              "delay": {
+                "after": "insert_done",
+                "offset_ms": 200
+              }
+            }
+          }
+        ],
+        "camera_behavior": {
+          "mode": "reactive"
+        }
+      }
+    },
+    {
+      "index": 4,
+      "role": "social_proof",
+      "brief_section": null,
+      "duration_s": 3.8,
+      "duration_pct": 0.152,
+      "energy": "medium",
+      "camera_intent": "inspect",
+      "transition_in": {
+        "type": "hard_cut",
+        "duration_ms": 0
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "metric_card",
+        "logo_grid",
+        "text_overlay"
+      ],
+      "recommended_primitives": [
+        "mo-stat-reveal",
+        "ed-count-up",
+        "bk-stat-card-count-up"
+      ],
+      "semantic_recommendation": {
+        "classification": {
+          "pacing": "moderate",
+          "camera_behavior": "static",
+          "interaction_type": "reveal"
+        },
+        "components": [
+          {
+            "id": "cmp_0",
+            "type": "result_stack",
+            "role": "hero"
+          }
+        ],
+        "interactions": [
+          {
+            "id": "int_focus_cmp_0",
+            "target": "cmp_0",
+            "kind": "focus",
+            "timing": {
+              "at_ms": 0
+            },
+            "on_complete": {
+              "emit": "focus_done"
+            }
+          },
+          {
+            "id": "int_insert_cmp_0",
+            "target": "cmp_0",
+            "kind": "insert_items",
+            "params": {
+              "items": [
+                "Result 1",
+                "Result 2",
+                "Result 3"
+              ],
+              "stagger_ms": 80
+            },
+            "timing": {
+              "delay": {
+                "after": "focus_done",
+                "offset_ms": 200
+              }
+            },
+            "on_complete": {
+              "emit": "insert_done"
+            }
+          },
+          {
+            "id": "int_settle_cmp_0",
+            "target": "cmp_0",
+            "kind": "settle",
+            "timing": {
+              "delay": {
+                "after": "insert_done",
+                "offset_ms": 200
+              }
+            }
+          }
+        ],
+        "camera_behavior": {
+          "mode": "static"
+        }
+      }
+    },
+    {
+      "index": 5,
+      "role": "launch_cta",
+      "brief_section": null,
+      "duration_s": 3,
+      "duration_pct": 0.12,
+      "energy": "medium",
+      "camera_intent": "confirm",
+      "transition_in": {
+        "type": "zoom_crossfade",
+        "duration_ms": 400
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "text_hero",
+        "cta_button",
+        "background_gradient"
+      ],
+      "recommended_primitives": [
+        "mo-text-hero",
+        "as-fadeIn",
+        "ed-blur-reveal"
+      ]
+    },
+    {
+      "index": 6,
+      "role": "logo_resolve",
+      "brief_section": "logo_lockup",
+      "duration_s": 2.5,
+      "duration_pct": 0.1,
+      "energy": "still",
+      "camera_intent": "inspect",
+      "transition_in": {
+        "type": "focus_dissolve",
+        "duration_ms": 500
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "logo",
+        "background_solid"
+      ],
+      "recommended_primitives": [
+        "as-fadeIn",
+        "fade-in"
+      ]
+    }
+  ],
+  "energy_curve": [
+    "high",
+    "impact",
+    "high",
+    "high",
+    "medium",
+    "medium",
+    "still"
+  ],
+  "pacing_profile": {
+    "pattern": "sustained-peak",
+    "energy_curve": [
+      "high",
+      "impact",
+      "high",
+      "high",
+      "medium",
+      "medium",
+      "still"
+    ],
+    "contrast_rule": "Social proof scene must provide a breath before the CTA — do not extend the high-energy run past three scenes"
+  },
+  "audio_sync": null
+}

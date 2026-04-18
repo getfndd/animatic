@@ -696,6 +696,27 @@ export function validateScene(scene) {
     errors.push(`format_version must be 1, 2, or 3 (got ${scene.format_version})`);
   }
 
+  // voiceover (ANI-111)
+  if (scene.voiceover != null) {
+    const vo = scene.voiceover;
+    if (typeof vo !== 'object' || Array.isArray(vo)) {
+      errors.push('voiceover must be an object with at least { text }');
+    } else {
+      if (typeof vo.text !== 'string' || vo.text.trim().length === 0) {
+        errors.push('voiceover.text must be a non-empty string');
+      }
+      if (vo.provider != null && typeof vo.provider !== 'string') {
+        errors.push('voiceover.provider must be a string when provided');
+      }
+      if (vo.voice != null && typeof vo.voice !== 'string') {
+        errors.push('voiceover.voice must be a string when provided');
+      }
+      if (vo.speed != null && (typeof vo.speed !== 'number' || vo.speed <= 0)) {
+        errors.push('voiceover.speed must be a positive number when provided');
+      }
+    }
+  }
+
   // captions (ANI-112)
   if (scene.captions != null) {
     if (!Array.isArray(scene.captions)) {

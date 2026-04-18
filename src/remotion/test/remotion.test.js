@@ -3259,6 +3259,40 @@ describe('validateScene — continuity_id', () => {
   });
 });
 
+// ── validateScene — voiceover (ANI-111) ─────────────────────────────────────
+
+describe('validateScene — voiceover', () => {
+  const base = (voiceover) => ({ scene_id: 'sc_vo', duration_s: 3, voiceover });
+
+  it('accepts minimal voiceover with just text', () => {
+    const r = validateScene(base({ text: 'Hello world.' }));
+    assert.equal(r.valid, true, `errors: ${r.errors.join(', ')}`);
+  });
+
+  it('accepts voiceover with provider / voice / speed', () => {
+    const r = validateScene(base({
+      text: 'Full config.', provider: 'mock', voice: 'Samantha', speed: 1.1,
+    }));
+    assert.equal(r.valid, true);
+  });
+
+  it('rejects non-object voiceover', () => {
+    const r = validateScene(base('nope'));
+    assert.equal(r.valid, false);
+    assert.ok(r.errors.some(e => e.includes('voiceover')));
+  });
+
+  it('rejects empty / missing text', () => {
+    assert.equal(validateScene(base({})).valid, false);
+    assert.equal(validateScene(base({ text: '' })).valid, false);
+  });
+
+  it('rejects non-positive speed', () => {
+    assert.equal(validateScene(base({ text: 'ok', speed: 0 })).valid, false);
+    assert.equal(validateScene(base({ text: 'ok', speed: -0.5 })).valid, false);
+  });
+});
+
 // ── validateScene — captions (ANI-112) ──────────────────────────────────────
 
 describe('validateScene — captions', () => {

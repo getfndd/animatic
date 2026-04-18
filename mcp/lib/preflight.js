@@ -18,6 +18,8 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
+import { checkVoiceoverFit } from './tts.js';
+
 const execFileAsync = promisify(execFile);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
@@ -152,6 +154,43 @@ export function checkPlates(manifest, { plates = {}, sceneDefs = {} } = {}) {
 }
 
 /**
+ * Check that voiceover text fits within each scene's hold time (ANI-111).
+ *
+ * Returns pass when no voiceovers exist, warn when one or more scenes are
+ * slightly over (≤10% overrun), and fail when a scene clearly won't hold
+ * the line. Scene durations can be bumped, or the text shortened.
+ *
+ * @param {object} [ctx]
+ * @param {object} [ctx.sceneDefs] - Scene definitions keyed by scene_id
+ */
+export function checkVoiceoverFits({ sceneDefs = {} } = {}) {
+  const issues = [];
+  let total = 0;
+  for (const [id, scene] of Object.entries(sceneDefs)) {
+    if (!scene?.voiceover?.text) continue;
+    total += 1;
+    const fit = checkVoiceoverFit(scene);
+    if (fit.severity !== 'ok') issues.push({ scene_id: id, ...fit });
+  }
+
+  if (total === 0) {
+    return { name: 'voiceover', status: 'pass', message: 'No scenes carry voiceover' };
+  }
+  if (issues.length === 0) {
+    return { name: 'voiceover', status: 'pass', message: `Voiceover fits for all ${total} narrated scene(s)` };
+  }
+  const hasFail = issues.some(i => i.severity === 'fail');
+  return {
+    name: 'voiceover',
+    status: hasFail ? 'fail' : 'warn',
+    message: hasFail
+      ? `Voiceover overruns scene hold time for ${issues.length} scene(s) by more than 10%`
+      : `Voiceover is tight in ${issues.length} scene(s); consider extending scene duration`,
+    details: { issues },
+  };
+}
+
+/**
  * Check every scene entry in the manifest has a matching scene definition.
  * @param {object} manifest
  * @param {object} [ctx]
@@ -251,6 +290,7 @@ export async function runPreflight(manifest, ctx = {}) {
     Promise.resolve(checkFonts()),
     Promise.resolve(checkPlates(manifest, ctx)),
     Promise.resolve(checkManifestRefs(manifest, ctx)),
+    Promise.resolve(checkVoiceoverFits(ctx)),
     checkDiskSpace(ctx),
   ]);
 

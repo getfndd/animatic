@@ -153,7 +153,7 @@ describe('runPreflight', () => {
       sceneDefs: { sc_01: {} },
     });
     assert.ok(Array.isArray(report.checks));
-    assert.equal(report.checks.length, 5);
+    assert.equal(report.checks.length, 6);
     assert.equal(typeof report.ok, 'boolean');
     assert.equal(typeof report.summary, 'string');
   });

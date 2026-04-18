@@ -65,6 +65,10 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
     "captions_style": {
       "type": "object",
       "description": "Per-scene overrides for caption typography + safe-zone insets. Any subset of { font_family, font_weight, font_size_pct, color, background, bottom_inset_pct, horizontal_inset_pct, padding_y_px, padding_x_px, border_radius_px, line_height } merges into the default Satoshi-based style defined in CaptionsOverlay.jsx."
+    },
+    "voiceover": {
+      "$ref": "#/$defs/voiceover",
+      "description": "Optional narration for this scene (ANI-111). Text is synthesized via a TTS provider. `checkVoiceoverFit` + the preflight doctor warn when the expected spoken duration won't fit the scene hold time."
     }
   }
 }
@@ -82,6 +86,25 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
         "text": { "type": "string", "minLength": 1, "description": "Caption text. Single or multi-line (\\n for explicit breaks)." },
         "start_ms": { "type": "number", "minimum": 0, "description": "Scene-local start time in milliseconds." },
         "end_ms": { "type": "number", "exclusiveMinimum": 0, "description": "Scene-local end time in milliseconds. Must be greater than start_ms." }
+      }
+    }
+  }
+}
+```
+
+### Voiceover Definition
+
+```json
+{
+  "$defs": {
+    "voiceover": {
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "description": "The narration text to synthesize." },
+        "provider": { "type": "string", "description": "TTS provider key. Currently shipped: `mock` (deterministic, silent placeholder for tests), `macos_say` (real speech via the built-in `say` command on macOS). Defaults to `mock` when unset." },
+        "voice": { "type": "string", "description": "Provider-specific voice identifier, e.g. `Samantha` / `Alex` for `macos_say`." },
+        "speed": { "type": "number", "exclusiveMinimum": 0, "description": "Speed multiplier. 1 = baseline (~165 wpm), 1.2 = 20% faster, 0.9 = slightly slower. Used by the duration estimator and passed through to providers that honor it." }
       }
     }
   }

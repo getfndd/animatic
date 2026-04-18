@@ -13,6 +13,7 @@ import { analyzeScene } from './analyze.js';
 import { evaluateSequence } from './evaluate.js';
 import { validateFullManifest } from './guardrails.js';
 import { STYLE_PACKS, STYLE_TO_PERSONALITY } from './planner.js';
+import { buildCaptionsSidecar } from './captions.js';
 import { runPreflight } from './preflight.js';
 import { renderRemotionSequence } from './video.js';
 
@@ -652,6 +653,23 @@ export async function renderProject(options) {
 
   await renderRemotionSequence(props, outputPath);
 
+  // Captions sidecar (ANI-112) — emit an SRT alongside the MP4 whenever any
+  // scene carries caption cues. Silently skipped when there are no cues, so
+  // projects without captions don't grow stray empty files.
+  let captionsOutput = null;
+  const sidecar = buildCaptionsSidecar(manifest, sceneDefs, 'srt');
+  if (sidecar.cue_count > 0) {
+    const sidecarRelative = outputName.replace(/\.[^./]+$/, '') + '.' + sidecar.extension;
+    const sidecarPath = join(proj.project_root, sidecarRelative);
+    await writeFile(sidecarPath, sidecar.text, 'utf-8');
+    captionsOutput = {
+      path: sidecarPath,
+      relative: sidecarRelative,
+      cue_count: sidecar.cue_count,
+      format: sidecar.extension,
+    };
+  }
+
   if (mark_as_latest) {
     await saveProjectArtifact({
       project: projectId,
@@ -666,5 +684,6 @@ export async function renderProject(options) {
     output_relative: outputName,
     missing_scenes: missingScenes,
     preflight,
+    captions: captionsOutput,
   };
 }

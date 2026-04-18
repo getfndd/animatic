@@ -696,6 +696,39 @@ export function validateScene(scene) {
     errors.push(`format_version must be 1, 2, or 3 (got ${scene.format_version})`);
   }
 
+  // captions (ANI-112)
+  if (scene.captions != null) {
+    if (!Array.isArray(scene.captions)) {
+      errors.push('captions must be an array of { text, start_ms, end_ms }');
+    } else {
+      const sceneDurationMs = (scene.duration_s || 0) * 1000;
+      let previousEnd = -1;
+      scene.captions.forEach((cue, i) => {
+        const where = `captions[${i}]`;
+        if (typeof cue !== 'object' || cue === null) {
+          errors.push(`${where}: must be an object`);
+          return;
+        }
+        if (typeof cue.text !== 'string' || cue.text.length === 0) {
+          errors.push(`${where}.text: must be a non-empty string`);
+        }
+        if (typeof cue.start_ms !== 'number' || cue.start_ms < 0) {
+          errors.push(`${where}.start_ms: must be a non-negative number`);
+        }
+        if (typeof cue.end_ms !== 'number' || cue.end_ms <= (cue.start_ms || 0)) {
+          errors.push(`${where}.end_ms: must be greater than start_ms`);
+        }
+        if (sceneDurationMs > 0 && cue.end_ms > sceneDurationMs) {
+          errors.push(`${where}.end_ms (${cue.end_ms}) exceeds scene duration (${sceneDurationMs}ms)`);
+        }
+        if (cue.start_ms < previousEnd) {
+          errors.push(`${where}: overlaps the previous cue`);
+        }
+        previousEnd = cue.end_ms;
+      });
+    }
+  }
+
   return { valid: errors.length === 0, errors };
 }
 

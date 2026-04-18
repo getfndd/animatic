@@ -3258,3 +3258,50 @@ describe('validateScene — continuity_id', () => {
     assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
   });
 });
+
+// ── validateScene — captions (ANI-112) ──────────────────────────────────────
+
+describe('validateScene — captions', () => {
+  const base = (captions) => ({ scene_id: 'sc_cap', duration_s: 3, captions });
+
+  it('accepts well-formed captions within scene duration', () => {
+    const r = validateScene(base([
+      { text: 'Hello.', start_ms: 0, end_ms: 1500 },
+      { text: 'World.', start_ms: 1600, end_ms: 2900 },
+    ]));
+    assert.equal(r.valid, true, `errors: ${r.errors.join(', ')}`);
+  });
+
+  it('rejects non-array captions', () => {
+    const r = validateScene(base('not an array'));
+    assert.equal(r.valid, false);
+    assert.ok(r.errors.some(e => e.includes('captions must be an array')));
+  });
+
+  it('rejects empty text', () => {
+    const r = validateScene(base([{ text: '', start_ms: 0, end_ms: 1000 }]));
+    assert.equal(r.valid, false);
+    assert.ok(r.errors.some(e => e.includes('text')));
+  });
+
+  it('rejects end_ms ≤ start_ms', () => {
+    const r = validateScene(base([{ text: 'x', start_ms: 1000, end_ms: 500 }]));
+    assert.equal(r.valid, false);
+    assert.ok(r.errors.some(e => e.includes('end_ms')));
+  });
+
+  it('rejects cues that extend past scene duration', () => {
+    const r = validateScene(base([{ text: 'x', start_ms: 0, end_ms: 5000 }]));
+    assert.equal(r.valid, false);
+    assert.ok(r.errors.some(e => e.includes('exceeds scene duration')));
+  });
+
+  it('rejects overlapping cues', () => {
+    const r = validateScene(base([
+      { text: 'a', start_ms: 0, end_ms: 1500 },
+      { text: 'b', start_ms: 1000, end_ms: 2000 },
+    ]));
+    assert.equal(r.valid, false);
+    assert.ok(r.errors.some(e => e.includes('overlaps')));
+  });
+});

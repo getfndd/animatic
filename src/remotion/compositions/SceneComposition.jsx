@@ -27,6 +27,7 @@ import {
 import { StackFanSettleLayer } from './StackFanSettleLayer.jsx';
 import { ChartBuildExplainLayer } from './ChartBuildExplainLayer.jsx';
 import { SpotlightCursorRevealLayer } from './SpotlightCursorRevealLayer.jsx';
+import { CaptionsOverlay } from './CaptionsOverlay.jsx';
 
 /**
  * SceneComposition — Renders a single scene definition to video.
@@ -106,6 +107,7 @@ export const SceneComposition = ({ scene, timeline }) => {
           </div>
         </CameraRig>
         {scene.metadata?.visual_treatment === 'analog' && <AnalogOverlay />}
+        <CaptionsOverlay scene={scene} />
       </AbsoluteFill>
     );
   }
@@ -174,6 +176,7 @@ export const SceneComposition = ({ scene, timeline }) => {
           })}
         </CameraRig>
         {scene.metadata?.visual_treatment === 'analog' && <AnalogOverlay />}
+        <CaptionsOverlay scene={scene} />
       </AbsoluteFill>
     );
   }
@@ -193,6 +196,7 @@ export const SceneComposition = ({ scene, timeline }) => {
         ))}
       </CameraRig>
       {scene.metadata?.visual_treatment === 'analog' && <AnalogOverlay />}
+      <CaptionsOverlay scene={scene} />
     </AbsoluteFill>
   );
 };

@@ -250,6 +250,14 @@ npm run test:golden:update  # regenerate goldens after an intentional change
 
 Runs via Node's built-in test runner (`node --test`) across `mcp/test/` and `src/remotion/test/`. Golden artifact snapshots live under `mcp/test/golden/fixtures/` — drift in archetypes, delivery profiles, or other deterministic pipeline outputs trips the harness. Regenerating a golden is an explicit, reviewable commit.
 
+## Render preflight
+
+```bash
+npm run preflight -- <manifest.json> [--scenes <dir>]
+```
+
+Checks ffmpeg encoders, vendored fonts (`public/fonts/satoshi/`), plate assets for `browser_capture` scenes, manifest scene references, and disk-space headroom. The `render_project` MCP tool runs the same preflight automatically before compute is spent; pass `skip_preflight: true` to bypass. See ANI-115.
+
 ## License
 
 MIT

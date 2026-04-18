@@ -217,10 +217,19 @@ Complete asset generation for multi-channel distribution:
 
 ### Fonts Not Loading
 
-The pipeline uses Satoshi via Fontshare CDN. If fonts appear as system fallbacks:
-- Check network connectivity (the CDN link is in the `<head>`)
-- The capture script waits 150ms for font load — increase if needed
-- For offline use, download Satoshi and reference locally
+Satoshi is vendored under `public/fonts/satoshi/` (ANI-115) and loaded via
+`FontFace` inside `src/remotion/Root.jsx` with `delayRender`/`continueRender`.
+Offline renders no longer hit the Fontshare CDN.
+
+If fonts still render as system fallbacks:
+- Confirm the woff2 files still exist in `public/fonts/satoshi/`
+- Check the Remotion render log for `Failed to load vendored Satoshi font`
+- Prototype HTML files authored before ANI-115 may still reference the
+  Fontshare CDN in their `<head>` — those are authoring artifacts, not
+  render-critical; swap to the vendored CSS at `/fonts/satoshi/satoshi.css`
+  when regenerating them.
+- Run `npm run preflight <manifest>` to diagnose font + encoder readiness
+  before a long render.
 
 ### Embed Mode Issues
 

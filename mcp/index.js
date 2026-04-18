@@ -914,7 +914,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'render_project',
       description:
-        'Render a project manifest to video. Writes output to renders/ within the project.',
+        'Render a project manifest to video. Writes output to renders/ within the project. Runs the preflight doctor (ANI-115) by default — encoder / font / plate / manifest / disk checks — and aborts on any fail-level check unless skip_preflight is true.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -922,6 +922,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           manifest: { type: 'string', description: 'Relative path to manifest within project (default: root_manifest from project.json)' },
           output: { type: 'string', description: 'Relative output path within project (default: renders/draft/)' },
           mark_as_latest: { type: 'boolean', description: 'Update entrypoints.latest_render (default: true)' },
+          skip_preflight: { type: 'boolean', description: 'Skip the preflight doctor (default: false). Use when you know the environment is ready and want to bypass checks.' },
+          dry_run: { type: 'boolean', description: 'Assemble render props + run preflight without spawning the render (default: false).' },
         },
         required: ['project'],
       },

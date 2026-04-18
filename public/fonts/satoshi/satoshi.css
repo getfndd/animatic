@@ -1,0 +1,41 @@
+/*
+ * Satoshi — vendored from Fontshare (ANI-115)
+ *
+ * Use this stylesheet by linking it or importing the WOFF2 files directly
+ * via FontFace() in Remotion (see src/remotion/Root.jsx for the render path).
+ * `font-display: block` forces a short render-time block rather than falling
+ * back to a system font if loading stalls — we'd rather wait than ship the
+ * wrong glyphs.
+ */
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('./Satoshi-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('./Satoshi-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('./Satoshi-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('./Satoshi-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: block;
+}

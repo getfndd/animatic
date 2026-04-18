@@ -13,6 +13,7 @@ import { analyzeScene } from './analyze.js';
 import { evaluateSequence } from './evaluate.js';
 import { validateFullManifest } from './guardrails.js';
 import { STYLE_PACKS, STYLE_TO_PERSONALITY } from './planner.js';
+import { runPreflight } from './preflight.js';
 import { renderRemotionSequence } from './video.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -549,13 +550,20 @@ export async function reviewProject(options) {
  * `{ manifest, sceneDefs }` props Remotion expects, and spawns `npx remotion
  * render Sequence`. Optionally registers the output as `latest_render`.
  *
+ * Preflight (ANI-115) runs by default before the render — it catches
+ * missing encoders, missing vendored fonts, unresolved scene refs, missing
+ * plates, and disk-space issues before compute is spent. Any `fail`-level
+ * check aborts the render with a structured error unless `skip_preflight`
+ * is explicitly set.
+ *
  * @param {object} options
  * @param {string} options.project - Slug or path.
  * @param {string} [options.manifest] - Optional manifest path override (relative to project_root).
  * @param {string} [options.output] - Optional output path override (relative to project_root).
  * @param {boolean} [options.mark_as_latest=true] - Register output as latest_render.
  * @param {boolean} [options.dry_run=false] - Assemble props and skip the render.
- * @returns {Promise<{ output, props, missing_scenes, skipped } | { error: string }>}
+ * @param {boolean} [options.skip_preflight=false] - Skip the preflight doctor (ANI-115).
+ * @returns {Promise<{ output, props, missing_scenes, skipped, preflight? } | { error: string, preflight? }>}
  */
 export async function renderProject(options) {
   const {
@@ -564,6 +572,7 @@ export async function renderProject(options) {
     output: outputOverride,
     mark_as_latest = true,
     dry_run = false,
+    skip_preflight = false,
   } = options;
 
   const proj = await getProject({ project: projectId });
@@ -613,6 +622,23 @@ export async function renderProject(options) {
 
   const props = { manifest, sceneDefs };
 
+  // Preflight before anything expensive. Dry runs still benefit from the
+  // report — they just don't abort on failure, mirroring the "assemble
+  // props and skip the render" contract.
+  let preflight = null;
+  if (!skip_preflight) {
+    preflight = await runPreflight(manifest, {
+      sceneDefs,
+      outputDir: join(proj.project_root, 'renders'),
+    });
+    if (!preflight.ok && !dry_run) {
+      return {
+        error: `Preflight failed: ${preflight.summary}. Fix the blockers or pass skip_preflight: true to override.`,
+        preflight,
+      };
+    }
+  }
+
   if (dry_run) {
     return {
       output: outputPath,
@@ -620,6 +646,7 @@ export async function renderProject(options) {
       props,
       missing_scenes: missingScenes,
       skipped: 'dry_run',
+      preflight,
     };
   }
 
@@ -638,5 +665,6 @@ export async function renderProject(options) {
     output: outputPath,
     output_relative: outputName,
     missing_scenes: missingScenes,
+    preflight,
   };
 }

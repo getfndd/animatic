@@ -1,7 +1,44 @@
-import { Composition } from 'remotion';
+import { Composition, continueRender, delayRender, staticFile } from 'remotion';
 import { SceneComposition } from './compositions/SceneComposition.jsx';
 import { SequenceComposition } from './compositions/SequenceComposition.jsx';
 import { calculateDuration } from './lib.js';
+
+// ── Vendored Satoshi (ANI-115) ───────────────────────────────────────────────
+// Load the vendored font faces before Remotion starts rendering frames. Any
+// scene that declares `fontFamily: 'Satoshi'` would otherwise render with a
+// system-ui fallback because Remotion's Chromium doesn't hit the network for
+// external CSS at render time. `font-display: block` in the vendored CSS
+// and this delayRender handshake together ensure the real glyphs ship.
+const SATOSHI_WEIGHTS = [
+  { weight: '400', file: 'Satoshi-Regular.woff2' },
+  { weight: '500', file: 'Satoshi-Medium.woff2' },
+  { weight: '700', file: 'Satoshi-Bold.woff2' },
+  { weight: '900', file: 'Satoshi-Black.woff2' },
+];
+
+if (typeof document !== 'undefined' && typeof FontFace !== 'undefined') {
+  const waitHandle = delayRender('Loading Satoshi (ANI-115)');
+  Promise.all(
+    SATOSHI_WEIGHTS.map((w) => {
+      const face = new FontFace(
+        'Satoshi',
+        `url(${staticFile(`fonts/satoshi/${w.file}`)}) format('woff2')`,
+        { weight: w.weight, style: 'normal', display: 'block' },
+      );
+      return face.load().then((loaded) => {
+        document.fonts.add(loaded);
+      });
+    }),
+  )
+    .then(() => continueRender(waitHandle))
+    .catch((err) => {
+      // Fail loudly rather than silently render with system-ui. The error
+      // message is picked up by Remotion's render output so misconfigurations
+      // (missing font file, wrong path) are surfaced instead of shipped.
+      console.error('Failed to load vendored Satoshi font:', err);
+      continueRender(waitHandle);
+    });
+}
 
 // Preview props — loaded by scripts/preview.mjs for live project preview.
 // Falls back to defaults if the file doesn't exist.

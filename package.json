@@ -16,6 +16,7 @@
     "test:golden": "node --test mcp/test/golden/",
     "test:golden:update": "ANIMATIC_UPDATE_GOLDENS=1 node --test mcp/test/golden/",
     "capture": "node scripts/capture-prototype.mjs",
+    "preflight": "node scripts/preflight.mjs",
     "preview": "node scripts/preview.mjs",
     "remotion:studio": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx remotion studio",
     "remotion:render": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx remotion render",

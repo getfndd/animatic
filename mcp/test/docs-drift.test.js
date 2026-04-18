@@ -172,5 +172,22 @@ describe('docs/spec/code drift guards (ANI-109)', () => {
         `semantic-scene-format.md declares types without layout hints: ${inSpecNotSize.join(', ')}. ` +
         `Add entries to mcp/lib/layout-constraints.js COMPONENT_SIZE_DEFAULTS.`);
     });
+
+    it('spec cross-links to the adding-content-types guide (ANI-117)', () => {
+      const guidePath = resolve(ROOT, 'docs/cinematography/adding-content-types.md');
+      assert.ok(
+        readFileSync(guidePath, 'utf-8').length > 0,
+        'docs/cinematography/adding-content-types.md must exist',
+      );
+
+      const spec = readFileSync(
+        resolve(ROOT, 'docs/cinematography/specs/semantic-scene-format.md'),
+        'utf-8',
+      );
+      assert.ok(
+        spec.includes('adding-content-types.md'),
+        'semantic-scene-format.md must link to adding-content-types.md',
+      );
+    });
   });
 });

@@ -671,3 +671,12 @@ v1/v2 scenes without a `semantic` block continue to render via existing paths.
 - `validate_manifest` — Extended for v3 `format_version` and `semantic` block
 - `analyze_scene` — Will classify v3 components (ANI-68)
 - `generate_scenes` — Will emit v3 scenes from briefs (ANI-68)
+
+## Extending the type catalog
+
+To add a new `type` to the enum above, follow
+[`docs/cinematography/adding-content-types.md`](../adding-content-types.md).
+It walks through the spec, layout, state-machine, compiler, renderer,
+planner, critic, test, and example-manifest steps end-to-end. The drift
+guard in `mcp/test/docs-drift.test.js` enforces that the spec enum stays
+in sync with `STATE_MACHINES` and `COMPONENT_SIZE_DEFAULTS`.

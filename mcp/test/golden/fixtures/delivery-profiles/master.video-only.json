@@ -1,0 +1,17 @@
+[
+  "-y",
+  "-framerate",
+  "60",
+  "-i",
+  "frames/frame_%06d.png",
+  "-vf",
+  "scale=1920:1080:flags=lanczos",
+  "-c:v",
+  "prores_ks",
+  "-profile:v",
+  "4444",
+  "-pix_fmt",
+  "yuva444p10le",
+  "-an",
+  "out/video.mp4"
+]

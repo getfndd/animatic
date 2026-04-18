@@ -1,0 +1,204 @@
+{
+  "archetype": "brand-teaser",
+  "total_duration_s": 25,
+  "beats": [
+    {
+      "index": 0,
+      "role": "atmosphere_open",
+      "brief_section": null,
+      "duration_s": 5,
+      "duration_pct": 0.2,
+      "energy": "low",
+      "camera_intent": "compare",
+      "transition_in": null,
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "background_video",
+        "text_overlay"
+      ],
+      "recommended_primitives": [
+        "cd-focus-stagger",
+        "as-fadeIn",
+        "bk-sparse-breathe"
+      ]
+    },
+    {
+      "index": 1,
+      "role": "brand_statement",
+      "brief_section": "Real-time collaboration",
+      "duration_s": 6.1,
+      "duration_pct": 0.244,
+      "energy": "medium",
+      "camera_intent": "spotlight",
+      "transition_in": {
+        "type": "focus_dissolve",
+        "duration_ms": 500
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "text_hero",
+        "background_ambient"
+      ],
+      "recommended_primitives": [
+        "mo-text-hero",
+        "cd-typewriter",
+        "as-fadeInUp"
+      ]
+    },
+    {
+      "index": 2,
+      "role": "product_glimpse",
+      "brief_section": "Infinite canvas",
+      "duration_s": 6.3,
+      "duration_pct": 0.252,
+      "energy": "high",
+      "camera_intent": "confirm",
+      "transition_in": {
+        "type": "zoom_crossfade",
+        "duration_ms": 400
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "product_screenshot",
+        "ui_overlay",
+        "background_gradient"
+      ],
+      "recommended_primitives": [
+        "cd-focus-stagger",
+        "mo-scale-entrance",
+        "as-zoomIn"
+      ],
+      "semantic_recommendation": {
+        "classification": {
+          "pacing": "rapid",
+          "interaction_type": "reveal"
+        },
+        "components": [
+          {
+            "id": "cmp_0",
+            "type": "result_stack",
+            "role": "hero"
+          }
+        ],
+        "interactions": [
+          {
+            "id": "int_focus_cmp_0",
+            "target": "cmp_0",
+            "kind": "focus",
+            "timing": {
+              "at_ms": 0
+            },
+            "on_complete": {
+              "emit": "focus_done"
+            }
+          },
+          {
+            "id": "int_insert_cmp_0",
+            "target": "cmp_0",
+            "kind": "insert_items",
+            "params": {
+              "items": [
+                "Result 1",
+                "Result 2",
+                "Result 3"
+              ],
+              "stagger_ms": 80
+            },
+            "timing": {
+              "delay": {
+                "after": "focus_done",
+                "offset_ms": 200
+              }
+            },
+            "on_complete": {
+              "emit": "insert_done"
+            }
+          },
+          {
+            "id": "int_settle_cmp_0",
+            "target": "cmp_0",
+            "kind": "settle",
+            "timing": {
+              "delay": {
+                "after": "insert_done",
+                "offset_ms": 200
+              }
+            }
+          }
+        ],
+        "camera_behavior": {
+          "mode": "ambient"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "role": "tagline_close",
+      "brief_section": "logo_lockup",
+      "duration_s": 3.8,
+      "duration_pct": 0.152,
+      "energy": "medium",
+      "camera_intent": "inspect",
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "text_hero",
+        "background_solid"
+      ],
+      "recommended_primitives": [
+        "mo-text-hero",
+        "as-fadeIn",
+        "ed-blur-reveal"
+      ]
+    },
+    {
+      "index": 4,
+      "role": "logo_lockup",
+      "brief_section": null,
+      "duration_s": 3.8,
+      "duration_pct": 0.152,
+      "energy": "still",
+      "camera_intent": "inspect",
+      "transition_in": {
+        "type": "hard_cut",
+        "duration_ms": 0
+      },
+      "continuity_opportunities": [
+        {
+          "from_beat": 3,
+          "strategy": "position"
+        }
+      ],
+      "recommended_layers": [
+        "logo",
+        "background_solid"
+      ],
+      "recommended_primitives": [
+        "as-fadeIn",
+        "fade-in"
+      ]
+    }
+  ],
+  "energy_curve": [
+    "low",
+    "medium",
+    "high",
+    "medium",
+    "still"
+  ],
+  "pacing_profile": {
+    "pattern": "build",
+    "energy_curve": [
+      "low",
+      "medium",
+      "high",
+      "medium",
+      "still"
+    ],
+    "contrast_rule": "Never place two high-energy scenes back-to-back without a breath"
+  },
+  "audio_sync": null
+}

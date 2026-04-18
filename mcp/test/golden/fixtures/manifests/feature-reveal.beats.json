@@ -1,0 +1,429 @@
+{
+  "archetype": "feature-reveal",
+  "total_duration_s": 25,
+  "beats": [
+    {
+      "index": 0,
+      "role": "context_setup",
+      "brief_section": "Real-time collaboration",
+      "duration_s": 3.8,
+      "duration_pct": 0.152,
+      "energy": "medium",
+      "camera_intent": "inspect",
+      "transition_in": null,
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "ui_screenshot",
+        "text_overlay"
+      ],
+      "recommended_primitives": [
+        "ed-slide-stagger",
+        "as-fadeIn",
+        "nl-slide-stagger"
+      ],
+      "semantic_recommendation": {
+        "classification": {
+          "pacing": "moderate",
+          "camera_behavior": "static",
+          "interaction_type": "typing",
+          "text_behavior": "typing"
+        },
+        "components": [
+          {
+            "id": "cmp_0",
+            "type": "prompt_card",
+            "role": "hero"
+          },
+          {
+            "id": "cmp_1",
+            "type": "input_field",
+            "role": "supporting"
+          }
+        ],
+        "interactions": [
+          {
+            "id": "int_focus_cmp_0",
+            "target": "cmp_0",
+            "kind": "focus",
+            "timing": {
+              "at_ms": 0
+            },
+            "on_complete": {
+              "emit": "focus_done"
+            }
+          },
+          {
+            "id": "int_type_cmp_0",
+            "target": "cmp_0",
+            "kind": "type_text",
+            "params": {
+              "text": "Example prompt",
+              "speed": 45
+            },
+            "timing": {
+              "delay": {
+                "after": "focus_done",
+                "offset_ms": 200
+              }
+            },
+            "on_complete": {
+              "emit": "type_done"
+            }
+          },
+          {
+            "id": "int_settle_cmp_0",
+            "target": "cmp_0",
+            "kind": "settle",
+            "timing": {
+              "delay": {
+                "after": "type_done",
+                "offset_ms": 200
+              }
+            }
+          }
+        ],
+        "camera_behavior": {
+          "mode": "static"
+        }
+      }
+    },
+    {
+      "index": 1,
+      "role": "problem_frame",
+      "brief_section": "Infinite canvas",
+      "duration_s": 3.8,
+      "duration_pct": 0.152,
+      "energy": "medium",
+      "camera_intent": "spotlight",
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "continuity_opportunities": [
+        {
+          "from_beat": 0,
+          "strategy": "position"
+        }
+      ],
+      "recommended_layers": [
+        "ui_screenshot",
+        "annotation_overlay",
+        "text_callout"
+      ],
+      "recommended_primitives": [
+        "ed-slide-stagger",
+        "bk-content-line-stagger",
+        "as-fadeInUp"
+      ]
+    },
+    {
+      "index": 2,
+      "role": "feature_demo",
+      "brief_section": "Smart constraints",
+      "duration_s": 6.1,
+      "duration_pct": 0.244,
+      "energy": "high",
+      "camera_intent": "compare",
+      "transition_in": {
+        "type": "parallax_crossfade",
+        "duration_ms": 500
+      },
+      "continuity_opportunities": [
+        {
+          "from_beat": 1,
+          "strategy": "position"
+        }
+      ],
+      "recommended_layers": [
+        "ui_screenshot",
+        "cursor_overlay",
+        "highlight_ring"
+      ],
+      "recommended_primitives": [
+        "cd-focus-stagger",
+        "nl-cursor-to",
+        "bk-chat-typewriter-submit"
+      ],
+      "semantic_recommendation": {
+        "classification": {
+          "pacing": "rapid",
+          "interaction_type": "reveal"
+        },
+        "components": [
+          {
+            "id": "cmp_0",
+            "type": "result_stack",
+            "role": "hero"
+          }
+        ],
+        "interactions": [
+          {
+            "id": "int_focus_cmp_0",
+            "target": "cmp_0",
+            "kind": "focus",
+            "timing": {
+              "at_ms": 0
+            },
+            "on_complete": {
+              "emit": "focus_done"
+            }
+          },
+          {
+            "id": "int_insert_cmp_0",
+            "target": "cmp_0",
+            "kind": "insert_items",
+            "params": {
+              "items": [
+                "Result 1",
+                "Result 2",
+                "Result 3"
+              ],
+              "stagger_ms": 80
+            },
+            "timing": {
+              "delay": {
+                "after": "focus_done",
+                "offset_ms": 200
+              }
+            },
+            "on_complete": {
+              "emit": "insert_done"
+            }
+          },
+          {
+            "id": "int_settle_cmp_0",
+            "target": "cmp_0",
+            "kind": "settle",
+            "timing": {
+              "delay": {
+                "after": "insert_done",
+                "offset_ms": 200
+              }
+            }
+          }
+        ],
+        "camera_behavior": {
+          "mode": "ambient"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "role": "detail_zoom",
+      "brief_section": null,
+      "duration_s": 5,
+      "duration_pct": 0.2,
+      "energy": "high",
+      "camera_intent": "spotlight",
+      "transition_in": {
+        "type": "zoom_crossfade",
+        "duration_ms": 400
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "ui_detail",
+        "annotation_overlay"
+      ],
+      "recommended_primitives": [
+        "ct-camera-push-in",
+        "cd-panel-drilldown",
+        "as-zoomIn"
+      ],
+      "semantic_recommendation": {
+        "classification": {
+          "pacing": "rapid",
+          "camera_behavior": "push_in",
+          "interaction_type": "reveal"
+        },
+        "components": [
+          {
+            "id": "cmp_0",
+            "type": "result_stack",
+            "role": "hero"
+          }
+        ],
+        "interactions": [
+          {
+            "id": "int_focus_cmp_0",
+            "target": "cmp_0",
+            "kind": "focus",
+            "timing": {
+              "at_ms": 0
+            },
+            "on_complete": {
+              "emit": "focus_done"
+            }
+          },
+          {
+            "id": "int_insert_cmp_0",
+            "target": "cmp_0",
+            "kind": "insert_items",
+            "params": {
+              "items": [
+                "Result 1",
+                "Result 2",
+                "Result 3"
+              ],
+              "stagger_ms": 80
+            },
+            "timing": {
+              "delay": {
+                "after": "focus_done",
+                "offset_ms": 200
+              }
+            },
+            "on_complete": {
+              "emit": "insert_done"
+            }
+          },
+          {
+            "id": "int_settle_cmp_0",
+            "target": "cmp_0",
+            "kind": "settle",
+            "timing": {
+              "delay": {
+                "after": "insert_done",
+                "offset_ms": 200
+              }
+            }
+          }
+        ],
+        "camera_behavior": {
+          "mode": "reactive"
+        }
+      }
+    },
+    {
+      "index": 4,
+      "role": "benefit_proof",
+      "brief_section": null,
+      "duration_s": 3.8,
+      "duration_pct": 0.152,
+      "energy": "medium",
+      "camera_intent": "reveal",
+      "transition_in": {
+        "type": "match_cut_scale",
+        "duration_ms": 350
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "metric_card",
+        "ui_screenshot",
+        "text_overlay"
+      ],
+      "recommended_primitives": [
+        "ed-count-up",
+        "bk-stat-card-count-up",
+        "cd-draw-checks"
+      ],
+      "semantic_recommendation": {
+        "classification": {
+          "pacing": "moderate",
+          "camera_behavior": "push_in",
+          "interaction_type": "reveal"
+        },
+        "components": [
+          {
+            "id": "cmp_0",
+            "type": "result_stack",
+            "role": "hero"
+          }
+        ],
+        "interactions": [
+          {
+            "id": "int_focus_cmp_0",
+            "target": "cmp_0",
+            "kind": "focus",
+            "timing": {
+              "at_ms": 0
+            },
+            "on_complete": {
+              "emit": "focus_done"
+            }
+          },
+          {
+            "id": "int_insert_cmp_0",
+            "target": "cmp_0",
+            "kind": "insert_items",
+            "params": {
+              "items": [
+                "Result 1",
+                "Result 2",
+                "Result 3"
+              ],
+              "stagger_ms": 80
+            },
+            "timing": {
+              "delay": {
+                "after": "focus_done",
+                "offset_ms": 200
+              }
+            },
+            "on_complete": {
+              "emit": "insert_done"
+            }
+          },
+          {
+            "id": "int_settle_cmp_0",
+            "target": "cmp_0",
+            "kind": "settle",
+            "timing": {
+              "delay": {
+                "after": "insert_done",
+                "offset_ms": 200
+              }
+            }
+          }
+        ],
+        "camera_behavior": {
+          "mode": "reactive"
+        }
+      }
+    },
+    {
+      "index": 5,
+      "role": "cta_close",
+      "brief_section": "logo_lockup",
+      "duration_s": 2.5,
+      "duration_pct": 0.1,
+      "energy": "low",
+      "camera_intent": "inspect",
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "continuity_opportunities": [],
+      "recommended_layers": [
+        "text_hero",
+        "logo",
+        "background_solid"
+      ],
+      "recommended_primitives": [
+        "as-fadeIn",
+        "ed-slide-stagger",
+        "fade-in"
+      ]
+    }
+  ],
+  "energy_curve": [
+    "medium",
+    "medium",
+    "high",
+    "high",
+    "medium",
+    "low"
+  ],
+  "pacing_profile": {
+    "pattern": "build-and-resolve",
+    "energy_curve": [
+      "medium",
+      "medium",
+      "high",
+      "high",
+      "medium",
+      "low"
+    ],
+    "contrast_rule": "The two high-energy scenes (demo + zoom) form a sustained peak — resolve must follow immediately"
+  },
+  "audio_sync": null
+}

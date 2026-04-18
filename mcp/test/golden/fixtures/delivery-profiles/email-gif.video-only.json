@@ -1,0 +1,11 @@
+[
+  "-y",
+  "-framerate",
+  "15",
+  "-i",
+  "frames/frame_%06d.png",
+  "-vf",
+  "scale=600:338:flags=lanczos",
+  "-an",
+  "out/video.mp4"
+]

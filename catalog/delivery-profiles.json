@@ -12,6 +12,7 @@
     "preset": "slow",
     "dithering": true,
     "audio": { "codec": "aac", "bitrate_kbps": 192, "channels": 2, "sample_rate": 48000 },
+    "captions": { "mode": "sidecar", "format": "vtt", "default_on": false },
     "channels": ["website", "landing-page", "hero"]
   },
   {
@@ -27,6 +28,7 @@
     "preset": "medium",
     "dithering": false,
     "audio": { "codec": "aac", "bitrate_kbps": 128, "channels": 2, "sample_rate": 44100 },
+    "captions": { "mode": "sidecar", "format": "vtt", "default_on": false },
     "channels": ["embed", "iframe", "blog"]
   },
   {
@@ -42,6 +44,7 @@
     "preset": "medium",
     "dithering": false,
     "audio": { "codec": "aac", "bitrate_kbps": 128, "channels": 2, "sample_rate": 44100 },
+    "captions": { "mode": "burn_in", "default_on": true },
     "channels": ["instagram-feed", "linkedin", "product-hunt", "x"]
   },
   {
@@ -57,6 +60,7 @@
     "preset": "slow",
     "dithering": true,
     "audio": { "codec": "aac", "bitrate_kbps": 192, "channels": 2, "sample_rate": 48000 },
+    "captions": { "mode": "sidecar", "format": "vtt", "default_on": false },
     "channels": ["youtube", "linkedin-video", "website-background"]
   },
   {
@@ -72,6 +76,7 @@
     "preset": "medium",
     "dithering": false,
     "audio": { "codec": "aac", "bitrate_kbps": 128, "channels": 2, "sample_rate": 44100 },
+    "captions": { "mode": "burn_in", "default_on": true },
     "channels": ["instagram-story", "instagram-reel", "tiktok", "youtube-shorts"]
   },
   {
@@ -88,6 +93,7 @@
     "dithering": false,
     "quality": 90,
     "audio": null,
+    "captions": { "mode": "none", "default_on": false },
     "channels": ["email", "notion", "slack"]
   },
   {
@@ -103,6 +109,7 @@
     "preset": "slow",
     "dithering": true,
     "audio": { "codec": "aac", "bitrate_kbps": 192, "channels": 2, "sample_rate": 48000 },
+    "captions": { "mode": "sidecar", "format": "vtt", "default_on": false },
     "channels": ["keynote", "slides", "pitch-deck", "investor"]
   },
   {
@@ -118,6 +125,7 @@
     "preset": null,
     "dithering": false,
     "audio": { "codec": "pcm_s24le", "bitrate_kbps": null, "channels": 2, "sample_rate": 48000 },
+    "captions": { "mode": "sidecar", "format": "vtt", "default_on": false },
     "channels": ["archive", "editor-handoff", "re-encode"]
   }
 ]

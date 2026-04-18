@@ -56,6 +56,33 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
     "metadata": {
       "$ref": "#/$defs/metadata",
       "description": "Content classification for AI analysis. Optional for hand-authored scenes, required for AI-planned sequences."
+    },
+    "captions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/caption_cue" },
+      "description": "Burn-in caption cues (ANI-112). Scene-local timings (ms from scene start). Rendered as an overlay above camera transforms and rolled up into a sidecar .srt/.vtt by `render_project`. Cues must be sequential (no overlaps) and fit inside the scene duration."
+    },
+    "captions_style": {
+      "type": "object",
+      "description": "Per-scene overrides for caption typography + safe-zone insets. Any subset of { font_family, font_weight, font_size_pct, color, background, bottom_inset_pct, horizontal_inset_pct, padding_y_px, padding_x_px, border_radius_px, line_height } merges into the default Satoshi-based style defined in CaptionsOverlay.jsx."
+    }
+  }
+}
+```
+
+### Caption Cue Definition
+
+```json
+{
+  "$defs": {
+    "caption_cue": {
+      "type": "object",
+      "required": ["text", "start_ms", "end_ms"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "description": "Caption text. Single or multi-line (\\n for explicit breaks)." },
+        "start_ms": { "type": "number", "minimum": 0, "description": "Scene-local start time in milliseconds." },
+        "end_ms": { "type": "number", "exclusiveMinimum": 0, "description": "Scene-local end time in milliseconds. Must be greater than start_ms." }
+      }
     }
   }
 }

@@ -1,0 +1,150 @@
+[
+  {
+    "id": "enter.fade-up",
+    "semantic_intent": "Element entering the viewport on mount or scroll-in. Default entrance for content elements.",
+    "appropriate_contexts": ["card", "section", "modal-body", "list-item"],
+    "runtime_scope": ["framer-motion", "css-subset"],
+    "tokens": {
+      "duration": "var(--duration-quick)",
+      "easing": "var(--ease-out-quart)",
+      "from": { "opacity": 0, "y": 8 },
+      "to": { "opacity": 1, "y": 0 }
+    },
+    "interrupt_contract": {
+      "on_cancel": "snap-to-target",
+      "on_reverse": "reverse-time"
+    },
+    "accessibility_fallback": {
+      "reduced_motion": {
+        "from": { "opacity": 0 },
+        "to": { "opacity": 1 },
+        "differentiation": "Opacity-only fade preserves the enter signal; translation removed so vestibular users are not affected."
+      }
+    },
+    "tags": ["entrance", "primary"]
+  },
+  {
+    "id": "enter.fade-in",
+    "semantic_intent": "Element cross-fades into view. Non-directional entrance for overlays and background content.",
+    "appropriate_contexts": ["overlay", "backdrop", "image", "badge"],
+    "runtime_scope": ["framer-motion", "css-subset"],
+    "tokens": {
+      "duration": "var(--duration-quick)",
+      "easing": "var(--ease-out-quart)",
+      "from": { "opacity": 0 },
+      "to": { "opacity": 1 }
+    },
+    "interrupt_contract": {
+      "on_cancel": "snap-to-target",
+      "on_reverse": "reverse-time"
+    },
+    "accessibility_fallback": {
+      "reduced_motion": {
+        "from": { "opacity": 0 },
+        "to": { "opacity": 1 },
+        "differentiation": "Already opacity-only; the idle → visible transition still communicates the entrance without triggering motion-sensitivity concerns."
+      }
+    },
+    "tags": ["entrance"]
+  },
+  {
+    "id": "exit.fade-down",
+    "semantic_intent": "Element leaving the viewport. Fades and sinks 4px to signal departure.",
+    "appropriate_contexts": ["card", "modal-body", "toast", "list-item"],
+    "runtime_scope": ["framer-motion", "css-subset"],
+    "tokens": {
+      "duration": "var(--duration-quick)",
+      "easing": "var(--ease-in-quart)",
+      "from": { "opacity": 1, "y": 0 },
+      "to": { "opacity": 0, "y": 4 }
+    },
+    "interrupt_contract": {
+      "on_cancel": "snap-to-target",
+      "on_reverse": "reverse-time"
+    },
+    "accessibility_fallback": {
+      "reduced_motion": {
+        "from": { "opacity": 1 },
+        "to": { "opacity": 0 },
+        "differentiation": "Opacity-only fade preserves the exit signal without downward translation."
+      }
+    },
+    "tags": ["exit", "primary"]
+  },
+  {
+    "id": "enter.slide-right",
+    "semantic_intent": "Element slides in from the left edge. Used for side-entering elements and lateral list items.",
+    "appropriate_contexts": ["side-panel", "drawer", "list-item", "nav-item"],
+    "runtime_scope": ["framer-motion", "css-subset"],
+    "tokens": {
+      "duration": "var(--duration-moderate)",
+      "easing": "var(--ease-out-quart)",
+      "from": { "opacity": 0, "x": -16 },
+      "to": { "opacity": 1, "x": 0 }
+    },
+    "interrupt_contract": {
+      "on_cancel": "snap-to-target",
+      "on_reverse": "reverse-time"
+    },
+    "accessibility_fallback": {
+      "reduced_motion": {
+        "from": { "opacity": 0 },
+        "to": { "opacity": 1 },
+        "differentiation": "Opacity-only fade replaces lateral slide; directional intent is conveyed by surrounding layout, not motion."
+      }
+    },
+    "tags": ["entrance", "lateral"]
+  },
+  {
+    "id": "attention.pulse",
+    "semantic_intent": "Subtle scale ping to draw attention to newly arrived or changed data.",
+    "appropriate_contexts": ["badge", "counter", "notification-dot", "status-chip"],
+    "runtime_scope": ["framer-motion", "css-subset"],
+    "tokens": {
+      "duration": "var(--duration-slow)",
+      "easing": "var(--ease-in-out-quart)",
+      "from": { "scale": 1 },
+      "to": { "scale": 1.04 },
+      "repeat": 2,
+      "repeat_type": "mirror"
+    },
+    "interrupt_contract": {
+      "on_cancel": "snap-to-origin",
+      "on_reverse": "snap-to-origin"
+    },
+    "accessibility_fallback": {
+      "reduced_motion": {
+        "from": { "opacity": 0.7 },
+        "to": { "opacity": 1 },
+        "differentiation": "Opacity pulse replaces scale ping; the attention signal is preserved without scaling geometry."
+      }
+    },
+    "tags": ["attention", "loop"]
+  },
+  {
+    "id": "state.error",
+    "semantic_intent": "Error feedback on form fields and action buttons. Shake communicates rejection.",
+    "appropriate_contexts": ["input", "button", "form-field", "inline-validation"],
+    "runtime_scope": ["framer-motion", "css-subset"],
+    "tokens": {
+      "duration": "var(--duration-quick)",
+      "easing": "var(--ease-in-out-quart)",
+      "from": { "x": 0 },
+      "to": { "x": 6 },
+      "repeat": 3,
+      "repeat_type": "mirror"
+    },
+    "interrupt_contract": {
+      "on_cancel": "snap-to-origin",
+      "on_reverse": "snap-to-origin"
+    },
+    "accessibility_fallback": {
+      "reduced_motion": {
+        "from": { "border_color": "transparent" },
+        "to": { "border_color": "var(--color-error)" },
+        "differentiation": "Red error border replaces shake. Error state stays visually communicated — a silent fallback would hide the rejection."
+      }
+    },
+    "tags": ["state", "error", "feedback"]
+  }
+]

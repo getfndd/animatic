@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://animatic.dev/catalog/motion-recipes.schema.json",
+  "title": "Motion Recipes",
+  "description": "Preset DS motion token recipes. Each recipe maps a semantic intent (enter.fade-up, state.error) to primitive animation tokens (duration, easing, from/to keyframes), with required reduced-motion fallback and interrupt semantics. Consumed by @preset/motion runtime and scanned by Rand.",
+  "type": "array",
+  "items": { "$ref": "#/definitions/recipe" },
+  "minItems": 1,
+  "definitions": {
+    "recipe": {
+      "type": "object",
+      "required": [
+        "id",
+        "semantic_intent",
+        "appropriate_contexts",
+        "runtime_scope",
+        "tokens",
+        "interrupt_contract",
+        "accessibility_fallback"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(enter|exit|attention|state|route)\\.[a-z][a-z0-9-]*$",
+          "description": "Namespaced semantic ID. Format: category.intent (e.g. enter.fade-up). Describes what, not how."
+        },
+        "semantic_intent": {
+          "type": "string",
+          "minLength": 10,
+          "description": "One-sentence description of when this recipe is appropriate."
+        },
+        "appropriate_contexts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Surface types where this recipe belongs (e.g. card, modal-body, section)."
+        },
+        "runtime_scope": {
+          "type": "array",
+          "items": { "enum": ["framer-motion", "css-subset"] },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Runtimes that can render this recipe. css-subset requires opacity+transform only (no springs, no filter)."
+        },
+        "tokens": {
+          "type": "object",
+          "required": ["duration", "easing", "from", "to"],
+          "additionalProperties": false,
+          "properties": {
+            "duration": {
+              "type": "string",
+              "description": "Duration token reference or direct value (e.g. var(--duration-quick), 240ms)."
+            },
+            "easing": {
+              "type": "string",
+              "description": "Easing token reference, curve, or 'spring' (spring excludes css-subset)."
+            },
+            "from": { "$ref": "#/definitions/keyframe" },
+            "to": { "$ref": "#/definitions/keyframe" },
+            "repeat": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Loop count (for attention.* and state.* recipes)."
+            },
+            "repeat_type": {
+              "enum": ["loop", "mirror", "reverse"],
+              "description": "How to repeat when repeat > 1."
+            }
+          }
+        },
+        "interrupt_contract": {
+          "type": "object",
+          "required": ["on_cancel", "on_reverse"],
+          "additionalProperties": false,
+          "properties": {
+            "on_cancel": {
+              "enum": ["snap-to-target", "hold-current", "snap-to-origin"],
+              "description": "Behavior when the animation is cancelled mid-flight."
+            },
+            "on_reverse": {
+              "enum": ["reverse-time", "restart-reversed", "snap-to-origin"],
+              "description": "Behavior when direction is reversed mid-flight."
+            },
+            "on_resume": {
+              "enum": ["continue", "restart"],
+              "description": "Behavior when resumed after interrupt."
+            }
+          }
+        },
+        "accessibility_fallback": {
+          "type": "object",
+          "required": ["reduced_motion"],
+          "additionalProperties": false,
+          "properties": {
+            "reduced_motion": {
+              "type": "object",
+              "required": ["from", "to", "differentiation"],
+              "additionalProperties": false,
+              "properties": {
+                "from": { "$ref": "#/definitions/keyframe" },
+                "to": { "$ref": "#/definitions/keyframe" },
+                "differentiation": {
+                  "type": "string",
+                  "minLength": 10,
+                  "description": "How the reduced-motion variant still communicates the intent (e.g. 'red border replaces shake for error feedback'). Tested against silent fallbacks."
+                }
+              }
+            }
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional tags for knowledge graph ingest and search."
+        }
+      }
+    },
+    "keyframe": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Keyframe state. css-subset runtimes restrict to opacity + transform (x, y, scale, rotate).",
+      "properties": {
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "x": { "type": ["number", "string"] },
+        "y": { "type": ["number", "string"] },
+        "scale": { "type": "number", "minimum": 0 },
+        "rotate": { "type": ["number", "string"] },
+        "border_color": { "type": "string" }
+      }
+    }
+  }
+}

@@ -125,7 +125,7 @@
     "id": "state.error",
     "semantic_intent": "Error feedback on form fields and action buttons. Shake communicates rejection.",
     "appropriate_contexts": ["input", "button", "form-field", "inline-validation"],
-    "runtime_scope": ["framer-motion", "css-subset"],
+    "runtime_scope": ["framer-motion"],
     "tokens": {
       "duration": "var(--duration-quick)",
       "easing": "var(--ease-in-out-quart)",

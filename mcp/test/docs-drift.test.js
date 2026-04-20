@@ -26,10 +26,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
 
 function countToolsInServer() {
-  const src = readFileSync(resolve(ROOT, 'mcp/index.js'), 'utf-8');
-  // Tool registrations look like: { name: 'tool_name', description: '...', ... }
-  // Only count entries where the name is followed by description on the next line,
-  // which excludes the server name ('animatic') and resource entries.
+  // Tool definitions live in mcp/tools.js (ANI-142); count from there.
+  const src = readFileSync(resolve(ROOT, 'mcp/tools.js'), 'utf-8');
   const matches = [...src.matchAll(/name:\s*'([a-z_]+)',\s*\n\s*description:/g)];
   return matches.length;
 }
@@ -83,7 +81,7 @@ describe('docs/spec/code drift guards (ANI-109)', () => {
       const readmeCount = extractToolCountFromText(readme);
       const serverCount = countToolsInServer();
       assert.equal(readmeCount, serverCount,
-        `README.md says "${readmeCount} tools" but mcp/index.js has ${serverCount}. ` +
+        `README.md says "${readmeCount} tools" but mcp/tools.js has ${serverCount}. ` +
         `Update README.md to match the server.`);
     });
 
@@ -92,7 +90,7 @@ describe('docs/spec/code drift guards (ANI-109)', () => {
       const docsCount = extractToolCountFromText(docs);
       const serverCount = countToolsInServer();
       assert.equal(docsCount, serverCount,
-        `docs/cinematography/mcp-tools.md says "${docsCount} tools" but mcp/index.js has ${serverCount}. ` +
+        `docs/cinematography/mcp-tools.md says "${docsCount} tools" but mcp/tools.js has ${serverCount}. ` +
         `Update the doc to match the server.`);
     });
   });

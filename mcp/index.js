@@ -17,7 +17,7 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -78,16 +78,19 @@ const ROOT = resolve(__dirname, '..');
 
 // ── Load data at startup ────────────────────────────────────────────────────
 
-const primitivesCatalog = loadPrimitivesCatalog();
-const personalitiesCatalog = loadPersonalitiesCatalog();
-const intentMappings = loadIntentMappings();
+// Catalogs that may change during a session (catalog/* edits, REGISTRY.md
+// edits) are `let` so they can be reassigned by reloadCatalogsIfStale().
+// Catalogs that are stable for the life of the server stay `const`.
+let primitivesCatalog = loadPrimitivesCatalog();
+let personalitiesCatalog = loadPersonalitiesCatalog();
+let intentMappings = loadIntentMappings();
 const cameraGuardrails = loadCameraGuardrails();
 const stylePacksCatalog = loadStylePacks(
   personalitiesCatalog.array.map(p => p.slug)
 );
 const briefTemplatesCatalog = loadBriefTemplates();
 const recipesCatalog = loadRecipes();
-const registry = parseRegistry();
+let registry = parseRegistry();
 const breakdownIndex = parseBreakdownIndex();
 const sequenceArchetypes = JSON.parse(readFileSync(resolve(__dirname, '..', 'catalog', 'sequence-archetypes.json'), 'utf-8'));
 let _aiDemoArchetypes = null;
@@ -102,6 +105,55 @@ function getFinishPresets() {
 }
 
 console.error(`Animatic MCP: loaded ${primitivesCatalog.array.length} engine primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intent mappings, ${Object.keys(cameraGuardrails.primitive_amplitudes).length} guardrail amplitudes, ${breakdownIndex.length} breakdowns, ${stylePacksCatalog.array.length} style packs, ${briefTemplatesCatalog.array.length} brief templates`);
+
+// ── Hot reload ──────────────────────────────────────────────────────────────
+//
+// Catalog and registry files may be edited live during a Claude Code session
+// — typically when iterating on intent-mappings, primitive entries, or
+// REGISTRY.md. Without hot reload, tools surface stale data and the editor
+// has no signal that the change didn't take. We mtime-stat a small set of
+// files at the top of every CallTool request; if any has changed since the
+// last load, we re-run the loaders. Cost is ~5–10 stat calls per tool
+// invocation (sub-millisecond).
+
+const HOT_RELOAD_FILES = [
+  'catalog/primitives.json',
+  'catalog/personalities.json',
+  'catalog/intent-mappings.json',
+  '.claude/skills/animate/reference/primitives/REGISTRY.md',
+];
+const HOT_RELOAD_DIRS = ['catalog/compound'];
+
+function catalogMtimeKey() {
+  const parts = [];
+  for (const rel of HOT_RELOAD_FILES) {
+    try { parts.push(`${rel}:${statSync(resolve(ROOT, rel)).mtimeMs}`); } catch {}
+  }
+  for (const rel of HOT_RELOAD_DIRS) {
+    try {
+      const dir = resolve(ROOT, rel);
+      const files = readdirSync(dir).filter(f => f.endsWith('.json')).sort();
+      for (const f of files) {
+        try { parts.push(`${rel}/${f}:${statSync(resolve(dir, f)).mtimeMs}`); } catch {}
+      }
+    } catch {}
+  }
+  return parts.join('|');
+}
+
+let _lastCatalogKey = catalogMtimeKey();
+
+function reloadCatalogsIfStale() {
+  const key = catalogMtimeKey();
+  if (key === _lastCatalogKey) return false;
+  primitivesCatalog = loadPrimitivesCatalog();
+  personalitiesCatalog = loadPersonalitiesCatalog();
+  intentMappings = loadIntentMappings();
+  registry = parseRegistry();
+  _lastCatalogKey = key;
+  console.error(`Animatic MCP: catalog reload — ${primitivesCatalog.array.length} primitives, ${registry.entries.length} registry entries, ${intentMappings.array.length} intents`);
+  return true;
+}
 
 // ── Server setup ────────────────────────────────────────────────────────────
 
@@ -246,6 +298,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args = {} } = request.params;
   trackTool(name);
+  reloadCatalogsIfStale();
 
   switch (name) {
     case 'search_primitives':

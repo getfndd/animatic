@@ -204,3 +204,44 @@ describe('resolveRenderTargets — fintech-sizzle', () => {
     }
   });
 });
+
+describe('resolveRenderTargets — library-driven telemetry (ANI-145)', () => {
+  it('counts scenes whose layer.primitive references a lib-* slug', () => {
+    const scenes = [
+      { scene_id: 'sc_01', layers: [{ id: 'l1', type: 'html', primitive: 'lib-gsap-spring-stagger', content: 'x'.repeat(800) }] },
+      { scene_id: 'sc_02', layers: [{ id: 'l1', type: 'text' }] },
+    ];
+    const { routes, summary } = resolveRenderTargets(scenes);
+    assert.equal(summary.library_driven, 1);
+    assert.equal(routes[0].library_driven, true);
+    assert.ok(routes[1].library_driven == null,
+      'non-library-driven scenes should not be tagged');
+  });
+
+  it('detects library-driven via motion.compound and entrance.primitive', () => {
+    const scenes = [
+      { scene_id: 'sc_a', layers: [{ id: 'l1', type: 'html', motion: { compound: 'lib-framer-shared-layout' }, content: 'x'.repeat(800) }] },
+      { scene_id: 'sc_b', layers: [{ id: 'l1', type: 'html', entrance: { primitive: 'lib-gsap-radial-stagger' }, content: 'x'.repeat(800) }] },
+    ];
+    const { summary } = resolveRenderTargets(scenes);
+    assert.equal(summary.library_driven, 2);
+  });
+
+  it('estimated_capture_seconds tracks the routing mix', () => {
+    const scenes = [
+      { scene_id: 'sc_capture', layers: [{ id: 'l1', type: 'html', product_role: 'hero', content: '<div>'.repeat(200) }] },
+      { scene_id: 'sc_logo', product_role: 'atmosphere', layers: [] },
+      { scene_id: 'sc_cta', product_role: 'cta', layers: [] },
+    ];
+    const { summary } = resolveRenderTargets(scenes);
+    assert.equal(summary.browser_capture, 1);
+    assert.equal(summary.remotion_native, 2);
+    assert.equal(summary.estimated_capture_seconds, 8 + 1 + 1);
+  });
+
+  it('empty scenes array returns zeroed summary including new fields', () => {
+    const { summary } = resolveRenderTargets([]);
+    assert.equal(summary.library_driven, 0);
+    assert.equal(summary.estimated_capture_seconds, 0);
+  });
+});

@@ -126,6 +126,13 @@
           "type": "string",
           "minLength": 1,
           "description": "ESM specifier prototypes will use (e.g. 'gsap', 'motion/react')."
+        },
+        "plugins": {
+          "type": "array",
+          "items": { "type": "string" },
+          "maxItems": 0,
+          "default": [],
+          "description": "GSAP / Framer Motion plugin allowlist. Currently restricted to maxItems: 0 — adding a plugin requires its own determinism spike (see ANI-143 spec) AND a maxItems bump in this schema. The validator additionally inspects the prototype_template and rejects any plugin import not listed here."
         }
       }
     },

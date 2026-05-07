@@ -125,11 +125,11 @@ When a storyboard scene's intent maps to a library-driven compound primitive, `/
 
 Library-driven compound scenes route to `browser_capture` automatically (the existing `render-routing.js` heuristics already favor this for HTML-heavy layers). `assemble_video_sequence` composites the resulting plate with native Remotion scenes as it does today. No new render path is required.
 
-## Open questions
+## Resolved questions (ANI-145)
 
-- Should `flavor: "library-driven"` primitives carry a personality blacklist? GSAP's `back.out` overshoot reads as "kinetic" and may clash with `editorial`. Initial guidance is to keep `personality_affinity` per-entry rather than per-flavor.
-- Capture cost: each library-driven scene requires `browser_capture`, which is ~5–10× slower than `remotion_native`. Worth tracking per-scene in render-routing telemetry to surface when the long tail outgrows the budget.
-- Should the registry support a `gsap-plugin` allowlist before any plugin lands, so a wrong plugin can't sneak in via copy-paste?
+- **Personality fit**: kept per-entry `personality_affinity` rather than a per-flavor blacklist. Validator emits an advisory warning when an entry declares all four personalities — a near-certain over-claim, since each personality carries tone (overshoot for cinematic-dark, restraint for tutorial) the others reject.
+- **Capture cost**: `resolveRenderTargets` summary now includes `library_driven` (count) and `estimated_capture_seconds` (rough budget — browser_capture and hybrid each cost ~8–10s; remotion_native ~1s). Surfaces budget pressure as the long tail grows without imposing a hard cap.
+- **Plugin allowlist**: schema's `library.plugins[]` exists with `maxItems: 0`. Adding a plugin requires both a schema bump (controlled, reviewable change) and the per-plugin determinism spike documented above. The validator additionally inspects each `prototype_template` for known GSAP plugin imports (`gsap/ScrollTrigger`, `registerPlugin(MotionPathPlugin)`, etc.) and rejects any not declared on the entry. This is enforced today even though no plugins are allowed yet — the door is locked, not just closed.
 
 ## References
 

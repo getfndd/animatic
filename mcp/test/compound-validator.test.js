@@ -10,7 +10,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -152,6 +152,58 @@ describe('compound primitive validator — required base fields', () => {
     entry.source = 'engine';
     const { ok } = validateCompoundEntry(entry);
     assert.equal(ok, false);
+  });
+});
+
+describe('compound primitive validator — affinity over-claim warning', () => {
+  it('warns when a library-driven entry declares all four personalities', () => {
+    const entry = baseLibraryDriven();
+    entry.personality_affinity = ['cinematic-dark', 'editorial', 'neutral-light', 'montage'];
+    const { ok, warnings } = validateCompoundEntry(entry);
+    assert.equal(ok, true, 'over-claim is advisory, not blocking');
+    assert.ok(warnings.some(w => /over-claim|all four|narrow/i.test(w)),
+      `expected over-claim warning; got: ${warnings.join(' | ')}`);
+  });
+
+  it('does not warn when affinity is a strict subset', () => {
+    const entry = baseLibraryDriven();
+    entry.personality_affinity = ['cinematic-dark', 'editorial'];
+    const { warnings } = validateCompoundEntry(entry);
+    assert.equal(warnings.length, 0);
+  });
+});
+
+describe('compound primitive validator — GSAP plugin allowlist', () => {
+  it('rejects a prototype that imports a GSAP plugin not declared in library.plugins', () => {
+    const entry = baseLibraryDriven();
+    // Point the entry at a synthetic prototype that imports ScrollTrigger.
+    const tmpName = `lib-spike-plugin-${Date.now()}.html`;
+    const tmpPath = resolve(REPO_ROOT, 'catalog/compound/templates', tmpName);
+    const html = `<!DOCTYPE html><html><head>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+</head><body><div class="scene">dwell: 1000</div>
+<script>gsap.registerPlugin(ScrollTrigger);</script>
+</body></html>`;
+    writeFileSync(tmpPath, html);
+    entry.prototype_template = `catalog/compound/templates/${tmpName}`;
+    try {
+      const { ok, errors } = validateCompoundEntry(entry);
+      assert.equal(ok, false);
+      assert.ok(errors.some(e => /ScrollTrigger/.test(e)),
+        `expected error mentioning ScrollTrigger; got: ${errors.join(' | ')}`);
+    } finally {
+      unlinkSync(tmpPath);
+    }
+  });
+
+  it('schema rejects library.plugins with any items (current restriction)', () => {
+    const entry = baseLibraryDriven();
+    entry.library.plugins = ['ScrollTrigger'];
+    const { ok, errors } = validateCompoundEntry(entry);
+    assert.equal(ok, false);
+    assert.ok(errors.some(e => /maxItems|plugins/i.test(e)),
+      `expected schema error about plugins.maxItems; got: ${errors.join(' | ')}`);
   });
 });
 

@@ -41,13 +41,49 @@ function getPackageVersions() {
   return _packageVersions;
 }
 
+// Known GSAP plugin import signals. If a prototype imports any of these and
+// the entry's library.plugins[] doesn't list it, the validator rejects.
+// Plugins are out of scope per the ANI-143 spec — adding a new plugin
+// requires its own determinism spike.
+const GSAP_PLUGIN_NAMES = [
+  'ScrollTrigger', 'ScrollSmoother', 'ScrollToPlugin', 'MotionPathPlugin',
+  'MotionPathHelper', 'Draggable', 'Flip', 'TextPlugin', 'PixiPlugin',
+  'EaselPlugin', 'Observer', 'CustomEase', 'CustomBounce', 'CustomWiggle',
+  'DrawSVGPlugin', 'MorphSVGPlugin', 'Physics2DPlugin', 'PhysicsPropsPlugin',
+  'GSDevTools', 'InertiaPlugin', 'SplitText',
+];
+
+const PLUGIN_PATH_PATTERN = /gsap\/(?:dist\/)?([A-Z][A-Za-z0-9]+)/g;
+const PLUGIN_REGISTER_PATTERN = /gsap\.registerPlugin\s*\(\s*([^)]+)\)/g;
+
+/**
+ * Detect GSAP plugin imports in a prototype HTML string. Returns the unique
+ * set of plugin names referenced. The check is conservative — it errs on the
+ * side of flagging things, and the caller compares against an explicit
+ * allowlist on the entry.
+ */
+function detectGsapPlugins(html) {
+  const found = new Set();
+  for (const match of html.matchAll(PLUGIN_PATH_PATTERN)) {
+    const name = match[1];
+    if (GSAP_PLUGIN_NAMES.includes(name)) found.add(name);
+  }
+  for (const match of html.matchAll(PLUGIN_REGISTER_PATTERN)) {
+    for (const ident of match[1].split(',').map(s => s.trim())) {
+      if (GSAP_PLUGIN_NAMES.includes(ident)) found.add(ident);
+    }
+  }
+  return [...found];
+}
+
 /**
  * Validate one compound primitive entry against the schema and cross-file
- * invariants. Returns { ok: boolean, errors: string[] }. Errors are
- * human-readable strings — caller can format them however.
+ * invariants. Returns { ok: boolean, errors: string[], warnings: string[] }.
+ * Errors block; warnings are advisory.
  */
 export function validateCompoundEntry(entry) {
   const errors = [];
+  const warnings = [];
   const validate = getValidator();
   if (!validate(entry)) {
     for (const err of validate.errors || []) {
@@ -69,9 +105,47 @@ export function validateCompoundEntry(entry) {
         `consistent with the installed library`
       );
     }
+
+    // Affinity over-claim lint: a library-driven primitive that lists all
+    // four personalities is almost certainly mis-tagged. The library can
+    // technically render in any register, but registers carry tone (montage
+    // wants hard cuts; tutorial wants restraint) — declaring all four is
+    // either a copy-paste mistake or a primitive too generic to be useful.
+    if (Array.isArray(entry.personality_affinity) && entry.personality_affinity.length === 4) {
+      warnings.push(
+        `personality_affinity declares all four personalities — likely an ` +
+        `over-claim. Library-driven primitives carry tonal weight (overshoot, ` +
+        `spring physics, layout morph) that rarely fits every register. ` +
+        `Narrow to the registers where this entry actually belongs.`
+      );
+    }
+
+    // Plugin allowlist enforcement. The schema currently rejects any
+    // library.plugins[] entry (empty enum), so the only way a prototype can
+    // smuggle a plugin in is by importing it directly. Read the template and
+    // confirm no plugin imports appear unless library.plugins[] would allow
+    // them (currently always empty — explicit enum opens this in the future).
+    if (entry.library.name === 'gsap' && entry.prototype_template) {
+      try {
+        const html = readFileSync(resolve(REPO_ROOT, entry.prototype_template), 'utf-8');
+        const found = detectGsapPlugins(html);
+        const allowed = new Set(entry.library.plugins || []);
+        const unauthorized = found.filter(p => !allowed.has(p));
+        if (unauthorized.length > 0) {
+          errors.push(
+            `prototype_template imports GSAP plugin(s) not declared in ` +
+            `library.plugins: [${unauthorized.join(', ')}]. Plugins are out ` +
+            `of scope per ANI-143 — adding one requires its own determinism ` +
+            `spike before the schema enum can be widened.`
+          );
+        }
+      } catch {
+        // Missing template is caught by a separate test; silent here.
+      }
+    }
   }
 
-  return { ok: errors.length === 0, errors };
+  return { ok: errors.length === 0, errors, warnings };
 }
 
 /**
@@ -79,7 +153,8 @@ export function validateCompoundEntry(entry) {
  * Skips array-form files (hero-moments.json, collage-boards.json) which are
  * loaded separately and follow a different shape.
  *
- * Returns { ok, results: [{ file, ok, errors }] }.
+ * Returns { ok, results: [{ file, ok, errors, warnings }] }. ok is true when
+ * no entry has hard errors; warnings do not block.
  */
 export function validateAllCompoundEntries() {
   const files = readdirSync(COMPOUND_DIR).filter(f => f.endsWith('.json'));
@@ -87,8 +162,8 @@ export function validateAllCompoundEntries() {
   for (const f of files) {
     const data = JSON.parse(readFileSync(resolve(COMPOUND_DIR, f), 'utf-8'));
     if (Array.isArray(data)) continue;
-    const { ok, errors } = validateCompoundEntry(data);
-    results.push({ file: f, ok, errors });
+    const { ok, errors, warnings } = validateCompoundEntry(data);
+    results.push({ file: f, ok, errors, warnings });
   }
   return {
     ok: results.every(r => r.ok),

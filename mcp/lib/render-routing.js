@@ -20,17 +20,50 @@ const REMOTION_NATIVE_TYPES = ['text', 'svg', 'card_conveyor', 'stack_fan_settle
 // Patterns that signal browser-dependent rendering
 const BROWSER_SIGNALS = /gradient|filter|backdrop|clip-path|mask|animation|@keyframes|transform.*3d|perspective/i;
 
+// Rough per-scene capture cost in seconds. Browser_capture spawns Puppeteer
+// + ffmpeg per scene (~8s); hybrid does the same plus a Remotion compose
+// pass (~10s); remotion_native renders direct in Remotion (~1s); web_native
+// isn't captured at all. Numbers are intentionally coarse — the goal is to
+// surface budget pressure as the long tail grows, not to predict to the ms.
+const CAPTURE_COST_SECONDS = {
+  browser_capture: 8,
+  hybrid: 10,
+  remotion_native: 1,
+  web_native: 0,
+};
+
+/** Scan a scene's layers for primitive references targeting library-driven
+ * compound primitives (slug prefix lib-). Used for capture-cost telemetry. */
+function isLibraryDrivenScene(scene) {
+  const layers = scene?.layers || [];
+  for (const l of layers) {
+    if (typeof l.primitive === 'string' && l.primitive.startsWith('lib-')) return true;
+    if (typeof l.entrance?.primitive === 'string' && l.entrance.primitive.startsWith('lib-')) return true;
+    if (typeof l.motion?.compound === 'string' && l.motion.compound.startsWith('lib-')) return true;
+  }
+  return false;
+}
+
+const EMPTY_SUMMARY = () => ({
+  browser_capture: 0,
+  remotion_native: 0,
+  web_native: 0,
+  hybrid: 0,
+  library_driven: 0,
+  estimated_capture_seconds: 0,
+});
+
 /**
  * Resolve render targets for an array of scenes.
  *
  * @param {object[]} scenes - Annotated scene definitions
  * @param {object} [options]
  * @param {object} [options.defaults] - Default capture config
- * @returns {{ routes: object[], summary: { browser_capture: number, remotion_native: number, web_native: number, hybrid: number } }}
+ * @returns {{ routes: object[], summary: { browser_capture: number, remotion_native: number, web_native: number, hybrid: number, library_driven: number, estimated_capture_seconds: number } }}
  */
 export function resolveRenderTargets(scenes, options = {}) {
   if (!scenes || !Array.isArray(scenes)) {
-    return { routes: [], summary: { browser_capture: 0, remotion_native: 0, web_native: 0, hybrid: 0 } };
+    return { routes: [], summary: EMPTY_SUMMARY() };
   }
 
   const defaults = options.defaults || {
@@ -42,9 +75,15 @@ export function resolveRenderTargets(scenes, options = {}) {
 
   const routes = scenes.map(scene => resolveScene(scene, defaults));
 
-  const summary = { browser_capture: 0, remotion_native: 0, web_native: 0, hybrid: 0 };
-  for (const r of routes) {
+  const summary = EMPTY_SUMMARY();
+  for (let i = 0; i < routes.length; i++) {
+    const r = routes[i];
     if (summary[r.render_target] != null) summary[r.render_target]++;
+    if (isLibraryDrivenScene(scenes[i])) {
+      summary.library_driven++;
+      r.library_driven = true;
+    }
+    summary.estimated_capture_seconds += CAPTURE_COST_SECONDS[r.render_target] || 0;
   }
 
   return { routes, summary };

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Framer Motion Shared Layout</title>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.0.0",
+    "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client?deps=react@19.0.0",
+    "motion/react": "https://esm.sh/motion@12.0.0/react?deps=react@19.0.0,react-dom@19.0.0&external=react,react-dom"
+  }
+}
+</script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #0a0a0a;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    color: #e8e8e8;
+    overflow: hidden;
+  }
+  .scene {
+    width: 800px;
+    height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .label {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 13px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .card {
+    background: linear-gradient(180deg, #1f1f1f 0%, #141414 100%);
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: default;
+  }
+  .card-thumb {
+    width: 120px;
+    height: 160px;
+  }
+  .card-hero {
+    width: 560px;
+    height: 380px;
+  }
+  .card-image {
+    width: 100%;
+    height: 60%;
+    background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  }
+  .card-image-hero {
+    height: 65%;
+    background: linear-gradient(135deg, #3a3a3a 0%, #1a1a1a 100%);
+  }
+  .card-body {
+    padding: 12px 16px;
+  }
+  .card-title-thumb {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .card-title-hero {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .card-meta {
+    font-size: 11px;
+    color: #777;
+    margin-top: 6px;
+  }
+  .card-body-hero p {
+    font-size: 14px;
+    color: #b8b8b8;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .marker {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 11px;
+    color: #555;
+    font-family: ui-monospace, monospace;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module">
+  import React, { useEffect, useState } from 'react';
+  import { createRoot } from 'react-dom/client';
+  import { motion, LayoutGroup } from 'motion/react';
+
+  // Phase definition for capture-prototype.mjs duration detection.
+  const PHASES = [{ dwell: 4500 }];
+
+  function Scene() {
+    const [expanded, setExpanded] = useState(false);
+    const [tick, setTick] = useState(0);
+
+    // Phase loop: thumb → expanded → thumb. Framer Motion handles the
+    // FLIP between the two states automatically because both elements
+    // share layoutId="cardA". CSS would require imperative measure-and-
+    // invert code per element to achieve the same morph.
+    useEffect(() => {
+      const t1 = setTimeout(() => setExpanded(true), 800);
+      const t2 = setTimeout(() => setExpanded(false), 3200);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }, [expanded]);
+
+    useEffect(() => {
+      let raf;
+      const loop = () => {
+        setTick(performance.now() | 0);
+        raf = requestAnimationFrame(loop);
+      };
+      raf = requestAnimationFrame(loop);
+      return () => cancelAnimationFrame(raf);
+    }, []);
+
+    return React.createElement(
+      'div', { className: 'scene' },
+      React.createElement('div', { className: 'marker' },
+        `t=${tick}ms framer=layoutId`),
+      React.createElement('div', { className: 'label' },
+        expanded ? 'Expanded — same layoutId, FLIP-driven morph' : 'Thumbnail'),
+      React.createElement(LayoutGroup, null,
+        !expanded
+          ? React.createElement(motion.div, {
+              key: 'thumb',
+              layoutId: 'cardA',
+              className: 'card card-thumb',
+              transition: { type: 'spring', stiffness: 320, damping: 32 },
+            },
+              React.createElement(motion.div, { layoutId: 'cardA-image', className: 'card-image' }),
+              React.createElement('div', { className: 'card-body' },
+                React.createElement(motion.div, { layoutId: 'cardA-title', className: 'card-title-thumb' }, 'Aurora'),
+                React.createElement(motion.div, { layoutId: 'cardA-meta', className: 'card-meta' }, '2026 · 3min')
+              )
+            )
+          : React.createElement(motion.div, {
+              key: 'hero',
+              layoutId: 'cardA',
+              className: 'card card-hero',
+              transition: { type: 'spring', stiffness: 320, damping: 32 },
+            },
+              React.createElement(motion.div, { layoutId: 'cardA-image', className: 'card-image card-image-hero' }),
+              React.createElement('div', { className: 'card-body card-body-hero' },
+                React.createElement(motion.div, { layoutId: 'cardA-title', className: 'card-title-hero' }, 'Aurora'),
+                React.createElement(motion.div, { layoutId: 'cardA-meta', className: 'card-meta' }, '2026 · 3min · Read'),
+                React.createElement('p', null, 'A short narrative about light, color, and the way attention moves through a composition. Same element, two layouts — Framer Motion handles the geometry transform automatically.')
+              )
+            )
+      )
+    );
+  }
+
+  // Pin React via ?deps=react@19.0.0 in importmap to avoid the dual-React
+  // useContext failure — see memory reference_framer_motion_esm_dual_react.md.
+  createRoot(document.getElementById('root')).render(React.createElement(Scene));
+</script>
+</body>
+</html>

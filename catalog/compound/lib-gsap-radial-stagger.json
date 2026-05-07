@@ -1,0 +1,65 @@
+{
+  "name": "GSAP Radial Stagger",
+  "slug": "lib-gsap-radial-stagger",
+  "source": "compound",
+  "flavor": "library-driven",
+  "requires_js": true,
+  "category": "compound-entrance",
+  "description": "Wavefront grid expansion driven by gsap.utils.distribute({ from: 'center' }). Each cell receives a per-position delay proportional to its distance from the grid origin, producing a radial reveal CSS keyframes cannot express because animation-delay is a static per-element value, not derivable from 2D position. No GSAP plugins required — uses core distribute() with the grid + from + amount + ease arguments.",
+  "default_duration": "4500ms",
+  "personality_affinity": ["cinematic-dark", "montage"],
+  "library": {
+    "name": "gsap",
+    "version": "^3.12.0",
+    "import": "gsap"
+  },
+  "capture_contract": {
+    "needs_adapter": true,
+    "boot_ms": 600,
+    "real_time_dependencies": []
+  },
+  "prototype_template": "catalog/compound/templates/lib-gsap-radial-stagger.html",
+  "config_schema": {
+    "rows": {
+      "type": "number",
+      "default": 7,
+      "description": "Grid rows. The total cell count is rows × cols; keep under ~50 cells to avoid DOM perf hits during capture."
+    },
+    "cols": {
+      "type": "number",
+      "default": 7,
+      "description": "Grid columns."
+    },
+    "amount": {
+      "type": "number",
+      "default": 1.4,
+      "description": "Total stagger time (seconds). Distribute() spreads this across all cells from origin to edges."
+    },
+    "from": {
+      "type": "string",
+      "default": "center",
+      "description": "Origin keyword: 'center', 'edges', 'start', 'end', 'random', or a [row, col] tuple. See gsap.utils.distribute docs."
+    },
+    "entrance_ease": {
+      "type": "string",
+      "default": "back.out(1.4)",
+      "description": "Per-cell entrance ease."
+    },
+    "distribute_ease": {
+      "type": "string",
+      "default": "power2.out",
+      "description": "Ease applied to the distance-to-delay mapping itself — controls whether the wavefront accelerates or decelerates as it propagates."
+    }
+  },
+  "when_to_use": [
+    "Grid reveals where the wavefront direction carries meaning (e.g. content radiating from a focal point)",
+    "Hero entrances that should feel kinetic and physics-driven without being literally physical",
+    "Montage scenes where coordinated multi-element entry establishes scale or volume"
+  ],
+  "when_to_avoid": [
+    "Sequential reveals where reading order matters — readers track left-to-right, not center-out",
+    "Editorial scenes — the radial pattern reads too kinetic for content-forward registers",
+    "Tutorials — distracts from the focused-attention model neutral-light demands"
+  ],
+  "ai_guidance": "Distinctive GSAP-only choreography. The hook is gsap.utils.distribute with grid + from arguments — drives per-element delays from 2D position. Uses core GSAP, no plugins required. The capture pipeline auto-attaches the GSAP adapter when window.gsap is present. For React/ESM prototypes, call window.__animaticSyncGsap?.(gsap) once after import. See prototype_template for the complete pattern."
+}

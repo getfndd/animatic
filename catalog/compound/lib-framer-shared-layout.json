@@ -1,0 +1,55 @@
+{
+  "name": "Framer Motion Shared Layout Transition",
+  "slug": "lib-framer-shared-layout",
+  "source": "compound",
+  "flavor": "library-driven",
+  "requires_js": true,
+  "category": "compound-transition",
+  "description": "Two phases of the same content (e.g. thumbnail → hero) share a layoutId. Framer Motion measures the start state, the end state, inverts the delta, plays the transform back to identity, and releases — the full FLIP technique handled automatically. Sub-elements (image, title, meta) carry their own layoutIds so they morph in coordinated parallel rather than crossfading. CSS keyframes cannot express this without imperative measure-and-invert code per element.",
+  "default_duration": "4500ms",
+  "personality_affinity": ["editorial", "cinematic-dark"],
+  "library": {
+    "name": "motion",
+    "version": "^12.0.0",
+    "import": "motion/react"
+  },
+  "capture_contract": {
+    "needs_adapter": false,
+    "boot_ms": 600,
+    "real_time_dependencies": []
+  },
+  "prototype_template": "catalog/compound/templates/lib-framer-shared-layout.html",
+  "config_schema": {
+    "expand_at_ms": {
+      "type": "number",
+      "default": 800,
+      "description": "When to trigger the expand transition (ms from scene start)."
+    },
+    "collapse_at_ms": {
+      "type": "number",
+      "default": 3200,
+      "description": "When to trigger the collapse back to the thumb state (ms from scene start)."
+    },
+    "stiffness": {
+      "type": "number",
+      "default": 320,
+      "description": "Spring stiffness on the layout transition. Higher = snappier morph."
+    },
+    "damping": {
+      "type": "number",
+      "default": 32,
+      "description": "Spring damping. Higher = less overshoot."
+    }
+  },
+  "when_to_use": [
+    "Thumbnail-to-hero reveals where the same content should feel like one element morphing, not two crossfading",
+    "Card-to-modal patterns where preserving identity through the transition is the point",
+    "Editorial scenes that want a content-first morph rather than a kinetic stagger"
+  ],
+  "when_to_avoid": [
+    "Pure entrance animations where there's no 'start' state to measure from — use lib-framer-spring-stagger instead",
+    "Scenes with many elements morphing simultaneously — Framer's layout measurement scales linearly with layoutId count",
+    "Vanilla HTML scenes — this requires React for AnimatePresence + LayoutGroup"
+  ],
+  "ai_guidance": "Showcase of Framer Motion's killer feature: layoutId-driven shared element transitions. The two phases render different markup but share layoutId values, so Framer Motion correlates them and animates the geometry. Sub-elements carry their own layoutIds (cardA-image, cardA-title, cardA-meta) so they morph in coordinated parallel. No capture adapter required — Framer Motion rides on patched rAF + performance.now(). Pin React via ?deps=react@19.0.0 on every esm.sh dep — without it, motion/react imports a second copy of React and useContext fails."
+}

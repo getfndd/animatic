@@ -62,6 +62,9 @@ Read the appropriate template:
 - `sidebar`: `.claude/skills/prototype/templates/chrome-sidebar.html`
 - `full`: `.claude/skills/prototype/templates/chrome-full.html`
 
+If the prototype is being emitted to satisfy a `flavor: "library-driven"` compound primitive (see `catalog/compound/lib-*.json`), additionally read:
+- `.claude/skills/prototype/templates/library-driven-primitive.md` — capture-contract recipe for GSAP / Framer Motion prototypes. Failing to follow this produces blank captures or non-deterministic playback.
+
 ### 4. Query Design System Context (spec fidelity only)
 
 For `spec` fidelity, you MUST query the ITO Design System MCP:

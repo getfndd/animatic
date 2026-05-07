@@ -1,0 +1,55 @@
+{
+  "name": "GSAP Spring Stagger",
+  "slug": "lib-gsap-spring-stagger",
+  "source": "compound",
+  "flavor": "library-driven",
+  "requires_js": true,
+  "category": "compound-entrance",
+  "description": "Sequenced GSAP timeline that staggers a row of elements in with back.out overshoot, eases a numeric counter alongside, holds, then exits with reverse stagger. The canonical case CSS keyframes can't express — multiple targets choreographed on one timeline with a custom ease and a non-DOM tween (counter) firing onUpdate per frame.",
+  "default_duration": "4000ms",
+  "personality_affinity": ["cinematic-dark", "editorial"],
+  "library": {
+    "name": "gsap",
+    "version": "^3.12.0",
+    "import": "gsap"
+  },
+  "capture_contract": {
+    "needs_adapter": true,
+    "boot_ms": 600,
+    "real_time_dependencies": []
+  },
+  "prototype_template": "catalog/compound/templates/lib-gsap-spring-stagger.html",
+  "config_schema": {
+    "stagger_ms": {
+      "type": "number",
+      "default": 80,
+      "description": "Delay between each element's entrance (ms). Translates to GSAP's stagger value (seconds) as stagger_ms / 1000."
+    },
+    "entrance_ease": {
+      "type": "string",
+      "default": "back.out(1.6)",
+      "description": "GSAP ease string for the entrance tween. back.out gives the signature overshoot."
+    },
+    "counter_target": {
+      "type": "number",
+      "default": 100,
+      "description": "Final value of the numeric counter tween."
+    },
+    "hold_ms": {
+      "type": "number",
+      "default": 1500,
+      "description": "Hold duration after entrance + counter complete, before exit begins (ms)."
+    }
+  },
+  "when_to_use": [
+    "Multi-element entrances where the sequence itself carries meaning (e.g. cards revealing one-by-one with overshoot)",
+    "Scenes that combine DOM motion with a numeric tween (counter, progress) on the same timeline",
+    "Cinematic-dark hero moments that need a custom ease beyond CSS cubic-bezier"
+  ],
+  "when_to_avoid": [
+    "Single-element transitions — the timeline orchestration is overkill",
+    "Scenes that need React-tree composition — use lib-framer-spring-stagger instead",
+    "Neutral-light tutorials — back.out overshoot reads too kinetic for the tutorial register"
+  ],
+  "ai_guidance": "First library-driven compound primitive. The capture pipeline auto-attaches the GSAP adapter (disables lagSmoothing, uncaps ticker.fps) when window.gsap is present. ESM prototypes that import gsap from a bundler must call window.__animaticSyncGsap?.(gsap) once after import — it's a no-op outside capture mode. The prototype_template demonstrates the full pattern."
+}

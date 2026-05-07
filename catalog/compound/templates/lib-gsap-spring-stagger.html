@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSAP Capture Adapter Spike</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #0a0a0a;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    color: #e8e8e8;
+    overflow: hidden;
+  }
+  .scene {
+    width: 800px;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    position: relative;
+  }
+  .row {
+    display: flex;
+    gap: 16px;
+  }
+  .card {
+    width: 80px;
+    height: 110px;
+    background: linear-gradient(180deg, #1f1f1f 0%, #141414 100%);
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(40px) scale(0.9);
+  }
+  .counter {
+    font-size: 64px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+  .label {
+    font-size: 13px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  /* Capture-mode marker — the test asserts this element's text reflects
+     deterministic timeline progression. */
+  .marker {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 11px;
+    color: #555;
+    font-family: ui-monospace, monospace;
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="marker" id="marker">init</div>
+  <div class="label">Spring stagger via GSAP timeline</div>
+  <div class="row" id="cards">
+    <div class="card">1</div>
+    <div class="card">2</div>
+    <div class="card">3</div>
+    <div class="card">4</div>
+    <div class="card">5</div>
+  </div>
+  <div class="counter" id="counter">0</div>
+</div>
+
+<script>
+  // Phase definition — capture-prototype.mjs reads `dwell` to size the capture.
+  const PHASES = [{ dwell: 4000 }];
+  const loopPause = 1000;
+
+  function buildTimeline() {
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: loopPause / 1000 });
+
+    // Stagger entrance — the canonical "GSAP timeline" choreography that
+    // CSS keyframes can't easily express (custom ease + sequenced delays + a
+    // separate tween targeting a counter, all on one timeline).
+    tl.to('.card', {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.6,
+      ease: 'back.out(1.6)',
+      stagger: 0.08,
+    });
+
+    // Counter tween — GSAP eases a numeric property and we render it
+    // each tick. This proves rAF callbacks are firing on virtual time.
+    const counter = { value: 0 };
+    const el = document.getElementById('counter');
+    tl.to(counter, {
+      value: 100,
+      duration: 1.6,
+      ease: 'power2.out',
+      onUpdate: () => { el.textContent = Math.round(counter.value); },
+    }, '<0.2');
+
+    // Hold, then exit
+    tl.to('.card', {
+      opacity: 0,
+      y: -30,
+      scale: 0.95,
+      duration: 0.5,
+      ease: 'power2.in',
+      stagger: 0.05,
+    }, '+=1.5');
+
+    // Diagnostic marker — updates each frame so we can confirm
+    // capture is running on virtual time.
+    const marker = document.getElementById('marker');
+    gsap.ticker.add(() => {
+      marker.textContent = `t=${performance.now().toFixed(0)}ms gsap=${window.__gsapCaptureAdapter ? 'sync' : 'async'}`;
+    });
+
+    return tl;
+  }
+
+  buildTimeline();
+</script>
+</body>
+</html>

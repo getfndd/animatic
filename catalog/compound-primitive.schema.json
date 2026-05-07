@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://animatic.dev/catalog/compound-primitive.schema.json",
+  "title": "Compound Primitive",
+  "description": "Compound primitive registry entry. Compound primitives express choreography that CSS keyframes cannot — physics-driven motion, multi-target timelines, phase state machines. Two flavors: 'remotion-native' (bespoke Remotion component, default) and 'library-driven' (delegates to a vetted external library — gsap or motion). The library-driven flavor was added in ANI-143; pre-existing compound entries default to remotion-native.",
+  "type": "object",
+  "required": [
+    "name",
+    "slug",
+    "source",
+    "category",
+    "description",
+    "personality_affinity",
+    "when_to_use",
+    "when_to_avoid",
+    "ai_guidance"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Human-readable name."
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z]{2,4}-[a-z0-9-]+$",
+      "description": "Unique slug. Convention: prefix-name (e.g. bd-card-conveyor, lib-gsap-spring-stagger)."
+    },
+    "source": {
+      "const": "compound",
+      "description": "All entries in catalog/compound/ have source: compound."
+    },
+    "flavor": {
+      "enum": ["remotion-native", "library-driven"],
+      "default": "remotion-native",
+      "description": "remotion-native: bespoke Remotion component (existing entries). library-driven: delegates to an approved external library."
+    },
+    "requires_js": {
+      "type": "boolean",
+      "description": "Always true for compound primitives (kept for back-compat with legacy entries)."
+    },
+    "category": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Free-form category (e.g. compound-entrance, hero-moment)."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 20
+    },
+    "default_duration": {
+      "type": "string",
+      "pattern": "^\\d+(ms|s)$"
+    },
+    "personality_affinity": {
+      "type": "array",
+      "items": { "enum": ["cinematic-dark", "editorial", "neutral-light", "montage"] },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "when_to_use": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "when_to_avoid": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "ai_guidance": {
+      "type": "string",
+      "minLength": 20
+    },
+    "config_schema": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type", "default", "description"],
+        "properties": {
+          "type": { "enum": ["number", "string", "boolean", "array", "object"] },
+          "default": {},
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "content_schema": { "type": "object" },
+    "sub_primitives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "extractable_as_css": { "type": "boolean" },
+          "css": { "type": "string" }
+        }
+      }
+    },
+    "entry_point": {
+      "type": "string",
+      "description": "Required when flavor=remotion-native. Path to physics module (e.g. src/remotion/physics/card-conveyor.js)."
+    },
+    "remotion_component": {
+      "type": "string",
+      "description": "Required when flavor=remotion-native. Path to React component (e.g. src/remotion/compositions/CardConveyorLayer.jsx)."
+    },
+    "library": {
+      "type": "object",
+      "description": "Required when flavor=library-driven. Pins the external library this primitive delegates to.",
+      "required": ["name", "version", "import"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "enum": ["gsap", "motion"],
+          "description": "Approved libraries only. Adding a new entry to this enum requires a determinism spike (see ANI-143 spec)."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[\\^~>=<]*\\d+\\.\\d+(\\.\\d+)?$",
+          "description": "Semver range. Validator checks this satisfies a range present in package.json."
+        },
+        "import": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ESM specifier prototypes will use (e.g. 'gsap', 'motion/react')."
+        }
+      }
+    },
+    "capture_contract": {
+      "type": "object",
+      "description": "Required when flavor=library-driven. Declares what the primitive needs from the deterministic capture pipeline.",
+      "required": ["needs_adapter", "boot_ms", "real_time_dependencies"],
+      "additionalProperties": false,
+      "properties": {
+        "needs_adapter": {
+          "type": "boolean",
+          "description": "True for gsap (lagSmoothing must be disabled), false for motion (rides on patched rAF)."
+        },
+        "boot_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "Wall-clock ms the prototype needs to render its first frame. Capture pipeline default is 600ms."
+        },
+        "real_time_dependencies": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Explicit list of any real-time dependencies (scroll, pointermove, IntersectionObserver). Must be empty for capture-deterministic primitives."
+        }
+      }
+    },
+    "prototype_template": {
+      "type": "string",
+      "description": "Required when flavor=library-driven. Path (relative to repo root) to a self-contained HTML prototype that demonstrates this primitive and meets the capture contract."
+    }
+  },
+  "if": {
+    "properties": { "flavor": { "const": "library-driven" } },
+    "required": ["flavor"]
+  },
+  "then": {
+    "required": ["library", "capture_contract", "prototype_template"]
+  }
+}

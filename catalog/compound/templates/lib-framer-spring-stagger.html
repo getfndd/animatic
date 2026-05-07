@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Framer Motion Capture Spike</title>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.0.0",
+    "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
+    "react-dom/": "https://esm.sh/react-dom@19.0.0&deps=react@19.0.0/",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client?deps=react@19.0.0",
+    "motion/react": "https://esm.sh/motion@12.0.0/react?deps=react@19.0.0,react-dom@19.0.0&external=react,react-dom"
+  }
+}
+</script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #0a0a0a;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    color: #e8e8e8;
+    overflow: hidden;
+  }
+  .scene {
+    width: 800px;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    position: relative;
+  }
+  .row { display: flex; gap: 16px; }
+  .card {
+    width: 80px;
+    height: 110px;
+    background: linear-gradient(180deg, #1f1f1f 0%, #141414 100%);
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 600;
+  }
+  .label {
+    font-size: 13px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .marker {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 11px;
+    color: #555;
+    font-family: ui-monospace, monospace;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module">
+  import React, { useEffect, useState } from 'react';
+  import { createRoot } from 'react-dom/client';
+  import { motion, AnimatePresence } from 'motion/react';
+
+  // Phase definition for capture-prototype.mjs duration detection.
+  const PHASES = [{ dwell: 4000 }];
+
+  function Scene() {
+    const [phase, setPhase] = useState('intro');
+    const [tick, setTick] = useState(0);
+
+    // Phase machine drives a small loop: intro → hold → exit → restart.
+    useEffect(() => {
+      const t1 = setTimeout(() => setPhase('hold'), 1200);
+      const t2 = setTimeout(() => setPhase('exit'), 2800);
+      const t3 = setTimeout(() => setPhase('intro'), 4000);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    }, [phase === 'intro']);
+
+    // Marker tick — once per rAF — to surface that virtual time advances.
+    useEffect(() => {
+      let raf;
+      const loop = () => {
+        setTick(performance.now() | 0);
+        raf = requestAnimationFrame(loop);
+      };
+      raf = requestAnimationFrame(loop);
+      return () => cancelAnimationFrame(raf);
+    }, []);
+
+    const cards = [1, 2, 3, 4, 5];
+    const visible = phase !== 'exit';
+
+    return React.createElement(
+      'div', { className: 'scene' },
+      React.createElement('div', { className: 'marker' },
+        `t=${tick}ms framer=react`),
+      React.createElement('div', { className: 'label' }, 'Spring stagger via Framer Motion'),
+      React.createElement(AnimatePresence, null,
+        visible && React.createElement(motion.div, {
+          key: 'row',
+          className: 'row',
+          initial: { opacity: 0 },
+          animate: { opacity: 1 },
+          exit: { opacity: 0 },
+        },
+          cards.map((n, i) => React.createElement(motion.div, {
+            key: n,
+            className: 'card',
+            initial: { y: 40, scale: 0.9, opacity: 0 },
+            animate: { y: 0, scale: 1, opacity: 1 },
+            exit: { y: -30, scale: 0.95, opacity: 0 },
+            transition: {
+              type: 'spring',
+              stiffness: 380,
+              damping: 28,
+              mass: 1,
+              delay: i * 0.08,
+            },
+          }, n))
+        )
+      ),
+      React.createElement(motion.div, {
+        style: { fontSize: 64, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#fff' },
+        initial: { opacity: 0, scale: 0.8 },
+        animate: phase !== 'exit' ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 },
+        transition: { type: 'spring', stiffness: 320, damping: 24, delay: 0.4 },
+      }, '100')
+    );
+  }
+
+  createRoot(document.getElementById('root')).render(React.createElement(Scene));
+</script>
+</body>
+</html>

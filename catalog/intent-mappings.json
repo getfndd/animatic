@@ -10,7 +10,7 @@
     "personality_support": ["cinematic-dark"],
     "camera_primitives": ["ct-camera-dolly", "ct-camera-crane", "ct-dolly-zoom"],
     "ambient_primitives": ["ct-scene-breathe", "ct-element-float"],
-    "companion_entrance": ["cd-focus-stagger"],
+    "companion_entrance": ["cd-focus-stagger", "lib-gsap-spring-stagger"],
     "framing": "rule-of-thirds-center",
     "perspective_origin": "50% 40%"
   },
@@ -100,7 +100,7 @@
     "personality_support": ["editorial"],
     "camera_primitives": ["ed-camera-push-in"],
     "ambient_primitives": ["ed-scene-breathe"],
-    "companion_entrance": ["ed-slide-stagger"],
+    "companion_entrance": ["ed-slide-stagger", "lib-framer-spring-stagger"],
     "framing": "content-centered",
     "perspective_origin": "50% 50%"
   },
@@ -130,7 +130,7 @@
     "personality_support": ["cinematic-dark"],
     "camera_primitives": ["ct-camera-orbit", "ct-camera-dolly"],
     "ambient_primitives": ["ct-scene-breathe", "ct-element-float"],
-    "companion_entrance": ["cd-focus-stagger"],
+    "companion_entrance": ["cd-focus-stagger", "lib-gsap-spring-stagger", "lib-framer-spring-stagger"],
     "framing": "showcase-center",
     "perspective_origin": "50% 40%"
   },
@@ -145,7 +145,7 @@
     "personality_support": ["editorial"],
     "camera_primitives": ["ed-camera-push-in", "ed-camera-drift"],
     "ambient_primitives": ["ed-scene-breathe"],
-    "companion_entrance": ["ed-slide-stagger", "ed-blur-reveal"],
+    "companion_entrance": ["ed-slide-stagger", "ed-blur-reveal", "lib-framer-spring-stagger"],
     "framing": "editorial-grid",
     "perspective_origin": "50% 50%"
   },

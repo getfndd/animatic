@@ -1,0 +1,54 @@
+{
+  "name": "Framer Motion Spring Stagger",
+  "slug": "lib-framer-spring-stagger",
+  "source": "compound",
+  "flavor": "library-driven",
+  "requires_js": true,
+  "category": "compound-entrance",
+  "description": "React + Framer Motion (motion/react) implementation of a spring-driven row stagger. AnimatePresence handles enter/exit; motion.div components animate via stiffness/damping with per-element delay. Same choreography as lib-gsap-spring-stagger but expressed as React components, so the scene can compose into a larger React tree.",
+  "default_duration": "4000ms",
+  "personality_affinity": ["cinematic-dark", "editorial"],
+  "library": {
+    "name": "motion",
+    "version": "^12.0.0",
+    "import": "motion/react"
+  },
+  "capture_contract": {
+    "needs_adapter": false,
+    "boot_ms": 600,
+    "real_time_dependencies": []
+  },
+  "prototype_template": "catalog/compound/templates/lib-framer-spring-stagger.html",
+  "config_schema": {
+    "stiffness": {
+      "type": "number",
+      "default": 380,
+      "description": "Spring stiffness for the entrance transition. Higher = snappier."
+    },
+    "damping": {
+      "type": "number",
+      "default": 28,
+      "description": "Spring damping. Lower = more overshoot."
+    },
+    "stagger_s": {
+      "type": "number",
+      "default": 0.08,
+      "description": "Per-element delay (seconds), passed to transition.delay = i * stagger_s."
+    },
+    "exit_y": {
+      "type": "number",
+      "default": -30,
+      "description": "Y translation (px) on exit. Negative = upward."
+    }
+  },
+  "when_to_use": [
+    "React scenes where motion is part of a larger component tree",
+    "Spring physics that adapt to interruption (Framer Motion handles re-targeting natively)",
+    "AnimatePresence-driven enter/exit — the library handles the unmount-coordination CSS can't"
+  ],
+  "when_to_avoid": [
+    "Vanilla HTML prototypes — use lib-gsap-spring-stagger to skip React boot cost",
+    "Sequences requiring per-frame numeric tweens on non-DOM values — GSAP's onUpdate is more direct than driving a React state"
+  ],
+  "ai_guidance": "No capture adapter required — Framer Motion rides on rAF + performance.now(), both already patched by virtual time. When emitting the prototype, pin React via ?deps=react@19.0.0 on every dependent esm.sh URL — without this, motion/react imports a second copy of React and useContext fails. See the prototype_template for the exact importmap shape."
+}

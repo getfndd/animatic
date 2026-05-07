@@ -303,6 +303,46 @@ const VIRTUAL_TIME_SCRIPT = `
 `;
 
 // ================================================================
+//  GSAP CAPTURE ADAPTER
+// ================================================================
+//
+// GSAP's ticker reads performance.now() and drives via requestAnimationFrame
+// (both already patched), so timeline progression follows virtual time for free.
+// What it DOESN'T get for free is lag smoothing: GSAP detects "long" rAF gaps
+// and clamps deltas to avoid janky catch-up. In capture mode the gap between
+// rAF callbacks is real wall-clock time (screenshot + encode), which trips the
+// clamp and desyncs timeline progress from virtual time. Disabling lagSmoothing
+// makes GSAP trust the (virtual) timestamps. Uncapping ticker.fps removes a
+// secondary throttle.
+//
+// ESM/React prototypes whose `gsap` import isn't on window can opt in by
+// calling window.__animaticSyncGsap(gsap) once after import.
+
+const GSAP_ADAPTER_SCRIPT = `
+(function() {
+  if (!window.__virtualTimeEnabled) return;
+
+  function attach(gsap) {
+    if (!gsap || !gsap.ticker) return false;
+    gsap.ticker.lagSmoothing(0);
+    if (typeof gsap.ticker.fps === 'function') gsap.ticker.fps(-1);
+    window.__gsapCaptureAdapter = true;
+    return true;
+  }
+
+  // Public hook for ESM prototypes (gsap not on window).
+  window.__animaticSyncGsap = (gsap) => attach(gsap);
+
+  // Auto-attach for CDN / global prototypes. Poll briefly for late-loading gsap.
+  if (attach(window.gsap)) return;
+  let tries = 0;
+  const id = setInterval(() => {
+    if (attach(window.gsap) || ++tries > 60) clearInterval(id);
+  }, 16);
+})();
+`;
+
+// ================================================================
 //  FRAME CAPTURE (Puppeteer + CDP)
 // ================================================================
 
@@ -327,9 +367,10 @@ async function captureFrames(duration) {
     deviceScaleFactor,
   });
 
-  // If deterministic mode, inject virtual time before page loads
+  // If deterministic mode, inject virtual time + GSAP adapter before page loads
   if (config.deterministic) {
     await page.evaluateOnNewDocument(VIRTUAL_TIME_SCRIPT);
+    await page.evaluateOnNewDocument(GSAP_ADAPTER_SCRIPT);
   }
 
   const cdp = await page.createCDPSession();
@@ -474,17 +515,27 @@ async function encodeMp4(tmpDir, outputPath, encoders) {
   // Dithering: add subtle noise to break up gradient banding in dark scenes.
   // The noise filter adds imperceptible randomness that prevents H.264's
   // quantizer from collapsing similar colors into visible bands.
-  // Subtle noise dithering — just enough to break up banding (strength 1 per channel)
-  const deband = 'noise=c0s=1:c1s=1:c2s=1:allf=t';
+  // Subtle noise dithering — just enough to break up banding (strength 1 per channel).
+  // Seed is fixed so two captures of the same source produce byte-identical MP4s
+  // (otherwise ffmpeg's noise filter pulls from /dev/urandom and decouples bytes from inputs).
+  const deband = 'noise=c0s=1:c1s=1:c2s=1:allf=t:all_seed=42';
   try {
     await execFileAsync('ffmpeg', [
-      '-y', '-framerate', String(config.fps),
+      '-y',
+      // Bit-exact: strips encoder/version metadata from container so two captures
+      // of the same source produce hash-equal MP4s. Pairs with seeded noise filter.
+      '-fflags', '+bitexact',
+      '-framerate', String(config.fps),
       '-i', path.join(tmpDir, 'frame_%06d.png'),
       '-vf', deband,
       '-c:v', 'libx264',
       '-pix_fmt', 'yuv420p',
       '-crf', String(crf),
       '-preset', 'slow',
+      // threads=1 — multi-threaded x264 makes tiny non-deterministic decisions
+      // at slice boundaries. Single-threaded is slower but byte-reproducible.
+      '-x264-params', 'threads=1',
+      '-flags:v', '+bitexact',
       '-movflags', '+faststart',
       '-an',
       outputPath,
@@ -998,8 +1049,11 @@ async function main() {
       console.log();
     }
   } finally {
-    // Always cleanup temp frames
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    if (process.env.ANIMATIC_KEEP_FRAMES) {
+      console.log(`  (kept frames: ${tmpDir})`);
+    } else {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   }
 
   // Summary

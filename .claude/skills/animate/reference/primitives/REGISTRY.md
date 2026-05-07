@@ -87,6 +87,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `bk-table-row-stagger` | Data Table Row Reveal | 80ms interval | editorial, neutral-light | breakdown |
 | `mo-grid-reveal` | Grid Reveal | 80ms interval | montage | engine |
 | `mo-split-screen` | Split-Screen Reveal | 200ms stagger | montage | engine |
+| `lib-gsap-spring-stagger` | GSAP Spring Stagger | 4000ms | cinematic-dark, editorial | compound |
+| `lib-framer-spring-stagger` | Framer Motion Spring Stagger | 4000ms | cinematic-dark, editorial | compound |
 
 ### Continuous / Ambient
 

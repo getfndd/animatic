@@ -89,6 +89,8 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `mo-split-screen` | Split-Screen Reveal | 200ms stagger | montage | engine |
 | `lib-gsap-spring-stagger` | GSAP Spring Stagger | 4000ms | cinematic-dark, editorial | compound |
 | `lib-framer-spring-stagger` | Framer Motion Spring Stagger | 4000ms | cinematic-dark, editorial | compound |
+| `lib-gsap-radial-stagger` | GSAP Radial Stagger | 4500ms | cinematic-dark, montage | compound |
+| `lib-framer-shared-layout` | Framer Motion Shared Layout Transition | 4500ms | editorial, cinematic-dark | compound |
 
 ### Continuous / Ambient
 

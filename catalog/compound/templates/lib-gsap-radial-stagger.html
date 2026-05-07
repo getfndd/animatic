@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSAP Radial Stagger</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #0a0a0a;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    color: #e8e8e8;
+    overflow: hidden;
+  }
+  .scene {
+    width: 800px;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    position: relative;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 56px);
+    grid-template-rows: repeat(7, 56px);
+    gap: 8px;
+  }
+  .cell {
+    background: linear-gradient(180deg, #1f1f1f 0%, #141414 100%);
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    transform: scale(0);
+    opacity: 0;
+  }
+  .label {
+    font-size: 13px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .marker {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 11px;
+    color: #555;
+    font-family: ui-monospace, monospace;
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="marker" id="marker">init</div>
+  <div class="label">Radial stagger from center via gsap.utils.distribute</div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+  // Phase definition — capture-prototype.mjs uses dwell to size the capture.
+  const PHASES = [{ dwell: 4500 }];
+  const loopPause = 1000;
+
+  const ROWS = 7;
+  const COLS = 7;
+  const grid = document.getElementById('grid');
+  for (let i = 0; i < ROWS * COLS; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    grid.appendChild(cell);
+  }
+
+  function buildTimeline() {
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: loopPause / 1000 });
+
+    // The key move: gsap.utils.distribute computes a per-element delay
+    // based on grid position with `from: 'center'`. Each cell's delay is
+    // proportional to its distance from the center cell — yielding a
+    // wavefront expansion. CSS keyframes cannot express this because
+    // animation-delay must be a static value per element; here every
+    // element gets a different delay derived from its 2D position.
+    tl.to('.cell', {
+      scale: 1,
+      opacity: 1,
+      duration: 0.5,
+      ease: 'back.out(1.4)',
+      stagger: {
+        grid: [ROWS, COLS],
+        from: 'center',
+        amount: 1.4,
+        ease: 'power2.out',
+      },
+    });
+
+    // Hold, then collapse outward (reverse wavefront — distance-based exit).
+    tl.to('.cell', {
+      scale: 0,
+      opacity: 0,
+      duration: 0.4,
+      ease: 'power2.in',
+      stagger: {
+        grid: [ROWS, COLS],
+        from: 'edges',
+        amount: 1.0,
+      },
+    }, '+=1.0');
+
+    const marker = document.getElementById('marker');
+    gsap.ticker.add(() => {
+      marker.textContent = `t=${performance.now().toFixed(0)}ms gsap=${window.__gsapCaptureAdapter ? 'sync' : 'async'}`;
+    });
+
+    return tl;
+  }
+
+  buildTimeline();
+</script>
+</body>
+</html>

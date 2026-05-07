@@ -920,3 +920,11 @@ Frame-addressed, per-property, fully expanded. No semantic references.
 - `compile_motion` — Compile v2 scene → Level 2 timeline
 - `validate_manifest` — Extended for v2 fields
 - `validate_choreography` — Extended for motion group validation
+
+## Related Specs
+
+- [Sequence manifest](sequence-manifest.md) — multi-scene composition
+- [Storyboard format](storyboard-format.md) — pre-scene design layer
+- [Compound-JS primitive tier](compound-js-primitive.md) — library-driven (GSAP, Framer Motion) primitive entries and their capture contract
+- [Brief schema](brief-schema.md) — input format
+- [Brand tokens](brand-tokens.md) — design tokens consumed by scenes

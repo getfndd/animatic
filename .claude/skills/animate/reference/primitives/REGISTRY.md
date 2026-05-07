@@ -91,6 +91,10 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `lib-framer-spring-stagger` | Framer Motion Spring Stagger | 4000ms | cinematic-dark, editorial | compound |
 | `lib-gsap-radial-stagger` | GSAP Radial Stagger | 4500ms | cinematic-dark, montage | compound |
 | `lib-framer-shared-layout` | Framer Motion Shared Layout Transition | 4500ms | editorial, cinematic-dark | compound |
+| `bd-card-conveyor` | Card Conveyor — Z-Space Depth Rail | 3500ms | editorial, cinematic-dark | compound |
+| `bd-chart-build-explain` | Chart Build Explain — Bar Growth | 3200ms | editorial, cinematic-dark | compound |
+| `bd-spotlight-cursor-reveal` | Spotlight Cursor Reveal | 3000ms | neutral-light, editorial | compound |
+| `bd-stack-fan-settle` | Stack Fan Settle | 2800ms | cinematic-dark, editorial | compound |
 
 ### Continuous / Ambient
 

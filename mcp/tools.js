@@ -20,7 +20,7 @@ export function buildTools({
     {
       name: 'search_primitives',
       description:
-        'Search animation primitives across all sources (engine, research, animate.style, breakdowns). Filter by name, personality, category, or source. Returns matching primitives with ID, name, duration, personality affinity, source, and category.',
+        'Search animation primitives across all sources (engine, research, animate.style, breakdowns, compound). Filter by name, personality, category, or source. Returns matching primitives with ID, name, duration, personality affinity, source, and category.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -39,8 +39,8 @@ export function buildTools({
           },
           source: {
             type: 'string',
-            enum: ['engine', 'research', 'animate.style', 'breakdown'],
-            description: 'Filter by source: `engine`, `research`, `animate.style`, or `breakdown`.',
+            enum: ['engine', 'research', 'animate.style', 'breakdown', 'compound'],
+            description: 'Filter by source: `engine` (built into the runtime), `research` (cinematic techniques), `animate.style` (Animate.css), `breakdown` (extracted from reference breakdowns), or `compound` (JS-driven primitives — bespoke Remotion components or library-driven entries; see compound-js-primitive.md).',
           },
         },
       },

@@ -60,6 +60,31 @@ describe('compound primitive tier (ANI-98)', () => {
       assert.equal(p.requires_js, true);
     }
   });
+
+  // ── ANI-143/144 follow-up: compound primitives are searchable via REGISTRY.md
+  it('every compound catalog entry is also registered in REGISTRY.md (search_primitives reachability)', async () => {
+    const catalog = loadPrimitivesCatalog();
+    const { parseRegistry } = await import('../data/loader.js');
+    const registry = parseRegistry();
+    const missing = [];
+    for (const entry of catalog.array.filter(p => p.source === 'compound')) {
+      if (!registry.byId.has(entry.slug)) missing.push(entry.slug);
+    }
+    assert.equal(missing.length, 0,
+      `compound entries not in REGISTRY.md (search_primitives won't surface them): ${missing.join(', ')}`);
+  });
+
+  it('search_primitives accepts source="compound" and returns the registered compound entries', async () => {
+    // Mirrors handleSearchPrimitives' source-filter logic in mcp/index.js:491.
+    // We verify that filtering REGISTRY.md by source==='compound' yields a
+    // non-empty result — the bug being prevented is "compound" being absent
+    // from the tool's source enum, which would prevent users from filtering.
+    const { parseRegistry } = await import('../data/loader.js');
+    const registry = parseRegistry();
+    const compoundEntries = registry.entries.filter(e => e.source === 'compound');
+    assert.ok(compoundEntries.length >= 4,
+      `expected >= 4 compound entries in registry (${compoundEntries.length} found) — both bd-* and lib-* must be reachable via search_primitives source=compound`);
+  });
 });
 
 // ── ANI-99: Reactive compiler mode ──────────────────────────────

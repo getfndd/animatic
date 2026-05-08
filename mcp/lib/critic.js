@@ -48,15 +48,22 @@ const INFO = 'info';
 /**
  * Critique a compiled Level 2 timeline for motion quality issues.
  *
- * @param {object} timeline - Compiled Level 2 timeline from compileMotion()
- *   { scene_id, duration_frames, fps, tracks: { camera, layers } }
+ * @param {object} timeline - Compiled Level 2 timeline from compileMotion(),
+ *   either { scene_id, duration_frames, fps, tracks: { camera, layers } } for
+ *   the static path, or { mode: 'reactive', compound, config, … } for
+ *   library-driven scenes that have no Level-2 representation.
  * @param {object} scene - Original scene definition with layers array
  * @param {object} [sequenceContext] - Optional sequence-level context for multi-scene rules
  *   { scenes: Array<{ duration_s, transition_type, energy }>, currentIndex: number }
+ * @param {object} [options] - { catalogs, personality }
+ *   When `catalogs.primitives` is provided, reactive-aware checks run for any
+ *   library-driven (`lib-*` flavor=library-driven) primitive references in the
+ *   scene — these run regardless of timeline shape, so reactive descriptors
+ *   no longer auto-pass with score 100. `personality` overrides scene.personality.
  * @returns {{ score: number, issues: Array, summary: string }}
  */
-export function critiqueTimeline(timeline, scene, sequenceContext) {
-  if (!timeline || !timeline.tracks) {
+export function critiqueTimeline(timeline, scene, sequenceContext, options = {}) {
+  if (!timeline) {
     return {
       score: 100,
       issues: [],
@@ -65,39 +72,75 @@ export function critiqueTimeline(timeline, scene, sequenceContext) {
   }
 
   const issues = [];
-  const durationFrames = timeline.duration_frames || 0;
-  const fps = timeline.fps || 60;
-  const layerTracks = timeline.tracks.layers || {};
-  const cameraTracks = timeline.tracks.camera || {};
+  // Personality resolution priority: explicit option > scene field >
+  // timeline (persisted by compileMotion at compile time). The last fallback
+  // closes the gap where compile_motion → critique_motion drops the
+  // personality between calls (ANI-146 review feedback).
+  const personality = options.personality
+    || scene?.personality
+    || timeline?.personality
+    || null;
 
-  if (durationFrames === 0) {
+  // ── Reactive-aware checks ──────────────────────────────────────────────
+  // Run whenever a primitives catalog is supplied. These checks operate on
+  // the scene + catalog, not the timeline, so they apply equally to reactive
+  // descriptors (no tracks) and static timelines (where a lib-* slug appears
+  // on the entrance or groups path — that's a routing bug worth flagging).
+  if (options.catalogs?.primitives) {
+    const reactiveCtx = { scene, catalogs: options.catalogs, personality };
+    issues.push(...detectReactiveCompoundUnknown(reactiveCtx));
+    issues.push(...detectReactivePersonalityMismatch(reactiveCtx));
+    issues.push(...detectReactiveUnknownConfigKey(reactiveCtx));
+    issues.push(...detectReactiveBootDominatesDuration(reactiveCtx, timeline));
+    issues.push(...detectLibPrimitiveOnStaticPath(reactiveCtx));
+  }
+
+  // ── Static-track checks ────────────────────────────────────────────────
+  // Skip when there's no Level-2 timeline (reactive descriptors).
+  if (timeline.tracks) {
+    const durationFrames = timeline.duration_frames || 0;
+    const fps = timeline.fps || 60;
+    const layerTracks = timeline.tracks.layers || {};
+    const cameraTracks = timeline.tracks.camera || {};
+
+    if (durationFrames === 0) {
+      // Empty timeline + no reactive issues = nothing to say.
+      if (issues.length === 0) {
+        return {
+          score: 100,
+          issues: [],
+          summary: 'Empty timeline — nothing to critique',
+        };
+      }
+    } else {
+      issues.push(...detectDeadHolds(layerTracks, durationFrames));
+      issues.push(...detectFlatMotion(layerTracks));
+      issues.push(...detectMissingHierarchy(layerTracks, scene));
+      issues.push(...detectRepetitiveEasing(layerTracks, sequenceContext));
+      issues.push(...detectOrphanLayers(layerTracks, scene));
+      issues.push(...detectCameraMotionMismatch(cameraTracks, layerTracks, durationFrames));
+      issues.push(...detectExcessiveSimultaneity(layerTracks, durationFrames));
+      issues.push(...detectMissingSecondaryMotion(layerTracks, scene));
+      issues.push(...detectSimultaneousTransitions(layerTracks, scene, durationFrames));
+      issues.push(...detectDeadAudioSync(layerTracks, scene, fps));
+      issues.push(...detectTextOnMotion(layerTracks, cameraTracks, scene));
+
+      if (sequenceContext) {
+        issues.push(...detectFlatPacing(sequenceContext));
+        issues.push(...detectWeakContrast(sequenceContext));
+      }
+    }
+  } else if (issues.length === 0) {
+    // Reactive descriptor with no catalogs supplied (or none of the reactive
+    // checks fired). Preserve the historical message so callers that don't
+    // pass catalogs still get a coherent verdict.
     return {
       score: 100,
       issues: [],
-      summary: 'Empty timeline — nothing to critique',
+      summary: 'No timeline to critique',
     };
   }
 
-  // Run each detection rule
-  issues.push(...detectDeadHolds(layerTracks, durationFrames));
-  issues.push(...detectFlatMotion(layerTracks));
-  issues.push(...detectMissingHierarchy(layerTracks, scene));
-  issues.push(...detectRepetitiveEasing(layerTracks, sequenceContext));
-  issues.push(...detectOrphanLayers(layerTracks, scene));
-  issues.push(...detectCameraMotionMismatch(cameraTracks, layerTracks, durationFrames));
-  issues.push(...detectExcessiveSimultaneity(layerTracks, durationFrames));
-  issues.push(...detectMissingSecondaryMotion(layerTracks, scene));
-  issues.push(...detectSimultaneousTransitions(layerTracks, scene, durationFrames));
-  issues.push(...detectDeadAudioSync(layerTracks, scene, fps));
-  issues.push(...detectTextOnMotion(layerTracks, cameraTracks, scene));
-
-  // Sequence-level rules (only when context is provided)
-  if (sequenceContext) {
-    issues.push(...detectFlatPacing(sequenceContext));
-    issues.push(...detectWeakContrast(sequenceContext));
-  }
-
-  // Score: start at 100, deduct per issue by severity
   const score = computeScore(issues);
   const summary = buildSummary(score, issues);
 
@@ -840,12 +883,15 @@ function getAllKeyframes(tracks) {
  * Timeline analysis always runs. Semantic analysis only runs when
  * scene.semantic exists. Issues are merged, score recomputed.
  *
- * @param {object} timeline - Compiled Level 2 timeline from compileMotion()
+ * @param {object} timeline - Compiled timeline from compileMotion() (static or reactive)
  * @param {object} scene - Original scene definition (v2 or v3)
+ * @param {object} [options] - Forwarded to critiqueTimeline. Pass `{ catalogs: { primitives } }`
+ *   to enable the reactive-aware checks (ANI-146); otherwise lib-* scenes
+ *   silently auto-pass.
  * @returns {{ score: number, issues: Array, summary: string }}
  */
-export function critiqueScene(timeline, scene) {
-  const timelineResult = critiqueTimeline(timeline, scene);
+export function critiqueScene(timeline, scene, options) {
+  const timelineResult = critiqueTimeline(timeline, scene, undefined, options);
 
   if (!scene?.semantic) return timelineResult;
 
@@ -854,6 +900,163 @@ export function critiqueScene(timeline, scene) {
   const score = computeScore(allIssues);
 
   return { score, issues: allIssues, summary: buildSummary(score, allIssues) };
+}
+
+// ── Reactive-Aware Detection (ANI-146) ───────────────────────────────────────
+//
+// These rules cover library-driven (`lib-*` flavor=library-driven) compound
+// primitives, which have no Level-2 representation — the GSAP/Framer
+// behavior runs at capture time, not in the static keyframe expander.
+// The static-track rules above are blind to these scenes; these fill the
+// gap by inspecting the scene + catalog directly.
+
+/**
+ * Boot duration is acceptable up to this fraction of total scene duration.
+ * Boot eats into the capture window before any visible motion starts;
+ * past 25% there's not enough room left for the primitive to actually play.
+ */
+const BOOT_DURATION_RATIO_LIMIT = 0.25;
+
+/**
+ * Walk a scene's static-path primitive references (entrance + groups).
+ * Returns [{ slug, location }] pairs.
+ */
+function collectStaticPrimitiveRefs(scene) {
+  const refs = [];
+  for (const layer of scene?.layers || []) {
+    if (layer?.entrance?.primitive) {
+      refs.push({ slug: layer.entrance.primitive, location: `layer "${layer.id}" entrance` });
+    }
+  }
+  for (const group of scene?.motion?.groups || []) {
+    if (group?.primitive) {
+      refs.push({ slug: group.primitive, location: `motion.groups "${group.id || 'unnamed'}"` });
+    }
+  }
+  return refs;
+}
+
+/**
+ * Reactive: motion.compound references a slug that isn't in the catalog.
+ * Without this check, compileReactive emits a descriptor against an unknown
+ * slug, the runtime adapter has nothing to load, and the scene captures
+ * black frames.
+ */
+export function detectReactiveCompoundUnknown({ scene, catalogs }) {
+  const slug = scene?.motion?.compound;
+  if (!slug) return [];
+  const entry = catalogs.primitives.bySlug.get(slug);
+  if (entry) return [];
+  return [{
+    rule: 'reactive_compound_unknown',
+    severity: ERROR,
+    layer: null,
+    message: `motion.compound references "${slug}" but no primitive with that slug is registered`,
+    suggestion: 'Check spelling, or add the primitive to catalog/compound/ and REGISTRY.md',
+  }];
+}
+
+/**
+ * Reactive: scene.personality (or options.personality) is not in the
+ * primitive's `personality_affinity`. compileReactive currently has an
+ * advisory-only path for this; promoting it to a critic warning makes the
+ * mismatch visible to scoring instead of silently passing.
+ */
+export function detectReactivePersonalityMismatch({ scene, catalogs, personality }) {
+  const slug = scene?.motion?.compound;
+  if (!slug || !personality) return [];
+  const entry = catalogs.primitives.bySlug.get(slug);
+  if (!entry?.personality_affinity) return [];
+  const allowed = entry.personality_affinity;
+  if (allowed.includes(personality) || allowed.includes('universal')) return [];
+  return [{
+    rule: 'reactive_personality_mismatch',
+    severity: WARNING,
+    layer: null,
+    message: `Compound primitive "${slug}" declares affinity for [${allowed.join(', ')}] but scene personality is "${personality}"`,
+    suggestion: `Pick a different primitive for ${personality}, or accept the tonal mismatch deliberately`,
+  }];
+}
+
+/**
+ * Reactive: a key in motion.compound_config is not declared in the
+ * primitive's config_schema. Catches typos like `staggerMs` vs `stagger_ms`
+ * — without this, the runtime silently uses defaults and the override
+ * never lands.
+ */
+export function detectReactiveUnknownConfigKey({ scene, catalogs }) {
+  const slug = scene?.motion?.compound;
+  const overrides = scene?.motion?.compound_config;
+  if (!slug || !overrides) return [];
+  const entry = catalogs.primitives.bySlug.get(slug);
+  if (!entry?.config_schema) return [];
+
+  const knownKeys = new Set(Object.keys(entry.config_schema));
+  const issues = [];
+  for (const key of Object.keys(overrides)) {
+    if (knownKeys.has(key)) continue;
+    issues.push({
+      rule: 'reactive_unknown_config_key',
+      severity: WARNING,
+      layer: null,
+      message: `compound_config key "${key}" is not declared in ${slug}.config_schema — runtime will ignore it`,
+      suggestion: `Known keys: ${[...knownKeys].join(', ')}`,
+    });
+  }
+  return issues;
+}
+
+/**
+ * Reactive: capture_contract.boot_ms eats more than 25% of scene duration.
+ * The adapter needs that time before the primitive renders its first
+ * deterministic frame; if duration is too short, the captured plate misses
+ * the motion entirely.
+ */
+export function detectReactiveBootDominatesDuration({ scene, catalogs }, timeline) {
+  const slug = scene?.motion?.compound;
+  if (!slug) return [];
+  const entry = catalogs.primitives.bySlug.get(slug);
+  const bootMs = entry?.capture_contract?.boot_ms;
+  if (!bootMs) return [];
+
+  // Prefer scene.duration_s; fall back to timeline if present.
+  const durationS = scene?.duration_s
+    ?? (timeline?.fps && timeline?.durationFrames ? timeline.durationFrames / timeline.fps : null);
+  if (!durationS) return [];
+
+  const ratio = bootMs / (durationS * 1000);
+  if (ratio <= BOOT_DURATION_RATIO_LIMIT) return [];
+  return [{
+    rule: 'reactive_boot_dominates_duration',
+    severity: WARNING,
+    layer: null,
+    message: `${slug} boot_ms (${bootMs}ms) is ${Math.round(ratio * 100)}% of scene duration (${durationS}s) — adapter may not have time to render visible motion before capture ends`,
+    suggestion: `Lengthen scene duration to at least ${Math.ceil((bootMs / BOOT_DURATION_RATIO_LIMIT) / 1000 * 10) / 10}s, or pick a primitive with a smaller boot_ms`,
+  }];
+}
+
+/**
+ * Static-path: a layer.entrance.primitive or motion.groups[].primitive
+ * references a flavor=library-driven slug. The static expander has no
+ * keyframe data for these, so it either yields no tracks or fabricates
+ * generic opacity/translateY ones — neither matches what the runtime
+ * adapter will actually render. The scene should reference the primitive
+ * via `motion.compound` + `mode: 'reactive'` instead.
+ */
+export function detectLibPrimitiveOnStaticPath({ scene, catalogs }) {
+  const issues = [];
+  for (const ref of collectStaticPrimitiveRefs(scene)) {
+    const entry = catalogs.primitives.bySlug.get(ref.slug);
+    if (entry?.flavor !== 'library-driven') continue;
+    issues.push({
+      rule: 'lib_primitive_static_path',
+      severity: ERROR,
+      layer: null,
+      message: `${ref.location} references library-driven primitive "${ref.slug}" on the static-compile path — the static expander cannot represent its motion`,
+      suggestion: `Move the reference to motion.compound and compile with { mode: 'reactive' }`,
+    });
+  }
+  return issues;
 }
 
 // ── Exports ──────────────────────────────────────────────────────────────────

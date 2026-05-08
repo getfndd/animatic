@@ -573,7 +573,7 @@ function compileAndCritique(manifest, scenes) {
       // critiqueScene merges timeline + semantic critiques when scene.semantic
       // exists — required for v3 scenes to surface semantic issues into the
       // scoring pipeline used by /direct (ANI-116).
-      const critique = critiqueScene(timeline, sceneDef);
+      const critique = critiqueScene(timeline, sceneDef, { catalogs });
       results.push({
         scene_id: sceneId,
         score: critique.score ?? 50,

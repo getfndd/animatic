@@ -103,12 +103,26 @@ The hook is a no-op outside capture mode.
 
 ## Validator hooks
 
-Two new checks added to `mcp/lib/validate-manifest.js` (or its compound-aware equivalent):
+Two checks live in the manifest validator (gates the **catalog entry** at load time):
 
 1. **`flavor` consistency** — if `flavor === "library-driven"`, fields `library`, `capture_contract`, and `prototype_template` must be present.
 2. **Library version pin** — `library.version` must satisfy a range present in the project's `package.json` (or a CDN URL pinned in the `prototype_template`).
 
 A third check, **capture-contract-spike**, is recommended but not blocking: every library-driven primitive ships with a sibling `*.spike.html` that the existing capture pipeline can run as a smoke test. This is how new entries demonstrate they meet the determinism contract before being added to the registry. The two existing spike prototypes (`prototypes/2026-05-05-gsap-capture-adapter-spike/`, `prototypes/2026-05-05-framer-motion-capture-spike/`) are the templates.
+
+## Critic hooks
+
+The motion critic (`critiqueTimeline` in `mcp/lib/critic.js`) runs a separate set of checks that gate **scene usage** of these entries — distinct from the manifest validator above, which only checks the entry definition. When `critiqueTimeline` is called with `options.catalogs.primitives`, the following reactive-aware rules fire (ANI-146):
+
+| Rule | Severity | Triggers when |
+|---|---|---|
+| `reactive_compound_unknown` | error | `motion.compound` references a slug not in the catalog |
+| `reactive_personality_mismatch` | warning | scene personality is not in the primitive's `personality_affinity` |
+| `reactive_unknown_config_key` | warning | a key in `motion.compound_config` isn't declared in `config_schema` |
+| `reactive_boot_dominates_duration` | warning | `capture_contract.boot_ms` exceeds 25% of `scene.duration_s` |
+| `lib_primitive_static_path` | error | a `flavor=library-driven` slug appears on `layer.entrance.primitive` or `motion.groups[].primitive` (must use `motion.compound` + `mode: 'reactive'` instead) |
+
+These run regardless of whether the timeline is a static keyframe set or a reactive descriptor — the checks operate on `scene` and the catalog, not on the timeline shape. Without this layer, `lib-*` scenes silently auto-pass the critic with score 100 because they have no Level-2 representation for the static-track rules to inspect.
 
 ## How `/prototype` emits these
 

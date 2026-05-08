@@ -143,6 +143,10 @@ export function compileMotion(scene, catalogs = {}, options = {}) {
       camera: cameraTracks,
       layers: layerTracks,
     },
+    // Persist personality so downstream consumers (critic, video assembler,
+    // benchmark runner) don't need it re-passed in the common compile→critique
+    // chain (ANI-146 review feedback).
+    ...(options.personality ? { personality: options.personality } : {}),
   };
 }
 
@@ -1653,5 +1657,9 @@ function compileReactive(motion, scene, fps, durationFrames, catalogs, options) 
     durationFrames,
     fps,
     scene_id: scene.scene_id,
+    // Persist personality on the descriptor so downstream critics don't need
+    // it re-passed. compile_motion → critique_motion is a common chain where
+    // only the first call carries personality (ANI-146 review feedback).
+    ...(options.personality ? { personality: options.personality } : {}),
   };
 }

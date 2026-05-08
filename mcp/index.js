@@ -2260,7 +2260,7 @@ function handleCompileMotion(args) {
 // ── critique_motion ─────────────────────────────────────────────────────────
 
 function handleCritiqueMotion(args) {
-  const { timeline, scene } = args;
+  const { timeline, scene, personality } = args;
 
   if (!timeline) {
     return {
@@ -2277,7 +2277,10 @@ function handleCritiqueMotion(args) {
   }
 
   try {
-    const result = critiqueTimeline(timeline, scene);
+    const result = critiqueTimeline(timeline, scene, undefined, {
+      catalogs: { primitives: primitivesCatalog },
+      personality,
+    });
 
     let output = `## Motion Critique\n\n`;
     output += `- **Score:** ${result.score}/100\n`;

@@ -522,17 +522,21 @@ export function buildTools({
     {
       name: 'critique_motion',
       description:
-        'Analyze a compiled Level 2 motion timeline for quality issues: dead holds, flat motion, missing hierarchy, repetitive easing, orphan layers, camera-motion mismatch, and excessive simultaneity. Returns a 0-100 quality score with actionable revision suggestions. Use after compile_motion to validate motion choreography.',
+        'Analyze a compiled motion timeline for quality issues. Static-track checks: dead holds, flat motion, missing hierarchy, repetitive easing, orphan layers, camera-motion mismatch, excessive simultaneity. Reactive checks (when scene references a library-driven `lib-*` primitive): unknown compound slug, personality affinity mismatch, unknown config key, boot-vs-duration sanity, lib-* on static path. Returns a 0-100 quality score with actionable revision suggestions. Use after compile_motion to validate motion choreography.',
       inputSchema: {
         type: 'object',
         properties: {
           timeline: {
             type: 'object',
-            description: 'A compiled Level 2 motion timeline (output of `compile_motion`) with `scene_id`, `duration_frames`, `fps`, and tracks.',
+            description: 'A compiled motion timeline (output of `compile_motion`). Either a static timeline with `scene_id`, `duration_frames`, `fps`, and tracks, or a reactive descriptor with `mode: "reactive"` for library-driven scenes.',
           },
           scene: {
             type: 'object',
-            description: 'The original scene definition with its `layers` array. Used to detect orphan layers and hierarchy issues.',
+            description: 'The original scene definition with its `layers` array. Used to detect orphan layers, hierarchy issues, and reactive primitive references.',
+          },
+          personality: {
+            type: 'string',
+            description: 'Personality slug (`cinematic-dark`, `editorial`, `neutral-light`, `montage`). Used by reactive checks to flag personality-affinity mismatches. Falls back to `scene.personality` when omitted.',
           },
         },
         required: ['timeline', 'scene'],

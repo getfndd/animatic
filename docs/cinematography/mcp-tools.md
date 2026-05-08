@@ -22,7 +22,7 @@
 | `generate_scenes` | Brief → classified assets → validated scene JSON with auto-annotations |
 | `validate_choreography` | Validate animation choreography against guardrails |
 | `compile_motion` | Compile scene motion (groups, stagger, camera) into a timeline |
-| `critique_motion` | Critique a compiled timeline for quality issues (13 rules) |
+| `critique_motion` | Critique a compiled timeline for static-track and reactive (lib-*) quality issues |
 | `create_editorial_canvas_scene` | Create a flat art-directed editorial canvas scene |
 | `recommend_editorial_layout` | Recommend editorial layout for content |
 | `recommend_type_treatment` | Recommend typography animation treatment |

@@ -70,11 +70,16 @@ function runSingleBenchmark(scene, catalogs) {
     orphanLayers: [],
   };
 
-  // Step 1: Compile
+  // Step 1: Compile.
+  // Reactive scenes (motion.compound + lib-* / bd-* primitive) need
+  // mode: 'reactive' — the descriptor returned has no Level-2 tracks; the
+  // runtime adapter is the timeline. Detect by motion.compound presence.
+  const isReactive = !!scene.motion?.compound;
   let timeline;
   try {
     timeline = compileMotion(scene, catalogs, {
       personality: scene.personality,
+      ...(isReactive ? { mode: 'reactive' } : {}),
     });
   } catch (err) {
     result.compileError = err.message;
@@ -86,10 +91,13 @@ function runSingleBenchmark(scene, catalogs) {
     return result;
   }
 
-  // Step 2: Check for orphan layers (layers without tracks)
-  const layerIds = (scene.layers || []).map(l => l.id);
-  const trackedIds = Object.keys(timeline.tracks.layers || {});
-  result.orphanLayers = layerIds.filter(id => !trackedIds.includes(id));
+  // Step 2: Check for orphan layers (layers without tracks).
+  // Reactive scenes have no tracks by design — skip the check.
+  if (!isReactive) {
+    const layerIds = (scene.layers || []).map(l => l.id);
+    const trackedIds = Object.keys(timeline.tracks?.layers || {});
+    result.orphanLayers = layerIds.filter(id => !trackedIds.includes(id));
+  }
 
   // Step 3: Run critic
   const critique = critiqueScene(timeline, scene, { catalogs });

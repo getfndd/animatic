@@ -1,0 +1,49 @@
+{
+  "scene_id": "bench_cinematic_dark_lib_stagger",
+  "duration_s": 4,
+  "fps": 60,
+  "format_version": 2,
+  "personality": "cinematic-dark",
+  "product_role": "result",
+  "_doc": "End-to-end benchmark for the library-driven (lib-*) compound primitive tier. Exercises discovery (lib-gsap-spring-stagger is surfaced by recommend_choreography for cinematic-dark dramatic-reveal), routing (motion.compound presence keeps render-routing reactive-aware), and the reactive critic (ANI-146 emits no warnings for matched personality + valid config + boot_ms within duration). The benchmark runner detects motion.compound and compiles with mode='reactive' (ANI-66 + lib-* benchmark follow-up). Reference: project_js_compound_animations.md.",
+  "layers": [
+    {
+      "id": "card_1",
+      "type": "html",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content": "<div class='card'>Velocity</div>"
+    },
+    {
+      "id": "card_2",
+      "type": "html",
+      "depth_class": "foreground",
+      "product_role": "supporting",
+      "content": "<div class='card'>Precision</div>"
+    },
+    {
+      "id": "card_3",
+      "type": "html",
+      "depth_class": "foreground",
+      "product_role": "supporting",
+      "content": "<div class='card'>Resilience</div>"
+    },
+    {
+      "id": "card_4",
+      "type": "html",
+      "depth_class": "foreground",
+      "product_role": "supporting",
+      "content": "<div class='card'>Reach</div>"
+    }
+  ],
+  "motion": {
+    "compound": "lib-gsap-spring-stagger",
+    "compound_config": {
+      "stagger_ms": 90,
+      "entrance_ease": "back.out(1.7)",
+      "counter_target": 100,
+      "hold_ms": 1500
+    },
+    "content_count": 4
+  }
+}

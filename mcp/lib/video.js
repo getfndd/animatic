@@ -214,7 +214,7 @@ export async function generateVideo(prompt, options = {}) {
   for (const [sceneId, timeline] of Object.entries(timelines)) {
     const scene = scenes.find(s => s.scene_id === sceneId);
     try {
-      const critique = critiqueScene(timeline, scene);
+      const critique = critiqueScene(timeline, scene, { catalogs });
       scores.push({
         scene_id: sceneId,
         score: critique.score,

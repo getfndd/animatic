@@ -21,7 +21,10 @@ const QUALITY_THRESHOLD = 70;
  * Run the full benchmark suite against a set of benchmark scenes.
  *
  * @param {object[]} benchmarkScenes - Array of v2 scene definitions from catalog/benchmarks/
- * @param {object} catalogs - { recipes: { byId } } — same format as compiler expects
+ * @param {object} catalogs - { recipes, primitives } — same format as compiler expects.
+ *   Pass `primitives` (loaded via loadPrimitivesCatalog) to enable the
+ *   reactive-aware critic checks (ANI-146). Without it, benchmark scenes that
+ *   reference lib-* primitives silently auto-pass.
  * @returns {{ scenes: Array, aggregate: { avgScore, minScore, maxScore, passCount, failCount } }}
  */
 export function runBenchmarks(benchmarkScenes, catalogs = {}) {
@@ -89,7 +92,7 @@ function runSingleBenchmark(scene, catalogs) {
   result.orphanLayers = layerIds.filter(id => !trackedIds.includes(id));
 
   // Step 3: Run critic
-  const critique = critiqueScene(timeline, scene);
+  const critique = critiqueScene(timeline, scene, { catalogs });
   result.score = critique.score;
   result.issues = critique.issues;
 

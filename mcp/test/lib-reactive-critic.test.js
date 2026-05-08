@@ -24,7 +24,7 @@ import assert from 'node:assert/strict';
 
 import { loadPrimitivesCatalog, loadRecipes } from '../data/loader.js';
 import { compileMotion } from '../lib/compiler.js';
-import { critiqueTimeline } from '../lib/critic.js';
+import { critiqueTimeline, critiqueScene } from '../lib/critic.js';
 
 const LIB_SLUG = 'lib-gsap-spring-stagger';
 
@@ -232,6 +232,86 @@ describe('reactive-aware critic (ANI-146)', () => {
       const timeline = compileMotion(scene, catalogs, { personality: 'cinematic-dark' });
       const critique = critiqueTimeline(timeline, scene, undefined, criticOptions);
       assert.equal(findIssue(critique, 'lib_primitive_static_path'), undefined);
+    });
+  });
+
+  // ── Review findings (regression) ───────────────────────────────────────
+
+  describe('regression: personality persists through compile→critique', () => {
+    // Review feedback (P2): in the common compile_motion → critique_motion
+    // chain, callers pass personality only to compile_motion. The reactive
+    // descriptor previously dropped it, and critiqueTimeline({timeline,scene})
+    // produced no mismatch even when one existed.
+    it('reactive descriptor carries personality forward when set at compile', () => {
+      const scene = {
+        scene_id: 'sc_persist',
+        fps: 60,
+        duration_s: 4,
+        layers: [{ id: 'card', type: 'html', content: 'x' }],
+        motion: { compound: LIB_SLUG, content_count: 1 },
+      };
+      const timeline = compileMotion(scene, catalogs, {
+        mode: 'reactive',
+        personality: 'neutral-light',
+      });
+      assert.equal(timeline.personality, 'neutral-light');
+
+      // Critic call WITHOUT re-passing personality should still flag the
+      // mismatch (lib-gsap-spring-stagger has no neutral-light affinity).
+      const critique = critiqueTimeline(timeline, scene, undefined, { catalogs });
+      const issue = findIssue(critique, 'reactive_personality_mismatch');
+      assert.ok(issue, 'expected mismatch issue without re-passing personality');
+    });
+
+    it('static timeline also persists personality for downstream consumers', () => {
+      const scene = {
+        scene_id: 'sc_persist_static',
+        fps: 60,
+        duration_s: 3,
+        layers: [{ id: 'hero', type: 'text' }],
+        motion: {
+          groups: [{ targets: ['hero'], primitive: 'cd-focus-stagger' }],
+          camera: { moves: [{ move: 'static' }] },
+        },
+      };
+      const timeline = compileMotion(scene, catalogs, { personality: 'cinematic-dark' });
+      assert.equal(timeline.personality, 'cinematic-dark');
+    });
+  });
+
+  describe('regression: critiqueScene forwards options to critiqueTimeline', () => {
+    // Review feedback (P1): critiqueScene was a hard wall — it discarded any
+    // catalogs/personality the caller had, so video.js, evaluate.js,
+    // scoring.js, and benchmark.js all silently auto-passed lib-* scenes.
+    it('passes catalogs through so reactive checks run', () => {
+      const scene = {
+        scene_id: 'sc_critique_scene',
+        fps: 60,
+        duration_s: 4,
+        layers: [{ id: 'card', type: 'html', content: 'x' }],
+        motion: { compound: LIB_SLUG, content_count: 1 },
+      };
+      const timeline = compileMotion(scene, catalogs, {
+        mode: 'reactive',
+        personality: 'neutral-light',
+      });
+      const critique = critiqueScene(timeline, scene, { catalogs });
+      const issue = findIssue(critique, 'reactive_personality_mismatch');
+      assert.ok(issue, 'critiqueScene must forward catalogs to critiqueTimeline');
+    });
+
+    it('without options, critiqueScene preserves historical silent verdict', () => {
+      const scene = {
+        scene_id: 'sc_critique_scene_silent',
+        fps: 60,
+        duration_s: 4,
+        layers: [{ id: 'card', type: 'html', content: 'x' }],
+        motion: { compound: LIB_SLUG, content_count: 1 },
+      };
+      const timeline = compileMotion(scene, catalogs, { mode: 'reactive' });
+      const critique = critiqueScene(timeline, scene); // no options
+      assert.equal(critique.score, 100);
+      assert.deepEqual(critique.issues, []);
     });
   });
 });

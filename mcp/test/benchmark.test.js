@@ -14,12 +14,12 @@ import assert from 'node:assert/strict';
 import { runBenchmarks, QUALITY_THRESHOLD } from '../lib/benchmark.js';
 import { compileMotion } from '../lib/compiler.js';
 import { critiqueTimeline } from '../lib/critic.js';
-import { loadBenchmarks, loadRecipes } from '../data/loader.js';
+import { loadBenchmarks, loadRecipes, loadPrimitivesCatalog } from '../data/loader.js';
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
 function getCatalogs() {
-  return { recipes: loadRecipes() };
+  return { recipes: loadRecipes(), primitives: loadPrimitivesCatalog() };
 }
 
 function getBenchmarks() {

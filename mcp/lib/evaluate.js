@@ -10,7 +10,7 @@
  * (does not import planner functions) to catch manually-edited manifests.
  */
 
-import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar } from '../data/loader.js';
+import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar, loadPrimitivesCatalog } from '../data/loader.js';
 import { critiqueScene } from './critic.js';
 
 // ── Load catalog data at module level ────────────────────────────────────────
@@ -20,6 +20,9 @@ const stylePacksCatalog = loadStylePacks(
   personalitiesCatalog.array.map(p => p.slug)
 );
 const shotGrammarCatalog = loadShotGrammar();
+// Loaded eagerly so scoreMotionRichness can pass it to critiqueScene without
+// threading catalogs through every caller (ANI-146).
+const primitivesCatalog = loadPrimitivesCatalog();
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -897,7 +900,7 @@ export function scoreMotionRichness(sceneMap, timelineMap) {
       const sceneId = scene.scene_id || scene.id;
       const timeline = timelineMap.get(sceneId);
       if (timeline) {
-        const critique = critiqueScene(timeline, scene);
+        const critique = critiqueScene(timeline, scene, { catalogs: { primitives: primitivesCatalog } });
         criticScoreSum += critique.score;
         criticCount++;
         for (const issue of critique.issues) {

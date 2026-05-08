@@ -2322,7 +2322,7 @@ function handleRunBenchmarks() {
       };
     }
 
-    const catalogs = { recipes: recipesCatalog };
+    const catalogs = { recipes: recipesCatalog, primitives: primitivesCatalog };
     const report = runBenchmarks(scenes, catalogs);
 
     let output = `## Benchmark Report\n\n`;

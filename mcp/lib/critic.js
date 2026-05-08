@@ -72,7 +72,14 @@ export function critiqueTimeline(timeline, scene, sequenceContext, options = {})
   }
 
   const issues = [];
-  const personality = options.personality || scene?.personality || null;
+  // Personality resolution priority: explicit option > scene field >
+  // timeline (persisted by compileMotion at compile time). The last fallback
+  // closes the gap where compile_motion → critique_motion drops the
+  // personality between calls (ANI-146 review feedback).
+  const personality = options.personality
+    || scene?.personality
+    || timeline?.personality
+    || null;
 
   // ── Reactive-aware checks ──────────────────────────────────────────────
   // Run whenever a primitives catalog is supplied. These checks operate on
@@ -876,12 +883,15 @@ function getAllKeyframes(tracks) {
  * Timeline analysis always runs. Semantic analysis only runs when
  * scene.semantic exists. Issues are merged, score recomputed.
  *
- * @param {object} timeline - Compiled Level 2 timeline from compileMotion()
+ * @param {object} timeline - Compiled timeline from compileMotion() (static or reactive)
  * @param {object} scene - Original scene definition (v2 or v3)
+ * @param {object} [options] - Forwarded to critiqueTimeline. Pass `{ catalogs: { primitives } }`
+ *   to enable the reactive-aware checks (ANI-146); otherwise lib-* scenes
+ *   silently auto-pass.
  * @returns {{ score: number, issues: Array, summary: string }}
  */
-export function critiqueScene(timeline, scene) {
-  const timelineResult = critiqueTimeline(timeline, scene);
+export function critiqueScene(timeline, scene, options) {
+  const timelineResult = critiqueTimeline(timeline, scene, undefined, options);
 
   if (!scene?.semantic) return timelineResult;
 

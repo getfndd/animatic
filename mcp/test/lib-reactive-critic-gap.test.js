@@ -16,10 +16,10 @@
  * when the reactive-scene critic lands, these assertions flip and force
  * the implementer to confirm intent.
  *
- * TODO(ANI-XXX): replace these assertions with the new contract once a
- * scene-level critic for reactive output exists. See conversation notes
- * for design (personality affinity, config-key validation against
- * `config_schema`, capture_contract sanity, library/personality compat).
+ * TODO(ANI-146): replace these assertions with the new contract once a
+ * scene-level critic for reactive output exists. See ANI-146 for design
+ * (personality affinity, config-key validation against `config_schema`,
+ * capture_contract sanity, library/personality compat).
  */
 
 import { describe, it } from 'node:test';

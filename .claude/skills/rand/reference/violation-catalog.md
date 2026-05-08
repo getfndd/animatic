@@ -180,3 +180,60 @@ Searchable catalog of design system violations. Each entry has: Pattern, Rule, F
 - **Pattern**: One feature path (typically AI) with visually heavier styling (more color, larger size, "Recommended" badge) than sibling paths
 - **Rule**: All paths to the same goal get equal visual weight
 - **Fix**: Normalize all paths to same styling pattern
+
+---
+
+## Motion / Accessibility Violations
+
+### Reduced Motion Fallback Missing — Recipe (motion/requires-reduced-motion-fallback)
+- **Tier**: Blocking
+- **Pattern**: Recipe in `catalog/motion-recipes.json` missing `accessibility_fallback.reduced_motion` (or any required field inside it: `from`, `to`, `differentiation`)
+- **Rule**: Every motion recipe must ship a reduced-motion variant. Schema requires it; the validator surfaces the same error at the Rand gate.
+- **Fix**: Add the fallback. For opacity+transform recipes, opacity-only is usually correct:
+  ```json
+  "accessibility_fallback": {
+    "reduced_motion": {
+      "from": { "opacity": 0 },
+      "to": { "opacity": 1 },
+      "differentiation": "Opacity-only fade preserves the enter signal; translation removed so vestibular users are not affected."
+    }
+  }
+  ```
+
+### Reduced Motion Fallback Missing — Composition (motion/requires-reduced-motion-fallback)
+- **Tier**: Blocking
+- **Pattern**: `.tsx`/`.jsx` file imports `framer-motion` or `motion/react` and uses `<motion.X>` / `useAnimate()` / spring-typed variants, but does NOT call `useReducedMotion()`, `useMotionRecipe()`, or define a `reduced` variant key
+- **Rule**: Custom motion compositions must declare reduced-motion behavior. Routing through `useMotionRecipe()` inherits the recipe's fallback automatically; inline variants must opt in explicitly.
+- **Fix**: Either route through `useMotionRecipe('enter.fade-up')` (recipe handles fallback) or:
+  ```tsx
+  import { motion, useReducedMotion } from 'framer-motion';
+  const reduced = useReducedMotion();
+  return <motion.div animate={{ y: reduced ? 0 : -20, opacity: 1 }} />;
+  ```
+
+### Reduced Motion Fallback Missing — CSS (motion/requires-reduced-motion-fallback)
+- **Tier**: Warning
+- **Pattern**: CSS file containing `@keyframes` or `animation:` declarations with no `@media (prefers-reduced-motion: reduce)` query in the same file
+- **Rule**: CSS animations need a reduced-motion override. Warning only — some files legitimately define keyframes consumed elsewhere.
+- **Fix**: Add a sibling query:
+  ```css
+  @media (prefers-reduced-motion: reduce) {
+    .animated { animation: none; transition: none; }
+  }
+  ```
+  Or, if the file is a pure keyframe library, silence with: `/* rand-disable motion/requires-reduced-motion-fallback: keyframe library consumed elsewhere */`
+
+### Per-File Disable Mechanism
+
+Any file may silence the rule with a comment containing a required reason:
+
+- JS/TSX: `// rand-disable motion/requires-reduced-motion-fallback: <reason>`
+- CSS: `/* rand-disable motion/requires-reduced-motion-fallback: <reason> */`
+
+Disabled files appear in the Rand report with their reason so reviewers can audit. Use sparingly; legitimate cases include decorative loading spinners, keyframe-only library files, and Framer Motion usage inside Remotion compositions (rendered to MP4, not live web).
+
+### Validator
+
+Programmatic check: `npm run rand:motion-a11y` (or `node scripts/rand-motion-a11y.mjs`). Returns exit code 1 on any blocking violation; warnings do not block. The validator lives in `mcp/lib/rand-motion-a11y.js` and can be imported by other Rand-enabled repos via `import { checkProject } from 'animatic/mcp/lib/rand-motion-a11y.js'`.
+
+References: ANI-138, [WCAG 2.3.3 Animation from Interactions](https://www.w3.org/WAI/WCAG21/Understanding/animation-from-interactions.html), Recipe contract from ANI-134.

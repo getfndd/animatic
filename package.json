@@ -18,6 +18,7 @@
     "capture": "node scripts/capture-prototype.mjs",
     "preflight": "node scripts/preflight.mjs",
     "preview": "node scripts/preview.mjs",
+    "rand:motion-a11y": "node scripts/rand-motion-a11y.mjs",
     "remotion:studio": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx remotion studio",
     "remotion:render": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx remotion render",
     "remotion:render:scene": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" npx remotion render Scene --output renders/scene.mp4",

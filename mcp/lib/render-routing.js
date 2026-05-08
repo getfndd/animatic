@@ -52,10 +52,16 @@ const CAPTURE_COST_SECONDS = {
 // with no I/O. Drift is unlikely (these rules are stable), but if guardrails
 // ever change, update both. The cinematic-dark personality has no entries
 // because it permits all CSS features the router can detect.
+//
+// NOTE: editorial's `blur_entrance` is intentionally NOT detected here.
+// Static CSS can't reliably distinguish an entrance blur from a rack-focus
+// or scrim blur, and editorial allows the latter. Entrance-blur enforcement
+// happens at the motion compiler / primitive-selection layer where the
+// "is this primitive in the Entrances category" context exists. neutral-
+// light and montage forbid blur outright, so the regex still applies there.
 const PERSONALITY_FORBIDDEN_CSS = {
   editorial: {
     '3d_transforms': /transform[^;]*(?:perspective\(|translate3d|translateZ|rotateX|rotateY|matrix3d)/i,
-    'blur_entrance': /(?:filter|backdrop-filter)[^;]*blur\(/i,
   },
   'neutral-light': {
     '3d_transforms': /transform[^;]*(?:perspective\(|translate3d|translateZ|rotateX|rotateY|matrix3d)/i,

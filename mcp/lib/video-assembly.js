@@ -50,12 +50,18 @@ export function assembleVideoSequence({
   // Build scene array for routing if not provided
   const sceneArray = scenes || Object.values(sceneDefs);
 
-  // Step 1: Resolve render targets
+  // Step 1: Resolve render targets.
+  // Forward the manifest so render_target_default and per-scene-entry
+  // overrides participate in routing. Without this, manifest-pinned scenes
+  // would auto-resolve and create bogus plate requirements (ANI-118 review).
   let routes;
   if (preRoutes) {
     routes = preRoutes;
   } else {
-    const resolved = resolveRenderTargets(sceneArray);
+    const resolved = resolveRenderTargets(sceneArray, {
+      manifest,
+      personality: manifest.personality,
+    });
     routes = {};
     for (const r of resolved.routes) {
       routes[r.scene_id] = r;

@@ -282,6 +282,20 @@ describe('resolveRenderTargets — personality compatibility (ANI-118)', () => {
       }
     });
 
+    it('editorial accepts static blur (rack focus, scrim) — entrance enforcement is at the primitive layer', () => {
+      // Regression: previous version flagged any blur(...) under editorial,
+      // which over-broadened the personality_boundaries.blur_entrance rule.
+      // That rule fires in mcp/lib.js when a blur primitive is in the
+      // Entrances category — render-routing has no way to know that from
+      // CSS alone, so it correctly stays out of the way.
+      const { routes, summary } = resolveRenderTargets(
+        [withCss('sc_rack_focus', 'filter:blur(8px)')],
+        { personality: 'editorial' }
+      );
+      assert.equal(routes[0].personality_compat.ok, true);
+      assert.equal(summary.warnings, 0);
+    });
+
     it('cinematic-dark accepts everything CSS-detectable', () => {
       const { routes, summary } = resolveRenderTargets(
         [withCss('sc_3d', 'transform:perspective(800px) translateZ(50px); filter:blur(20px)')],

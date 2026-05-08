@@ -116,6 +116,56 @@ describe('assembleVideoSequence', () => {
       { message: /requires a manifest/ }
     );
   });
+
+  // ANI-118 review feedback: assembly was calling resolveRenderTargets
+  // without forwarding the manifest, so manifest-pinned scenes were
+  // auto-resolved during assembly even though the standalone routing tool
+  // honored the override. That created bogus plate requirements for
+  // scenes the manifest said should route to remotion_native.
+  it('forwards manifest to resolveRenderTargets so per-entry overrides apply (ANI-118)', () => {
+    const overrideManifest = {
+      ...manifest,
+      scenes: [
+        { scene: 'sc_01', duration_s: 3 },
+        // sc_02 would auto-resolve to browser_capture (complex HTML hero),
+        // but the manifest pins it to remotion_native.
+        { scene: 'sc_02', duration_s: 5, render_target: 'remotion_native' },
+        { scene: 'sc_03', duration_s: 4 },
+      ],
+    };
+    const result = assembleVideoSequence({
+      manifest: overrideManifest,
+      sceneDefs,
+      scenes: Object.values(sceneDefs),
+    });
+    assert.equal(result.sceneRoutes.sc_02.render_target, 'remotion_native',
+      'manifest override must be honored during assembly, not just standalone routing');
+    assert.equal(result.plateStatus.sc_02.status, 'native',
+      'plate status should reflect remotion_native — no plate required');
+  });
+
+  it('forwards manifest.render_target_default during assembly (ANI-118)', () => {
+    const defaultManifest = {
+      ...manifest,
+      render_target_default: 'hybrid',
+      scenes: [
+        // A scene with no auto-detect signal — should fall through to the
+        // manifest default rather than the hardcoded "remotion_native".
+        { scene: 'sc_blank', duration_s: 3 },
+      ],
+    };
+    const blankSceneDefs = { sc_blank: { scene_id: 'sc_blank', layers: [] } };
+    const result = assembleVideoSequence({
+      manifest: defaultManifest,
+      sceneDefs: blankSceneDefs,
+      scenes: Object.values(blankSceneDefs),
+    });
+    // assembly's sceneRoutes only carries render_target + plate info
+    // (it's the shape SequenceComposition consumes), so the source label
+    // doesn't survive — but if the target landed correctly, the
+    // render_target_default forwarding worked.
+    assert.equal(result.sceneRoutes.sc_blank.render_target, 'hybrid');
+  });
 });
 
 // ── buildRenderCommand ──────────────────────────────────────────────────────

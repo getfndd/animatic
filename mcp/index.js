@@ -3652,20 +3652,34 @@ function handleAssembleVideoSequence(args) {
 // ── resolve_render_targets ───────────────────────────────────────────────────
 
 function handleResolveRenderTargets(args) {
-  const { scenes } = args;
+  const { scenes, manifest, personality, strict } = args;
   if (!scenes || !Array.isArray(scenes)) {
     return { content: [{ type: 'text', text: 'scenes must be a non-empty array' }], isError: true };
   }
 
-  const result = resolveRenderTargets(scenes);
+  let result;
+  try {
+    result = resolveRenderTargets(scenes, { manifest, personality, strict });
+  } catch (err) {
+    return { content: [{ type: 'text', text: `**Error:** ${err.message}` }], isError: true };
+  }
 
   let summary = `## Render Target Routing\n\n`;
-  summary += `**${result.routes.length} scenes** → ${result.summary.browser_capture} browser_capture, ${result.summary.remotion_native} remotion_native, ${result.summary.web_native} web_native, ${result.summary.hybrid} hybrid\n\n`;
+  summary += `**${result.routes.length} scenes** → ${result.summary.browser_capture} browser_capture, ${result.summary.remotion_native} remotion_native, ${result.summary.web_native} web_native, ${result.summary.hybrid} hybrid`;
+  if (result.summary.warnings > 0) {
+    summary += ` _(⚠ ${result.summary.warnings} compatibility warning${result.summary.warnings === 1 ? '' : 's'})_`;
+  }
+  summary += '\n\n';
 
   for (const r of result.routes) {
     const icon = r.render_target === 'browser_capture' ? 'B' : r.render_target === 'remotion_native' ? 'R' : r.render_target === 'hybrid' ? 'H' : 'W';
-    summary += `**[${icon}] ${r.scene_id}** → \`${r.render_target}\` (${r.confidence.toFixed(2)})\n`;
+    summary += `**[${icon}] ${r.scene_id}** → \`${r.render_target}\` (${r.confidence.toFixed(2)}, source: \`${r.source}\`)\n`;
     summary += `  _${r.reason}_\n`;
+    if (r.personality_compat?.warnings?.length) {
+      for (const w of r.personality_compat.warnings) {
+        summary += `  ⚠ \`${w.rule}\` — ${w.message}\n`;
+      }
+    }
   }
 
   return { content: [{ type: 'text', text: summary }] };

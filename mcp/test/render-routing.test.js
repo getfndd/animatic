@@ -245,3 +245,244 @@ describe('resolveRenderTargets — library-driven telemetry (ANI-145)', () => {
     assert.equal(summary.estimated_capture_seconds, 0);
   });
 });
+
+// ── ANI-118: personality compatibility + manifest overrides ──────────────────
+
+describe('resolveRenderTargets — personality compatibility (ANI-118)', () => {
+  // Helpers: build scenes with personality-relevant CSS.
+  function withCss(id, css, opts = {}) {
+    return makeScene(id, {
+      ...opts,
+      content: `<div style="${css}">` + 'x'.repeat(opts.padChars || 600) + '</div>',
+    });
+  }
+
+  describe('forbidden CSS detection', () => {
+    it('flags 3d_transforms in editorial personality', () => {
+      const { routes, summary } = resolveRenderTargets(
+        [withCss('sc_3d', 'transform:perspective(800px) translateZ(50px)')],
+        { personality: 'editorial' }
+      );
+      assert.equal(routes[0].personality_compat.ok, false);
+      const issue = routes[0].personality_compat.warnings.find(w => w.feature === '3d_transforms');
+      assert.ok(issue);
+      assert.equal(issue.rule, 'personality_forbidden_feature');
+      assert.equal(summary.warnings, 1);
+    });
+
+    it('flags blur in neutral-light and montage', () => {
+      for (const p of ['neutral-light', 'montage']) {
+        const { routes } = resolveRenderTargets(
+          [withCss('sc_blur', 'filter:blur(12px)')],
+          { personality: p }
+        );
+        assert.equal(routes[0].personality_compat.ok, false, `should fail under ${p}`);
+        const issue = routes[0].personality_compat.warnings[0];
+        assert.match(issue.feature, /blur/, `expected blur feature for ${p}, got ${issue.feature}`);
+      }
+    });
+
+    it('editorial accepts static blur (rack focus, scrim) — entrance enforcement is at the primitive layer', () => {
+      // Regression: previous version flagged any blur(...) under editorial,
+      // which over-broadened the personality_boundaries.blur_entrance rule.
+      // That rule fires in mcp/lib.js when a blur primitive is in the
+      // Entrances category — render-routing has no way to know that from
+      // CSS alone, so it correctly stays out of the way.
+      const { routes, summary } = resolveRenderTargets(
+        [withCss('sc_rack_focus', 'filter:blur(8px)')],
+        { personality: 'editorial' }
+      );
+      assert.equal(routes[0].personality_compat.ok, true);
+      assert.equal(summary.warnings, 0);
+    });
+
+    it('cinematic-dark accepts everything CSS-detectable', () => {
+      const { routes, summary } = resolveRenderTargets(
+        [withCss('sc_3d', 'transform:perspective(800px) translateZ(50px); filter:blur(20px)')],
+        { personality: 'cinematic-dark' }
+      );
+      assert.equal(routes[0].personality_compat.ok, true);
+      assert.equal(summary.warnings, 0);
+    });
+
+    it('falls back to scene.personality when option not provided', () => {
+      const scene = withCss('sc_3d', 'transform:perspective(800px) translateZ(50px)');
+      scene.personality = 'editorial';
+      const { routes } = resolveRenderTargets([scene]);
+      assert.equal(routes[0].personality_compat.ok, false);
+    });
+
+    it('flags unknown personality value', () => {
+      const { routes } = resolveRenderTargets(
+        [makeScene('sc_01')],
+        { personality: 'blockbuster' }
+      );
+      const w = routes[0].personality_compat.warnings.find(x => x.rule === 'unknown_personality');
+      assert.ok(w);
+    });
+
+    it('no personality option = no compat warnings (backwards compat)', () => {
+      const { routes, summary } = resolveRenderTargets(
+        [withCss('sc_3d', 'transform:perspective(800px) translateZ(50px)')]
+      );
+      assert.equal(routes[0].personality_compat.ok, true);
+      assert.equal(summary.warnings, 0);
+    });
+  });
+
+  describe('target × personality matrix', () => {
+    // Each personality + each render path (auto-detect produces three of the
+    // four targets; web_native is explicit-only). Verify happy-path scenes
+    // route correctly under each personality without spurious warnings.
+    const personalities = ['cinematic-dark', 'editorial', 'neutral-light', 'montage'];
+
+    for (const p of personalities) {
+      it(`${p} — clean HTML scene routes to browser_capture`, () => {
+        const { routes } = resolveRenderTargets(
+          [makeScene('sc_html', { content: '<div>' + 'x'.repeat(600) + '</div>' })],
+          { personality: p }
+        );
+        assert.equal(routes[0].render_target, 'browser_capture');
+        assert.equal(routes[0].personality_compat.ok, true);
+      });
+
+      it(`${p} — text-only scene routes to remotion_native`, () => {
+        const { routes } = resolveRenderTargets(
+          [makeScene('sc_text', { heroType: 'text', content: 'Hello' })],
+          { personality: p }
+        );
+        assert.equal(routes[0].render_target, 'remotion_native');
+        assert.equal(routes[0].personality_compat.ok, true);
+      });
+
+      it(`${p} — explicit hybrid override is honored`, () => {
+        const { routes } = resolveRenderTargets(
+          [makeScene('sc_hybrid', { render_target: 'hybrid' })],
+          { personality: p }
+        );
+        assert.equal(routes[0].render_target, 'hybrid');
+      });
+    }
+  });
+
+  describe('strict mode', () => {
+    it('throws when any compatibility warning surfaces', () => {
+      assert.throws(() => {
+        resolveRenderTargets(
+          [makeScene('sc_3d', { content: '<div style="transform:perspective(600px) translateZ(40px)">x</div>' })],
+          { personality: 'editorial', strict: true }
+        );
+      }, /compatibility warning/);
+    });
+
+    it('does not throw when there are no warnings', () => {
+      const { routes } = resolveRenderTargets(
+        [makeScene('sc_clean')],
+        { personality: 'editorial', strict: true }
+      );
+      assert.equal(routes.length, 1);
+    });
+  });
+});
+
+describe('resolveRenderTargets — manifest overrides (ANI-118)', () => {
+  it('manifest entry override wins over auto-detect', () => {
+    const manifest = {
+      sequence_id: 'seq_01',
+      scenes: [{ scene: 'sc_01', render_target: 'remotion_native' }],
+    };
+    // Scene would normally route to browser_capture (complex HTML), but
+    // manifest entry override pins it to remotion_native.
+    const { routes } = resolveRenderTargets(
+      [makeScene('sc_01', { content: '<div>' + 'x'.repeat(600) + '</div>' })],
+      { manifest }
+    );
+    assert.equal(routes[0].render_target, 'remotion_native');
+    assert.equal(routes[0].source, 'explicit_manifest_entry');
+  });
+
+  it('scene-level override beats manifest entry override', () => {
+    const manifest = {
+      sequence_id: 'seq_01',
+      scenes: [{ scene: 'sc_01', render_target: 'remotion_native' }],
+    };
+    const { routes } = resolveRenderTargets(
+      [makeScene('sc_01', { render_target: 'browser_capture' })],
+      { manifest }
+    );
+    assert.equal(routes[0].render_target, 'browser_capture');
+    assert.equal(routes[0].source, 'explicit_scene');
+    // Conflict surfaces in compat warnings.
+    const conflict = routes[0].personality_compat.warnings.find(w => w.rule === 'manifest_override_conflict');
+    assert.ok(conflict, 'expected manifest_override_conflict warning');
+  });
+
+  it('manifest default applies only when nothing else routes the scene', () => {
+    // A scene with no signals at all (no role, no layers, no content) would
+    // fall to the "default" branch — manifest_default supersedes that.
+    const manifest = { sequence_id: 'seq_01', render_target_default: 'hybrid', scenes: [{ scene: 'sc_01' }] };
+    const scene = { scene_id: 'sc_01', layers: [] };
+    const { routes } = resolveRenderTargets([scene], { manifest });
+    assert.equal(routes[0].render_target, 'hybrid');
+    assert.equal(routes[0].source, 'manifest_default');
+  });
+
+  it('manifest default does NOT override auto-detect when auto-detect found a signal', () => {
+    const manifest = { sequence_id: 'seq_01', render_target_default: 'hybrid', scenes: [{ scene: 'sc_01' }] };
+    // Complex HTML hero — auto-detect should still pick browser_capture.
+    const { routes } = resolveRenderTargets(
+      [makeScene('sc_01', { content: '<div>' + 'x'.repeat(600) + '</div>' })],
+      { manifest }
+    );
+    assert.equal(routes[0].render_target, 'browser_capture');
+    assert.equal(routes[0].source, 'hero_complex_html');
+  });
+});
+
+describe('resolveRenderTargets — web_native misuse (ANI-118)', () => {
+  it('flags explicit web_native as a video-pipeline warning', () => {
+    const { routes, summary } = resolveRenderTargets(
+      [makeScene('sc_01', { render_target: 'web_native' })]
+    );
+    assert.equal(routes[0].render_target, 'web_native');
+    assert.ok(routes[0].personality_compat.warnings.some(w => w.rule === 'web_native_in_video_context'));
+    assert.ok(summary.warnings >= 1);
+  });
+
+  it('flags manifest-entry web_native too', () => {
+    const manifest = {
+      sequence_id: 'seq_01',
+      scenes: [{ scene: 'sc_01', render_target: 'web_native' }],
+    };
+    const { routes } = resolveRenderTargets([makeScene('sc_01')], { manifest });
+    assert.equal(routes[0].render_target, 'web_native');
+    assert.ok(routes[0].personality_compat.warnings.some(w => w.rule === 'web_native_in_video_context'));
+  });
+});
+
+describe('resolveRenderTargets — routing rationale (ANI-118)', () => {
+  it('every route reports a source label', () => {
+    const { routes } = resolveRenderTargets([
+      makeScene('sc_01', { render_target: 'browser_capture' }),
+      makeScene('sc_02', { content: '<div>' + 'x'.repeat(600) + '</div>' }),
+      makeScene('sc_03', { role: 'cta', content: '<span>Logo</span>' }),
+      makeScene('sc_04', { heroType: 'text' }),
+    ]);
+    assert.equal(routes[0].source, 'explicit_scene');
+    assert.equal(routes[1].source, 'hero_complex_html');
+    assert.equal(routes[2].source, 'role_remotion');
+    assert.equal(routes[3].source, 'mostly_native');
+  });
+
+  it('every route includes a signals object with raw inputs', () => {
+    const { routes } = resolveRenderTargets([
+      makeScene('sc_01', { content: '<div>' + 'x'.repeat(600) + '</div>' }),
+    ]);
+    const s = routes[0].signals;
+    assert.equal(s.html_layers, 1);
+    assert.equal(s.total_fg_layers, 1);
+    assert.equal(s.hero_type, 'html');
+    assert.ok(s.longest_html_chars > 600);
+    assert.equal(s.scene_role, 'result');
+  });
+});

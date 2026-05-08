@@ -1472,11 +1472,24 @@ export function buildTools({
     {
       name: 'resolve_render_targets',
       description:
-        'Route scenes to optimal render targets: web_native (real DOM), browser_capture (Puppeteer→plate), remotion_native (direct Remotion), or hybrid. Pure routing — deterministic, no side effects. Returns target + reason + capture config per scene.',
+        'Route scenes to optimal render targets: web_native (real DOM), browser_capture (Puppeteer→plate), remotion_native (direct Remotion), or hybrid. Pure routing — deterministic, no side effects. Returns target + reason + source + signals + personality_compat per scene. Resolution priority: scene.render_target > manifest scene-entry override > manifest.render_target_default > auto-detect.',
       inputSchema: {
         type: 'object',
         properties: {
           scenes: { type: 'array', items: { type: 'object' }, description: 'Annotated scene definitions.' },
+          manifest: {
+            type: 'object',
+            description: 'Optional sequence manifest. `manifest.render_target_default` sets a global fallback; `manifest.scenes[i].render_target` is a per-scene override.',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Personality slug. Used to detect forbidden CSS features (3d_transforms, blur) per scene. Falls back to scene.personality.',
+          },
+          strict: {
+            type: 'boolean',
+            description: 'When true, throw on any compatibility warning instead of returning it. Default false.',
+          },
         },
         required: ['scenes'],
       },

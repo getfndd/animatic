@@ -49,6 +49,11 @@ A sequence manifest is an ordered list of scenes with timing, transitions, and g
     "audio": {
       "$ref": "#/$defs/audio_track",
       "description": "Optional background audio track. Plays across the full sequence with volume envelope."
+    },
+    "render_target_default": {
+      "type": "string",
+      "enum": ["web_native", "browser_capture", "remotion_native", "hybrid"],
+      "description": "Manifest-wide fallback render target. Applied by `resolve_render_targets` only when no scene-level override and no auto-detect signal applies. See **Render target resolution priority** below."
     }
   }
 }
@@ -72,6 +77,11 @@ A sequence manifest is an ordered list of scenes with timing, transitions, and g
           "minimum": 0.5,
           "maximum": 30,
           "description": "Hold duration. Overrides the scene's own duration_s if provided."
+        },
+        "render_target": {
+          "type": "string",
+          "enum": ["web_native", "browser_capture", "remotion_native", "hybrid"],
+          "description": "Per-scene render target override for this sequence context. Overrides `manifest.render_target_default` and any auto-detect signal. A scene-level `scene.render_target` still takes precedence; mismatches surface as a `manifest_override_conflict` warning in `resolve_render_targets`."
         },
         "transition_in": {
           "$ref": "#/$defs/transition",
@@ -223,6 +233,20 @@ total = (3 + 3 + 3 + 3) - (0 + 0.4 + 0.4 + 0.4) = 10.8s
 ```
 
 The first scene has no transition_in (it starts immediately).
+
+## Render target resolution priority
+
+`resolve_render_targets` picks one render target per scene by walking this priority list (first match wins):
+
+1. **Scene-level override** — `scene.render_target` set on the scene definition itself. Always trusted (`confidence: 1.0`).
+2. **Manifest scene-entry override** — `manifest.scenes[i].render_target`. Pins this sequence's view of the scene without modifying the scene file.
+3. **Auto-detect** — heuristics based on layer types, HTML complexity, browser-only CSS, and `product_role` (atmosphere/CTA/transition route to remotion_native; complex HTML hero routes to browser_capture; etc.).
+4. **Manifest default** — `manifest.render_target_default`. Fallback only when nothing above produced a target.
+5. **Hardcoded default** — `remotion_native` (`confidence: 0.5`).
+
+If both scene-level and manifest scene-entry overrides are set with different values, the scene-level value wins and a `manifest_override_conflict` warning is emitted on the route's `personality_compat.warnings` list (ANI-118).
+
+`web_native` is for live-website embedding only — never auto-detect; if a caller selects it via either explicit override path, `resolve_render_targets` emits a `web_native_in_video_context` warning.
 
 ## Examples
 

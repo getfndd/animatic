@@ -1,0 +1,230 @@
+{
+  "storyboard_id": "sb_onboarding-explainer_aria-cloud-console",
+  "brief_ref": "aria-cloud-console",
+  "title": "Aria Cloud — Operations Console",
+  "version": 1,
+  "direction": {
+    "narrative": "Sequential walkthrough that guides the viewer through a multi-step process. Consistent pacing with clear visual hierarchy between steps. Designed for clarity over drama.",
+    "tone": "confident",
+    "energy_arc": "low → medium → medium → medium → high → low",
+    "total_duration_s": 30,
+    "personality": "cinematic-dark",
+    "style": "prestige"
+  },
+  "brand": {
+    "ref": "fintech-demo",
+    "palette_note": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black.",
+    "typography_note": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+    "surface_note": "Card 14px radius, panel 18px radius, input 28px radius."
+  },
+  "panels": [
+    {
+      "panel_id": "p_01",
+      "act": "open",
+      "intent": "Orient the viewer — what they will learn and why it matters",
+      "description": "Orient the viewer — what they will learn and why it matters",
+      "content": "One console. Every region. Every signal.",
+      "duration_s": 3.6,
+      "transition_in": null,
+      "transition_out": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "camera": "static",
+      "energy": "low",
+      "content_type": "typography",
+      "visual_direction": {
+        "composition": "Centered text, generous negative space on all sides. Single line or short stacked lines.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. High-contrast text on the personality's primary background.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Mercury 'Clarity takes craft.' frame — restraint as design."
+      },
+      "motion_notes": {
+        "entrance": "nl-slide-stagger entrance, 600ms ease-out.",
+        "choreography": "Optional layered: as-fadeIn, ed-slide-stagger.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "welcome"
+    },
+    {
+      "panel_id": "p_02",
+      "act": "build",
+      "intent": "First action in the workflow — establish the interaction pattern",
+      "description": "First action in the workflow — establish the interaction pattern",
+      "content": "",
+      "duration_s": 6,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "transition_out": {
+        "type": "parallax_crossfade",
+        "duration_ms": 500
+      },
+      "camera": "static",
+      "energy": "medium",
+      "content_type": "prompt_input",
+      "visual_direction": {
+        "composition": "Input field centered horizontally and vertically. ~580px max width. Nothing else on screen.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. Input bg: 5% white. Border: 8% white. Submit button: brand accent. Upload icon: 30% white.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Mercury prompt input — one input, one action, nothing else."
+      },
+      "motion_notes": {
+        "entrance": "nl-cursor-to entrance, 400ms ease-out.",
+        "choreography": "Optional layered: nl-spotlight, nl-step-progress.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "step_1"
+    },
+    {
+      "panel_id": "p_03",
+      "act": "build",
+      "intent": "Second action — build on the established pattern",
+      "description": "Second action — build on the established pattern",
+      "content": [
+        "Live regional health across 14 zones",
+        "Cost anomaly detection with one-click drill-through to the underlying spend",
+        "Incident timelines that read like a story — events, decisions, outcomes",
+        "Natural-language prompt — ask anything about your platform in plain English"
+      ],
+      "duration_s": 6,
+      "transition_in": {
+        "type": "parallax_crossfade",
+        "duration_ms": 500
+      },
+      "transition_out": {
+        "type": "parallax_crossfade",
+        "duration_ms": 500
+      },
+      "camera": "static",
+      "energy": "medium",
+      "content_type": "split_panel",
+      "visual_direction": {
+        "composition": "50/50 horizontal split. Left: text or context. Right: visual or product moment. 32px gutter.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. Left side text on page bg. Right side may have its own surface.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Linear feature split — text and visual sharing balance, neither dominating."
+      },
+      "motion_notes": {
+        "entrance": "nl-cursor-to entrance, 400ms ease-out.",
+        "choreography": "Optional layered: nl-spotlight, nl-step-progress.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "step_2"
+    },
+    {
+      "panel_id": "p_04",
+      "act": "build",
+      "intent": "Third action — complete the workflow sequence",
+      "description": "Third action — complete the workflow sequence",
+      "content": "Reduced incident response by 64% in pilot",
+      "duration_s": 6,
+      "transition_in": {
+        "type": "parallax_crossfade",
+        "duration_ms": 500
+      },
+      "transition_out": {
+        "type": "zoom_crossfade",
+        "duration_ms": 400
+      },
+      "camera": "static",
+      "energy": "medium",
+      "content_type": "chart_panel",
+      "visual_direction": {
+        "composition": "Elevated panel centered, ~580px max width. Header → explanation → chart → optional input. 28px padding, 24px between sections.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. Panel bg: elevated surface (one tier above page). Bars: 15% white. Axis: 6% white.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Mercury drilldown panel — simple bars, no gridlines, the data speaks."
+      },
+      "motion_notes": {
+        "entrance": "nl-cursor-to entrance, 400ms ease-out.",
+        "choreography": "Optional layered: nl-spotlight, nl-step-progress.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "step_3"
+    },
+    {
+      "panel_id": "p_05",
+      "act": "peak",
+      "intent": "Show the completed result — the payoff for following the steps",
+      "description": "Show the completed result — the payoff for following the steps",
+      "content": "Adopted by 12 platform teams across the Fortune 500",
+      "duration_s": 4.8,
+      "transition_in": {
+        "type": "zoom_crossfade",
+        "duration_ms": 400
+      },
+      "transition_out": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "camera": "breathe 0.2",
+      "energy": "high",
+      "content_type": "chart_panel",
+      "visual_direction": {
+        "composition": "Elevated panel centered, ~580px max width. Header → explanation → chart → optional input. 28px padding, 24px between sections.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. Panel bg: elevated surface (one tier above page). Bars: 15% white. Axis: 6% white.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Mercury drilldown panel — simple bars, no gridlines, the data speaks."
+      },
+      "motion_notes": {
+        "entrance": "cd-draw-checks entrance, 400ms ease-out.",
+        "choreography": "Optional layered: ed-count-up, bk-stat-card-count-up.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "success_state"
+    },
+    {
+      "panel_id": "p_06",
+      "act": "close",
+      "intent": "Point the viewer to further resources or the next workflow",
+      "description": "Point the viewer to further resources or the next workflow",
+      "content": "One console. Every region. Every signal.",
+      "duration_s": 3.6,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "transition_out": null,
+      "camera": "static",
+      "energy": "low",
+      "content_type": "typography",
+      "visual_direction": {
+        "composition": "Centered text, generous negative space on all sides. Single line or short stacked lines.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. High-contrast text on the personality's primary background.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Mercury 'Clarity takes craft.' frame — restraint as design."
+      },
+      "motion_notes": {
+        "entrance": "nl-slide-stagger entrance, 600ms ease-out.",
+        "choreography": "Optional layered: as-fadeIn, fade-in.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "No exit — final panel."
+      },
+      "_archetype_role": "next_steps"
+    }
+  ],
+  "_sources": {
+    "audience": "brief",
+    "archetype": "override",
+    "duration": "story_brief",
+    "brand_palette": "brand",
+    "brand_typography": "brand",
+    "brand_surfaces": "brand",
+    "visual_direction": "default",
+    "motion_notes": "archetype",
+    "llm": "none"
+  }
+}

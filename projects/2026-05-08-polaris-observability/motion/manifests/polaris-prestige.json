@@ -1,0 +1,44 @@
+{
+  "sequence_id": "seq_polaris_prestige",
+  "resolution": { "w": 1920, "h": 1080 },
+  "fps": 60,
+  "style": "prestige",
+  "personality": "cinematic-dark",
+  "_doc": "Frozen reference manifest from 2026-05-08 loop-integration-gap test. sc_02_features carries motion.compound: lib-gsap-spring-stagger (hand-injected). Use this to re-test once Gaps 1-3 close — the same input should then produce a manifest where lib-* surfaces without injection. See review/findings-2026-05-08-loop-integration-gaps.md.",
+  "scenes": [
+    { "scene": "sc_00_hero", "duration_s": 3 },
+    {
+      "scene": "sc_01_product",
+      "duration_s": 3,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 },
+      "camera_override": { "move": "push_in", "intensity": 0.2 }
+    },
+    {
+      "scene": "sc_03_social_proof",
+      "duration_s": 3,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 }
+    },
+    {
+      "scene": "sc_02_features",
+      "duration_s": 2.5,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 },
+      "camera_override": { "move": "drift", "intensity": 0.2 }
+    },
+    {
+      "scene": "sc_04_cta",
+      "duration_s": 3,
+      "transition_in": { "type": "crossfade", "duration_ms": 400 }
+    }
+  ],
+  "direction": {
+    "energy_arc": {
+      "shape": "back_loaded",
+      "peak_scene": 3,
+      "intensity_curve": [0.5, 0.5, 0.5, 0.9, 0.5]
+    },
+    "camera_arc": {
+      "progression": ["static", "push_in", "static", "drift", "static"],
+      "intensity_follows_energy": true
+    }
+  }
+}

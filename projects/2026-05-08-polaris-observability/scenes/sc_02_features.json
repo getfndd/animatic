@@ -1,0 +1,93 @@
+{
+  "scene_id": "sc_02_features",
+  "duration_s": 5,
+  "fps": 60,
+  "format_version": 2,
+  "personality": "cinematic-dark",
+  "product_role": "result",
+  "primary_subject": "card_trace",
+  "outcome": "Four pillars revealed together — single dramatic moment, not four scenes",
+  "interaction_truth": {
+    "has_cursor": false,
+    "has_typing": false,
+    "has_state_change": true,
+    "timing_realistic": true
+  },
+  "metadata": {
+    "content_type": "ui_screenshot",
+    "intent_tags": ["detail", "reveal", "dramatic-reveal"],
+    "visual_weight": "high",
+    "motion_energy": "high"
+  },
+  "camera": {
+    "move": "static"
+  },
+  "layout": {
+    "template": "split-panel"
+  },
+  "assets": [],
+  "layers": [
+    {
+      "id": "scene_bg",
+      "type": "html",
+      "depth_class": "background",
+      "product_role": "decorative",
+      "content_class": "atmosphere",
+      "clarity_weight": 1,
+      "content": "<div style=\"width:100%;height:100%;background:#0a0a0a\"></div>"
+    },
+    {
+      "id": "card_trace",
+      "type": "html",
+      "depth_class": "foreground",
+      "product_role": "hero",
+      "content_class": "ui_screenshot",
+      "clarity_weight": 5,
+      "content": "<div class='card'>Trace</div>"
+    },
+    {
+      "id": "card_detect",
+      "type": "html",
+      "depth_class": "foreground",
+      "product_role": "supporting",
+      "content_class": "ui_screenshot",
+      "clarity_weight": 4,
+      "content": "<div class='card'>Detect</div>"
+    },
+    {
+      "id": "card_resolve",
+      "type": "html",
+      "depth_class": "foreground",
+      "product_role": "supporting",
+      "content_class": "ui_screenshot",
+      "clarity_weight": 4,
+      "content": "<div class='card'>Resolve</div>"
+    },
+    {
+      "id": "card_learn",
+      "type": "html",
+      "depth_class": "foreground",
+      "product_role": "supporting",
+      "content_class": "ui_screenshot",
+      "clarity_weight": 4,
+      "content": "<div class='card'>Learn</div>"
+    }
+  ],
+  "motion": {
+    "compound": "lib-gsap-spring-stagger",
+    "compound_config": {
+      "stagger_ms": 90,
+      "entrance_ease": "back.out(1.7)",
+      "hold_ms": 2200
+    },
+    "content_count": 4
+  },
+  "_annotation_confidence": {
+    "product_role": 0.95,
+    "primary_subject": 0.9,
+    "interaction_truth": 0.8,
+    "outcome": 0.85,
+    "has_hero": 1.0,
+    "overall": 0.9
+  }
+}

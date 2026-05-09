@@ -1,0 +1,37 @@
+{
+  "id": "polaris-observability",
+  "slug": "polaris-observability",
+  "title": "Polaris — Observability for AI Systems",
+  "status": "draft",
+  "created_at": "2026-05-08",
+  "updated_at": "2026-05-08T21:24:59.130Z",
+  "brand": null,
+  "personality": "cinematic-dark",
+  "style_pack": "prestige",
+  "format": {
+    "aspect_ratio": "16:9",
+    "resolution": {
+      "w": 1920,
+      "h": 1080
+    },
+    "fps": 60,
+    "duration_target_s": 28
+  },
+  "entrypoints": {
+    "brief": "brief/brief.md",
+    "storyboard": "concept/storyboard.json",
+    "root_manifest": "motion/manifests/polaris-prestige.json",
+    "latest_render": null,
+    "approved_render": null
+  },
+  "scenes": [],
+  "versions": [],
+  "review": {
+    "evaluation": "review/evaluation.json",
+    "critic": "review/critic.json",
+    "notes": "review/notes.md"
+  },
+  "tags": [],
+  "owners": [],
+  "metadata": {}
+}

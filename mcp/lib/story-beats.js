@@ -278,7 +278,22 @@ function snapToAudioBeats(durations, audioBeats) {
  * @param {object} [params.options] - { duration_target_s, strategy }
  * @returns {object} Beat plan
  */
-export function planStoryBeats({ story_brief, archetype_slug, audio_beats, options } = {}) {
+// Match primitive-id tokens like `cd-card-cascade`, `as-fadeIn`, `as-fadeInUp`,
+// `ed-blur-reveal`, `mo-text-hero`, `bk-sparse-breathe`. The leading 2-3 char
+// prefix signals source (cd, as, ed, mo, bk). The body allows camelCase suffixes
+// (as-fadeIn) since several Animate.css-derived primitives use that convention.
+// We don't validate against the registry here — the goal is to surface the first
+// plausible primitive reference in panel motion_notes prose so it can override
+// the archetype's recommended_primitives.
+const PRIMITIVE_ID_RE = /\b([a-z]{2,3}-[a-zA-Z][a-zA-Z0-9-]+)\b/;
+
+function extractPrimitiveFromMotionNote(text) {
+  if (typeof text !== 'string') return null;
+  const m = text.match(PRIMITIVE_ID_RE);
+  return m ? m[1] : null;
+}
+
+export function planStoryBeats({ story_brief, archetype_slug, storyboard, audio_beats, options } = {}) {
   const archetypes = loadArchetypes();
   const cameraIntents = loadCameraIntents();
 
@@ -324,21 +339,60 @@ export function planStoryBeats({ story_brief, archetype_slug, audio_beats, optio
   // Continuity detection
   const continuityOps = detectContinuityOpportunities(archetype.scenes);
 
+  // Storyboard-aware overrides: when a panel exists at the same index, panel-
+  // level visual_direction and motion_notes refine the beat. Archetype values
+  // remain the fallback. Conflict rule: panel wins when present and parseable.
+  const panels = Array.isArray(storyboard?.panels) ? storyboard.panels : [];
+
   // Build beats
   const beats = archetype.scenes.map((scene, i) => {
+    const panel = panels[i] || null;
+
+    // Recommended primitives: panel motion_notes.entrance (first parseable
+    // primitive id) wins index 0. If the same id already exists later in the
+    // archetype list, it gets hoisted; if absent, it gets prepended. Either
+    // way the panel choice ends up first so downstream consumers honor it.
+    let recommendedPrimitives = scene.recommended_primitives || [];
+    let primitivesSource = 'archetype';
+    const panelPrimitive = extractPrimitiveFromMotionNote(panel?.motion_notes?.entrance);
+    if (panelPrimitive) {
+      const withoutPanel = recommendedPrimitives.filter(p => p !== panelPrimitive);
+      recommendedPrimitives = [panelPrimitive, ...withoutPanel];
+      primitivesSource = 'storyboard_panel';
+    }
+
+    const transitionIn = panel?.transition_in
+      ?? scene.transition_in
+      ?? (i === 0 ? null : { type: 'crossfade', duration_ms: 400 });
+
     const beat = {
       index: i,
       role: scene.role,
       brief_section: sectionMap[scene.role] || null,
       duration_s: durations[i],
       duration_pct: Math.round((durations[i] / totalDuration) * 1000) / 1000,
-      energy: scene.energy || 'medium',
+      energy: panel?.energy || scene.energy || 'medium',
       camera_intent: resolveIntent(scene, cameraIntents),
-      transition_in: scene.transition_in || (i === 0 ? null : { type: 'crossfade', duration_ms: 400 }),
+      transition_in: transitionIn,
       continuity_opportunities: continuityOps[i] || [],
       recommended_layers: scene.recommended_layers || [],
-      recommended_primitives: scene.recommended_primitives || [],
+      recommended_primitives: recommendedPrimitives,
     };
+
+    // Attach panel-derived design context so downstream scene generation can
+    // consume it (visual_direction, motion choreography, content_type, intent).
+    if (panel) {
+      beat.panel_ref = {
+        panel_id: panel.panel_id,
+        content_type: panel.content_type,
+        act: panel.act,
+        intent: panel.intent,
+        visual_direction: panel.visual_direction || null,
+        motion_choreography: panel.motion_notes?.choreography || null,
+        primitives_source: primitivesSource,
+      };
+    }
+
     // Attach semantic-planner recommendation when classification yields
     // components. Downstream scene generation can use this as a v3 seed
     // (ANI-116). Omit the key entirely when no recommendation applies so
@@ -355,8 +409,12 @@ export function planStoryBeats({ story_brief, archetype_slug, audio_beats, optio
     energy_curve: archetype.pacing_profile?.energy_curve || beats.map(b => b.energy),
     pacing_profile: archetype.pacing_profile || { pattern: 'linear', contrast_rule: 'none' },
     audio_sync: audioSync,
+    storyboard_aware: panels.length > 0,
   };
 }
+
+// Expose for storyboard-aware planner test
+export { extractPrimitiveFromMotionNote };
 
 // Expose for testing
 export { resolveIntent, matchBriefSections, detectContinuityOpportunities, snapToAudioBeats };

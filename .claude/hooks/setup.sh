@@ -85,10 +85,11 @@ else
     echo -e "${YELLOW}$CURRENT_BRANCH (not main)${NC}"
 fi
 
-# 6. Check for macOS hidden flags on project files
+# 6. Check for macOS hidden flags on non-dotfile project files
+# Dotfiles carry the hidden flag by convention; we only care about explicit chflags hidden on visible names.
 echo -n "Checking Finder visibility... "
-HIDDEN_COUNT=$(ls -laO . 2>/dev/null | grep -c "hidden" || echo "0")
-if [ "$HIDDEN_COUNT" -gt 5 ]; then
+HIDDEN_COUNT=$(ls -laO . 2>/dev/null | awk '/hidden/ && $NF !~ /^\./' | wc -l | tr -d ' ')
+if [ "$HIDDEN_COUNT" -gt 0 ]; then
     echo -e "${RED}$HIDDEN_COUNT files have macOS hidden flag (Finder won't show them)${NC}"
     echo "  Fix: chflags nohidden *"
     ISSUES_FOUND=$((ISSUES_FOUND + 1))

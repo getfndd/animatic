@@ -380,5 +380,6 @@
     ],
     "contrast_rule": "Social proof scene must provide a breath before the CTA — do not extend the high-energy run past three scenes"
   },
-  "audio_sync": null
+  "audio_sync": null,
+  "storyboard_aware": false
 }

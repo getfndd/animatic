@@ -425,5 +425,6 @@
     ],
     "contrast_rule": "The two high-energy scenes (demo + zoom) form a sustained peak — resolve must follow immediately"
   },
-  "audio_sync": null
+  "audio_sync": null,
+  "storyboard_aware": false
 }

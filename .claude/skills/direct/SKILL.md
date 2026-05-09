@@ -29,7 +29,7 @@ Generate the best possible video manifest for a project. Runs a multi-candidate 
 
 ---
 
-## Execution Loop (8 Steps)
+## Execution Loop (9 Steps)
 
 Execute these steps in order. At each step, call the appropriate MCP tool and use the result to inform the next step.
 
@@ -51,14 +51,30 @@ Call `extract_story_brief` with:
 
 This produces the structured brief: audience, promise, tone, features, closing beat, narrative template.
 
+### Step 2.5: Compose Storyboard
+
+Call `compose_storyboard` with:
+- `story_brief`: output from step 2
+- `brief`: brief markdown text (from step 1) — feeds LLM enrichment
+- `brand`: brand package (if loaded)
+- `project`: project.json contents
+- `options.enhance`: `true` (default — uses Claude Sonnet 4.6 to add specific px/weight/color values to each panel's `visual_direction`. Falls back to a deterministic skeleton when no API key.)
+
+This produces a `storyboard.json` shaped per `docs/cinematography/specs/storyboard-format.md`: panels with `act`, `intent`, `visual_direction`, `motion_notes`, and `content_type`. Save to `concept/storyboard.json` via `save_project_artifact` (kind: `storyboard`).
+
+**Surface to the user:** panel count, distinct content_types, and any panels with empty `visual_direction.composition`. The loop continues either way — this is the design checkpoint, not a hard gate.
+
+**Conflict resolution:** in Step 3, panel-level motion_notes and visual_direction override archetype defaults per beat; archetype values remain the fallback when no panel ref is present.
+
 ### Step 3: Plan Beats (×3 Strategies)
 
 For each strategy (e.g., prestige, energy, dramatic), call `plan_story_beats` with:
 - `story_brief`: output from step 2
 - `archetype_slug`: the `narrative_template` from the brief (or override per strategy)
+- `storyboard`: output from step 2.5 — panel-level visual_direction and motion_notes refine each beat
 - `audio_beats`: from project context if available
 
-This produces 3 beat plans with different pacing and camera approaches.
+This produces 3 beat plans with different pacing and camera approaches. Each beat carries a `panel_ref` block when a storyboard panel was matched, so downstream scene generation can read panel intent and visual direction.
 
 ### Step 4: Materialize Manifests
 
@@ -112,6 +128,7 @@ If `--save` is active, call `save_project_artifact` for each:
 | Artifact | Kind | Path |
 |----------|------|------|
 | Story brief | `brief` | `brief/story-brief.json` |
+| Storyboard | `storyboard` | `concept/storyboard.json` |
 | Beat plans | `storyboard` | `concept/beat-plan-{strategy}.json` |
 | Winning manifest | `manifest` | `motion/manifests/directed-{timestamp}.json` |
 | Score card | `review` | `review/score-card.json` |

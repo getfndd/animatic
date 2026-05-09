@@ -1298,14 +1298,40 @@ export function buildTools({
       },
     },
     {
+      name: 'compose_storyboard',
+      description:
+        'Compose a storyboard (panels with intent, content, visual_direction, motion_notes) from a story brief and archetype. Wedges between extract_story_brief and plan_story_beats as the design checkpoint. Returns the storyboard JSON shape from docs/cinematography/specs/storyboard-format.md. With ANTHROPIC_API_KEY set and options.enhance≠false (default), LLM enriches visual_direction with specific px/weight/color values; otherwise returns a deterministic skeleton.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          story_brief: { type: 'object', description: 'Output of `extract_story_brief`. Required.' },
+          brief: { type: 'string', description: 'Raw brief markdown text. Optional — feeds LLM enrichment context.' },
+          brand: { type: 'object', description: 'Brand package (output of `get_brand_package`). Optional but strongly recommended.' },
+          project: { type: 'object', description: 'project.json contents. Used for title, tagline, disclaimer.' },
+          archetype_slug: { type: 'string', description: 'Override the archetype. Defaults to `story_brief.narrative_template`.' },
+          options: {
+            type: 'object',
+            description: 'Composition options.',
+            properties: {
+              enhance: { type: 'boolean', description: 'Enable LLM enrichment of visual_direction. Default true when ANTHROPIC_API_KEY is set.' },
+              duration_target_s: { type: 'number', description: 'Override total duration in seconds.' },
+              storyboard_id: { type: 'string', description: 'Override the deterministic storyboard_id. Default: `sb_${archetype}_${project_slug}`. Use to version storyboards across runs of the same project (e.g., `sb_v2`).' },
+            },
+          },
+        },
+        required: ['story_brief'],
+      },
+    },
+    {
       name: 'plan_story_beats',
       description:
-        'Map a story brief onto a sequence archetype to produce a concrete beat plan with durations, camera intents, transitions, and continuity opportunities. Optionally snaps to audio beats.',
+        'Map a story brief onto a sequence archetype to produce a concrete beat plan with durations, camera intents, transitions, and continuity opportunities. Optionally snaps to audio beats. When a `storyboard` is provided, panel-level visual_direction and motion_notes override archetype defaults per beat.',
       inputSchema: {
         type: 'object',
         properties: {
           story_brief: { type: 'object', description: 'Output of `extract_story_brief`.' },
           archetype_slug: { type: 'string', description: 'Sequence archetype slug (e.g., `brand-teaser`, `feature-reveal`, `onboarding-explainer`).' },
+          storyboard: { type: 'object', description: 'Output of `compose_storyboard`. When provided, panel-level visual_direction + motion_notes override archetype defaults per beat.' },
           audio_beats: { type: 'object', description: 'Beat data from `analyze_beats`. When provided, beat durations snap to audio beats.' },
           options: {
             type: 'object',

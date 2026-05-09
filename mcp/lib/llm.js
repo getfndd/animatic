@@ -20,17 +20,25 @@ import { validateScene } from '../../src/remotion/lib.js';
 // ── Client ──────────────────────────────────────────────────────────────────
 
 let client = null;
+let _clientOverride = null;
 
 /**
  * Get or create the Anthropic client.
  * Returns null if ANTHROPIC_API_KEY is not set.
  */
 function getClient() {
+  if (_clientOverride) return _clientOverride;
   if (client) return client;
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
   client = new Anthropic({ apiKey });
   return client;
+}
+
+// Test-only seam: inject a mock { messages: { create } } client. Pass null
+// to clear. Not part of the public API surface.
+export function __setLLMClientForTest(mockClient) {
+  _clientOverride = mockClient;
 }
 
 /**
@@ -43,7 +51,9 @@ export function isLLMAvailable() {
 // ── Constants ───────────────────────────────────────────────────────────────
 
 const MODEL = 'claude-sonnet-4-5-20250514';
+const STORYBOARD_MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 2048;
+const STORYBOARD_MAX_TOKENS = 4096;
 
 // ── Stage 1: Enhance Scene Plan ─────────────────────────────────────────────
 
@@ -232,6 +242,160 @@ For each scene, return JSON array with: { index, camera: { move, intensity } }. 
     return {
       enriched: scenes,
       notes: [`LLM enrichment failed (${err.message}) — using rule-based scenes`],
+    };
+  }
+}
+
+// ── Stage 3: Enhance Storyboard ─────────────────────────────────────────────
+
+/**
+ * Enhance a storyboard skeleton with LLM-derived visual_direction specifics.
+ *
+ * Skeleton fields are categorized:
+ *   - Immutable: panel_id, act, content_type, duration_s, transition_in/out, camera, energy
+ *   - Mutable:   description, content (placeholders), visual_direction.*, motion_notes.entrance/choreography
+ *
+ * On any structural failure, returns the skeleton unchanged with
+ * `_sources.llm_failure` set so downstream tools can detect.
+ *
+ * @param {object} skeleton - storyboard from composeStoryboard()
+ * @param {object} context - { brief, brand, story_brief }
+ * @returns {Promise<{ storyboard: object, notes: string[] }>}
+ */
+export async function enhanceStoryboard(skeleton, { brief, brand, story_brief } = {}) {
+  const anthropic = getClient();
+  if (!anthropic) {
+    return {
+      storyboard: { ...skeleton, _sources: { ...skeleton._sources, llm: 'unavailable' } },
+      notes: ['LLM unavailable — using deterministic skeleton'],
+    };
+  }
+
+  const systemPrompt = `You are a senior cinematography director enriching storyboard panels with specific visual direction.
+
+You will receive a deterministic storyboard skeleton and creative context. Your job is to make each panel's visual_direction concrete: specific px sizes, weights, tracking, opacities, named colors, and surface treatments. Replace generic prose with specific, executable design specifications.
+
+Rules:
+- Reference the brand notes for typography family, color tokens, and surface conventions.
+- Reference the brief for tone and content specifics.
+- visual_direction must read like a designer wrote it for an engineer: "15px weight 600", "4% white border", "28px border radius", not "elegant" or "modern".
+- description should make the panel visually unambiguous — what's on screen, where.
+- motion_notes.entrance and choreography may be refined; keep recommended primitives if present.
+- DO NOT change panel_id, act, content_type, duration_s, transition_in, transition_out, camera, or energy.
+- Return a JSON array of panel improvements, one per skeleton panel, in the same order.`;
+
+  const skeletonPanels = skeleton.panels.map((p) => ({
+    panel_id: p.panel_id,
+    act: p.act,
+    content_type: p.content_type,
+    intent: p.intent,
+    description: p.description,
+    content: p.content,
+    visual_direction: p.visual_direction,
+    motion_notes: { entrance: p.motion_notes?.entrance, choreography: p.motion_notes?.choreography },
+  }));
+
+  const userPrompt = `Brief:
+${typeof brief === 'string' ? brief.slice(0, 4000) : JSON.stringify(story_brief || {}, null, 2)}
+
+Brand:
+${JSON.stringify({
+    palette_note: skeleton.brand?.palette_note,
+    typography_note: skeleton.brand?.typography_note,
+    surface_note: skeleton.brand?.surface_note,
+    direct: brand ? { colors: brand.colors, typography: brand.typography, surfaces: brand.surfaces } : null,
+  }, null, 2)}
+
+Direction:
+${JSON.stringify(skeleton.direction, null, 2)}
+
+Skeleton panels (improve visual_direction.{composition,typography,color,surfaces,reference}, description, and optionally motion_notes.{entrance,choreography}):
+${JSON.stringify(skeletonPanels, null, 2)}
+
+Return a JSON array of objects, one per panel, in the same order, shaped:
+{
+  "panel_id": "p_01",
+  "description": "...",
+  "visual_direction": { "composition": "...", "typography": "...", "color": "...", "surfaces": "...", "reference": "..." },
+  "motion_notes": { "entrance": "...", "choreography": "..." }
+}
+Use the same panel_id as the skeleton. Omit any field you don't want to change.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: STORYBOARD_MODEL,
+      max_tokens: STORYBOARD_MAX_TOKENS,
+      messages: [{ role: 'user', content: userPrompt }],
+      system: systemPrompt,
+    });
+
+    const content = response.content[0]?.text || '';
+    const improvements = parseJSONResponse(content);
+
+    if (!Array.isArray(improvements)) {
+      return {
+        storyboard: { ...skeleton, _sources: { ...skeleton._sources, llm: 'failed', llm_failure: 'response not an array' } },
+        notes: ['LLM storyboard response not an array — using deterministic skeleton'],
+      };
+    }
+
+    // Index improvements by panel_id (don't trust array order alone)
+    const improvByPanel = new Map();
+    for (const imp of improvements) {
+      if (imp && typeof imp === 'object' && imp.panel_id) {
+        improvByPanel.set(imp.panel_id, imp);
+      }
+    }
+
+    let appliedCount = 0;
+    const enrichedPanels = skeleton.panels.map((panel) => {
+      const imp = improvByPanel.get(panel.panel_id);
+      if (!imp) return panel;
+
+      // Lockdown: only read from `imp` for the mutable fields enumerated below.
+      // Immutable fields (panel_id, act, content_type, duration_s, transition_*,
+      // camera, energy) are preserved by simply never copying them from imp.
+      const merged = { ...panel };
+
+      if (typeof imp.description === 'string' && imp.description.trim()) {
+        merged.description = imp.description.trim();
+      }
+      if (imp.visual_direction && typeof imp.visual_direction === 'object') {
+        merged.visual_direction = {
+          ...panel.visual_direction,
+          ...Object.fromEntries(
+            Object.entries(imp.visual_direction).filter(
+              ([, v]) => typeof v === 'string' && v.trim().length > 0,
+            ),
+          ),
+        };
+      }
+      if (imp.motion_notes && typeof imp.motion_notes === 'object') {
+        merged.motion_notes = {
+          ...panel.motion_notes,
+          ...Object.fromEntries(
+            Object.entries(imp.motion_notes).filter(
+              ([k, v]) => ['entrance', 'choreography'].includes(k) && typeof v === 'string' && v.trim().length > 0,
+            ),
+          ),
+        };
+      }
+      appliedCount++;
+      return merged;
+    });
+
+    return {
+      storyboard: {
+        ...skeleton,
+        panels: enrichedPanels,
+        _sources: { ...skeleton._sources, llm: 'enhanced', llm_panels_enriched: appliedCount },
+      },
+      notes: [`LLM enriched ${appliedCount}/${skeleton.panels.length} panels via ${STORYBOARD_MODEL}`],
+    };
+  } catch (err) {
+    return {
+      storyboard: { ...skeleton, _sources: { ...skeleton._sources, llm: 'failed', llm_failure: err.message } },
+      notes: [`LLM storyboard enhancement failed (${err.message}) — using deterministic skeleton`],
     };
   }
 }

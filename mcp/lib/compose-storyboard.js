@@ -182,20 +182,43 @@ function distributeContent(panels, storyBrief, project) {
     }
   }
 
-  // Pass 3: typography panels by act
+  // Pass 3: typography panels by act. 'build' acts prefer remaining features,
+  // then proof_points (a credibility beat), then promise. This keeps brief
+  // proof content from getting silently dropped on archetypes without
+  // dedicated stat/chart panels (brand-teaser, social-loop, etc).
   for (let i = 0; i < panels.length; i++) {
     if (out[i] !== undefined) continue;
     const ct = panels[i].content_type;
     if (ct !== 'typography') continue;
     const act = panels[i].act;
-    if (act === 'open' || act === 'build') {
+    if (act === 'open') {
       out[i] = features.shift() || promise;
+    } else if (act === 'build') {
+      out[i] = features.shift() || proofs.shift() || promise;
     } else if (act === 'resolve') {
       out[i] = promise;
     } else if (act === 'close') {
       out[i] = project?.tagline || promise;
     } else {
-      out[i] = features.shift() || promise;
+      out[i] = features.shift() || proofs.shift() || promise;
+    }
+  }
+
+  // Pass 3b: any proof_points still unplaced get appended to the last
+  // typography 'build' or 'resolve' panel as a content array. Brief content
+  // should never be dropped silently at the design checkpoint.
+  if (proofs.length > 0) {
+    for (let i = panels.length - 1; i >= 0; i--) {
+      if (panels[i].content_type !== 'typography') continue;
+      if (!['build', 'resolve'].includes(panels[i].act)) continue;
+      const existing = out[i];
+      const merged = [
+        typeof existing === 'string' && existing.length > 0 ? existing : null,
+        ...proofs,
+      ].filter(Boolean);
+      out[i] = merged;
+      proofs.length = 0;
+      break;
     }
   }
 

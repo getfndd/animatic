@@ -1315,6 +1315,7 @@ export function buildTools({
             properties: {
               enhance: { type: 'boolean', description: 'Enable LLM enrichment of visual_direction. Default true when ANTHROPIC_API_KEY is set.' },
               duration_target_s: { type: 'number', description: 'Override total duration in seconds.' },
+              storyboard_id: { type: 'string', description: 'Override the deterministic storyboard_id. Default: `sb_${archetype}_${project_slug}`. Use to version storyboards across runs of the same project (e.g., `sb_v2`).' },
             },
           },
         },

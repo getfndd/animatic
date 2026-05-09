@@ -27,6 +27,7 @@ import {
 } from '../lib/compose-storyboard.js';
 import { extractStoryBrief } from '../lib/story-brief.js';
 import { enhanceStoryboard, __setLLMClientForTest } from '../lib/llm.js';
+import { buildTools } from '../tools.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
@@ -249,6 +250,26 @@ describe('composeStoryboard — deterministic skeleton', () => {
     });
     assert.equal(sb.storyboard_id, 'sb_custom_v3');
   });
+
+  it('MCP tool schema declares the storyboard_id option', () => {
+    // Regression: external/tool-driven callers need a discoverable path to the
+    // override. If options.storyboard_id is missing from the schema,
+    // schema-validating MCP clients may strip or reject the field.
+    const tools = buildTools({
+      STYLE_PACKS: ['prestige'],
+      intentMappings: { array: [] },
+      briefTemplatesCatalog: { array: [] },
+      getAllPersonalitySlugs: () => ['cinematic-dark'],
+      ART_DIRECTION_SLUGS: [],
+      COMPOSITING_PASS_SLUGS: [],
+      listReferenceDocs: () => [],
+    });
+    const tool = tools.find(t => t.name === 'compose_storyboard');
+    assert.ok(tool, 'compose_storyboard tool must be registered');
+    const optionsProps = tool.inputSchema.properties?.options?.properties;
+    assert.ok(optionsProps?.storyboard_id, 'options.storyboard_id must be declared in the schema');
+    assert.equal(optionsProps.storyboard_id.type, 'string');
+  });
 });
 
 describe('distributeContent', () => {
@@ -263,6 +284,61 @@ describe('distributeContent', () => {
     assert.deepEqual(out[1], ['Trace', 'Detect', 'Resolve', 'Learn']);
     assert.equal(typeof out[2], 'object'); // logo_lockup gets wordmark+disclaimer
     assert.equal(out[2].wordmark, 'Polaris');
+  });
+
+  it('proof_points are not dropped on archetypes without stat/chart panels', () => {
+    // Regression: brand-teaser has no stat_callout or chart_panel; previously
+    // proof_points were only consumed by stat/chart panels and silently dropped
+    // when none existed. They now flow into typography build/resolve panels —
+    // either replacing the promise or appended as a content array.
+    const panels = [
+      { panel_id: 'p_01', act: 'open', content_type: 'typography' },
+      { panel_id: 'p_02', act: 'build', content_type: 'typography' },
+      { panel_id: 'p_03', act: 'peak', content_type: 'device_mockup' },
+      { panel_id: 'p_04', act: 'resolve', content_type: 'typography' },
+      { panel_id: 'p_05', act: 'close', content_type: 'logo_lockup' },
+    ];
+    const story = {
+      must_show_features: [],
+      proof_points: ['64% faster MTTR', 'Used by 12 platform teams'],
+      promise: 'See every signal',
+    };
+    const out = distributeContent(panels, story, { title: 'Polaris' });
+
+    // Proofs end up somewhere — collect every string that appears anywhere
+    // in the output values.
+    const allContent = JSON.stringify(Object.values(out));
+    assert.ok(allContent.includes('64% faster MTTR'),
+      'first proof_point must land on a panel');
+    assert.ok(allContent.includes('Used by 12 platform teams'),
+      'second proof_point must land on a panel');
+  });
+
+  it('proof_points fully integrated via the composeStoryboard public API', () => {
+    // End-to-end regression: a brand-teaser brief with no features and two
+    // proofs must surface both proofs in the resulting storyboard.
+    const sb = composeStoryboard({
+      story_brief: {
+        audience: 'audience',
+        promise: 'See every signal',
+        emotional_tone: 'confident',
+        must_show_features: [],
+        proof_points: ['64% faster MTTR', 'Used by 12 platform teams'],
+        closing_beat: 'logo_lockup',
+        narrative_template: 'brand-teaser',
+        inferred_personality: 'cinematic-dark',
+        inferred_style_pack: 'prestige',
+        duration_target_s: 25,
+      },
+      project: { slug: 'demo', title: 'Demo' },
+      brand: fintechBrand,
+      archetype_slug: 'brand-teaser',
+    });
+    const allContent = JSON.stringify(sb.panels.map(p => p.content));
+    assert.ok(allContent.includes('64% faster MTTR'),
+      'first proof_point must appear in storyboard');
+    assert.ok(allContent.includes('Used by 12 platform teams'),
+      'second proof_point must appear in storyboard');
   });
 
   it('every feature lands somewhere when there are enough content slots', () => {

@@ -1,0 +1,111 @@
+{
+  "_doc": "Maps sequence-archetype scene roles to storyboard content_types. Used by compose_storyboard to select a panel template per beat. Content types follow docs/cinematography/specs/storyboard-format.md (typography, insight_cards, prompt_input, chart_panel, dashboard, logo_lockup, device_mockup, split_panel, stat_callout).",
+  "roles": {
+    "atmosphere_open": "typography",
+    "benefit_proof": "stat_callout",
+    "brand_flash": "typography",
+    "brand_statement": "typography",
+    "context_setup": "split_panel",
+    "context_visual": "device_mockup",
+    "countdown_tease": "typography",
+    "cta_close": "typography",
+    "detail_zoom": "device_mockup",
+    "feature_demo": "insight_cards",
+    "feature_montage": "split_panel",
+    "hero_product": "device_mockup",
+    "hook_frame": "typography",
+    "key_metric": "stat_callout",
+    "launch_cta": "typography",
+    "logo_lockup": "logo_lockup",
+    "logo_resolve": "logo_lockup",
+    "logo_tag": "logo_lockup",
+    "next_steps": "typography",
+    "problem_frame": "typography",
+    "product_flash": "device_mockup",
+    "product_glimpse": "device_mockup",
+    "quote_close": "typography",
+    "quote_open": "typography",
+    "social_proof": "stat_callout",
+    "step_1": "prompt_input",
+    "step_2": "split_panel",
+    "step_3": "chart_panel",
+    "success_state": "chart_panel",
+    "tagline_close": "typography",
+    "value_prop": "typography",
+    "welcome": "typography"
+  },
+  "act_rules": {
+    "_doc": "How to derive panel.act from scene position and energy curve.",
+    "first": "open",
+    "last": "close",
+    "second_to_last_low_energy": "resolve",
+    "high_energy_middle": "peak",
+    "default_middle": "build"
+  },
+  "content_type_defaults": {
+    "_doc": "Default visual_direction strings used when brand notes are absent. The LLM enrichment layer rewrites these into specific px/weight/color values.",
+    "typography": {
+      "composition": "Centered text, generous negative space on all sides. Single line or short stacked lines.",
+      "typography": "Display sans, light weight (300-400). Generous line height.",
+      "color": "High-contrast text on the personality's primary background.",
+      "surfaces": "No surface — text on background only.",
+      "reference": "Mercury 'Clarity takes craft.' frame — restraint as design."
+    },
+    "insight_cards": {
+      "composition": "Cards centered, ~560px max width, 14px gap, vertically centered as a group.",
+      "typography": "Card titles: 15px weight 600. Detail text: 13px weight 400 at 55% opacity.",
+      "color": "Card background: 3.5% white on dark. Border: 6% white. Accent colors per content semantics.",
+      "surfaces": "14px border radius. 18px horizontal padding, 20px vertical.",
+      "reference": "Mercury insight cards — equal visual weight, stacked simply."
+    },
+    "prompt_input": {
+      "composition": "Input field centered horizontally and vertically. ~580px max width. Nothing else on screen.",
+      "typography": "15px weight 400 inside the input. Reads like a real user typing, not a label.",
+      "color": "Input bg: 5% white. Border: 8% white. Submit button: brand accent. Upload icon: 30% white.",
+      "surfaces": "28px border radius (pill). 14px vertical padding, 20px horizontal.",
+      "reference": "Mercury prompt input — one input, one action, nothing else."
+    },
+    "chart_panel": {
+      "composition": "Elevated panel centered, ~580px max width. Header → explanation → chart → optional input. 28px padding, 24px between sections.",
+      "typography": "Panel title: 17px weight 600. Explanation: 13px weight 400 at 50% opacity. Labels: 11px at 50% opacity.",
+      "color": "Panel bg: elevated surface (one tier above page). Bars: 15% white. Axis: 6% white.",
+      "surfaces": "Panel: 18px border radius. Bars: 4px top radius. Deep shadow (32px blur, 50% black).",
+      "reference": "Mercury drilldown panel — simple bars, no gridlines, the data speaks."
+    },
+    "dashboard": {
+      "composition": "Full-width dashboard. Sidebar 200px (darker than main bg). Main area with 24px/32px padding. Charts right, text left.",
+      "typography": "Nav: 12px. Page title: 22px weight 600. Tab labels: 12px. Stat values: 26px weight 600 (primary), 17px weight 500 (secondary).",
+      "color": "Sidebar deeper than main. Active nav: 6% white bg, full opacity text. Chart bars: brand accent + slate.",
+      "surfaces": "Sidebar border-right: 6% white. Tab active: 7% white bg, 7px radius. Chart bars: 2px radius.",
+      "reference": "Mercury full dashboard — a real product, not a wireframe. Every pixel earns space."
+    },
+    "logo_lockup": {
+      "composition": "Logo + wordmark centered, slightly above vertical center. Disclaimer below at small size, low opacity. 48px gap between groups.",
+      "typography": "Wordmark: 24px weight 400, 0.15em letter-spacing. Disclaimer: 11px at 25% opacity, max-width 600px, centered.",
+      "color": "Wordmark: warm off-white. Disclaimer: barely visible.",
+      "surfaces": "No surface. Logo mark may have subtle accent border.",
+      "reference": "Mercury logo lockup — quietly there with legal below."
+    },
+    "device_mockup": {
+      "composition": "Device frame centered, ~70% viewport. Subtle parallax. Foreground UI in sharp focus, background ambient.",
+      "typography": "UI text follows product's own type system inside the device.",
+      "color": "Device chrome muted. Screen content full saturation. Background: page color.",
+      "surfaces": "Device: realistic shadow under, soft edge highlights.",
+      "reference": "Apple product cinema frame — the device IS the composition."
+    },
+    "split_panel": {
+      "composition": "50/50 horizontal split. Left: text or context. Right: visual or product moment. 32px gutter.",
+      "typography": "Left side: 15-17px body, weight 400. Right side: per its content type.",
+      "color": "Left side text on page bg. Right side may have its own surface.",
+      "surfaces": "Optional vertical rule at split (6% white) when both sides need separation.",
+      "reference": "Linear feature split — text and visual sharing balance, neither dominating."
+    },
+    "stat_callout": {
+      "composition": "Single large numeral centered, supporting label below. Generous space around the figure.",
+      "typography": "Numeral: 64-96px weight 300 to 500, tabular figures. Label: 13-15px weight 500 at 70% opacity.",
+      "color": "Numeral: full text color. Label: muted. Optional accent on numeral if it carries trend semantics.",
+      "surfaces": "No surface — typography on background.",
+      "reference": "Stripe annual report stat — the number is the design."
+    }
+  }
+}

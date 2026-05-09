@@ -1,0 +1,230 @@
+{
+  "storyboard_id": "sb_feature-reveal_polaris-observability",
+  "brief_ref": "polaris-observability",
+  "title": "Polaris — Observability for AI Systems",
+  "version": 1,
+  "direction": {
+    "narrative": "Problem-solution narrative that frames a pain point, demonstrates a feature in context, zooms into detail, and closes with a clear benefit. Ideal for mid-funnel content where comprehension drives conversion.",
+    "tone": "confident",
+    "energy_arc": "medium → medium → high → high → medium → low",
+    "total_duration_s": 28,
+    "personality": "cinematic-dark",
+    "style": "prestige"
+  },
+  "brand": {
+    "ref": "fintech-demo",
+    "palette_note": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black.",
+    "typography_note": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+    "surface_note": "Card 14px radius, panel 18px radius, input 28px radius."
+  },
+  "panels": [
+    {
+      "panel_id": "p_01",
+      "act": "open",
+      "intent": "Establish the world the user lives in — familiar environment, recognizable workflow",
+      "description": "Establish the world the user lives in — familiar environment, recognizable workflow",
+      "content": "",
+      "duration_s": 4.2,
+      "transition_in": null,
+      "transition_out": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "camera": "static",
+      "energy": "medium",
+      "content_type": "split_panel",
+      "visual_direction": {
+        "composition": "50/50 horizontal split. Left: text or context. Right: visual or product moment. 32px gutter.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. Left side text on page bg. Right side may have its own surface.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Linear feature split — text and visual sharing balance, neither dominating."
+      },
+      "motion_notes": {
+        "entrance": "ed-slide-stagger entrance, 400ms ease-out.",
+        "choreography": "Optional layered: as-fadeIn, nl-slide-stagger.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "context_setup"
+    },
+    {
+      "panel_id": "p_02",
+      "act": "build",
+      "intent": "Surface the friction or gap — make the viewer feel the problem",
+      "description": "Surface the friction or gap — make the viewer feel the problem",
+      "content": "See every signal. Resolve in minutes, not hours.",
+      "duration_s": 4.2,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "transition_out": {
+        "type": "parallax_crossfade",
+        "duration_ms": 500
+      },
+      "camera": "push_in 0.3",
+      "energy": "medium",
+      "content_type": "typography",
+      "visual_direction": {
+        "composition": "Centered text, generous negative space on all sides. Single line or short stacked lines.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. High-contrast text on the personality's primary background.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Mercury 'Clarity takes craft.' frame — restraint as design."
+      },
+      "motion_notes": {
+        "entrance": "ed-slide-stagger entrance, 400ms ease-out.",
+        "choreography": "Optional layered: bk-content-line-stagger, as-fadeInUp.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "problem_frame"
+    },
+    {
+      "panel_id": "p_03",
+      "act": "peak",
+      "intent": "Show the feature in action — the 'aha' moment",
+      "description": "Show the feature in action — the 'aha' moment",
+      "content": [
+        "Trace every prompt across the full inference path",
+        "Detect drift, latency spikes, and cost anomalies in real time",
+        "Resolve incidents with one-click playbooks tied to live signals",
+        "Learn — the system gets sharper with every shipped fix"
+      ],
+      "duration_s": 7,
+      "transition_in": {
+        "type": "parallax_crossfade",
+        "duration_ms": 500
+      },
+      "transition_out": {
+        "type": "zoom_crossfade",
+        "duration_ms": 400
+      },
+      "camera": "drift 0.4",
+      "energy": "high",
+      "content_type": "insight_cards",
+      "visual_direction": {
+        "composition": "Cards centered, ~560px max width, 14px gap, vertically centered as a group.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. Card background: 3.5% white on dark. Border: 6% white. Accent colors per content semantics.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Mercury insight cards — equal visual weight, stacked simply."
+      },
+      "motion_notes": {
+        "entrance": "cd-focus-stagger entrance, 400ms ease-out.",
+        "choreography": "Optional layered: nl-cursor-to, bk-chat-typewriter-submit.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "feature_demo"
+    },
+    {
+      "panel_id": "p_04",
+      "act": "build",
+      "intent": "Zoom into the key detail — data, interaction, or result",
+      "description": "Zoom into the key detail — data, interaction, or result",
+      "content": "",
+      "duration_s": 5.6,
+      "transition_in": {
+        "type": "zoom_crossfade",
+        "duration_ms": 400
+      },
+      "transition_out": {
+        "type": "match_cut_scale",
+        "duration_ms": 350
+      },
+      "camera": "push_in 0.6",
+      "energy": "high",
+      "content_type": "device_mockup",
+      "visual_direction": {
+        "composition": "Device frame centered, ~70% viewport. Subtle parallax. Foreground UI in sharp focus, background ambient.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. Device chrome muted. Screen content full saturation. Background: page color.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Apple product cinema frame — the device IS the composition."
+      },
+      "motion_notes": {
+        "entrance": "ct-camera-push-in entrance, 400ms ease-out.",
+        "choreography": "Optional layered: cd-panel-drilldown, as-zoomIn.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "detail_zoom"
+    },
+    {
+      "panel_id": "p_05",
+      "act": "build",
+      "intent": "Show the outcome — metrics, success state, or before/after",
+      "description": "Show the outcome — metrics, success state, or before/after",
+      "content": "Cuts mean time to resolution by 73% in pilot deployments",
+      "duration_s": 4.2,
+      "transition_in": {
+        "type": "match_cut_scale",
+        "duration_ms": 350
+      },
+      "transition_out": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "camera": "pull_out 0.3",
+      "energy": "medium",
+      "content_type": "stat_callout",
+      "visual_direction": {
+        "composition": "Single large numeral centered, supporting label below. Generous space around the figure.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. Numeral: full text color. Label: muted. Optional accent on numeral if it carries trend semantics.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Stripe annual report stat — the number is the design."
+      },
+      "motion_notes": {
+        "entrance": "ed-count-up entrance, 400ms ease-out.",
+        "choreography": "Optional layered: bk-stat-card-count-up, cd-draw-checks.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "Crossfade to next panel."
+      },
+      "_archetype_role": "benefit_proof"
+    },
+    {
+      "panel_id": "p_06",
+      "act": "close",
+      "intent": "Clear call-to-action — what the viewer should do next",
+      "description": "Clear call-to-action — what the viewer should do next",
+      "content": "See every signal. Resolve in minutes, not hours.",
+      "duration_s": 2.8,
+      "transition_in": {
+        "type": "crossfade",
+        "duration_ms": 400
+      },
+      "transition_out": null,
+      "camera": "static",
+      "energy": "low",
+      "content_type": "typography",
+      "visual_direction": {
+        "composition": "Centered text, generous negative space on all sides. Single line or short stacked lines.",
+        "typography": "Inter. Hero 44px weight 300. body 14px weight 400. label 13px.",
+        "color": "Bg #111827. surface rgba(255,255,255,0.04). text #f3f4f6. accent #6366f1. No pure white, no pure black. High-contrast text on the personality's primary background.",
+        "surfaces": "Card 14px radius, panel 18px radius, input 28px radius.",
+        "reference": "Mercury 'Clarity takes craft.' frame — restraint as design."
+      },
+      "motion_notes": {
+        "entrance": "as-fadeIn entrance, 600ms ease-out.",
+        "choreography": "Optional layered: ed-slide-stagger, fade-in.",
+        "hold": "Hold steady through the duration. Camera continues per move plan.",
+        "exit": "No exit — final panel."
+      },
+      "_archetype_role": "cta_close"
+    }
+  ],
+  "_sources": {
+    "audience": "brief",
+    "archetype": "override",
+    "duration": "story_brief",
+    "brand_palette": "brand",
+    "brand_typography": "brand",
+    "brand_surfaces": "brand",
+    "visual_direction": "default",
+    "motion_notes": "archetype",
+    "llm": "none"
+  }
+}

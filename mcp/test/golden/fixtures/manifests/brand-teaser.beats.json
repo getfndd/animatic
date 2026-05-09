@@ -200,5 +200,6 @@
     ],
     "contrast_rule": "Never place two high-energy scenes back-to-back without a breath"
   },
-  "audio_sync": null
+  "audio_sync": null,
+  "storyboard_aware": false
 }

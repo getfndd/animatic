@@ -60,6 +60,8 @@ import { getSocialFormat, listSocialFormats, adaptManifestAspectRatio, createSoc
 import { resolveContinuityLinks, suggestMatchCuts, planContinuityLinks, validateContinuityChain } from './lib/continuity.js';
 import { auditMotionDensity, suggestSimplification } from './lib/motion-density.js';
 import { extractStoryBrief, generateBriefStub } from './lib/story-brief.js';
+import { composeStoryboard } from './lib/compose-storyboard.js';
+import { enhanceStoryboard, isLLMAvailable } from './lib/llm.js';
 import { planStoryBeats } from './lib/story-beats.js';
 import { scoreCandidateVideo, autoReviseLoop, DEFAULT_WEIGHTS as SCORE_WEIGHTS } from './lib/scoring.js';
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
@@ -426,6 +428,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // ── Autonomous direction loop ───────────────────────────────────────
     case 'extract_story_brief':
       return handleExtractStoryBrief(args);
+    case 'compose_storyboard':
+      return handleComposeStoryboard(args);
     case 'plan_story_beats':
       return handlePlanStoryBeats(args);
     case 'score_candidate_video':
@@ -3383,10 +3387,51 @@ function handleExtractStoryBrief(args) {
   };
 }
 
+// ── compose_storyboard ──────────────────────────────────────────────────────
+
+async function handleComposeStoryboard(args) {
+  const { story_brief, brief, brand, project, archetype_slug, options = {} } = args || {};
+
+  if (!story_brief) {
+    return {
+      content: [{ type: 'text', text: 'story_brief is required (output of extract_story_brief)' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const skeleton = composeStoryboard({
+      story_brief,
+      brand,
+      project,
+      archetype_slug,
+      options,
+    });
+
+    // LLM enrichment is opt-in via options.enhance, defaulting to true when key
+    // is set. If no key, deterministic skeleton is returned with a clear marker.
+    const wantsEnhance = options.enhance !== false; // default-on
+    const result = (wantsEnhance && isLLMAvailable())
+      ? await enhanceStoryboard(skeleton, { brief, brand, story_brief })
+      : { storyboard: { ...skeleton, _sources: { ...skeleton._sources, llm: 'skipped' } }, notes: ['LLM enrichment skipped'] };
+
+    return {
+      content: [
+        { type: 'text', text: `## Storyboard composed\n\n${result.notes.join(' • ')}\n\nPanels: ${result.storyboard.panels.length}\n\n` + JSON.stringify(result.storyboard, null, 2) },
+      ],
+    };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `Error: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
 // ── plan_story_beats ────────────────────────────────────────────────────────
 
 function handlePlanStoryBeats(args) {
-  const { story_brief, archetype_slug, audio_beats, options } = args;
+  const { story_brief, archetype_slug, storyboard, audio_beats, options } = args;
 
   if (!story_brief || !archetype_slug) {
     return {
@@ -3396,7 +3441,7 @@ function handlePlanStoryBeats(args) {
   }
 
   try {
-    const result = planStoryBeats({ story_brief, archetype_slug, audio_beats, options });
+    const result = planStoryBeats({ story_brief, archetype_slug, storyboard, audio_beats, options });
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };

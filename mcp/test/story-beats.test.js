@@ -336,6 +336,79 @@ describe('planStoryBeats — semantic recommendations', () => {
     }
   });
 
+  it('storyboard-aware: panel primitive already present in archetype list is hoisted to index 0', () => {
+    // Regression: when a panel picks a primitive that the archetype already
+    // includes lower in its recommended list, the storyboard guidance must
+    // still win — index 0 should be the panel choice, not the archetype's
+    // original first choice. brand-teaser scene 0 has recommended_primitives
+    // ['cd-focus-stagger', 'as-fadeIn', 'bk-sparse-breathe']. A panel asking
+    // for as-fadeIn must hoist it from index 1 to index 0.
+    const fakeStoryboard = {
+      panels: [
+        { panel_id: 'p_01', motion_notes: { entrance: 'as-fadeIn entrance.' }, energy: 'low' },
+        { panel_id: 'p_02', motion_notes: { entrance: 'mo-text-hero entrance.' }, energy: 'medium' },
+        { panel_id: 'p_03', motion_notes: { entrance: 'cd-focus-stagger entrance.' }, energy: 'high' },
+        { panel_id: 'p_04', motion_notes: { entrance: 'as-fadeIn entrance.' }, energy: 'medium' },
+        { panel_id: 'p_05', motion_notes: { entrance: 'as-fadeIn entrance.' }, energy: 'still' },
+      ],
+    };
+
+    const result = planStoryBeats({
+      story_brief: sampleBrief,
+      archetype_slug: 'brand-teaser',
+      storyboard: fakeStoryboard,
+    });
+
+    const beat0 = result.beats[0];
+    assert.equal(beat0.recommended_primitives[0], 'as-fadeIn',
+      'panel-picked primitive must be hoisted to index 0 even if already present in archetype list');
+    assert.equal(beat0.panel_ref?.primitives_source, 'storyboard_panel');
+    // No duplicates introduced by the hoist
+    const occurrences = beat0.recommended_primitives.filter(p => p === 'as-fadeIn').length;
+    assert.equal(occurrences, 1, 'hoisted primitive must not appear twice');
+  });
+
+  it('storyboard-aware: panel motion_notes.entrance prepends to recommended_primitives', () => {
+    // When a storyboard accompanies the brief, panel-level motion notes should
+    // override the archetype's defaults. The first parseable primitive id in
+    // panel.motion_notes.entrance must appear at index 0 of recommended_primitives.
+    const fakeStoryboard = {
+      panels: [
+        // brand-teaser archetype has 5 scenes — match panel count
+        { panel_id: 'p_01', motion_notes: { entrance: 'as-fadeIn entrance, 600ms ease-out.' }, energy: 'low', transition_in: null },
+        { panel_id: 'p_02', motion_notes: { entrance: 'mo-text-hero entrance with cd-typewriter overlay.' }, energy: 'medium' },
+        { panel_id: 'p_03', motion_notes: { entrance: 'cd-card-cascade entrance, 400ms ease-out.' }, energy: 'high', visual_direction: { composition: 'X' } },
+        { panel_id: 'p_04', motion_notes: { entrance: 'ed-blur-reveal entrance.' }, energy: 'medium' },
+        { panel_id: 'p_05', motion_notes: { entrance: 'as-fadeIn entrance.' }, energy: 'still' },
+      ],
+    };
+
+    const result = planStoryBeats({
+      story_brief: sampleBrief,
+      archetype_slug: 'brand-teaser',
+      storyboard: fakeStoryboard,
+    });
+
+    assert.equal(result.storyboard_aware, true);
+    // Panel 3 (cd-card-cascade) should have that primitive first
+    const beat3 = result.beats[2];
+    assert.equal(beat3.recommended_primitives[0], 'cd-card-cascade');
+    assert.equal(beat3.panel_ref?.panel_id, 'p_03');
+    assert.equal(beat3.panel_ref?.primitives_source, 'storyboard_panel');
+    assert.equal(beat3.panel_ref?.visual_direction?.composition, 'X');
+  });
+
+  it('without a storyboard, beats carry archetype primitives unchanged and storyboard_aware is false', () => {
+    const result = planStoryBeats({
+      story_brief: sampleBrief,
+      archetype_slug: 'brand-teaser',
+    });
+    assert.equal(result.storyboard_aware, false);
+    for (const beat of result.beats) {
+      assert.equal(beat.panel_ref, undefined);
+    }
+  });
+
   it('does not attach recommendations to branding / logo / atmosphere / closing beats', () => {
     // Regression guard for the ANI-116 review finding: the brand-teaser
     // archetype is made almost entirely of branding roles (atmosphere_open,

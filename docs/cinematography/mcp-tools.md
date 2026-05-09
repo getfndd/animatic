@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-70 tools across 10 categories. Run via MCP server (`mcp/index.js`).
+71 tools across 10 categories. Run via MCP server (`mcp/index.js`).
 
 ## Primitives & Reference (7)
 
@@ -41,12 +41,13 @@
 | `get_style_pack` | Get style pack definition (8 packs) |
 | `list_brief_templates` / `get_brief_template` | Brief template catalog (5 templates) |
 
-## Autonomous Direction (7)
+## Autonomous Direction (8)
 
 | Tool | What |
 |------|------|
 | `extract_story_brief` | Project context → structured brief with quality score |
-| `plan_story_beats` | Brief + archetype → beat plan with durations, camera, continuity |
+| `compose_storyboard` | Brief + archetype + brand → storyboard panels with visual_direction (LLM-enhanced) |
+| `plan_story_beats` | Brief + archetype (+ optional storyboard) → beat plan with durations, camera, continuity |
 | `score_candidate_video` | Unified 6-dimension score card with per-scene subscores |
 | `revise_candidate_video` | 9 bounded manifest transforms (trim, swap, reorder, etc.) |
 | `compare_candidate_videos` | Rank 2-3 candidates with trade-off analysis |

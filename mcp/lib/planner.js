@@ -581,11 +581,13 @@ export function planSequence({ scenes, style, sequence_id, audio, beats, duratio
   // Stage 2a: Honor the brief's duration target (ANI-150). Style-pack hold
   // presets alone routinely miss the target by 2x; scale them proportionally
   // to land within tolerance, with each scene's own duration_s as the floor.
-  let durationTargetNote = null;
+  // The reported note is finalized AFTER beat sync (below), so achieved_s
+  // always reflects the durations that actually ship in the manifest.
+  let durationTargetState = null;
   if (duration_target_s) {
     const scaled = scaleDurationsToTarget(durations, ordered, duration_target_s);
     durations = scaled.durations;
-    durationTargetNote = scaled.note;
+    durationTargetState = { target_s: duration_target_s, floorLimited: !!scaled.note?.warning };
   }
 
   // Stage 2b: Beat sync — snap durations to beat boundaries (ANI-37)
@@ -599,6 +601,18 @@ export function planSequence({ scenes, style, sequence_id, audio, beats, duratio
         adjustments,
         bpm: beats.bpm || null,
       };
+    }
+  }
+
+  // Stage 2b': Finalize the duration-target note from the post-beat-sync
+  // durations, so achieved_s never disagrees with the shipped manifest (ANI-150
+  // review — beat snapping runs after scaling and shifts the total).
+  let durationTargetNote = null;
+  if (durationTargetState) {
+    const achieved = round1(durations.reduce((a, b) => a + b, 0));
+    durationTargetNote = { target_s: durationTargetState.target_s, achieved_s: achieved };
+    if (durationTargetState.floorLimited) {
+      durationTargetNote.warning = `duration_target_s=${durationTargetState.target_s}s is below the ${achieved}s floor imposed by per-scene minimum durations (sum of scene duration_s); using ${achieved}s.`;
     }
   }
 

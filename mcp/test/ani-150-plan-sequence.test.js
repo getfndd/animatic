@@ -12,6 +12,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { planSequence, scaleDurationsToTarget } from '../lib/planner.js';
+import { generateVideo } from '../lib/video.js';
 
 // The polaris-observability scene order: hero → product → features → proof → CTA.
 // intent_tags are chosen so the old planner would have reordered them.
@@ -53,6 +54,26 @@ describe('ANI-150 — duration_target_s', () => {
   it('leaves durations untouched when no target is given', () => {
     const { notes } = planSequence({ scenes: polarisScenes(), style: 'prestige', sequence_id: 'seq_none' });
     assert.equal(notes.duration_target, undefined);
+  });
+
+  it('reports achieved_s consistent with the shipped manifest after beat-sync', () => {
+    // Beat snapping runs after target scaling and shifts durations; the reported
+    // achieved_s must match the final manifest, not the pre-sync value (review).
+    // Self-calibrate: learn the scaled boundaries, then drop a beat 0.2s past
+    // the first one (within maxStretch=0.4) so a snap is guaranteed to fire.
+    const base = planSequence({
+      scenes: polarisScenes(), style: 'prestige', sequence_id: 'seq_b0', duration_target_s: 28,
+    });
+    const firstBoundary = base.manifest.scenes[0].duration_s;
+    const beats = { beats: [parseFloat((firstBoundary + 0.2).toFixed(2))], bpm: 120 };
+
+    const { manifest, notes } = planSequence({
+      scenes: polarisScenes(), style: 'prestige', sequence_id: 'seq_beatsync',
+      duration_target_s: 28, beats,
+    });
+    assert.ok(notes.beat_sync, 'beat sync should have adjusted at least one boundary');
+    assert.equal(notes.duration_target.achieved_s, sum(manifest),
+      'achieved_s must equal the final manifest scene-duration sum');
   });
 
   describe('scaleDurationsToTarget (unit)', () => {
@@ -99,5 +120,14 @@ describe('ANI-150 — source order preservation', () => {
     assert.equal(notes.ordering_mode, 'planner_reordered');
     assert.ok(/planner reorder/i.test(notes.ordering_rationale),
       `rationale should record the reorder decision, got: ${notes.ordering_rationale}`);
+  });
+});
+
+describe('ANI-150 — generateVideo honors the parsed duration target (e2e)', () => {
+  it('forwards brief.project.duration_target_s into planSequence', async () => {
+    const result = await generateVideo('28 second promo for a finance dashboard, prestige');
+    const total = result.manifest.scenes.reduce((a, s) => a + s.duration_s, 0);
+    assert.ok(Math.abs(total - 28) <= 4,
+      `manifest should honor the 28s target, got ${Math.round(total * 10) / 10}s`);
   });
 });

@@ -1335,10 +1335,14 @@ export function buildTools({
           audio_beats: { type: 'object', description: 'Beat data from `analyze_beats`. When provided, beat durations snap to audio beats.' },
           options: {
             type: 'object',
-            description: 'Planning options. `duration_target_s` (number) sets total target duration; `strategy` picks pacing bias — `tight`, `loose`, or `cinematic`.',
+            description: 'Planning options. `duration_target_s` (number) sets total target duration; `strategy` picks pacing bias — `tight`, `loose`, or `cinematic`; `personality` overrides the personality used to source choreography companion primitives.',
             properties: {
               duration_target_s: { type: 'number' },
               strategy: { type: 'string', enum: ['tight', 'loose', 'cinematic'] },
+              personality: {
+                type: 'string',
+                description: 'Personality slug (cinematic-dark, editorial, neutral-light, montage) used to source choreography companion-entrance primitives per beat. Defaults to story_brief.inferred_personality.',
+              },
             },
           },
         },

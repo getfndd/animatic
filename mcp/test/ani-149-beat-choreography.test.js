@@ -49,6 +49,21 @@ describe('recommendCompanionEntrances (shared choreography core)', () => {
     assert.ok(prims.length > 0);
     assert.ok(prims.includes('lib-framer-spring-stagger'));
   });
+
+  it('drops blur primitives for personalities that forbid blur entrances', () => {
+    // editorial-reveal lists ed-blur-reveal, but editorial forbids blur_entrance.
+    const prims = recommendCompanionEntrances('editorial-reveal', 'editorial');
+    assert.ok(!prims.includes('ed-blur-reveal'),
+      `ed-blur-reveal violates editorial's blur_entrance guardrail; got ${JSON.stringify(prims)}`);
+    assert.ok(prims.includes('ed-slide-stagger'), 'non-blur editorial companions are kept');
+  });
+
+  it('keeps blur primitives for personalities that permit blur (cinematic-dark)', () => {
+    // cd-focus-stagger is a blur primitive, but cinematic-dark has no blur boundary.
+    const prims = recommendCompanionEntrances('dramatic-reveal', 'cinematic-dark');
+    assert.ok(prims.includes('cd-focus-stagger'),
+      'cinematic-dark permits blur, so cd-focus-stagger must survive');
+  });
 });
 
 describe('ANI-149 — beat planner surfaces lib-* via choreography', () => {
@@ -95,6 +110,13 @@ describe('ANI-149 — no regressions', () => {
     assert.ok(libs.length > 0, 'editorial should still surface its lib-framer-* primitives');
     assert.ok(libs.every(p => !p.startsWith('lib-gsap')),
       `editorial must not get gsap (cinematic-dark) primitives, got ${JSON.stringify(libs)}`);
+  });
+
+  it('editorial beat plans never recommend a blur primitive (guardrail honored)', () => {
+    const result = planStoryBeats({ story_brief: brief('editorial'), archetype_slug: 'feature-reveal' });
+    const all = result.beats.flatMap(b => b.recommended_primitives);
+    assert.ok(!all.includes('ed-blur-reveal'),
+      `editorial plan must not feed the blocked ed-blur-reveal into the loop; got ${JSON.stringify(all)}`);
   });
 
   it('no personality → no choreography merge, beat shape unchanged', () => {

@@ -66,7 +66,9 @@
       "recommended_primitives": [
         "cd-focus-stagger",
         "mo-scale-entrance",
-        "as-zoomIn"
+        "as-zoomIn",
+        "lib-gsap-spring-stagger",
+        "lib-framer-spring-stagger"
       ],
       "semantic_recommendation": {
         "classification": {
@@ -129,7 +131,8 @@
         "camera_behavior": {
           "mode": "ambient"
         }
-      }
+      },
+      "choreography_intent": "product-showcase"
     },
     {
       "index": 3,

@@ -13,9 +13,33 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { recommendFromClassification } from './semantic-planner.js';
+import { recommendCompanionEntrances } from './choreography.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
+
+// Multi-subject reveal roles → ordered choreographic-intent candidates
+// (intent-mappings.json vocabulary). For each beat the planner picks the
+// first intent the scene's personality supports and merges that intent's
+// companion-entrance primitives into recommended_primitives — the path by
+// which lib-* compound primitives reach the autonomous loop (ANI-149).
+//
+// Only roles that genuinely stage multiple subjects are listed. Narrative-
+// framing roles (atmosphere_open, logo_lockup, tagline_close, cta_close,
+// welcome, step_*, etc.) are intentionally absent — they're single-element
+// beats, not stagger moments, so they keep their archetype primitives only.
+const ROLE_TO_CHOREO_INTENT = {
+  feature_demo: ['dramatic-reveal', 'product-showcase', 'editorial-reveal'],
+  feature_montage: ['energetic-fast', 'product-showcase', 'editorial-reveal'],
+  hero_product: ['product-showcase', 'dramatic-reveal', 'editorial-reveal'],
+  product_glimpse: ['product-showcase', 'dramatic-reveal', 'editorial-reveal'],
+  product_flash: ['energetic-fast', 'product-showcase'],
+  benefit_proof: ['dramatic-reveal', 'editorial-reveal'],
+  social_proof: ['editorial-reveal', 'content-focus'],
+  value_prop: ['editorial-reveal', 'content-focus', 'product-showcase'],
+  key_metric: ['dramatic-reveal', 'editorial-reveal'],
+  context_visual: ['editorial-reveal', 'content-focus'],
+};
 
 // ── Catalog loaders ─────────────────────────────────────────────────────────
 
@@ -307,6 +331,13 @@ export function planStoryBeats({ story_brief, archetype_slug, storyboard, audio_
     || archetype.duration_range?.max_s
     || 30;
 
+  // Personality drives the choreography-companion merge below. Absent a
+  // personality we skip the merge entirely (graceful no-op, no regression).
+  const personality = options?.personality
+    || story_brief?.inferred_personality
+    || story_brief?.personality
+    || null;
+
   // Compute absolute durations from archetype percentages
   let durations = archetype.scenes.map(s => {
     const pct = s.duration_pct || (1 / archetype.scenes.length);
@@ -361,6 +392,24 @@ export function planStoryBeats({ story_brief, archetype_slug, storyboard, audio_
       primitivesSource = 'storyboard_panel';
     }
 
+    // Consult the choreography discovery layer (ANI-149). For multi-subject
+    // reveal roles, pick the first mapped intent the personality supports and
+    // append its companion-entrance primitives (deduped). They land *after*
+    // the panel/archetype choices so index 0 is unchanged, but lib-* compound
+    // primitives now reach recommended_primitives without manual injection.
+    let choreographyIntent = null;
+    if (personality) {
+      for (const intent of (ROLE_TO_CHOREO_INTENT[scene.role] || [])) {
+        const companions = recommendCompanionEntrances(intent, personality);
+        if (companions.length > 0) {
+          const additions = companions.filter(p => !recommendedPrimitives.includes(p));
+          recommendedPrimitives = [...recommendedPrimitives, ...additions];
+          choreographyIntent = intent;
+          break;
+        }
+      }
+    }
+
     const transitionIn = panel?.transition_in
       ?? scene.transition_in
       ?? (i === 0 ? null : { type: 'crossfade', duration_ms: 400 });
@@ -399,6 +448,11 @@ export function planStoryBeats({ story_brief, archetype_slug, storyboard, audio_
     // the beat shape stays unchanged for non-v3-friendly roles.
     const semanticRec = recommendSemanticForBeat(beat);
     if (semanticRec) beat.semantic_recommendation = semanticRec;
+
+    // Record which choreographic intent contributed companion primitives, so
+    // downstream consumers and tests can see why a lib-* entry appears. Omit
+    // the key when no merge happened to keep the beat shape unchanged.
+    if (choreographyIntent) beat.choreography_intent = choreographyIntent;
     return beat;
   });
 

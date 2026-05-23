@@ -142,7 +142,9 @@
       "recommended_primitives": [
         "cd-focus-stagger",
         "nl-cursor-to",
-        "bk-chat-typewriter-submit"
+        "bk-chat-typewriter-submit",
+        "lib-gsap-spring-stagger",
+        "lib-gsap-radial-stagger"
       ],
       "semantic_recommendation": {
         "classification": {
@@ -205,7 +207,8 @@
         "camera_behavior": {
           "mode": "ambient"
         }
-      }
+      },
+      "choreography_intent": "dramatic-reveal"
     },
     {
       "index": 3,
@@ -314,7 +317,10 @@
       "recommended_primitives": [
         "ed-count-up",
         "bk-stat-card-count-up",
-        "cd-draw-checks"
+        "cd-draw-checks",
+        "cd-focus-stagger",
+        "lib-gsap-spring-stagger",
+        "lib-gsap-radial-stagger"
       ],
       "semantic_recommendation": {
         "classification": {
@@ -378,7 +384,8 @@
         "camera_behavior": {
           "mode": "reactive"
         }
-      }
+      },
+      "choreography_intent": "dramatic-reveal"
     },
     {
       "index": 5,

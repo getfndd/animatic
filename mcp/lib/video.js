@@ -186,7 +186,7 @@ export async function generateVideo(prompt, options = {}) {
   let manifest;
   let planNotes;
   try {
-    const plan = planSequence({ scenes: analyzed, style });
+    const plan = planSequence({ scenes: analyzed, style, duration_target_s: brief.project?.duration_target_s });
     manifest = plan.manifest;
     planNotes = plan.notes;
   } catch (e) {

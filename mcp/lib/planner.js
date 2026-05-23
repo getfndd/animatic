@@ -334,6 +334,45 @@ export function assignDurations(orderedScenes, style) {
   return durations;
 }
 
+/** Round to one decimal place. */
+function round1(n) {
+  return Math.round(n * 10) / 10;
+}
+
+/** Skip scaling when the base total is already this close to the target. */
+const DURATION_TARGET_TOLERANCE_S = 0.5;
+
+/**
+ * Scale assigned hold durations proportionally toward a target total (ANI-150).
+ * Each scene's own `duration_s` (from generate_scenes) is treated as a floor —
+ * the style preset can stretch a scene but never compress it below its source
+ * minimum. When the floor sum exceeds the target (target is too short to honor
+ * the per-scene minimums), durations stay at the floor and a warning is noted.
+ *
+ * @param {number[]} durations — Style-pack-assigned durations.
+ * @param {object[]} scenes — Ordered scenes (for per-scene duration_s floors).
+ * @param {number} targetS — Brief's duration_target_s.
+ * @returns {{ durations: number[], note: { target_s, achieved_s, warning? } | null }}
+ */
+export function scaleDurationsToTarget(durations, scenes, targetS) {
+  const base = durations.reduce((a, b) => a + b, 0);
+  if (!targetS || base <= 0) return { durations, note: null };
+  if (Math.abs(base - targetS) <= DURATION_TARGET_TOLERANCE_S) {
+    return { durations, note: { target_s: targetS, achieved_s: round1(base) } };
+  }
+
+  const floors = scenes.map(s => (typeof s.duration_s === 'number' ? s.duration_s : 0));
+  const factor = targetS / base;
+  const scaled = durations.map((d, i) => Math.max(round1(d * factor), floors[i]));
+  const achieved = round1(scaled.reduce((a, b) => a + b, 0));
+
+  const note = { target_s: targetS, achieved_s: achieved };
+  if (achieved - targetS > DURATION_TARGET_TOLERANCE_S) {
+    note.warning = `duration_target_s=${targetS}s is below the ${achieved}s floor imposed by per-scene minimum durations (sum of scene duration_s); using ${achieved}s.`;
+  }
+  return { durations: scaled, note };
+}
+
 // ── Transitions ─────────────────────────────────────────────────────────────
 
 /**
@@ -508,7 +547,7 @@ export function preFilterShotGrammar(orderedScenes, style) {
  * @param {object} [params.beats] — beat analysis from analyzeBeats(). If provided, snaps transitions to beats.
  * @returns {{ manifest: object, notes: object }}
  */
-export function planSequence({ scenes, style, sequence_id, audio, beats }) {
+export function planSequence({ scenes, style, sequence_id, audio, beats, duration_target_s, preserve_source_order = true }) {
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     throw new Error('planSequence requires a non-empty scenes array');
   }
@@ -517,10 +556,39 @@ export function planSequence({ scenes, style, sequence_id, audio, beats }) {
   }
 
   // Stage 1: Order
-  const ordered = orderScenes(scenes);
+  // Source order is preserved by default — upstream (beats → scenes) already
+  // establishes narrative order, and silently rewriting it (e.g. moving social
+  // proof before the feature it proves) is a narrative regression (ANI-150).
+  // The intent-bucket / energy-curve reordering runs only when explicitly
+  // requested, and the rewrite is logged in notes.ordering so reviewers see it.
+  let ordered;
+  let orderingNote;
+  if (preserve_source_order) {
+    ordered = [...scenes];
+    orderingNote = 'source order preserved';
+  } else {
+    ordered = orderScenes(scenes);
+    const srcIds = scenes.map(s => s.scene_id || s.id);
+    const finalIds = ordered.map(s => s.scene_id || s.id);
+    orderingNote = srcIds.join(',') === finalIds.join(',')
+      ? 'planner reorder requested; result matched source order'
+      : `planner reordered [${srcIds.join(', ')}] → [${finalIds.join(', ')}]`;
+  }
 
   // Stage 2: Durations
   let durations = assignDurations(ordered, style);
+
+  // Stage 2a: Honor the brief's duration target (ANI-150). Style-pack hold
+  // presets alone routinely miss the target by 2x; scale them proportionally
+  // to land within tolerance, with each scene's own duration_s as the floor.
+  // The reported note is finalized AFTER beat sync (below), so achieved_s
+  // always reflects the durations that actually ship in the manifest.
+  let durationTargetState = null;
+  if (duration_target_s) {
+    const scaled = scaleDurationsToTarget(durations, ordered, duration_target_s);
+    durations = scaled.durations;
+    durationTargetState = { target_s: duration_target_s, floorLimited: !!scaled.note?.warning };
+  }
 
   // Stage 2b: Beat sync — snap durations to beat boundaries (ANI-37)
   let beatSyncNotes = null;
@@ -533,6 +601,18 @@ export function planSequence({ scenes, style, sequence_id, audio, beats }) {
         adjustments,
         bpm: beats.bpm || null,
       };
+    }
+  }
+
+  // Stage 2b': Finalize the duration-target note from the post-beat-sync
+  // durations, so achieved_s never disagrees with the shipped manifest (ANI-150
+  // review — beat snapping runs after scaling and shifts the total).
+  let durationTargetNote = null;
+  if (durationTargetState) {
+    const achieved = round1(durations.reduce((a, b) => a + b, 0));
+    durationTargetNote = { target_s: durationTargetState.target_s, achieved_s: achieved };
+    if (durationTargetState.floorLimited) {
+      durationTargetNote.warning = `duration_target_s=${durationTargetState.target_s}s is below the ${achieved}s floor imposed by per-scene minimum durations (sum of scene duration_s); using ${achieved}s.`;
     }
   }
 
@@ -635,9 +715,11 @@ export function planSequence({ scenes, style, sequence_id, audio, beats }) {
     total_duration_s: parseFloat((totalDuration - transitionOverlap).toFixed(1)),
     scene_count: ordered.length,
     style_personality: STYLE_TO_PERSONALITY[style],
-    ordering_rationale: buildOrderingRationale(ordered),
+    ordering_mode: preserve_source_order ? 'source_order_preserved' : 'planner_reordered',
+    ordering_rationale: `${orderingNote}. ${buildOrderingRationale(ordered)}`,
     transition_summary: transitionCounts,
     reasoning: sceneReasoning,
+    ...(durationTargetNote ? { duration_target: durationTargetNote } : {}),
     ...(overridesUsed.size > 0 ? { style_overrides_used: [...overridesUsed] } : {}),
     ...(shotGrammarCorrections.length > 0 ? { shot_grammar_corrections: shotGrammarCorrections } : {}),
     ...(beatSyncNotes ? { beat_sync: beatSyncNotes } : {}),
@@ -818,7 +900,7 @@ function buildOrderingRationale(ordered) {
  * @param {{ scenes: object[], styles: string[], sequence_id?: string, audio?: object, beats?: object }} params
  * @returns {{ variants: Array<{ variant_id: string, style: string, manifest: object, notes: object }> }}
  */
-export function planVariants({ scenes, styles, sequence_id, audio, beats }) {
+export function planVariants({ scenes, styles, sequence_id, audio, beats, duration_target_s, preserve_source_order = true }) {
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     throw new Error('planVariants requires a non-empty scenes array');
   }
@@ -837,6 +919,8 @@ export function planVariants({ scenes, styles, sequence_id, audio, beats }) {
       sequence_id: seqId,
       audio,
       beats,
+      duration_target_s,
+      preserve_source_order,
     });
 
     return {

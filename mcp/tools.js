@@ -232,6 +232,14 @@ export function buildTools({
             type: 'object',
             description: 'Beat analysis data from `analyze_beats`. When supplied, scene durations snap to beat boundaries and camera intensities match audio energy.',
           },
+          duration_target_s: {
+            type: 'number',
+            description: 'Target total duration in seconds (from the brief). Style-pack hold durations are scaled proportionally to land within ±0.5s, with each scene\'s own duration_s as the floor. If the floor sum exceeds the target, durations stay at the floor and notes.duration_target.warning is set. Omit to use raw style-pack durations.',
+          },
+          preserve_source_order: {
+            type: 'boolean',
+            description: 'Default true: keep the input scene order (upstream already establishes narrative order). Set false to let the planner reorder by intent buckets / energy curve — the rewrite is logged in notes.ordering_rationale and notes.ordering_mode.',
+          },
         },
         required: ['scenes', 'style'],
       },
@@ -367,6 +375,14 @@ export function buildTools({
           sequence_id: {
             type: 'string',
             description: 'Base sequence ID. Each variant receives a suffixed ID (e.g., `seq_hero__prestige`).',
+          },
+          duration_target_s: {
+            type: 'number',
+            description: 'Target total duration in seconds, applied to every variant (see plan_sequence).',
+          },
+          preserve_source_order: {
+            type: 'boolean',
+            description: 'Default true: keep input scene order across all variants. Set false to let the planner reorder (logged per variant).',
           },
         },
         required: ['scenes', 'styles'],

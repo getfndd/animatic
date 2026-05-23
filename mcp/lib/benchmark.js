@@ -8,7 +8,7 @@
  * Pure functions. Catalog data passed in, no side effects.
  */
 
-import { compileMotion } from './compiler.js';
+import { compileMotion, isReactiveScene } from './compiler.js';
 import { critiqueScene } from './critic.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ function runSingleBenchmark(scene, catalogs) {
   // Reactive scenes (motion.compound + lib-* / bd-* primitive) need
   // mode: 'reactive' — the descriptor returned has no Level-2 tracks; the
   // runtime adapter is the timeline. Detect by motion.compound presence.
-  const isReactive = !!scene.motion?.compound;
+  const isReactive = isReactiveScene(scene);
   let timeline;
   try {
     timeline = compileMotion(scene, catalogs, {

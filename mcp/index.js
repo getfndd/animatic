@@ -46,7 +46,7 @@ import { generateScenes } from './lib/generator.js';
 import { detectBeats, computeEnergyCurve, decodeWav } from './lib/beats.js';
 import { syncSequenceToBeats, generateHitMarkers, planAudioCues, scoreAudioSync } from './lib/audio-sync.js';
 import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality } from './lib/personality.js';
-import { compileMotion } from './lib/compiler.js';
+import { compileMotion, isReactiveScene } from './lib/compiler.js';
 import { critiqueTimeline } from './lib/critic.js';
 import { runBenchmarks, QUALITY_THRESHOLD } from './lib/benchmark.js';
 import { generateVideo } from './lib/video.js';
@@ -2224,10 +2224,30 @@ function handleCompileMotion(args) {
   }
 
   try {
-    const catalogs = { recipes: recipesCatalog };
+    // Library-driven compound scenes (motion.compound) compile to a reactive
+    // descriptor, not a static Level-2 timeline. Detect and request reactive
+    // mode so the tool returns the runtime descriptor instead of a zero-track
+    // static timeline (ANI-148, Gap A). The primitives catalog is needed for
+    // the compound's config defaults.
+    const reactive = isReactiveScene(scene);
+    const catalogs = { recipes: recipesCatalog, primitives: primitivesCatalog };
     const timeline = compileMotion(scene, catalogs, {
       personality: personality || scene.personality,
+      ...(reactive ? { mode: 'reactive' } : {}),
     });
+
+    if (timeline.mode === 'reactive') {
+      let summary = `## Compiled Motion Timeline (reactive — library-driven compound)\n\n`;
+      summary += `- **Scene:** ${timeline.scene_id}\n`;
+      summary += `- **Compound primitive:** \`${timeline.compound}\`\n`;
+      summary += `- **Content count:** ${timeline.contentCount}\n`;
+      summary += `- **Duration:** ${timeline.durationFrames} frames (${(timeline.durationFrames / timeline.fps).toFixed(1)}s @ ${timeline.fps}fps)\n`;
+      if (timeline.personality) summary += `- **Personality:** ${timeline.personality}\n`;
+      summary += `\nThis scene compiles to a reactive descriptor — the runtime adapter (init/step at capture time) is the timeline, so there are no Level-2 keyframe tracks and the orphan-layer check does not apply.\n`;
+      summary += `\n### Config\n\n\`\`\`json\n${JSON.stringify(timeline.config, null, 2)}\n\`\`\``;
+      summary += `\n\n### Full descriptor JSON\n\n\`\`\`json\n${JSON.stringify(timeline, null, 2)}\n\`\`\``;
+      return { content: [{ type: 'text', text: summary }] };
+    }
 
     const layerCount = Object.keys(timeline.tracks.layers).length;
     const cameraProps = Object.keys(timeline.tracks.camera);

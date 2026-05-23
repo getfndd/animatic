@@ -84,12 +84,30 @@ const ANIMATABLE_DEFAULTS = {
 // ── Main Entry Point ─────────────────────────────────────────────────────────
 
 /**
+ * Canonical reactive-scene signal. A scene whose motion references a compound
+ * primitive (`lib-*` / `bd-*`) compiles to a reactive descriptor — the runtime
+ * adapter is the timeline, so there are no Level-2 tracks. Callers that compile
+ * for evaluation or display must pass `{ mode: 'reactive' }` to compileMotion
+ * for these scenes, or they fall through to the static path and get a
+ * zero-track timeline (ANI-148). Mirrors benchmark.js's detection so the loop
+ * and the benchmark agree on what "reactive" means.
+ *
+ * @param {object} scene - Scene definition
+ * @returns {boolean}
+ */
+export function isReactiveScene(scene) {
+  return Boolean(scene?.motion?.compound);
+}
+
+/**
  * Compile a v2/v3 scene's motion intent into a frame-addressed timeline.
  *
  * @param {object} scene - Scene with `motion` and/or `semantic` block (Level 1)
  * @param {object} catalogs - { recipes: { byId }, primitives: { bySlug } }
- * @param {object} [options] - { personality?: string }
- * @returns {{ scene_id: string, duration_frames: number, fps: number, tracks: { camera: object, layers: object } }}
+ * @param {object} [options] - { personality?: string, mode?: 'reactive' }
+ * @returns {({ scene_id: string, duration_frames: number, fps: number, tracks: { camera: object, layers: object } } | { mode: 'reactive', compound: string, config: object, contentCount: number, durationFrames: number, fps: number, scene_id: string, personality?: string })}
+ *   Static Level-2 timeline, or — for compound scenes compiled with
+ *   `mode: 'reactive'` — a reactive descriptor with no `tracks` (ANI-148).
  */
 export function compileMotion(scene, catalogs = {}, options = {}) {
   const fps = scene.fps || 60;

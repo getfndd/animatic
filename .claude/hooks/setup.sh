@@ -93,7 +93,7 @@ echo -n "Checking Finder visibility... "
 HIDDEN_COUNT=$(ls -laO . 2>/dev/null | awk '$5 ~ /hidden/ && $NF !~ /^\./' | wc -l | tr -d ' ')
 if [ "$HIDDEN_COUNT" -gt 0 ]; then
     echo -e "${RED}$HIDDEN_COUNT files have macOS hidden flag (Finder won't show them)${NC}"
-    echo "  Fix: find . -maxdepth 1 -flags hidden ! -name '.*' -exec chflags nohidden {} +"
+    echo "  Fix: find . -maxdepth 1 -flags +hidden ! -name '.*' -exec chflags nohidden {} +"
     ISSUES_FOUND=$((ISSUES_FOUND + 1))
 else
     echo -e "${GREEN}OK${NC}"

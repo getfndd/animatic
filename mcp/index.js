@@ -1371,7 +1371,7 @@ function handleGetStylePack(args) {
 // ── plan_sequence ───────────────────────────────────────────────────────────
 
 function handlePlanSequence(args) {
-  const { scenes, style, beats } = args;
+  const { scenes, style, beats, duration_target_s, preserve_source_order } = args;
 
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     return {
@@ -1394,12 +1394,22 @@ function handlePlanSequence(args) {
   }
 
   try {
-    const { manifest, notes } = planSequence({ scenes, style, beats });
+    const { manifest, notes } = planSequence({
+      scenes, style, beats, duration_target_s,
+      ...(preserve_source_order !== undefined ? { preserve_source_order } : {}),
+    });
 
     let out = `# Sequence Plan: ${manifest.sequence_id}\n\n`;
     out += `**Style:** ${style} (${notes.style_personality})\n`;
     out += `**Scenes:** ${notes.scene_count}\n`;
     out += `**Total Duration:** ${notes.total_duration_s}s\n`;
+    if (notes.duration_target) {
+      out += `**Duration Target:** ${notes.duration_target.target_s}s → achieved ${notes.duration_target.achieved_s}s\n`;
+      if (notes.duration_target.warning) {
+        out += `> ⚠️ ${notes.duration_target.warning}\n`;
+      }
+    }
+    out += `**Ordering:** ${notes.ordering_mode}\n`;
     if (notes.beat_sync) {
       out += `**Beat Sync:** ${notes.beat_sync.adjustments_count} scene(s) adjusted to beat grid`;
       if (notes.beat_sync.bpm) out += ` (${notes.beat_sync.bpm} BPM)`;
@@ -1793,7 +1803,7 @@ async function handleGenerateScenes(args) {
 // ── plan_variants (ANI-44) ──────────────────────────────────────────────────
 
 function handlePlanVariants(args) {
-  const { scenes, styles, sequence_id } = args;
+  const { scenes, styles, sequence_id, duration_target_s, preserve_source_order } = args;
 
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     return {
@@ -1819,7 +1829,10 @@ function handlePlanVariants(args) {
   }
 
   try {
-    const { variants } = planVariants({ scenes, styles, sequence_id });
+    const { variants } = planVariants({
+      scenes, styles, sequence_id, duration_target_s,
+      ...(preserve_source_order !== undefined ? { preserve_source_order } : {}),
+    });
 
     let out = `# A/B Variants: ${variants.length} choreographies\n\n`;
 

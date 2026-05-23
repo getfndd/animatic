@@ -87,11 +87,13 @@ fi
 
 # 6. Check for macOS hidden flags on non-dotfile project files
 # Dotfiles carry the hidden flag by convention; we only care about explicit chflags hidden on visible names.
+# Match the flags column ($5) specifically — a line-wide /hidden/ also matched
+# files merely *named* "hidden" (e.g. hidden-config.json), a false positive (ANI-147).
 echo -n "Checking Finder visibility... "
-HIDDEN_COUNT=$(ls -laO . 2>/dev/null | awk '/hidden/ && $NF !~ /^\./' | wc -l | tr -d ' ')
+HIDDEN_COUNT=$(ls -laO . 2>/dev/null | awk '$5 ~ /hidden/ && $NF !~ /^\./' | wc -l | tr -d ' ')
 if [ "$HIDDEN_COUNT" -gt 0 ]; then
     echo -e "${RED}$HIDDEN_COUNT files have macOS hidden flag (Finder won't show them)${NC}"
-    echo "  Fix: chflags nohidden *"
+    echo "  Fix: find . -maxdepth 1 -flags hidden ! -name '.*' -exec chflags nohidden {} +"
     ISSUES_FOUND=$((ISSUES_FOUND + 1))
 else
     echo -e "${GREEN}OK${NC}"

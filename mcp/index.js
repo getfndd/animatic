@@ -47,6 +47,11 @@ import { detectBeats, computeEnergyCurve, decodeWav } from './lib/beats.js';
 import { syncSequenceToBeats, generateHitMarkers, planAudioCues, scoreAudioSync } from './lib/audio-sync.js';
 import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality } from './lib/personality.js';
 import { compileMotion, isReactiveScene } from './lib/compiler.js';
+import {
+  UI_SURFACE_KEYWORDS,
+  recommendUiStoryboardLayout,
+  recommendPersonalityForContext,
+} from './lib/recommend-layout.js';
 import { critiqueTimeline } from './lib/critic.js';
 import { runBenchmarks, QUALITY_THRESHOLD } from './lib/benchmark.js';
 import { generateVideo } from './lib/video.js';
@@ -412,6 +417,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleCreateEditorialCanvasScene(args);
     case 'recommend_editorial_layout':
       return handleRecommendEditorialLayout(args);
+    case 'recommend_ui_storyboard_layout':
+      return handleRecommendUiStoryboardLayout(args);
+    case 'recommend_personality_for_context':
+      return handleRecommendPersonalityForContext(args);
     // ── Social formats ──────────────────────────────────────────────────
     case 'adapt_project_aspect_ratio':
       return handleAdaptProjectAspectRatio(args);
@@ -518,6 +527,16 @@ function formatPrimitivesTable(entries) {
 function handleGetPrimitive(args) {
   const { id } = args;
 
+  if (!id || typeof id !== 'string') {
+    return {
+      content: [{
+        type: 'text',
+        text: 'A string `id` is required (e.g., `ed-slide-stagger`). Use search_primitives to find valid IDs.',
+      }],
+      isError: true,
+    };
+  }
+
   const registryEntry = registry.byId.get(id);
   const catalogEntry = primitivesCatalog.bySlug.get(id);
   const css = registry.cssBlocks.get(id);
@@ -538,7 +557,7 @@ function handleGetPrimitive(args) {
   if (registryEntry) {
     out += `**Category:** ${registryEntry.category}\n`;
     out += `**Duration:** ${registryEntry.duration}\n`;
-    out += `**Personality:** ${registryEntry.personality.join(', ')}\n`;
+    out += `**Personality:** ${(registryEntry.personality ?? []).join(', ')}\n`;
     out += `**Source:** ${registryEntry.source}\n\n`;
   }
 
@@ -567,8 +586,8 @@ function handleGetPrimitive(args) {
       out += '\n```\n\n';
     }
 
-    out += `**When to Use:** ${catalogEntry.when_to_use.join(', ')}\n`;
-    out += `**When to Avoid:** ${catalogEntry.when_to_avoid.join(', ')}\n\n`;
+    out += `**When to Use:** ${(catalogEntry.when_to_use ?? []).join(', ')}\n`;
+    out += `**When to Avoid:** ${(catalogEntry.when_to_avoid ?? []).join(', ')}\n\n`;
     out += `**AI Guidance:** ${catalogEntry.ai_guidance}\n\n`;
   }
 
@@ -885,10 +904,18 @@ function handleRecommendChoreography(args) {
   // If a specific personality was requested, validate it's supported
   if (requestedPersonality && !mapping.personality_support.includes(requestedPersonality)) {
     const supported = mapping.personality_support.join(', ');
+    // Name the intents that ARE compatible with the requested personality, so
+    // the user doesn't have to read the full intent matrix to recover (ANI-152).
+    const compatibleIntents = intentMappings.array
+      .filter(m => m.personality_support.includes(requestedPersonality))
+      .map(m => m.intent);
+    const tip = compatibleIntents.length > 0
+      ? `Tip: intents available for "${requestedPersonality}": ${compatibleIntents.join(', ')}.`
+      : `Tip: no intents currently support "${requestedPersonality}".`;
     return {
       content: [{
         type: 'text',
-        text: `Intent "${intentSlug}" is not supported by the "${requestedPersonality}" personality.\n\nSupported personalities for this intent: ${supported}\n\nTip: Use a different intent for ${requestedPersonality}, or try one of the supported personalities.`,
+        text: `Intent "${intentSlug}" is not supported by the "${requestedPersonality}" personality.\n\nSupported personalities for this intent: ${supported}\n\n${tip}`,
       }],
       isError: true,
     };
@@ -3110,6 +3137,14 @@ function handleRecommendEditorialLayout(args) {
   const { content_description, personality = 'editorial' } = args;
   const desc = (content_description || '').toLowerCase();
 
+  // Scope guard (ANI-152): this tool returns video-canvas anchor layouts. If
+  // the description reads like a product-UI surface, surface the redirect so
+  // the user isn't silently handed canvas patterns for an app mockup.
+  const uiSignals = UI_SURFACE_KEYWORDS.filter(kw => desc.includes(kw));
+  const ui_surface_hint = uiSignals.length >= 2
+    ? `This looks like a product-UI surface (matched: ${uiSignals.slice(0, 4).join(', ')}). recommend_editorial_layout returns video-canvas anchor layouts only — for app mockups use recommend_ui_storyboard_layout.`
+    : null;
+
   // Score each pattern against the description
   const scores = {};
   const keywords = {
@@ -3139,6 +3174,8 @@ function handleRecommendEditorialLayout(args) {
   };
 
   const result = {
+    scope: 'Video-canvas anchor layouts (Remotion scenes). For product-UI surface mockups, use recommend_ui_storyboard_layout.',
+    ...(ui_surface_hint ? { ui_surface_hint } : {}),
     recommended_pattern: bestMatch,
     all_patterns: Object.entries(EDITORIAL_PATTERNS).map(([name, p]) => ({
       name,
@@ -3157,6 +3194,21 @@ function handleRecommendEditorialLayout(args) {
       text: JSON.stringify(result, null, 2),
     }],
   };
+}
+
+// ── recommend_ui_storyboard_layout + recommend_personality_for_context ────────
+// (ANI-152) Thin wrappers — logic + pattern catalogs live in lib/recommend-layout.js.
+
+function handleRecommendUiStoryboardLayout(args) {
+  return { content: [{ type: 'text', text: JSON.stringify(recommendUiStoryboardLayout(args || {}), null, 2) }] };
+}
+
+function handleRecommendPersonalityForContext(args) {
+  const result = recommendPersonalityForContext(args || {});
+  if (result.error) {
+    return { content: [{ type: 'text', text: result.error }], isError: true };
+  }
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
 }
 
 // ── adapt_project_aspect_ratio ────────────────────────────────────────────

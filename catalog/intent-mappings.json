@@ -163,5 +163,20 @@
     "companion_entrance": [],
     "framing": "wide-pull-back",
     "perspective_origin": "50% 50%"
+  },
+  {
+    "intent": "feature-walkthrough",
+    "label": "Feature Walkthrough",
+    "camera_description": "Cycling product states with editorial dwell — light register, content-led, no blur or 3D",
+    "speed": "slow",
+    "parallax": "none",
+    "parallax_layers": 0,
+    "dof": "content-sharp",
+    "personality_support": ["editorial", "neutral-light"],
+    "camera_primitives": ["ed-camera-push-in"],
+    "ambient_primitives": ["ed-scene-breathe"],
+    "companion_entrance": ["ed-slide-stagger", "ed-phase-transition", "lib-framer-spring-stagger", "nl-slide-stagger"],
+    "framing": "content-centered",
+    "perspective_origin": "50% 50%"
   }
 ]

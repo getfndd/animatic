@@ -36,18 +36,26 @@ function loadJSON(path) {
 export function loadPrimitivesCatalog() {
   const arr = loadJSON(resolve(CATALOG_DIR, 'primitives.json'));
 
-  // Load compound primitives (JS-driven recipes)
+  // Load compound primitives (JS-driven recipes). A compound file may hold a
+  // single primitive object OR an array of them (hero-moments.json,
+  // collage-boards.json) — spread arrays so each primitive registers under its
+  // own slug. Pushing the array whole left those primitives unregistered and
+  // created a slug-less `undefined` entry that crashed get_primitive (ANI-152).
   const compoundDir = resolve(CATALOG_DIR, 'compound');
   try {
     const files = readdirSync(compoundDir).filter(f => f.endsWith('.json'));
     for (const f of files) {
-      arr.push(loadJSON(resolve(compoundDir, f)));
+      const loaded = loadJSON(resolve(compoundDir, f));
+      if (Array.isArray(loaded)) arr.push(...loaded);
+      else arr.push(loaded);
     }
   } catch {
     // compound/ directory may not exist yet
   }
 
-  const bySlug = new Map(arr.map(p => [p.slug, p]));
+  // Only key entries that actually carry a slug — never let a malformed entry
+  // create an `undefined` lookup that masquerades as a real primitive.
+  const bySlug = new Map(arr.filter(p => p && p.slug).map(p => [p.slug, p]));
   return { array: arr, bySlug };
 }
 

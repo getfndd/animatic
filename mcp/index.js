@@ -49,6 +49,7 @@ import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, g
 import { compileMotion, isReactiveScene } from './lib/compiler.js';
 import {
   UI_SURFACE_KEYWORDS,
+  matchesKeyword,
   recommendUiStoryboardLayout,
   recommendPersonalityForContext,
 } from './lib/recommend-layout.js';
@@ -3140,7 +3141,7 @@ function handleRecommendEditorialLayout(args) {
   // Scope guard (ANI-152): this tool returns video-canvas anchor layouts. If
   // the description reads like a product-UI surface, surface the redirect so
   // the user isn't silently handed canvas patterns for an app mockup.
-  const uiSignals = UI_SURFACE_KEYWORDS.filter(kw => desc.includes(kw));
+  const uiSignals = UI_SURFACE_KEYWORDS.filter(kw => matchesKeyword(desc, kw));
   const ui_surface_hint = uiSignals.length >= 2
     ? `This looks like a product-UI surface (matched: ${uiSignals.slice(0, 4).join(', ')}). recommend_editorial_layout returns video-canvas anchor layouts only — for app mockups use recommend_ui_storyboard_layout.`
     : null;

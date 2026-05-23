@@ -94,6 +94,13 @@ describe('ANI-152 P2 — recommend_ui_storyboard_layout', () => {
     const r = recommendUiStoryboardLayout({ content_description: 'a sunset over the ocean' });
     assert.equal(r.recommended_pattern, 'split-pane-app');
   });
+
+  it('does not score "row" inside "browser" (word-boundary matching)', () => {
+    const r = recommendUiStoryboardLayout({ content_description: 'a plain web browser window' });
+    const tableScore = r.all_patterns.find(p => p.name === 'table-with-detail-rail').match_score;
+    assert.equal(tableScore, 0, '"browser" must not trigger table-with-detail-rail via the "row" substring');
+    assert.equal(r.recommended_pattern, 'split-pane-app');
+  });
 });
 
 describe('ANI-152 P3 — recommend_personality_for_context', () => {
@@ -118,6 +125,14 @@ describe('ANI-152 P3 — recommend_personality_for_context', () => {
 
   it('errors when no context is given', () => {
     assert.ok(recommendPersonalityForContext({}).error);
+  });
+
+  it('does not match "light" inside "highlights" (word-boundary matching)', () => {
+    const r = recommendPersonalityForContext({ context: 'fast-paced highlights sizzle reel' });
+    assert.equal(r.recommended_personality, 'montage');
+    const editorial = r.ranked.find(x => x.personality === 'editorial');
+    assert.ok(!editorial.matched_signals.includes('light'),
+      '"light" must not match inside "highlights"');
   });
 });
 

@@ -9,6 +9,23 @@
  *   context so callers don't hand-reason across four get_personality specs.
  */
 
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Whole-word(/phrase) match. Substring matching mis-fires — "light" inside
+ * "highlights"/"spotlight" and "row" inside "browser" would falsely score
+ * (ANI-152 review). Word boundaries scope each signal to its own token.
+ *
+ * @param {string} text - already lowercased
+ * @param {string} signal - keyword or phrase (may contain hyphens/spaces)
+ * @returns {boolean}
+ */
+export function matchesKeyword(text, signal) {
+  return new RegExp(`\\b${escapeRegExp(signal)}\\b`).test(text);
+}
+
 // Signals that a content description is a product-UI surface, not a video
 // canvas. Shared with index.js so recommend_editorial_layout can redirect.
 export const UI_SURFACE_KEYWORDS = [
@@ -77,7 +94,7 @@ export function recommendUiStoryboardLayout({ content_description, personality =
 
   const scores = {};
   for (const [pattern, p] of Object.entries(UI_SURFACE_PATTERNS)) {
-    scores[pattern] = p.keywords.reduce((s, kw) => s + (desc.includes(kw) ? 1 : 0), 0);
+    scores[pattern] = p.keywords.reduce((s, kw) => s + (matchesKeyword(desc, kw) ? 1 : 0), 0);
   }
   const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]).map(([n]) => n);
   const bestMatch = scores[ranked[0]] > 0 ? ranked[0] : 'split-pane-app';
@@ -140,7 +157,7 @@ export function recommendPersonalityForContext({ context, content_type, doctrine
 
   const ranked = Object.entries(PERSONALITY_PROFILES)
     .map(([slug, p]) => {
-      const matched = p.signals.filter(s => text.includes(s));
+      const matched = p.signals.filter(s => matchesKeyword(text, s));
       return { personality: slug, score: matched.length, matched_signals: matched, best_for: p.best_for, register: p.register };
     })
     .sort((a, b) => b.score - a.score);

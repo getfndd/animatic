@@ -11,7 +11,7 @@
 import { generateScenes } from './generator.js';
 import { analyzeScene } from './analyze.js';
 import { planSequence, STYLE_TO_PERSONALITY } from './planner.js';
-import { compileMotion } from './compiler.js';
+import { compileMotion, isReactiveScene } from './compiler.js';
 import { critiqueScene } from './critic.js';
 import { evaluateSequence } from './evaluate.js';
 import {
@@ -194,11 +194,16 @@ export async function generateVideo(prompt, options = {}) {
   }
 
   // ── Stage 4: Compile motion ─────────────────────────────────────────────
-  // Keyed by scene_id to match SequenceComposition.jsx + compileAllScenes() format
+  // Keyed by scene_id to match SequenceComposition.jsx + compileAllScenes() format.
+  // Compound (lib-*) scenes compile reactive so the Stage 5 critique below
+  // doesn't flag every layer as orphan_layer (ANI-148). generateVideo is a
+  // plan-and-critique pipeline — it does not render — so emitting a reactive
+  // descriptor here only affects the critique, not any Remotion output.
   const timelines = {};
   for (const scene of scenes) {
     try {
-      const timeline = compileMotion(scene, catalogs);
+      const timeline = compileMotion(scene, catalogs,
+        isReactiveScene(scene) ? { mode: 'reactive' } : {});
       if (timeline) {
         timelines[scene.scene_id] = timeline;
       } else {

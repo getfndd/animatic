@@ -153,6 +153,19 @@ describe('ANI-148 — lib-* tier reaches the direction loop', () => {
       assert.equal(orphans.length, 0, 'compound scene must not be flagged as orphan_layer (was 5)');
     });
 
+    it("video.js Stage 4/5 loop shape: compile-with-detection then critiqueScene → 0 orphan_layer", () => {
+      // Mirrors generateVideo()'s compile (line 201) + critique (line 217)
+      // for a compound scene. generateVideo can't be coerced to emit a
+      // compound scene from a prompt, so we pin the loop's logic directly.
+      const scene = makeCompoundScene();
+      const timeline = compileMotion(scene, catalogs,
+        isReactiveScene(scene) ? { mode: 'reactive' } : {});
+      const critique = critiqueScene(timeline, scene, { catalogs });
+      assert.equal(timeline.mode, 'reactive');
+      assert.equal(orphanIssues(critique).length, 0,
+        'video.js critique must not flag compound layers as orphans');
+    });
+
     it('no regression: a genuine static orphan scene is still flagged through scoring', () => {
       const scenes = [makeStaticOrphanScene()];
       const manifest = {

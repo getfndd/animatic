@@ -95,6 +95,17 @@ Master lookup table of named animation effects. Consult this when generating pro
 | `bd-chart-build-explain` | Chart Build Explain — Bar Growth | 3200ms | editorial, cinematic-dark | compound |
 | `bd-spotlight-cursor-reveal` | Spotlight Cursor Reveal | 3000ms | neutral-light, editorial | compound |
 | `bd-stack-fan-settle` | Stack Fan Settle | 2800ms | cinematic-dark, editorial | compound |
+| `bd-moodboard` | Moodboard — Staggered Grid | 3000ms | editorial, cinematic-dark | compound |
+| `bd-result-grid` | Result Grid — Row Fill | 2500ms | editorial, neutral-light | compound |
+| `bd-stacked-thumbs` | Stacked Thumbs — Fan Reveal | 2000ms | cinematic-dark, editorial | compound |
+| `bd-media-strip` | Media Strip — Horizontal Scroll | 4000ms | montage, editorial | compound |
+| `hm-product-freeze-frame` | Product Freeze Frame | 1800ms | cinematic-dark, editorial | compound |
+| `hm-zoom-through` | Zoom Through | 1200ms | cinematic-dark, montage | compound |
+| `hm-metric-explosion` | Metric Explosion | 2400ms | cinematic-dark, editorial | compound |
+| `hm-card-fan-out` | Card Fan Out | 2000ms | editorial, cinematic-dark | compound |
+| `hm-chart-to-insight-reveal` | Chart to Insight Reveal | 2800ms | editorial | compound |
+| `hm-logo-resolve` | Logo Resolve | 2200ms | cinematic-dark, montage | compound |
+| `hm-before-after-morph` | Before-After Morph | 3000ms | editorial, neutral-light | compound |
 
 ### Continuous / Ambient
 

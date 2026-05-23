@@ -1,20 +1,21 @@
 # MCP Tools Reference
 
-71 tools across 10 categories. Run via MCP server (`mcp/index.js`).
+73 tools across 10 categories. Run via MCP server (`mcp/index.js`).
 
-## Primitives & Reference (7)
+## Primitives & Reference (8)
 
 | Tool | What |
 |------|------|
 | `search_primitives` | Search animation primitives by keyword, personality, category |
 | `get_primitive` | Get a single primitive by ID with CSS implementation |
 | `get_personality` | Get personality rules (timing, easing, camera, guardrails) |
+| `recommend_personality_for_context` | Rank the four personalities against a project context |
 | `search_breakdowns` | Search animation reference breakdowns |
 | `get_breakdown` | Get a single reference breakdown |
 | `get_reference_doc` | Get a reference document by slug |
 | `recommend_choreography` | Recommend animation choreography for a scene |
 
-## Scene Authoring (8)
+## Scene Authoring (9)
 
 | Tool | What |
 |------|------|
@@ -24,7 +25,8 @@
 | `compile_motion` | Compile scene motion (groups, stagger, camera) into a timeline |
 | `critique_motion` | Critique a compiled timeline for static-track and reactive (lib-*) quality issues |
 | `create_editorial_canvas_scene` | Create a flat art-directed editorial canvas scene |
-| `recommend_editorial_layout` | Recommend editorial layout for content |
+| `recommend_editorial_layout` | Recommend editorial *video-canvas* layout for content |
+| `recommend_ui_storyboard_layout` | Recommend a product-UI surface layout (split-pane, table+detail, master-detail, …) |
 | `recommend_type_treatment` | Recommend typography animation treatment |
 
 ## Sequence Planning (9)

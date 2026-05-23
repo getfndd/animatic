@@ -585,5 +585,86 @@
         ]
       }
     }
+  },
+  {
+    "template_id": "ui-walkthrough",
+    "name": "UI Walkthrough / Feature Explainer",
+    "description": "Marketing-site explainer that cycles through product-UI states with editorial motion. Shows how the product works in a few seconds — no teaching frame, no step-by-step scaffolding. The SaaS-marketing counterpart to the tutorial template.",
+    "defaults": {
+      "style": "minimal",
+      "duration_target_s": 15,
+      "tone": {
+        "mood": "confident",
+        "energy": "low"
+      }
+    },
+    "suggested_scene_count": {
+      "min": 3,
+      "max": 6
+    },
+    "sections": [
+      {
+        "label": "Hook",
+        "description": "One line on what the product does — value prop, not a lesson title.",
+        "emphasis": "strong",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": ["opening"]
+      },
+      {
+        "label": "State",
+        "description": "One product-UI surface in the flow (e.g. Import → Structure → Connect). Repeat per state; each is a short editorial dwell that crossfades to the next.",
+        "emphasis": "normal",
+        "suggested_layout": "full-bleed",
+        "suggested_content_type": "ui_screenshot",
+        "intent_tags": ["detail", "informational"],
+        "repeat": {
+          "min": 2,
+          "max": 4
+        }
+      },
+      {
+        "label": "Close",
+        "description": "Outcome or CTA — where the product leaves the viewer.",
+        "emphasis": "strong",
+        "suggested_layout": "hero-center",
+        "suggested_content_type": "typography",
+        "intent_tags": ["closing"]
+      }
+    ],
+    "example": {
+      "project": {
+        "title": "How Preset Works",
+        "description": "15-second marketing explainer cycling three product states: import a design system, structure its tokens, connect it to code."
+      },
+      "content": {
+        "headline": "Your design system, structured in seconds",
+        "sections": [
+          {
+            "label": "Hook",
+            "text": "Turn a messy design system into structured tokens"
+          },
+          {
+            "label": "State",
+            "text": "Import — point Preset at your library",
+            "assets": ["screen-import"]
+          },
+          {
+            "label": "State",
+            "text": "Structure — tokens organized automatically",
+            "assets": ["screen-structure"]
+          },
+          {
+            "label": "State",
+            "text": "Connect — shipped straight to code",
+            "assets": ["screen-connect"]
+          },
+          {
+            "label": "Close",
+            "text": "Design and code, finally in sync"
+          }
+        ]
+      }
+    }
   }
 ]

@@ -1150,13 +1150,13 @@ export function buildTools({
     {
       name: 'recommend_editorial_layout',
       description:
-        'Recommend anchor positioning and layout strategy for editorial canvas scenes. Given a content description and personality, returns recommended patterns with anchor assignments for common editorial layouts (hero-center, split-editorial, floating-fragments, minimal-type).',
+        'Recommend anchor positioning and layout strategy for editorial canvas scenes. **Scope: Remotion video canvas only** — returns anchored hero/headline/fragment layouts (hero-center, split-editorial, floating-fragments, minimal-type), not interactive product-UI surfaces. For app mockups (window chrome, rails, panels, tables), use `recommend_ui_storyboard_layout`.',
       inputSchema: {
         type: 'object',
         properties: {
           content_description: {
             type: 'string',
-            description: 'What this editorial scene needs to communicate (e.g., "headline with floating prompt card and result").',
+            description: 'What this editorial canvas scene needs to communicate (e.g., "headline with floating prompt card and result").',
           },
           personality: {
             type: 'string',
@@ -1165,6 +1165,50 @@ export function buildTools({
           },
         },
         required: ['content_description'],
+      },
+    },
+    {
+      name: 'recommend_ui_storyboard_layout',
+      description:
+        'Recommend a structural layout for a product-UI surface mockup (the counterpart to recommend_editorial_layout, which is video-canvas only). Given a description of an app surface, returns region maps for common UI patterns — split-pane-app, table-with-detail-rail, master-detail, inspector-rail, settings-list — plus state-cycle motion notes. Use this when storyboarding a product-feature explainer that shows real app surfaces.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          content_description: {
+            type: 'string',
+            description: 'The app surface to lay out (e.g., "window chrome with a left source tree and a main scan-progress panel and bottom status bar").',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Animation personality. Product-UI surfaces are usually storyboarded in editorial or neutral-light register.',
+          },
+        },
+        required: ['content_description'],
+      },
+    },
+    {
+      name: 'recommend_personality_for_context',
+      description:
+        'Rank the four animation personalities (cinematic-dark, editorial, neutral-light, montage) against a project context, so you don\'t have to read all four specs and hand-reason the fit. Returns a recommended personality with rationale, a scored ranking, and a trade-off comparison table of all four. Personality choice determines the entire motion vocabulary, so this is the right first call when starting a project.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          context: {
+            type: 'string',
+            description: 'What you are making (e.g., "15-second marketing-site explainer that cycles through product-UI states").',
+          },
+          content_type: {
+            type: 'string',
+            description: 'Optional content type (e.g., "product-ui", "brand film", "tutorial", "sizzle reel").',
+          },
+          doctrine_tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional doctrine / constraint tags to weigh (e.g., ["museum", "silver-light", "light-register"]).',
+          },
+        },
+        required: ['context'],
       },
     },
     // ── Social formats ──────────────────────────────────────────────────

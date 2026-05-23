@@ -67,7 +67,9 @@
       "recommended_primitives": [
         "cd-focus-stagger",
         "mo-scale-entrance",
-        "cd-card-cascade"
+        "cd-card-cascade",
+        "lib-gsap-spring-stagger",
+        "lib-framer-spring-stagger"
       ],
       "semantic_recommendation": {
         "classification": {
@@ -130,7 +132,8 @@
         "camera_behavior": {
           "mode": "ambient"
         }
-      }
+      },
+      "choreography_intent": "product-showcase"
     },
     {
       "index": 3,
@@ -158,7 +161,9 @@
       "recommended_primitives": [
         "mo-hard-cut",
         "mo-whip-wipe",
-        "mo-grid-reveal"
+        "mo-grid-reveal",
+        "cd-focus-stagger",
+        "lib-gsap-radial-stagger"
       ],
       "semantic_recommendation": {
         "classification": {
@@ -222,7 +227,8 @@
         "camera_behavior": {
           "mode": "reactive"
         }
-      }
+      },
+      "choreography_intent": "energetic-fast"
     },
     {
       "index": 4,

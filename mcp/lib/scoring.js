@@ -16,7 +16,7 @@
 
 import { evaluateSequence } from './evaluate.js';
 import { critiqueScene } from './critic.js';
-import { compileMotion } from './compiler.js';
+import { compileMotion, isReactiveScene } from './compiler.js';
 import { auditMotionDensity } from './motion-density.js';
 import { scoreBrandFinish } from './compositing.js';
 import { validateBrandCompliance } from './brands.js';
@@ -569,7 +569,11 @@ function compileAndCritique(manifest, scenes) {
     }
 
     try {
-      const timeline = compileMotion(sceneDef, catalogs);
+      // Compound (lib-*) scenes must compile reactive, or the static path
+      // returns a zero-track timeline and the critic flags every layer as
+      // orphan_layer — noise the revision loop would chase (ANI-148, Gap B).
+      const timeline = compileMotion(sceneDef, catalogs,
+        isReactiveScene(sceneDef) ? { mode: 'reactive' } : {});
       // critiqueScene merges timeline + semantic critiques when scene.semantic
       // exists — required for v3 scenes to surface semantic issues into the
       // scoring pipeline used by /direct (ANI-116).
@@ -599,7 +603,12 @@ function computeDensity(manifest, scenes) {
     if (!sceneDef?.layers?.length) continue;
 
     try {
-      const timeline = compileMotion(sceneDef, catalogs);
+      // Match the critique path: compound scenes compile reactive so the
+      // density audit reads the same timeline shape the rest of the loop sees
+      // (ANI-148). Reactive descriptors carry no tracks; auditMotionDensity
+      // falls back to scene layers.
+      const timeline = compileMotion(sceneDef, catalogs,
+        isReactiveScene(sceneDef) ? { mode: 'reactive' } : {});
       audits.push(auditMotionDensity(timeline, sceneDef));
     } catch {
       continue;

@@ -193,7 +193,15 @@ Code review only (deep technical analysis).
 5. **Performance** - Any obvious performance issues?
 6. **Edge Cases** - Are error states handled?
 
-**Escalation to `/ultrareview`:** For pre-merge review on feature branches with non-trivial scope (new MCP tools, pipeline changes, cross-cutting refactors), use `/ultrareview` instead. It runs parallel multi-agent analysis in the cloud with diffstat + animated state — better signal than a single-agent review. Rule of thumb: `@dex review` for inline checks during development, `/ultrareview` as the gate before `@dex pr`.
+**Escalation ladder (three rungs, by scope):**
+
+| Rung | When | What it does |
+|------|------|--------------|
+| `@dex review` | Dev-time, inline checks while building | Single-agent technical analysis against the checklist above. No PR required. |
+| `/code-review --comment` | PR-stage correctness pass | Tunable single-pass correctness review at a chosen effort level; posts findings as inline GitHub PR comments. Run before `@dex pr`. (Renamed from `/simplify` in Claude Code 2.1.147.) |
+| `/ultrareview` | Pre-merge gate, non-trivial scope (new MCP tools, pipeline changes, cross-cutting refactors) | Parallel multi-agent analysis in the cloud with diffstat + animated state. Best signal, highest cost. The final gate before merge. |
+
+Pick the lowest rung that covers the change. Escalate when scope or risk warrants — never skip straight to merge on non-trivial work.
 
 ### `@dex pr`
 
@@ -437,6 +445,8 @@ Check remaining work in current epic before suggesting new work.
 3. Remaining issues in current epic
 4. Issues in related epics
 5. New work
+
+**Driving the chosen work to completion:** Once the next item is picked, use `/goal` to run it as completion-driven multi-turn work. `/goal` keeps Claude focused on finishing the stated objective across turns rather than initiating new threads — the operational expression of Dex's "completion over initiation" philosophy. (Added in Claude Code 2.1.139.)
 
 ### `@dex ds health`
 

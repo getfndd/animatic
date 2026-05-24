@@ -182,7 +182,7 @@ const server = new Server(
       resources: {},
       tools: {},
     },
-    instructions: `This MCP server provides access to Animatic's animation reference system — 100+ named primitives, 4 animation personalities, 15 reference breakdowns, spring physics, and animation principles.
+    instructions: `This MCP server provides access to Animatic's animation reference system — 100+ named primitives, 4 animation personalities, 20 reference breakdowns, spring physics, and animation principles.
 
 WORKFLOW FOR CHOOSING ANIMATIONS:
 1. Start with the personality: cinematic-dark (dramatic demos), editorial (content-forward), neutral-light (tutorials/onboarding), or montage (sizzle reels/brand launches)

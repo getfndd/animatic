@@ -49,8 +49,8 @@
 | `validate_manifest` | Validate manifest against personality guardrails |
 | `recommend_sequence_archetype` | Recommend archetype for scenes (6 archetypes) |
 | `instantiate_sequence_archetype` | Instantiate a sequence archetype |
-| `get_style_pack` | Get style pack definition (8 packs) |
-| `list_brief_templates` / `get_brief_template` | Brief template catalog (5 templates) |
+| `get_style_pack` | Get style pack definition (10 packs) |
+| `list_brief_templates` / `get_brief_template` | Brief template catalog (6 templates) |
 
 ## Autonomous Direction (8)
 

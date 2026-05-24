@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-77 tools across 11 categories. Run via MCP server (`mcp/index.js`).
+78 tools across 11 categories. Run via MCP server (`mcp/index.js`).
 
 ## Primitives & Reference (8)
 
@@ -73,14 +73,15 @@
 | `audit_annotation_quality` | Check annotation quality (advisory/strict modes) |
 | `upgrade_project_confidence` | Safe metadata repair — suggest/apply/apply_safe_only patches |
 
-## Scoring & Critique (5)
+## Scoring & Critique (6)
 
 | Tool | What |
 |------|------|
 | `score_candidate_video` | 6 weighted dimensions: hook, narrative_arc, clarity, visual_hierarchy, motion_quality, brand_finish |
 | `score_brand_finish` | Compositing quality score per personality/style |
-| `score_product_demo_clarity` | Product interaction truthfulness, camera intent, pacing, hierarchy |
+| `score_product_demo_clarity` | Product interaction truthfulness, camera intent, pacing, hierarchy (structural) |
 | `score_frame_strip` | Visual quality: contrast, readability, hierarchy, brand consistency, pacing rhythm |
+| `analyze_scene_comprehension` | LLM judge — perceptual comprehension ("would a human get it?") with reasoning; deterministic fallback |
 | `audit_motion_density` | Motion density audit + simplification suggestions |
 
 ## Brand & Art Direction (7)

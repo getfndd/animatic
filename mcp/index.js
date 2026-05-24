@@ -81,6 +81,7 @@ import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
 import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
+import { analyzeSceneComprehension } from './lib/scene-comprehension.js';
 import { resolveRenderTargets } from './lib/render-routing.js';
 import { assembleVideoSequence, buildRenderCommand } from './lib/video-assembly.js';
 import { getDeliveryProfile, listDeliveryProfiles, getProfileForChannel } from './lib/delivery-profiles.js';
@@ -408,6 +409,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // ── Product archetypes ───────────────────────────────────────────────
     case 'score_product_demo_clarity':
       return handleScoreProductDemoClarity(args);
+    case 'analyze_scene_comprehension':
+      return handleAnalyzeSceneComprehension(args);
     // ── Storyboard tools ──────────────────────────────────────────────────
     case 'instantiate_sequence_archetype':
       return handleInstantiateSequenceArchetype(args);
@@ -3000,6 +3003,44 @@ function handleScoreProductDemoClarity(args) {
   }
 
   return { content: [{ type: 'text', text: out }] };
+}
+
+// ── analyze_scene_comprehension ──────────────────────────────────────────────
+
+async function handleAnalyzeSceneComprehension(args) {
+  const { frame_strip, annotations, scenes, images, options } = args || {};
+  const ann = annotations || scenes;
+
+  if (!frame_strip && !ann) {
+    return {
+      content: [{ type: 'text', text: 'Provide `frame_strip` (output of generate_contact_sheet or generate_key_moment_strip) and/or `annotations` (annotated scenes).' }],
+      isError: true,
+    };
+  }
+
+  try {
+    const result = await analyzeSceneComprehension({ frame_strip, annotations: ann, images, options });
+
+    let out = `## Scene Comprehension: ${result.score.toFixed(3)} (${result.source})\n\n`;
+    out += `${result.rationale}\n\n`;
+    out += `### Dimensions\n\n`;
+    out += `| Dimension | Score |\n|-----------|-------|\n`;
+    for (const [dim, val] of Object.entries(result.dimensions)) {
+      out += `| ${dim.replace(/_/g, ' ')} | ${val == null ? '—' : val.toFixed(3)} |\n`;
+    }
+    if (result.reasoning.length > 0) {
+      out += `\n### Reasoning\n\n`;
+      for (const r of result.reasoning) out += `- ${r}\n`;
+    }
+    if (result.notes.length > 0) {
+      out += `\n_${result.notes.join(' • ')}_\n`;
+    }
+    out += `\n` + JSON.stringify(result, null, 2);
+
+    return { content: [{ type: 'text', text: out }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
+  }
 }
 
 // ── generate_contact_sheet ────────────────────────────────────────────────

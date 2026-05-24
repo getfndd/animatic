@@ -976,6 +976,50 @@ export function buildTools({
         required: ['scenes'],
       },
     },
+    {
+      name: 'analyze_scene_comprehension',
+      description:
+        'LLM "judge" that scores PERCEPTUAL comprehension — would a human understand the video\'s intent from its key frames? Reads a rendered frame strip (descriptors, plus optional images) + scene annotations and scores 4 dimensions: subject_clarity, intent_legibility, progression_coherence, cognitive_load. Returns a 0–1 score with explainable reasoning. Complements (does not duplicate) `score_product_demo_clarity` (structural) and `score_frame_strip` (visual). LLM-optional: judges with Claude when ANTHROPIC_API_KEY is set (vision when `images` are supplied), else a deterministic heuristic returns the same shape. Feeds `score_candidate_video`\'s clarity dimension.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          frame_strip: {
+            type: 'object',
+            description: 'Descriptor frame strip — output of `generate_contact_sheet` ({ sheets }) or `generate_key_moment_strip` ({ moments }).',
+          },
+          annotations: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Annotated scene definitions (product_role, primary_subject, outcome, interaction_truth, layers). Alias: `scenes`.',
+          },
+          scenes: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'Alias for `annotations`.',
+          },
+          images: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                scene_id: { type: 'string', description: 'Scene this still belongs to (optional).' },
+                media_type: { type: 'string', description: 'e.g. `image/png`, `image/jpeg`. Defaults to `image/png`.' },
+                data: { type: 'string', description: 'Base64-encoded image data.' },
+              },
+              required: ['data'],
+            },
+            description: 'Optional rendered stills. When provided AND a key is set, the judge upgrades to vision. Up to 8 are used, in order.',
+          },
+          options: {
+            type: 'object',
+            properties: {
+              enhance: { type: 'boolean', description: 'Set false to force the deterministic heuristic even when a key is set. Default true.' },
+            },
+            description: 'Judge options.',
+          },
+        },
+      },
+    },
     // ── AI Demo & Finishing Tools ──────────────────────────────────────────
     {
       name: 'instantiate_sequence_archetype',

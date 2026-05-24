@@ -7,14 +7,17 @@ set -euo pipefail
 PKG_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REPO_ROOT="$(cd "$PKG_DIR/../.." && pwd)"
 
-echo "Packing @presetai/animatic-mcp from $REPO_ROOT"
+echo "Packing animatic-mcp from $REPO_ROOT"
 
 # Clean previous build artifacts
 rm -rf "$PKG_DIR/mcp" "$PKG_DIR/catalog" "$PKG_DIR/reference" "$PKG_DIR/src"
 
-# Copy MCP server code
+# Copy MCP server code. NOTE: tools.js holds all tool definitions (ANI-142) and
+# is statically imported by index.js (buildTools) — it MUST be copied or the
+# published server crashes on boot with ERR_MODULE_NOT_FOUND (ANI-154).
 mkdir -p "$PKG_DIR/mcp/data" "$PKG_DIR/mcp/lib"
 cp "$REPO_ROOT/mcp/index.js" "$PKG_DIR/mcp/"
+cp "$REPO_ROOT/mcp/tools.js" "$PKG_DIR/mcp/"
 cp "$REPO_ROOT/mcp/lib.js" "$PKG_DIR/mcp/"
 cp "$REPO_ROOT/mcp/data/loader.js" "$PKG_DIR/mcp/data/"
 cp "$REPO_ROOT"/mcp/lib/*.js "$PKG_DIR/mcp/lib/"

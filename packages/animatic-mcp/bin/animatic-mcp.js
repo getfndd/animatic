@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * @presetai/animatic-mcp — MCP server entry point
+ * animatic-mcp — MCP server entry point
  *
  * Usage:
- *   npx -y @presetai/animatic-mcp
+ *   npx -y animatic-mcp
  *
  * Or in Claude Desktop / Cursor MCP config:
- *   { "command": "npx", "args": ["-y", "@presetai/animatic-mcp"] }
+ *   { "command": "npx", "args": ["-y", "animatic-mcp"] }
  */
 
 import { resolve, dirname } from 'node:path';

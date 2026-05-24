@@ -58,6 +58,17 @@ describe('search_motion_recipes', () => {
     const { matches } = searchMotionRecipes({});
     assert.equal(matches.length, 6, 'all catalog recipes listed');
   });
+
+  it('context matching is word-boundary, not substring', () => {
+    // "cardiac" must NOT hit the "card" context (the substring false positive).
+    const cardiac = searchMotionRecipes({ context: 'cardiac' });
+    assert.ok(!cardiac.matches.some(m => m.reason.includes('context')),
+      'cardiac should not match card-context recipes');
+    // but "modal" still matches "modal-body" (hyphen is a boundary).
+    const modal = searchMotionRecipes({ context: 'modal' });
+    assert.ok(modal.matches.some(m => m.recipe_id === 'enter.fade-up'),
+      'modal should still match the modal-body context');
+  });
 });
 
 describe('validate_motion_token', () => {
@@ -81,6 +92,14 @@ describe('validate_motion_token', () => {
     assert.ok(match, 'recipe_match suggestion present');
     assert.equal(match.severity, 'suggestion');
     assert.equal(r.valid, true, 'a suggestion alone keeps the usage valid');
+  });
+
+  it('normalizes Framer-style x/y/scale properties for recipe_match', () => {
+    // ["opacity","y"] is the Framer notation for an opacity+transform recipe;
+    // it must still surface a recipe_match (the un-normalized bug missed it).
+    const r = validateMotionToken({ usage: { properties: ['opacity', 'y'] } });
+    assert.ok(r.issues.some(i => i.rule === 'recipe_match'),
+      'opacity+y should match a transform-based recipe');
   });
 
   it('errors when usage is absent', () => {

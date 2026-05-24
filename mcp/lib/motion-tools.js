@@ -16,6 +16,19 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, extname, relative } from 'node:path';
 
 import { loadMotionRecipes, loadCameraGuardrails } from '../data/loader.js';
+import { matchesKeyword } from './recommend-layout.js';
+
+// Fold transform-family animated properties (Framer x/y/scale/rotate, CSS
+// translate*) to a single `transform` key so recipe_match compares like with
+// like regardless of which notation the caller used (ANI-137 review).
+const TRANSFORM_PROPS = new Set([
+  'x', 'y', 'z', 'scale', 'scalex', 'scaley', 'rotate', 'rotatex', 'rotatey',
+  'rotatez', 'skew', 'skewx', 'skewy', 'translate', 'translatex', 'translatey', 'translatez',
+]);
+function normalizeMotionProp(key) {
+  const k = String(key).toLowerCase();
+  return TRANSFORM_PROPS.has(k) ? 'transform' : k;
+}
 
 let _recipes = null;
 let _guardrails = null;
@@ -93,9 +106,12 @@ export function searchMotionRecipes({ intent, personality, context } = {}) {
     const reasons = [];
     let score = 0;
 
-    // Context: exact or substring membership in appropriate_contexts.
+    // Context: word-boundary membership in appropriate_contexts. Substring
+    // matching mis-fired — "cardiac" hit "card", "buttonish" hit "button"
+    // (ANI-137 review). matchesKeyword treats hyphens as boundaries, so "modal"
+    // still matches "modal-body" and "card-grid" still matches "card".
     if (ctx) {
-      const ctxHit = (r.appropriate_contexts || []).some(c => c === ctx || c.includes(ctx) || ctx.includes(c));
+      const ctxHit = (r.appropriate_contexts || []).some(c => matchesKeyword(c, ctx) || matchesKeyword(ctx, c));
       if (ctxHit) { score += 0.5; reasons.push(`context "${ctx}" fits`); }
     }
 
@@ -149,7 +165,9 @@ export function validateMotionToken({ usage } = {}) {
 
   // recipe_match: if the animated properties line up with a recipe's token
   // keys, suggest the recipe (advisory — never invalidates).
-  const props = Array.isArray(properties) ? properties.map(p => String(p).toLowerCase()) : [];
+  // Normalize incoming properties the SAME way as recipe token keys, so
+  // Framer-style x/y/scale usages match transform-based recipes (ANI-137 review).
+  const props = Array.isArray(properties) ? properties.map(normalizeMotionProp) : [];
   if (props.length) {
     const propSet = new Set(props);
     let best = null;
@@ -157,7 +175,7 @@ export function validateMotionToken({ usage } = {}) {
       const keys = new Set([
         ...Object.keys(r.tokens?.from || {}),
         ...Object.keys(r.tokens?.to || {}),
-      ].map(k => (k === 'y' || k === 'x' || k === 'scale' ? 'transform' : k)));
+      ].map(normalizeMotionProp));
       const overlap = [...keys].filter(k => propSet.has(k)).length;
       const coverage = keys.size ? overlap / keys.size : 0;
       if (coverage === 1 && (!best || keys.size > best.size)) best = { id: r.id, size: keys.size };

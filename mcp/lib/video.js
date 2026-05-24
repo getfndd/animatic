@@ -14,6 +14,7 @@ import { planSequence, STYLE_TO_PERSONALITY } from './planner.js';
 import { compileMotion, isReactiveScene } from './compiler.js';
 import { critiqueScene } from './critic.js';
 import { evaluateSequence } from './evaluate.js';
+import { matchesKeyword } from './recommend-layout.js';
 import {
   loadPrimitivesCatalog,
   loadPersonalitiesCatalog,
@@ -70,10 +71,13 @@ export function parsePrompt(prompt) {
   const durationMatch = lower.match(/(\d+)\s*(?:second|sec|s)\b/);
   const duration = durationMatch ? parseInt(durationMatch[1]) : null;
 
-  // Detect style
+  // Detect style / personality / template by keyword. Boundary-aware matching
+  // (matchesKeyword) — substring includes() mis-fired on tokens embedded in
+  // larger words: "soft" in "software" → fade, "light" in "highlight" →
+  // neutral-light over montage (ANI-153).
   let style = 'prestige';
   for (const [styleName, keywords] of Object.entries(STYLE_KEYWORDS)) {
-    if (keywords.some(kw => lower.includes(kw))) {
+    if (keywords.some(kw => matchesKeyword(lower, kw))) {
       style = styleName;
       break;
     }
@@ -82,7 +86,7 @@ export function parsePrompt(prompt) {
   // Detect personality (explicit override)
   let personality = null;
   for (const [slug, keywords] of Object.entries(PERSONALITY_KEYWORDS)) {
-    if (keywords.some(kw => lower.includes(kw))) {
+    if (keywords.some(kw => matchesKeyword(lower, kw))) {
       personality = slug;
       break;
     }
@@ -91,7 +95,7 @@ export function parsePrompt(prompt) {
   // Detect template
   let template = 'product-launch';
   for (const [tmpl, keywords] of Object.entries(TEMPLATE_KEYWORDS)) {
-    if (keywords.some(kw => lower.includes(kw))) {
+    if (keywords.some(kw => matchesKeyword(lower, kw))) {
       template = tmpl;
       break;
     }

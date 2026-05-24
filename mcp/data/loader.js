@@ -130,6 +130,13 @@ export function loadRecipes() {
   return { array: arr, byId };
 }
 
+/** Load catalog/motion-recipes.json → array + id map (ANI-134 motion tokens) */
+export function loadMotionRecipes() {
+  const arr = loadJSON(resolve(CATALOG_DIR, 'motion-recipes.json'));
+  const byId = new Map(arr.map(r => [r.id, r]));
+  return { array: arr, byId };
+}
+
 /** Load catalog/brands/*.json → brand_id map + default brand */
 export function loadBrands() {
   const BRANDS_DIR = resolve(CATALOG_DIR, 'brands');

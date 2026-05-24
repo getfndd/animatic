@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-73 tools across 10 categories. Run via MCP server (`mcp/index.js`).
+77 tools across 11 categories. Run via MCP server (`mcp/index.js`).
 
 ## Primitives & Reference (8)
 
@@ -28,6 +28,15 @@
 | `recommend_editorial_layout` | Recommend editorial *video-canvas* layout for content |
 | `recommend_ui_storyboard_layout` | Recommend a product-UI surface layout (split-pane, table+detail, master-detail, …) |
 | `recommend_type_treatment` | Recommend typography animation treatment |
+
+## Motion Recipes (4)
+
+| Tool | What |
+|------|------|
+| `get_motion_recipe` | Get a single motion-token recipe by ID (catalog/motion-recipes.json) |
+| `search_motion_recipes` | Search motion recipes by intent / context / personality |
+| `validate_motion_token` | Validate a motion usage (raw_duration / raw_easing / recipe_match) |
+| `audit_motion_coverage` | Scan a directory for motion-token coverage (minimal in-repo scanner) |
 
 ## Sequence Planning (9)
 

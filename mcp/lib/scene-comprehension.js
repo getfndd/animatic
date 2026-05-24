@@ -448,19 +448,52 @@ function buildUserContent(frames, images) {
   duration: ${f.duration_s ?? '?'}s | layers: ${f.layer_count ?? '?'} | intent_tags: ${(f.intent_tags || []).join(', ') || '(none)'}`;
   }).join('\n\n');
 
+  const hasImages = Array.isArray(images) && images.length > 0;
   const textBlock = {
     type: 'text',
     text: `Frame strip (${frames.length} key frame(s)) and scene annotations:\n\n${stripText}\n\n`
-      + (images ? 'The rendered stills for these frames are attached below, in order. Judge primarily from the images, using the annotations as context.' : 'No rendered images are available — judge from the descriptions and annotations.'),
+      + (hasImages
+        ? 'The rendered still for each scene is attached below, each preceded by a label naming its scene. Judge primarily from the images, using the annotations as context.'
+        : 'No rendered images are available — judge from the descriptions and annotations.'),
   };
 
-  if (!images) return [textBlock];
+  if (!hasImages) return [textBlock];
 
-  const imageBlocks = images.slice(0, MAX_VISION_IMAGES).map(img => ({
+  const imageBlock = (img) => ({
     type: 'image',
     source: { type: 'base64', media_type: img.media_type || 'image/png', data: img.data },
-  }));
-  return [textBlock, ...imageBlocks];
+  });
+
+  // Associate stills with frames by scene_id when available, so caller ordering
+  // (or a partial/misordered set) cannot mislabel the judge's inputs. Each
+  // image is emitted in FRAME order and prefixed with a label naming its scene.
+  // Falls back to positional pairing only when no image carries a scene_id.
+  const content = [textBlock];
+  const tagged = images.some(img => img && img.scene_id != null);
+
+  if (tagged) {
+    const byScene = new Map();
+    for (const img of images) {
+      if (img?.scene_id != null && !byScene.has(img.scene_id)) byScene.set(img.scene_id, img);
+    }
+    let used = 0;
+    for (const f of frames) {
+      if (used >= MAX_VISION_IMAGES) break;
+      const img = byScene.get(f.scene_id);
+      if (!img) continue;
+      content.push({ type: 'text', text: `Still for scene "${f.scene_id}":` });
+      content.push(imageBlock(img));
+      used++;
+    }
+  } else {
+    images.slice(0, MAX_VISION_IMAGES).forEach((img, i) => {
+      const sceneId = frames[i]?.scene_id;
+      content.push({ type: 'text', text: `Still ${i + 1}${sceneId ? ` (scene "${sceneId}")` : ''}:` });
+      content.push(imageBlock(img));
+    });
+  }
+
+  return content;
 }
 
 // ── LLM result coercion ────────────────────────────────────────────────────────

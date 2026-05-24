@@ -203,6 +203,37 @@ describe('analyzeSceneComprehension (LLM judge)', () => {
     }
   });
 
+  it('labels and orders vision stills by scene_id regardless of caller order', async () => {
+    let received;
+    __setComprehensionClientForTest({
+      messages: { create: async (req) => { received = req; return mockJudgeResponse(validPayload); } },
+    });
+    try {
+      // Stills supplied in REVERSE frame order, with a gap (no still for s3).
+      const images = [
+        { scene_id: 's4', data: 'IMG4' },
+        { scene_id: 's2', data: 'IMG2' },
+        { scene_id: 's1', data: 'IMG1' },
+      ];
+      const r = await analyzeSceneComprehension({ frame_strip: goodStrip(), annotations: goodScenes(), images });
+      assert.equal(r.source, 'llm-vision');
+
+      const blocks = received.messages[0].content;
+      // Pair each image block with its immediately preceding label.
+      const pairs = [];
+      for (let i = 0; i < blocks.length; i++) {
+        if (blocks[i].type === 'image') pairs.push({ label: blocks[i - 1]?.text || '', data: blocks[i].source.data });
+      }
+      // Emitted in FRAME order (s1, s2, s4 — s3 has no still), each correctly labeled.
+      assert.deepEqual(pairs.map(p => p.data), ['IMG1', 'IMG2', 'IMG4']);
+      assert.match(pairs[0].label, /"s1"/);
+      assert.match(pairs[1].label, /"s2"/);
+      assert.match(pairs[2].label, /"s4"/);
+    } finally {
+      __setComprehensionClientForTest(null);
+    }
+  });
+
   it('clamps out-of-range scores and drops non-numeric dimensions', async () => {
     __setComprehensionClientForTest({
       messages: {

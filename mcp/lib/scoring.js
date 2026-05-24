@@ -128,6 +128,24 @@ export function scoreCandidateVideo({ manifest, scenes, style, brand, audio_beat
       .map(e => e.scene || e.scene_id || e.id)
       .filter(Boolean);
     const frame_strip = generateContactSheet({ ...manifest, scene_order }, scenes);
+
+    // Align dwell times to manifest timing. generateContactSheet reads duration
+    // from the scene DEFINITION, but trim/extend_hold/compress revisions write
+    // entry.duration_s on the manifest entry and never touch the scene def —
+    // so for planned/revised sequences the two diverge. cognitive_load scores
+    // elements-per-second, so a stale (longer) dwell under-flags dense trimmed
+    // scenes. The manifest entry is the authoritative on-screen duration here,
+    // matching scorePerScene and the render path.
+    const durByScene = new Map();
+    for (const e of (manifest.scenes || [])) {
+      const id = e.scene || e.scene_id || e.id;
+      if (id != null && e.duration_s != null) durByScene.set(id, e.duration_s);
+    }
+    for (const sheet of frame_strip.sheets) {
+      const d = durByScene.get(sheet.scene_id);
+      if (d != null) sheet.duration_s = d;
+    }
+
     return comprehensionHeuristic({ frame_strip, annotations: scenes });
   });
 

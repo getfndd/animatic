@@ -379,3 +379,28 @@ describe('scoreCandidateVideo — semantic critic flow', () => {
     );
   });
 });
+
+// ── Comprehension timing alignment (ANI-121) ─────────────────────────────────
+
+describe('scoreCandidateVideo — comprehension uses manifest timing', () => {
+  it('cognitive_load reflects the trimmed manifest duration, not the stale scene-def duration', () => {
+    // A revision (trim/compress) writes entry.duration_s on the manifest entry
+    // but never touches the scene def. The comprehension dwell time must follow
+    // the manifest (1.5s), not the scene def (6s) — else a dense trimmed scene
+    // is wrongly judged absorbable.
+    const manifest = {
+      sequence_id: 'seq_timing',
+      scenes: [{ scene: 'sc_dense', duration_s: 1.5, transition_in: null }],
+    };
+    const scenes = [makeScene('sc_dense', {
+      duration_s: 6, // scene def is stale after the trim
+      layers: Array.from({ length: 10 }, (_, i) => ({ id: `ly_${i}`, type: 'text', depth_class: 'hero' })),
+      metadata: { content_type: 'ui_screenshot', motion_energy: 'high', intent_tags: ['detail'] },
+    })];
+
+    const result = scoreCandidateVideo({ manifest, scenes, style: 'prestige' });
+    const cl = result.raw.comprehension.dimensions.cognitive_load;
+    // 10 layers / 1.5s ≈ 6.7/s → dense → low. (Scene-def 6s would give ≈1.7/s → 1.0.)
+    assert.ok(cl < 0.5, `expected dense cognitive_load < 0.5, got ${cl}`);
+  });
+});

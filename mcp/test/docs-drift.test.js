@@ -70,8 +70,8 @@ describe('docs/spec/code drift guards (ANI-109)', () => {
       const count = countToolsInServer();
       // If this changes intentionally, update README.md and docs/cinematography/mcp-tools.md
       // to match, then update this assertion.
-      assert.equal(count, 77,
-        `Expected 77 tools in mcp/index.js, got ${count}. ` +
+      assert.equal(count, 78,
+        `Expected 78 tools in mcp/index.js, got ${count}. ` +
         `Update README.md "N tools" and docs/cinematography/mcp-tools.md "N tools" to match, ` +
         `then bump this assertion.`);
     });

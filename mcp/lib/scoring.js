@@ -23,6 +23,8 @@ import { validateBrandCompliance } from './brands.js';
 import { scoreProductDemoClarity } from './product-archetypes.js';
 import { reviseCandidateVideo } from './revision.js';
 import { scoreAudioSync } from './audio-sync.js';
+import { comprehensionHeuristic } from './scene-comprehension.js';
+import { generateContactSheet } from './storyboard-tools.js';
 
 import {
   loadPrimitivesCatalog,
@@ -112,6 +114,40 @@ export function scoreCandidateVideo({ manifest, scenes, style, brand, audio_beat
 
   // 6. Product demo clarity
   raw.product_clarity = safeCall(() => scoreProductDemoClarity(manifest, scenes));
+
+  // 6b. Scene comprehension (perceptual — "would a human get it?"). Uses the
+  // deterministic heuristic core here because this scorer is synchronous; the
+  // LLM/vision judge is exposed via the analyze_scene_comprehension tool. The
+  // descriptor frame strip is built from the manifest + scenes (ANI-121).
+  raw.comprehension = safeCall(() => {
+    // Manifest entries key the scene as `.scene`; generateContactSheet derives
+    // order from `.scene_id`/`.id`. Synthesize scene_order so the strip is
+    // populated (with descriptions) in manifest order rather than falling back
+    // to an unordered, description-less derivation.
+    const scene_order = (manifest.scenes || [])
+      .map(e => e.scene || e.scene_id || e.id)
+      .filter(Boolean);
+    const frame_strip = generateContactSheet({ ...manifest, scene_order }, scenes);
+
+    // Align dwell times to manifest timing. generateContactSheet reads duration
+    // from the scene DEFINITION, but trim/extend_hold/compress revisions write
+    // entry.duration_s on the manifest entry and never touch the scene def —
+    // so for planned/revised sequences the two diverge. cognitive_load scores
+    // elements-per-second, so a stale (longer) dwell under-flags dense trimmed
+    // scenes. The manifest entry is the authoritative on-screen duration here,
+    // matching scorePerScene and the render path.
+    const durByScene = new Map();
+    for (const e of (manifest.scenes || [])) {
+      const id = e.scene || e.scene_id || e.id;
+      if (id != null && e.duration_s != null) durByScene.set(id, e.duration_s);
+    }
+    for (const sheet of frame_strip.sheets) {
+      const d = durByScene.get(sheet.scene_id);
+      if (d != null) sheet.duration_s = d;
+    }
+
+    return comprehensionHeuristic({ frame_strip, annotations: scenes });
+  });
 
   // 7. Audio sync
   raw.audio_sync = audio_beats?.beats?.length
@@ -239,10 +275,24 @@ function deriveNarrativeArc(raw, findings) {
 
 function deriveClarity(raw, findings) {
   const result = { score: 0.5, findings: [] };
-  const parts = [];
+
+  // Weighted blend (ANI-121): perceptual comprehension leads, with structural
+  // product-demo clarity and sequence adherence as supporting signals. Weights
+  // renormalize over whichever parts are present so a missing evaluator doesn't
+  // deflate the dimension. All values are normalized to 0-1 before blending.
+  const parts = []; // { value: 0-1, weight }
+
+  if (raw.comprehension?.score != null) {
+    parts.push({ value: clamp01(raw.comprehension.score), weight: 0.5 });
+    // Surface the judge's reasoning as explainable rationale (info severity).
+    for (const r of (raw.comprehension.reasoning || [])) {
+      result.findings.push(r);
+      findings.push({ dimension: 'clarity', severity: 'info', message: r });
+    }
+  }
 
   if (raw.product_clarity?.score != null) {
-    parts.push(raw.product_clarity.score);
+    parts.push({ value: clamp01(raw.product_clarity.score / 100), weight: 0.25 });
     for (const w of (raw.product_clarity.warnings || [])) {
       result.findings.push(w);
       findings.push({ dimension: 'clarity', severity: 'warning', message: w });
@@ -250,11 +300,13 @@ function deriveClarity(raw, findings) {
   }
 
   if (raw.evaluate?.dimensions?.adherence?.score != null) {
-    parts.push(raw.evaluate.dimensions.adherence.score);
+    parts.push({ value: clamp01(raw.evaluate.dimensions.adherence.score / 100), weight: 0.25 });
   }
 
   if (parts.length > 0) {
-    result.score = clamp01(parts.reduce((a, b) => a + b, 0) / (parts.length * 100));
+    const totalWeight = parts.reduce((a, p) => a + p.weight, 0);
+    const weighted = parts.reduce((a, p) => a + p.value * p.weight, 0);
+    result.score = clamp01(weighted / totalWeight);
   }
 
   return result;

@@ -4,26 +4,11 @@
 
 Works with any MCP-compatible assistant: Claude Code, Claude Desktop, Cursor, and VS Code.
 
-## Install
+## Access
 
-```bash
-claude mcp add animatic -- npx -y animatic-mcp
-```
+> **Animatic is not distributed via npm.** Access requires a **free Preset account**. Setup instructions are coming soon — see the docs at **https://presetai.dev/animatic**.
 
-Or add it to your MCP client config:
-
-```json
-{
-  "mcpServers": {
-    "animatic": {
-      "command": "npx",
-      "args": ["-y", "animatic-mcp"]
-    }
-  }
-}
-```
-
-Requires Node.js ≥ 20. The Anthropic SDK is an optional peer dependency — set `ANTHROPIC_API_KEY` to enable LLM-enhanced tools (scene generation, storyboard composition, comprehension judging); without a key, those tools fall back to deterministic output.
+(This package is intentionally `private` and is not published to the npm registry.)
 
 ## What you get
 
@@ -32,17 +17,6 @@ Requires Node.js ≥ 20. The Anthropic SDK is an optional peer dependency — se
 - **156 primitives** across engine, research, animate.style, and breakdown sources.
 - **10 style packs**, **6 sequence archetypes**, **6 art directions**, **8 delivery profiles**.
 - **20 reference breakdowns** — frame-by-frame analyses of exemplary animations.
-
-## Quick start
-
-Ask your assistant:
-
-```
-Use generate_video to create a 30-second promo for an AI finance dashboard,
-cinematic-dark personality, prestige style.
-```
-
-It generates scenes, plans the sequence, compiles motion timelines, and scores quality — in one call. For step-by-step control, the pipeline splits into discover → compose → compile.
 
 ## Docs
 

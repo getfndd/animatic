@@ -3170,7 +3170,10 @@ function handleRecommendEditorialLayout(args) {
   };
 
   for (const [pattern, kws] of Object.entries(keywords)) {
-    scores[pattern] = kws.reduce((score, kw) => score + (desc.includes(kw) ? 1 : 0), 0);
+    // Boundary-aware (ANI-153): substring scoring let short tokens mis-fire —
+    // 'ui' matched "build"/"fluid", 'two' matched "network", 'type' matched
+    // "prototype" — skewing the pattern ranking.
+    scores[pattern] = kws.reduce((score, kw) => score + (matchesKeyword(desc, kw) ? 1 : 0), 0);
   }
 
   // Sort by score, fallback to floating-fragments as most versatile

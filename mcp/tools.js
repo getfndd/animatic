@@ -1211,6 +1211,75 @@ export function buildTools({
         required: ['context'],
       },
     },
+    // ── Motion recipes (ANI-137) ─────────────────────────────────────────
+    {
+      name: 'get_motion_recipe',
+      description:
+        'Get a single motion recipe by ID from the motion-tokens catalog (catalog/motion-recipes.json) — the register-neutral DS motion layer (enter.fade-up, attention.pulse, …), distinct from cinematography primitives. Returns the full record: tokens, interrupt contract, reduced-motion fallback, runtime scope.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          recipe_id: {
+            type: 'string',
+            description: 'Recipe ID, e.g. `enter.fade-up`, `attention.pulse`. Use search_motion_recipes to discover IDs.',
+          },
+        },
+        required: ['recipe_id'],
+      },
+    },
+    {
+      name: 'search_motion_recipes',
+      description:
+        'Search the motion-recipe catalog by intent, appropriate context, and personality. Returns ranked matches with reasons. Motion recipes are register-neutral, so `personality` applies the camera-guardrails spring_physics constraint (a montage query excludes spring/framer-only recipes); excluded recipes are reported, not silently dropped.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          intent: {
+            type: 'string',
+            description: 'Free-text intent, e.g. "element appearing on scroll".',
+          },
+          context: {
+            type: 'string',
+            description: 'Surface/context the motion applies to, e.g. `card`, `modal-body`, `toast`, `nav-item`.',
+          },
+          personality: {
+            type: 'string',
+            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
+            description: 'Optional personality. Applies the spring_physics guardrail (montage excludes spring/framer-only recipes).',
+          },
+        },
+      },
+    },
+    {
+      name: 'validate_motion_token',
+      description:
+        'Validate a motion usage against the motion-token rules. Rule vocabulary: `raw_duration` and `raw_easing` (literal values instead of var(--duration-*) / var(--ease-*) tokens) and `recipe_match` (the usage matches a catalogued recipe). Reports only — never mutates. Same rule names the ANI-135 source scanner reuses.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          usage: {
+            type: 'object',
+            description: 'A motion usage: `{ duration?, easing?, properties? }` — e.g. `{ "duration": "0.3s", "easing": "ease-out", "properties": ["opacity", "transform"] }`.',
+          },
+        },
+        required: ['usage'],
+      },
+    },
+    {
+      name: 'audit_motion_coverage',
+      description:
+        'Scan a directory (or file) and report motion-token coverage: total motion usages, how many use recipes/tokens vs raw durations/easings, a coverage percentage, and a per-file breakdown. Minimal in-repo scanner — the full source scanner is ANI-135 (Preset repo); the output flags this is the stopgap.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Directory or file path to scan. Skips node_modules/.git/dist/build; scans .css/.scss/.ts/.tsx/.js/.jsx.',
+          },
+        },
+        required: ['path'],
+      },
+    },
     // ── Social formats ──────────────────────────────────────────────────
     {
       name: 'adapt_project_aspect_ratio',

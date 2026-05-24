@@ -53,6 +53,12 @@ import {
   recommendUiStoryboardLayout,
   recommendPersonalityForContext,
 } from './lib/recommend-layout.js';
+import {
+  getMotionRecipe,
+  searchMotionRecipes,
+  validateMotionToken,
+  auditMotionCoverage,
+} from './lib/motion-tools.js';
 import { critiqueTimeline } from './lib/critic.js';
 import { runBenchmarks, QUALITY_THRESHOLD } from './lib/benchmark.js';
 import { generateVideo } from './lib/video.js';
@@ -422,6 +428,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return handleRecommendUiStoryboardLayout(args);
     case 'recommend_personality_for_context':
       return handleRecommendPersonalityForContext(args);
+    case 'get_motion_recipe':
+      return handleGetMotionRecipe(args);
+    case 'search_motion_recipes':
+      return handleSearchMotionRecipes(args);
+    case 'validate_motion_token':
+      return handleValidateMotionToken(args);
+    case 'audit_motion_coverage':
+      return handleAuditMotionCoverage(args);
     // ── Social formats ──────────────────────────────────────────────────
     case 'adapt_project_aspect_ratio':
       return handleAdaptProjectAspectRatio(args);
@@ -3210,6 +3224,31 @@ function handleRecommendPersonalityForContext(args) {
     return { content: [{ type: 'text', text: result.error }], isError: true };
   }
   return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+}
+
+// ── Motion-recipe tools (ANI-137) — thin wrappers over lib/motion-tools.js ────
+
+function motionResult(result) {
+  if (result.error) {
+    return { content: [{ type: 'text', text: result.error }], isError: true };
+  }
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+}
+
+function handleGetMotionRecipe(args) {
+  return motionResult(getMotionRecipe(args || {}));
+}
+
+function handleSearchMotionRecipes(args) {
+  return motionResult(searchMotionRecipes(args || {}));
+}
+
+function handleValidateMotionToken(args) {
+  return motionResult(validateMotionToken(args || {}));
+}
+
+function handleAuditMotionCoverage(args) {
+  return motionResult(auditMotionCoverage(args || {}));
 }
 
 // ── adapt_project_aspect_ratio ────────────────────────────────────────────

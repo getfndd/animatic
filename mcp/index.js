@@ -211,7 +211,7 @@ registerTools(server, {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  trackBoot(71);
+  trackBoot(tools.length);
   console.error('Animatic MCP Server running on stdio');
 }
 

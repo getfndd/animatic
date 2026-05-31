@@ -37,10 +37,21 @@ function walk(dir) {
   return out;
 }
 
-const files = [...walk(join(pkgDir, 'mcp')), ...walk(join(pkgDir, 'src'))];
+// Scan every code root the package ships (package.json "files"): the server
+// under mcp/, the bundled remotion lib under src/, and the bin/ entrypoint.
+const files = [
+  ...walk(join(pkgDir, 'mcp')),
+  ...walk(join(pkgDir, 'src')),
+  ...walk(join(pkgDir, 'bin')),
+];
 
-// Match `from '<spec>'` and bare `import '<spec>'` for relative specifiers.
-const SPEC_RE = /(?:from|import)\s+['"](\.[^'"]+)['"]/g;
+// Match relative specifiers in all three import forms:
+//   static:  from './x.js'        bare: import './x.js'
+//   dynamic: import('./x.js')   (with optional whitespace/parens)
+// Computed dynamic imports (import(someVar)) have no literal to resolve and are
+// inherently unverifiable here — e.g. bin/animatic-mcp.js resolves its target
+// at runtime; the wholesale mcp/*.js copy in prepack.sh is what guards it.
+const SPEC_RE = /(?:\bfrom\b|\bimport\b)\s*\(?\s*['"](\.[^'"]+)['"]/g;
 
 const missing = [];
 for (const file of files) {

@@ -921,13 +921,14 @@ Full CSS implementations for effects extracted from reference breakdowns.
 
 ## Sources
 
-| Source | File | Primitives |
-|--------|------|-----------|
-| Engine builtins | `sources/engine-builtins.md` | 20 |
-| animate.style (Use tier) | `sources/animate-style.md` | 18 |
-| Cinematic techniques research | `../cinematic-techniques-research.md` | ~20 |
-| Camera & ambient primitives | `../camera-rig.md` | 20 |
-| Reference breakdowns | `sources/breakdowns.md` | 48 |
-| Ambient/generative techniques | `../ambient-generative-techniques.md` | 15 |
+Counts are by the `source` value in the Quick Reference table above (distinct IDs), so they sum to the catalog total. The Reference column points to the contributing docs.
 
-**Total cataloged:** ~135 named primitives
+| Source | Primitives | Reference |
+|--------|-----------|-----------|
+| engine | 30 | `sources/engine-builtins.md` |
+| research | 45 | `../cinematic-techniques-research.md`, `../camera-rig.md`, `../ambient-generative-techniques.md` |
+| animate.style | 17 | `sources/animate-style.md` |
+| breakdown | 45 | `sources/breakdowns.md` |
+| compound | 19 | `catalog/compound/*.json` (multi-step `hm-`/`bd-`/`lib-` choreographies) |
+
+**Total cataloged:** 156 named primitives

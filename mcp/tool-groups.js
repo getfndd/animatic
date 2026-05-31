@@ -39,6 +39,12 @@
  * projects.js, brands.js, video.js (render), tts.js (audio), preflight.js,
  * video-assembly.js (optional output_dir). telemetry.js writes but is
  * wrapped in try/catch and degrades safely on edge.
+ *
+ * Read evidence (ANI-160): the first audit checked writes/spawns but not hidden
+ * READS of a caller-supplied path. analyze_beats does readFileSync(audio_path)
+ * on a local path — unusable on a stateless edge — so it is edgeReady:false.
+ * When auditing a new edge-ready tool, also confirm it never reads a local FS
+ * path from its args; inline data (base64/url) or catalog reads are fine.
  */
 
 export const TIER = {
@@ -84,7 +90,11 @@ export const TOOL_GROUPS = {
   validate_manifest: { tier: TIER.TRANSFORM, edgeReady: true },
   plan_variants: { tier: TIER.TRANSFORM, edgeReady: true },
   compare_variants: { tier: TIER.TRANSFORM, edgeReady: true },
-  analyze_beats: { tier: TIER.TRANSFORM, edgeReady: true },
+  // Not edge-ready: handleAnalyzeBeats does readFileSync(audio_path) on a
+  // caller-supplied LOCAL path, which doesn't exist on a stateless edge isolate
+  // (ANI-160). Re-enable only with an inline contract (audio_base64/audio_url +
+  // stripParams:['audio_path']), not by flipping this back to true.
+  analyze_beats: { tier: TIER.TRANSFORM, edgeReady: false, note: 'reads a local audio_path file; needs an inline-audio contract before edge (ANI-160)' },
   sync_sequence_to_beats: { tier: TIER.TRANSFORM, edgeReady: true },
   compile_motion: { tier: TIER.TRANSFORM, edgeReady: true },
   critique_motion: { tier: TIER.TRANSFORM, edgeReady: true },

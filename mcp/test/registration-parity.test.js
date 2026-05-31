@@ -4,7 +4,7 @@
  * Guards the dual-surface registration seam:
  *   A. The stdio tool surface is byte-for-byte identical to the pre-refactor
  *      snapshot (checked-in golden) — no tool name or schema moved.
- *   B. The edge surface (exclude: EDGE_EXCLUDE) exposes exactly 61 tools and
+ *   B. The edge surface (exclude: EDGE_EXCLUDE) exposes exactly 60 tools and
  *      strips each tool's edgeStripParams() from its advertised input schema.
  *   C. The handler map covers the tool-groups universe exactly (no drift) and
  *      the CallTool dispatch routes every tool to the same handler the old
@@ -71,11 +71,18 @@ describe('PRE-1439 acceptance A — stdio surface unchanged', () => {
 // ── B. edge surface correctness ───────────────────────────────────────────────
 
 describe('PRE-1439 acceptance B — edge surface', () => {
-  it('exposes exactly 61 tools and excludes EDGE_EXCLUDE', async () => {
+  it('exposes exactly 60 tools and excludes EDGE_EXCLUDE', async () => {
     const srv = mockServer();
     const { names } = registerTools(srv, { tools: buildAllTools(), exclude: EDGE_EXCLUDE });
-    assert.equal(names.length, 61);
+    assert.equal(names.length, 60);
     for (const n of EDGE_EXCLUDE) assert.ok(!names.includes(n), `edge surface must not expose ${n}`);
+  });
+
+  it('analyze_beats is edge-excluded — it reads a local audio_path (ANI-160)', async () => {
+    assert.ok(EDGE_EXCLUDE.includes('analyze_beats'), 'analyze_beats must be in EDGE_EXCLUDE');
+    const srv = mockServer();
+    const { names } = registerTools(srv, { tools: buildAllTools(), exclude: EDGE_EXCLUDE });
+    assert.ok(!names.includes('analyze_beats'), 'analyze_beats must not be exposed on the edge surface');
   });
 
   it('strips edgeStripParams() from exposed tool schemas', async () => {

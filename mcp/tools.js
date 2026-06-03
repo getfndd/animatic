@@ -138,7 +138,7 @@ export function buildTools({
     {
       name: 'recommend_choreography',
       description:
-        'Get a complete camera choreography plan for a given intent and personality. Returns concrete primitive IDs, timing, parallax/DOF settings, ambient motion, and companion primitives. Use this to automate the emotion-to-camera mapping instead of manually cross-referencing personality rules and primitive registries.',
+        'Get a complete camera choreography plan for a given intent and personality. Returns concrete primitive IDs, timing, parallax/DOF settings, ambient motion, and companion primitives. Use this to automate the emotion-to-camera mapping instead of manually cross-referencing personality rules and primitive registries. Custom personalities (from create_personality) resolve to a built-in choreography matrix — via `inherits_choreography_from`, else derived from camera mode (ANI-166).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -148,9 +148,10 @@ export function buildTools({
             description: 'The choreographic intent — one of the catalog\'s intent slugs (e.g., `dramatic-reveal`, `build-tension`, `content-focus`).',
           },
           personality: {
+            // No enum: a custom slug from create_personality is also valid here
+            // and resolves to a built-in matrix (ANI-166).
             type: 'string',
-            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
-            description: 'Target personality — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`. If omitted, returns plans for all personalities.',
+            description: 'Target personality slug. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`. A custom slug is accepted too and resolves to a built-in choreography matrix. If omitted, returns plans for all built-in personalities the intent supports.',
           },
           subject_count: {
             type: 'integer',
@@ -500,7 +501,7 @@ export function buildTools({
         properties: {
           definition: {
             type: 'object',
-            description: 'Personality definition. Required: name (string), slug (lowercase kebab-case). Optional: characteristics (contrast, motion_intensity, color_mode, entrance_style, transition_style, perspective, signature_effect), camera_behavior (mode: full-3d|2d-only|attention-direction|none, allowed_movements, depth_of_field, parallax, ambient_motion), duration_overrides, easing_overrides, speed_hierarchy, ai_guidance.',
+            description: 'Personality definition. Required: name (string), slug (lowercase kebab-case). Optional: characteristics (contrast, motion_intensity, color_mode, entrance_style, transition_style, perspective, signature_effect), camera_behavior (mode: full-3d|2d-only|attention-direction|none, allowed_movements, depth_of_field, parallax, ambient_motion), duration_overrides, easing_overrides, speed_hierarchy, ai_guidance, inherits_choreography_from (built-in slug whose recommend_choreography intent/primitive matrix this personality should reuse; if omitted, the matrix is derived from camera mode — ANI-166).',
           },
         },
         required: ['definition'],

@@ -20,6 +20,46 @@ export function parseDurationMs(str) {
 }
 
 /**
+ * Whether a primitive violates a personality's forbidden-feature guardrails.
+ * Mirrors handleValidateChoreography's Tier-3 boundary checks (3D transforms,
+ * blur/blur-entrance, camera movement, camera shake) as a single boolean.
+ *
+ * Used to post-filter the primitive candidates a custom personality borrows
+ * from an inherited/derived built-in matrix (ANI-166), so a borrowed plan never
+ * surfaces a primitive the custom personality's own guardrails forbid.
+ */
+export function primitiveViolatesForbidden(id, entry, forbiddenFeatures, cameraGuardrails) {
+  if (!entry || !forbiddenFeatures || forbiddenFeatures.length === 0) return false;
+  const amplitude = cameraGuardrails.primitive_amplitudes[id];
+
+  if (
+    forbiddenFeatures.includes('3d_transforms') && amplitude &&
+    ['translateZ', 'rotateX', 'rotateY'].includes(amplitude.property)
+  ) return true;
+
+  if (checkBlurViolations(id, entry, cameraGuardrails, forbiddenFeatures).length > 0) return true;
+
+  if (
+    forbiddenFeatures.includes('camera_movement') && amplitude &&
+    ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY'].includes(amplitude.property)
+  ) return true;
+
+  if (forbiddenFeatures.includes('camera_shake') && id === 'ct-camera-shake') return true;
+
+  return false;
+}
+
+/** Drop primitive IDs whose properties violate the given forbidden-feature set. */
+export function filterByGuardrails(primitiveIds, forbiddenFeatures, cameraGuardrails, registry) {
+  if (!forbiddenFeatures || forbiddenFeatures.length === 0) return primitiveIds;
+  return primitiveIds.filter(id => {
+    const entry = registry.byId.get(id);
+    if (!entry) return true; // keep unknowns visible
+    return !primitiveViolatesForbidden(id, entry, forbiddenFeatures, cameraGuardrails);
+  });
+}
+
+/**
  * Check if a primitive violates blur guardrails for a given personality.
  * Returns an array of violation objects (empty = no violations).
  */

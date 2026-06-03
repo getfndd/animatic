@@ -80,6 +80,54 @@ export function listCustomPersonalities() {
   return [...customPersonalities.values()];
 }
 
+/**
+ * Map a custom personality's camera mode → an analogous built-in whose
+ * choreography matrix (intent support + primitive tags) is the closest fit.
+ * ANI-166. Saul's calibration: 3D ≈ cinematic-dark, 2D ≈ editorial,
+ * attention-direction ≈ neutral-light. `none` maps to editorial rather than
+ * montage because montage carries no intent support in the matrix, so it would
+ * re-introduce the flat rejection this fix removes; editorial is the closest
+ * no-3D/no-camera built-in that actually has intent coverage.
+ */
+const CHOREOGRAPHY_MODE_ANALOGS = {
+  'full-3d': 'cinematic-dark',
+  '2d-only': 'editorial',
+  'attention-direction': 'neutral-light',
+  none: 'editorial',
+};
+
+/**
+ * Resolve which built-in personality's choreography matrix a personality should
+ * use. ANI-166.
+ *
+ * - Built-in slug → itself (source: 'builtin').
+ * - Custom with `inherits_choreography_from` → that built-in (source: 'inherited').
+ * - Custom without → derived from camera mode (source: 'derived').
+ *
+ * In-memory only (built-in catalog + custom registry) — no file reads, so this
+ * is safe on the edge-hosted recommend_choreography path.
+ *
+ * @param {string} slug
+ * @returns {{ slug: string, source: 'builtin'|'inherited'|'derived', mode?: string }|null}
+ *   null when the slug resolves to no known personality.
+ */
+export function resolveChoreographyPersonality(slug) {
+  if (builtinCatalog.bySlug.has(slug)) {
+    return { slug, source: 'builtin' };
+  }
+
+  const custom = customPersonalities.get(slug);
+  if (!custom) return null;
+
+  const mode = custom.camera_behavior?.mode || 'none';
+
+  if (custom.inherits_choreography_from && builtinCatalog.bySlug.has(custom.inherits_choreography_from)) {
+    return { slug: custom.inherits_choreography_from, source: 'inherited', mode };
+  }
+
+  return { slug: CHOREOGRAPHY_MODE_ANALOGS[mode] || 'editorial', source: 'derived', mode };
+}
+
 // ── Validation ───────────────────────────────────────────────────────────────
 
 const REQUIRED_FIELDS = ['name', 'slug'];
@@ -140,6 +188,19 @@ export function validatePersonalityDefinition(definition) {
   if (cam) {
     if (cam.mode && !VALID_CAMERA_MODES.includes(cam.mode)) {
       errors.push(`camera_behavior.mode must be one of: ${VALID_CAMERA_MODES.join(', ')}`);
+    }
+  }
+
+  // Choreography inheritance (ANI-166) — optional explicit opt-in that points
+  // recommend_choreography at a built-in's intent/primitive support set. Must
+  // name a built-in; custom slugs can't be inherited from (they have no matrix).
+  if (definition.inherits_choreography_from !== undefined) {
+    if (
+      typeof definition.inherits_choreography_from !== 'string' ||
+      !builtinCatalog.bySlug.has(definition.inherits_choreography_from)
+    ) {
+      const builtins = [...builtinCatalog.bySlug.keys()].join(', ');
+      errors.push(`inherits_choreography_from must be a built-in personality slug (one of: ${builtins})`);
     }
   }
 
@@ -315,6 +376,12 @@ function buildFullPersonality(definition) {
     camera_behavior: buildCameraBehavior(definition),
 
     ai_guidance: definition.ai_guidance || `Custom personality: ${definition.name}. ${chars.entrance_style || 'Standard'} entrances, ${chars.transition_style || 'crossfade'} transitions.`,
+
+    // Optional explicit choreography inheritance (ANI-166). Round-trips via the
+    // raw definition (ANI-164 persistence), so the slug survives a restart.
+    ...(definition.inherits_choreography_from
+      ? { inherits_choreography_from: definition.inherits_choreography_from }
+      : {}),
   };
 }
 

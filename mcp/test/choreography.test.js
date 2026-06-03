@@ -9,7 +9,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { filterByPersonality, parseDurationMs, checkBlurViolations } from '../lib.js';
+import { filterByPersonality, filterByGuardrails, primitiveViolatesForbidden, parseDurationMs, checkBlurViolations } from '../lib.js';
 import {
   loadIntentMappings,
   loadCameraGuardrails,
@@ -101,6 +101,68 @@ describe('recommend_choreography personality filtering', () => {
     const forCinematic = filterByPersonality(calmOverview.companion_entrance, 'cinematic-dark', registry);
     assert.ok(forCinematic.includes('cd-focus-stagger'), 'should include cd-focus-stagger for cinematic-dark');
     assert.ok(!forCinematic.includes('ed-slide-stagger'), 'should exclude ed-slide-stagger from cinematic-dark');
+  });
+});
+
+// ── camera_movement guardrail: amplitude-membership check (ANI-168) ──────────
+
+describe('camera_movement guardrail keys on primitive_amplitudes membership (ANI-168)', () => {
+  const forbidsCamera = ['camera_movement'];
+
+  it('catches scale-based camera moves (the old translate/rotate list missed them)', () => {
+    for (const id of ['ct-dolly-zoom', 'ed-camera-push-in']) {
+      const entry = registry.byId.get(id);
+      assert.ok(entry, `${id} must exist in the registry`);
+      assert.equal(cameraGuardrails.primitive_amplitudes[id]?.property, 'scale', `${id} is the scale-amplitude case`);
+      assert.ok(
+        primitiveViolatesForbidden(id, entry, forbidsCamera, cameraGuardrails),
+        `${id} is a camera move and must violate camera_movement`
+      );
+    }
+  });
+
+  it('catches blur-amplitude camera moves (rack focus)', () => {
+    const entry = registry.byId.get('ct-camera-rack-focus');
+    assert.ok(primitiveViolatesForbidden('ct-camera-rack-focus', entry, forbidsCamera, cameraGuardrails));
+  });
+
+  it('still catches translate/rotate camera moves', () => {
+    for (const id of ['ct-camera-dolly', 'ct-camera-crane', 'ct-camera-orbit']) {
+      const entry = registry.byId.get(id);
+      assert.ok(primitiveViolatesForbidden(id, entry, forbidsCamera, cameraGuardrails), `${id} must violate`);
+    }
+  });
+
+  it('does not flag non-camera primitives (no amplitude entry)', () => {
+    for (const id of ['ed-scene-breathe', 'ct-scene-breathe']) {
+      const entry = registry.byId.get(id);
+      assert.ok(entry, `${id} must exist in the registry`);
+      assert.equal(cameraGuardrails.primitive_amplitudes[id], undefined, `${id} has no amplitude entry`);
+      assert.equal(
+        primitiveViolatesForbidden(id, entry, forbidsCamera, cameraGuardrails),
+        false,
+        `${id} is not a camera move`
+      );
+    }
+  });
+
+  it('filterByGuardrails drops scale camera moves when camera_movement is forbidden', () => {
+    const result = filterByGuardrails(
+      ['ct-dolly-zoom', 'ed-scene-breathe'],
+      forbidsCamera, cameraGuardrails, registry
+    );
+    assert.deepEqual(result, ['ed-scene-breathe']);
+  });
+
+  it('regression: editorial does not forbid camera_movement, so ed-camera-push-in stays valid', () => {
+    const editorialForbidden = cameraGuardrails.personality_boundaries.editorial.forbidden_features;
+    assert.ok(!editorialForbidden.includes('camera_movement'), 'precondition: editorial allows camera movement');
+    const entry = registry.byId.get('ed-camera-push-in');
+    assert.equal(
+      primitiveViolatesForbidden('ed-camera-push-in', entry, editorialForbidden, cameraGuardrails),
+      false,
+      'ed-camera-push-in must not regress for editorial'
+    );
   });
 });
 

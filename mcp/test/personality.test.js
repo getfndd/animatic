@@ -546,6 +546,25 @@ describe('create_personality → recommend_choreography (ANI-166)', () => {
     }
   });
 
+  it('validate_choreography blocks scale-based camera moves for a no-camera personality (ANI-168)', () => {
+    // recommend_choreography drops ALL camera moves for a none-mode personality;
+    // validate must agree. ct-dolly-zoom's amplitude is `scale`, which the old
+    // translate/rotate property list missed → false PASS.
+    const slug = 'test-validate-dolly-zoom';
+    handleCreatePersonality({
+      definition: makeDefinition({ slug, camera_behavior: { mode: 'none' }, inherits_choreography_from: 'cinematic-dark' }),
+    });
+    try {
+      const res = handleValidateChoreography({ primitive_ids: ['ct-dolly-zoom'], personality: slug });
+      const text = res.content[0].text;
+      assert.ok(text.includes('BLOCK'), 'scale-based camera move must block for a none-camera personality');
+      assert.ok(text.includes('camera movement'), 'block reason is the camera_movement guardrail');
+      assert.ok(!text.includes('Personality mismatch'), 'affinity passes (inherited cinematic-dark); guardrail blocks');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
   it('an unknown personality slug is reported as not found', () => {
     const plan = handleRecommendChoreography({ intent: 'dramatic-reveal', personality: 'ghost-slug' });
     assert.ok(plan.isError);

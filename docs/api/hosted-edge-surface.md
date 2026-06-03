@@ -103,21 +103,29 @@ they have no effect on the hosted surface:
 |------|--------------------|-----|
 | `generate_contact_sheet` | `project` | Operates on the inline manifest/scenes; the `project:` slug is dead on the edge. |
 | `compare_project_versions` | `project`, `version_a`, `version_b` | Operates on inline `manifest_a` / `manifest_b`; the version refs need stored project state. |
-| `assemble_video_sequence` | `output_dir` | Emits a render *command* string; `output_dir` is the only disk-write param. |
+| `assemble_video_sequence` | `output_dir` | `output_dir` is the only disk-write param; with it stripped the tool is plan-only on the edge — it returns the assembly summary but emits no render command. |
 
 ## Getting access to the hosted surface
 
 Access is gated on a **free Preset account** (decided in ANI-157). The mechanism
-is a **hosted remote MCP endpoint over HTTP with Preset OAuth** — no local
-install, no npm package (the package is private).
+is a **hosted remote MCP endpoint over HTTP, authenticated with a per-account
+`ak_*` token** — no local install, no npm package (the package is private).
+
+1. Sign up for a free Preset account.
+2. In the dashboard, open **Connect Animatic** and mint an access token (`ak_live_…`).
+3. Add the remote server, passing the token in an `Authorization` header:
 
 ```sh
-# Endpoint URL is illustrative until the PRE-1439 hosted-edge slice deploys (ANI-162).
-claude mcp add --transport http animatic https://mcp.presetai.dev
-# → complete Preset OAuth in the browser when prompted
+claude mcp add --transport http animatic \
+  https://mcp.presetai.dev/animatic/mcp \
+  --header "Authorization: Bearer ak_live_…"
 ```
 
-Works across MCP clients: Claude Code, Claude Desktop, Cursor, VS Code.
+A request with no (or an invalid) token is rejected with `401 Unauthorized`. On
+success, `tools/list` returns the 60 hosted tools.
+
+Works across MCP clients: Claude Code, Claude Desktop, Cursor, VS Code (the
+`--header` form carries the token in each client's MCP config).
 
 **Need a Tier 2/3 tool** (own a project, render a video)? Install Animatic
 locally — the local surface exposes all 78 tools.

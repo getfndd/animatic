@@ -7,11 +7,11 @@
     "team-mcp": {
       "type": "stdio",
       "command": "node",
-      "args": ["/Users/jschuyler/Desktop/fnddTech/fndd-studio/packages/team-mcp/dist/index.js"]
+      "args": ["/Users/jschuyler/dev/fndd-studio/packages/team-mcp/dist/index.js"]
     },
     "knowledge-mcp": {
       "type": "stdio",
-      "command": "/Users/jschuyler/Desktop/fnddTech/fndd-studio/packages/knowledge-mcp/launch.sh",
+      "command": "/Users/jschuyler/dev/fndd-studio/packages/knowledge-mcp/launch.sh",
       "args": [],
       "env": {
         "KNOWLEDGE_DATA_DIR": "./.claude/knowledge"

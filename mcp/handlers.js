@@ -300,13 +300,16 @@ export function handleGetPrimitive(args) {
 
 export function handleGetPersonality(args) {
   const { slug } = args;
-  const personality = personalitiesCatalog.bySlug.get(slug);
+  // Use the registry helper, not the built-in catalog directly, so custom
+  // personalities created via create_personality (and persisted, ANI-164) are
+  // retrievable here too — otherwise create→inspect silently 404s.
+  const personality = getPersonality(slug);
 
   if (!personality) {
     return {
       content: [{
         type: 'text',
-        text: `Personality "${slug}" not found. Valid: cinematic-dark, editorial, neutral-light, montage`,
+        text: `Personality "${slug}" not found. Valid: ${getAllPersonalitySlugs().join(', ')}`,
       }],
       isError: true,
     };

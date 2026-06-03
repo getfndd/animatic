@@ -20,6 +20,7 @@ import {
   getShotGrammarRestrictions,
 } from '../lib/personality.js';
 import { loadCustomPersonalityDefinitions } from '../data/loader.js';
+import { handleCreatePersonality, handleGetPersonality } from '../handlers.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -323,6 +324,22 @@ describe('custom personality persistence (ANI-164)', () => {
       assert.ok(getPersonality('test-persist-reload'), 'slug must resolve after reload');
     } finally {
       unregisterPersonality('test-persist-reload');
+    }
+  });
+
+  // Regression: get_personality read the built-in catalog directly, so a
+  // created+persisted custom slug 404'd on inspect even though list/planning
+  // saw it. get_personality must route through the registry helper.
+  it('create_personality → get_personality round-trips by slug', () => {
+    const slug = 'test-get-custom';
+    const created = handleCreatePersonality({ definition: makeDefinition({ slug }) });
+    try {
+      assert.ok(!created.isError, 'create_personality should succeed');
+      const got = handleGetPersonality({ slug });
+      assert.ok(!got.isError, 'get_personality must resolve the custom slug, not 404');
+      assert.ok(got.content[0].text.includes(slug));
+    } finally {
+      unregisterPersonality(slug);
     }
   });
 });

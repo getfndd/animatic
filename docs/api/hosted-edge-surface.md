@@ -1,11 +1,12 @@
 # Hosted vs. local: where each tool runs
 
-> **Status:** Draft for the docs site (lives in the Preset marketing app — see ANI-81).
-> The tier data below is the source of truth from `mcp/tool-groups.js` in the
-> `animatic` repo. Counts were verified against `EDGE_TOOLS.length` /
-> `EDGE_EXCLUDE.length` on 2026-06-03. **Do not publish the literal connect
-> command until the hosted endpoint (PRE-1439 slice) resolves** — that
-> verification is ANI-162.
+> **Status:** Source of truth for the docs site (which lives in the Preset
+> marketing app — see ANI-81). The tier data below is derived from
+> `mcp/tool-groups.js` in the `animatic` repo; counts verified against
+> `EDGE_TOOLS.length` / `EDGE_EXCLUDE.length` on 2026-06-03. The hosted
+> endpoint, auth model, and connect command were verified live on 2026-06-03
+> (ANI-162): `POST https://mcp.presetai.dev/animatic/mcp` returns `401` without a
+> token, and `tools/list` returns the 60 hosted tools with a valid `ak_*` token.
 
 Animatic ships **78 MCP tools**. They do not all run in the same place. Some are
 pure logic that runs on Animatic's hosted cloud edge; others read or write files,

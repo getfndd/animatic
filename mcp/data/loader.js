@@ -5,7 +5,7 @@
  * and parses breakdown INDEX.md into queryable in-memory data.
  */
 
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,6 +15,11 @@ const ROOT = resolve(__dirname, '../..');
 // ── Path helpers ────────────────────────────────────────────────────────────
 
 const CATALOG_DIR = resolve(ROOT, 'catalog');
+
+// Runtime-created custom personalities (create_personality) are persisted here
+// so they survive a server restart (ANI-164). This is per-user runtime state,
+// not shipped catalog data — gitignored, and absent until the first create.
+const CUSTOM_PERSONALITIES_DIR = resolve(CATALOG_DIR, 'custom-personalities');
 
 // Support both repo layout (.claude/skills/animate/reference/) and
 // npm package layout (reference/) for the published @presetai/animatic-mcp.
@@ -64,6 +69,57 @@ export function loadPersonalitiesCatalog() {
   const arr = loadJSON(resolve(CATALOG_DIR, 'personalities.json'));
   const bySlug = new Map(arr.map(p => [p.slug, p]));
   return { array: arr, bySlug };
+}
+
+/**
+ * Load catalog/custom-personalities/*.json → array of user definitions (ANI-164).
+ * These are personalities created at runtime via create_personality and
+ * persisted to disk so a slug created in one process is still resolvable after
+ * a restart. Returns [] when the directory doesn't exist yet; skips a corrupt
+ * file rather than failing the whole load.
+ */
+export function loadCustomPersonalityDefinitions() {
+  let files;
+  try {
+    files = readdirSync(CUSTOM_PERSONALITIES_DIR).filter(f => f.endsWith('.json'));
+  } catch {
+    return []; // directory absent — no custom personalities created yet
+  }
+  const defs = [];
+  for (const f of files) {
+    try {
+      defs.push(loadJSON(resolve(CUSTOM_PERSONALITIES_DIR, f)));
+    } catch {
+      // skip a partial/corrupt definition file
+    }
+  }
+  return defs;
+}
+
+/**
+ * Persist a custom personality definition to catalog/custom-personalities/{slug}.json
+ * (ANI-164). Best-effort: a read-only filesystem (e.g. a stateless edge isolate)
+ * degrades to in-memory-only rather than throwing. The slug is pre-validated to
+ * kebab-case by the registry, so it is safe as a filename. Returns true on write.
+ */
+export function saveCustomPersonalityDefinition(slug, definition) {
+  try {
+    mkdirSync(CUSTOM_PERSONALITIES_DIR, { recursive: true });
+    writeFileSync(resolve(CUSTOM_PERSONALITIES_DIR, `${slug}.json`), JSON.stringify(definition, null, 2));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Delete a persisted custom personality definition (ANI-164). Best-effort. */
+export function deleteCustomPersonalityDefinition(slug) {
+  try {
+    rmSync(resolve(CUSTOM_PERSONALITIES_DIR, `${slug}.json`), { force: true });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Load catalog/intent-mappings.json → array + intent map */

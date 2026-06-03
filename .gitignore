@@ -33,6 +33,9 @@ src/remotion/preview-props.json
 .claude/projects/
 .claude/project.json
 
+# Runtime-created custom personalities (create_personality, ANI-164)
+catalog/custom-personalities/
+
 # Codex agent tooling (per-user, per-machine — mirror of the Claude config)
 # NOTE: AGENTS.md is the Codex equivalent of the committed CLAUDE.md. If the
 # team decides to support Codex as first-class here, `git add` these instead.

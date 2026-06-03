@@ -9,7 +9,14 @@
  * boundaries and shot grammar restrictions from the characteristics.
  */
 
-import { loadPersonalitiesCatalog, loadCameraGuardrails, loadShotGrammar } from '../data/loader.js';
+import {
+  loadPersonalitiesCatalog,
+  loadCameraGuardrails,
+  loadShotGrammar,
+  loadCustomPersonalityDefinitions,
+  saveCustomPersonalityDefinition,
+  deleteCustomPersonalityDefinition,
+} from '../data/loader.js';
 
 // ── Registry ─────────────────────────────────────────────────────────────────
 
@@ -393,7 +400,7 @@ function buildCameraBehavior(definition) {
  * @param {object} definition — user-provided personality definition
  * @returns {{ success: boolean, personality: object|null, guardrails: object|null, shot_grammar: object|null, errors: string[], warnings: string[] }}
  */
-export function registerPersonality(definition) {
+export function registerPersonality(definition, { persist = true } = {}) {
   const validation = validatePersonalityDefinition(definition);
   if (!validation.valid) {
     return {
@@ -401,6 +408,7 @@ export function registerPersonality(definition) {
       personality: null,
       guardrails: null,
       shot_grammar: null,
+      persisted: false,
       errors: validation.errors,
       warnings: validation.warnings,
     };
@@ -426,23 +434,43 @@ export function registerPersonality(definition) {
   customGuardrails.set(definition.slug, guardrails);
   customShotGrammarRestrictions.set(definition.slug, shotGrammar);
 
+  // Persist the raw definition so the slug survives a restart (ANI-164).
+  // `persist:false` is used when re-registering from disk at startup (the file
+  // already exists). Best-effort: a read-only surface stays in-memory-only.
+  const persisted = persist ? saveCustomPersonalityDefinition(definition.slug, definition) : false;
+
   return {
     success: true,
     personality,
     guardrails,
     shot_grammar: shotGrammar,
+    persisted,
     errors: [],
     warnings: validation.warnings,
   };
 }
 
 /**
- * Remove a custom personality from the registry.
+ * Remove a custom personality from the registry (and its persisted file).
  */
 export function unregisterPersonality(slug) {
   if (!customPersonalities.has(slug)) return false;
   customPersonalities.delete(slug);
   customGuardrails.delete(slug);
   customShotGrammarRestrictions.delete(slug);
+  deleteCustomPersonalityDefinition(slug);
   return true;
+}
+
+// ── Startup: rehydrate persisted custom personalities (ANI-164) ────────────────
+// create_personality writes each definition to catalog/custom-personalities/;
+// re-register them on load (persist:false — already on disk) so a slug created
+// in a previous process is still resolvable. Re-deriving from the stored
+// definition keeps guardrail/shot-grammar logic single-sourced. A definition
+// that no longer validates (e.g. the schema tightened) is skipped, not fatal.
+for (const def of loadCustomPersonalityDefinitions()) {
+  const res = registerPersonality(def, { persist: false });
+  if (!res.success) {
+    console.error(`[personality] skipped invalid persisted personality "${def?.slug}": ${res.errors.join('; ')}`);
+  }
 }

@@ -61,16 +61,21 @@ These need Chromium + ffmpeg and minutes of compute via Remotion:
 calling one against the edge returns `Unknown tool` (enforced by
 `mcp/test/registration-parity.test.js`). There is no server-side render.
 
-**Rendering from the hosted surface is a two-step split, not a hosted render
-tool.** The edge-safe Tier 1 helpers do the planning and assembly — most directly
-`assemble_video_sequence`, which resolves scene routing and assembles render-props
-**internally** and returns an assembly summary (scene routes, plate status,
-warnings); when you supply an output path it also **emits a local render command
-string** for *your own* Remotion runtime to run (with `resolve_render_targets`
-resolving the routing first). The render-props are referenced by that command, not
-returned inline as JSON. You then run the command locally, where
-`render_project`/`preview_video` live. Nothing proprietary ships:
-Remotion is open source; the value (routing/scoring) already ran in Tier 1.
+**What the hosted surface gives you is planning, not a render handoff.** The
+edge-safe Tier 1 helpers let you *prepare and validate* a render —
+`resolve_render_targets` resolves scene routing, and `assemble_video_sequence`
+returns an assembly summary (scene routes, plate status, warnings) so you can see
+what *would* render. They do not produce a runnable render bundle: the resolved
+render-props are built internally and are neither returned inline nor written to a
+location you can reach from the edge.
+
+**To actually render, work locally.** Install Animatic locally and run
+`render_project` / `preview_video` (and `assemble_video_sequence` with a real
+`output_dir`) on your own machine, where the render-props file is written next to
+the command that consumes it. Treat the hosted assembly output as a plan to act
+on locally, not a copy-paste hosted→local render command. Nothing proprietary
+ships either way: Remotion is open source; the value (routing/scoring) already ran
+in Tier 1.
 
 ### Held back pending audit → **local** (8 tools)
 The surface is **fail-closed**: a tool is excluded from the hosted edge until

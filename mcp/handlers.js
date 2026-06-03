@@ -1833,10 +1833,11 @@ export function handleCreatePersonality(args) {
   out += '\n## Usage\n\n';
   out += `To use this personality, create a style pack that maps to \`${p.slug}\`, or use it directly in scene analysis and planning.\n`;
   if (result.persisted) {
-    out += `\nSaved to \`catalog/custom-personalities/${p.slug}.json\` — it persists across restarts and is resolvable by slug \`${p.slug}\` in planning, analysis, and choreography tools.\n`;
+    out += `\nSaved to \`catalog/custom-personalities/${p.slug}.json\` — it persists across restarts and is resolvable by slug \`${p.slug}\` via \`get_personality\`, \`list_personalities\`, and registry-backed planning.\n`;
   } else {
     out += `\nRegistered for this session only (the current surface has no writable storage), so reference it by slug \`${p.slug}\` within this session.\n`;
   }
+  out += `\n_Note: \`recommend_choreography\` supports built-in personalities only — its intent→personality matrix is curated per built-in, so custom slugs aren't accepted there yet (ANI-166)._\n`;
 
   // Full definition JSON
   out += '\n## Full Definition\n\n```json\n';

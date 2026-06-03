@@ -19,6 +19,8 @@ import {
   getGuardrailBoundaries,
   getShotGrammarRestrictions,
 } from '../lib/personality.js';
+import { loadCustomPersonalityDefinitions } from '../data/loader.js';
+import { handleCreatePersonality, handleGetPersonality } from '../handlers.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -273,6 +275,72 @@ describe('unregisterPersonality', () => {
 
   it('returns false for unknown slug', () => {
     assert.equal(unregisterPersonality('nonexistent'), false);
+  });
+});
+
+// ── Persistence across calls/restarts (ANI-164) ──────────────────────────────
+
+describe('custom personality persistence (ANI-164)', () => {
+  const onDisk = (slug) => loadCustomPersonalityDefinitions().some(d => d?.slug === slug);
+
+  it('persists the definition to disk on register (default)', () => {
+    const def = makeDefinition({ slug: 'test-persist-on' });
+    const res = registerPersonality(def);
+    try {
+      assert.equal(res.persisted, true);
+      assert.ok(onDisk('test-persist-on'), 'definition should be written to catalog/custom-personalities/');
+    } finally {
+      unregisterPersonality('test-persist-on');
+    }
+  });
+
+  it('does not write to disk when persist:false', () => {
+    const def = makeDefinition({ slug: 'test-persist-off' });
+    const res = registerPersonality(def, { persist: false });
+    try {
+      assert.equal(res.persisted, false);
+      assert.equal(onDisk('test-persist-off'), false);
+    } finally {
+      unregisterPersonality('test-persist-off');
+    }
+  });
+
+  it('unregister removes the persisted file', () => {
+    registerPersonality(makeDefinition({ slug: 'test-persist-remove' }));
+    assert.ok(onDisk('test-persist-remove'));
+    unregisterPersonality('test-persist-remove');
+    assert.equal(onDisk('test-persist-remove'), false);
+  });
+
+  it('a persisted definition reloads from disk and resolves by slug (restart path)', () => {
+    registerPersonality(makeDefinition({ slug: 'test-persist-reload' }));
+    try {
+      // Emulate a fresh process: read the def back off disk and re-register it
+      // exactly as module init does (persist:false — already on disk).
+      const persisted = loadCustomPersonalityDefinitions().find(d => d.slug === 'test-persist-reload');
+      assert.ok(persisted, 'definition should be on disk');
+      const res = registerPersonality(persisted, { persist: false });
+      assert.ok(res.success);
+      assert.ok(getPersonality('test-persist-reload'), 'slug must resolve after reload');
+    } finally {
+      unregisterPersonality('test-persist-reload');
+    }
+  });
+
+  // Regression: get_personality read the built-in catalog directly, so a
+  // created+persisted custom slug 404'd on inspect even though list/planning
+  // saw it. get_personality must route through the registry helper.
+  it('create_personality → get_personality round-trips by slug', () => {
+    const slug = 'test-get-custom';
+    const created = handleCreatePersonality({ definition: makeDefinition({ slug }) });
+    try {
+      assert.ok(!created.isError, 'create_personality should succeed');
+      const got = handleGetPersonality({ slug });
+      assert.ok(!got.isError, 'get_personality must resolve the custom slug, not 404');
+      assert.ok(got.content[0].text.includes(slug));
+    } finally {
+      unregisterPersonality(slug);
+    }
   });
 });
 

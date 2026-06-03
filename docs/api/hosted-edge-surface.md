@@ -63,10 +63,13 @@ calling one against the edge returns `Unknown tool` (enforced by
 
 **Rendering from the hosted surface is a two-step split, not a hosted render
 tool.** The edge-safe Tier 1 helpers do the planning and assembly — most directly
-`assemble_video_sequence`, which emits **resolved render-props plus a render
-command string** for *your local* Remotion runtime to execute (with
-`resolve_render_targets` resolving the routing first). You then run that command
-locally where `render_project`/`preview_video` live. Nothing proprietary ships:
+`assemble_video_sequence`, which resolves scene routing and assembles render-props
+**internally** and returns an assembly summary (scene routes, plate status,
+warnings); when you supply an output path it also **emits a local render command
+string** for *your own* Remotion runtime to run (with `resolve_render_targets`
+resolving the routing first). The render-props are referenced by that command, not
+returned inline as JSON. You then run the command locally, where
+`render_project`/`preview_video` live. Nothing proprietary ships:
 Remotion is open source; the value (routing/scoring) already ran in Tier 1.
 
 ### Held back pending audit → **local** (8 tools)

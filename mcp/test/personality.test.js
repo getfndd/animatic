@@ -21,7 +21,7 @@ import {
   resolveChoreographyPersonality,
 } from '../lib/personality.js';
 import { loadCustomPersonalityDefinitions } from '../data/loader.js';
-import { handleCreatePersonality, handleGetPersonality, handleRecommendChoreography } from '../handlers.js';
+import { handleCreatePersonality, handleGetPersonality, handleRecommendChoreography, handleValidateChoreography } from '../handlers.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -505,6 +505,42 @@ describe('create_personality → recommend_choreography (ANI-166)', () => {
       assert.ok(text.includes('editorial'), 'rejection should name the resolved analog');
       // Recoverable: it names intents editorial DOES support, not "no intents support <slug>".
       assert.ok(text.includes('content-focus'), 'tip should list analog-compatible intents');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('validate_choreography accepts borrowed primitives via the resolved affinity (no false BLOCK)', () => {
+    // Reviewer repro: recommend_choreography emits an inherited built-in's
+    // primitive, then validate_choreography on the same custom slug must not
+    // BLOCK it for "Personality mismatch".
+    const slug = 'test-validate-affinity';
+    handleCreatePersonality({
+      definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' }, inherits_choreography_from: 'cinematic-dark' }),
+    });
+    try {
+      const res = handleValidateChoreography({ primitive_ids: ['lib-gsap-spring-stagger'], personality: slug });
+      const text = res.content[0].text;
+      assert.ok(!text.includes('Personality mismatch'), 'borrowed cinematic-dark primitive must pass affinity');
+      assert.ok(!res.isError);
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('validate_choreography still enforces the custom personality\'s own guardrails', () => {
+    // A 2d-only personality forbids 3D; the borrowed cinematic-dark dolly
+    // (translateZ) must still BLOCK — on the guardrail, not on affinity.
+    const slug = 'test-validate-guardrail';
+    handleCreatePersonality({
+      definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' }, inherits_choreography_from: 'cinematic-dark' }),
+    });
+    try {
+      const res = handleValidateChoreography({ primitive_ids: ['ct-camera-dolly'], personality: slug });
+      const text = res.content[0].text;
+      assert.ok(text.includes('BLOCK'), '3D primitive must block for a 2d-only personality');
+      assert.ok(text.includes('(3D)'), 'block reason is the 3D guardrail');
+      assert.ok(!text.includes('Personality mismatch'), 'block must come from guardrails, not affinity');
     } finally {
       unregisterPersonality(slug);
     }

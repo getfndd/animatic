@@ -797,7 +797,17 @@ export function handleValidateChoreography(args) {
   const warnings = [];
   const notes = [];
 
-  const boundaries = cameraGuardrails.personality_boundaries[targetPersonality];
+  // Resolve the personality to the built-in whose primitive-affinity matrix
+  // applies. A custom personality borrows an inherited/derived built-in's
+  // primitives (ANI-166), so affinity (Tier 2) and the intent cross-reference
+  // (Tier 6) check against that built-in — while guardrail enforcement (Tier 3)
+  // uses the custom personality's OWN derived boundaries, via the registry
+  // helper (custom slugs aren't in the static catalog).
+  const choreo = resolveChoreographyPersonality(targetPersonality);
+  const affinitySlug = choreo ? choreo.slug : targetPersonality;
+  const borrowed = !!choreo && choreo.source !== 'builtin';
+
+  const boundaries = getGuardrailBoundaries(targetPersonality);
   const forbiddenFeatures = boundaries?.forbidden_features || [];
 
   // ── Tier 1: BLOCK — Primitive existence ──────────────────────────────────
@@ -812,10 +822,11 @@ export function handleValidateChoreography(args) {
     const entry = registry.byId.get(id);
     if (!entry) continue; // already caught above
     const compatible = entry.personality.some(
-      p => p === targetPersonality || p === 'universal'
+      p => p === affinitySlug || p === targetPersonality || p === 'universal'
     );
     if (!compatible) {
-      blocks.push(`**Personality mismatch:** \`${id}\` supports [${entry.personality.join(', ')}], not ${targetPersonality}.`);
+      const via = borrowed ? ` (the matrix \`${targetPersonality}\` borrows)` : '';
+      blocks.push(`**Personality mismatch:** \`${id}\` supports [${entry.personality.join(', ')}], not ${affinitySlug}${via}.`);
     }
   }
 
@@ -898,10 +909,17 @@ export function handleValidateChoreography(args) {
   if (intentSlug) {
     const mapping = intentMappings.byIntent.get(intentSlug);
     if (mapping) {
-      if (!mapping.personality_support.includes(targetPersonality)) {
-        notes.push(`Intent \`${intentSlug}\` does not support ${targetPersonality}. Supported: ${mapping.personality_support.join(', ')}.`);
+      if (!mapping.personality_support.includes(affinitySlug)) {
+        const resolvedFrom = borrowed ? ` (resolved from \`${targetPersonality}\`)` : '';
+        notes.push(`Intent \`${intentSlug}\` does not support ${affinitySlug}${resolvedFrom}. Supported: ${mapping.personality_support.join(', ')}.`);
       }
-      const expectedPrimitives = filterByPersonality(mapping.camera_primitives, targetPersonality, registry);
+      // Mirror recommend_choreography: borrowed candidates pass through the
+      // personality's own guardrails, so the "expected" hint never names a
+      // primitive this personality forbids.
+      let expectedPrimitives = filterByPersonality(mapping.camera_primitives, affinitySlug, registry);
+      expectedPrimitives = forbiddenFeatures.includes('camera_movement')
+        ? []
+        : filterByGuardrails(expectedPrimitives, forbiddenFeatures, cameraGuardrails, registry);
       const missing = expectedPrimitives.filter(id => !primitive_ids.includes(id));
       if (missing.length > 0) {
         notes.push(`Intent \`${intentSlug}\` expects these camera primitives not in your plan: ${missing.map(id => `\`${id}\``).join(', ')}.`);

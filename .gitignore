@@ -32,3 +32,10 @@ src/remotion/preview-props.json
 .claude/knowledge/
 .claude/projects/
 .claude/project.json
+
+# Codex agent tooling (per-user, per-machine — mirror of the Claude config)
+# NOTE: AGENTS.md is the Codex equivalent of the committed CLAUDE.md. If the
+# team decides to support Codex as first-class here, `git add` these instead.
+.agents/
+.codex/
+AGENTS.md

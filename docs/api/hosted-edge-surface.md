@@ -57,9 +57,16 @@ These need Chromium + ffmpeg and minutes of compute via Remotion:
 
 `render_project`, `preview_video`.
 
-**Hosted behavior is different, not absent.** On the hosted surface a render tool
-doesn't render server-side — it returns **resolved render-props plus a command**
-for *your local* Remotion runtime to execute. Nothing proprietary ships:
+**These tools are not on the hosted surface at all** — they're excluded, and
+calling one against the edge returns `Unknown tool` (enforced by
+`mcp/test/registration-parity.test.js`). There is no server-side render.
+
+**Rendering from the hosted surface is a two-step split, not a hosted render
+tool.** The edge-safe Tier 1 helpers do the planning and assembly — most directly
+`assemble_video_sequence`, which emits **resolved render-props plus a render
+command string** for *your local* Remotion runtime to execute (with
+`resolve_render_targets` resolving the routing first). You then run that command
+locally where `render_project`/`preview_video` live. Nothing proprietary ships:
 Remotion is open source; the value (routing/scoring) already ran in Tier 1.
 
 ### Held back pending audit → **local** (8 tools)
@@ -114,7 +121,7 @@ The 60/18 split and per-tier lists are derived from `mcp/tool-groups.js`. Before
 publishing any revision, re-derive rather than hand-edit:
 
 ```js
-import { TOOL_GROUPS, EDGE_TOOLS, EDGE_EXCLUDE } from '../mcp/tool-groups.js';
+import { TOOL_GROUPS, EDGE_TOOLS, EDGE_EXCLUDE } from '../../mcp/tool-groups.js';
 // EDGE_TOOLS.length === hosted count; EDGE_EXCLUDE.length === local count
 ```
 

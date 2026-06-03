@@ -1,11 +1,12 @@
 # Hosted vs. local: where each tool runs
 
-> **Status:** Draft for the docs site (lives in the Preset marketing app — see ANI-81).
-> The tier data below is the source of truth from `mcp/tool-groups.js` in the
-> `animatic` repo. Counts were verified against `EDGE_TOOLS.length` /
-> `EDGE_EXCLUDE.length` on 2026-06-03. **Do not publish the literal connect
-> command until the hosted endpoint (PRE-1439 slice) resolves** — that
-> verification is ANI-162.
+> **Status:** Source of truth for the docs site (which lives in the Preset
+> marketing app — see ANI-81). The tier data below is derived from
+> `mcp/tool-groups.js` in the `animatic` repo; counts verified against
+> `EDGE_TOOLS.length` / `EDGE_EXCLUDE.length` on 2026-06-03. The hosted
+> endpoint, auth model, and connect command were verified live on 2026-06-03
+> (ANI-162): `POST https://mcp.presetai.dev/animatic/mcp` returns `401` without a
+> token, and `tools/list` returns the 60 hosted tools with a valid `ak_*` token.
 
 Animatic ships **78 MCP tools**. They do not all run in the same place. Some are
 pure logic that runs on Animatic's hosted cloud edge; others read or write files,
@@ -103,21 +104,29 @@ they have no effect on the hosted surface:
 |------|--------------------|-----|
 | `generate_contact_sheet` | `project` | Operates on the inline manifest/scenes; the `project:` slug is dead on the edge. |
 | `compare_project_versions` | `project`, `version_a`, `version_b` | Operates on inline `manifest_a` / `manifest_b`; the version refs need stored project state. |
-| `assemble_video_sequence` | `output_dir` | Emits a render *command* string; `output_dir` is the only disk-write param. |
+| `assemble_video_sequence` | `output_dir` | `output_dir` is the only disk-write param; with it stripped the tool is plan-only on the edge — it returns the assembly summary but emits no render command. |
 
 ## Getting access to the hosted surface
 
 Access is gated on a **free Preset account** (decided in ANI-157). The mechanism
-is a **hosted remote MCP endpoint over HTTP with Preset OAuth** — no local
-install, no npm package (the package is private).
+is a **hosted remote MCP endpoint over HTTP, authenticated with a per-account
+`ak_*` token** — no local install, no npm package (the package is private).
+
+1. Sign up for a free Preset account.
+2. In the dashboard, open **Connect Animatic** and mint an access token (`ak_live_…`).
+3. Add the remote server, passing the token in an `Authorization` header:
 
 ```sh
-# Endpoint URL is illustrative until the PRE-1439 hosted-edge slice deploys (ANI-162).
-claude mcp add --transport http animatic https://mcp.presetai.dev
-# → complete Preset OAuth in the browser when prompted
+claude mcp add --transport http animatic \
+  https://mcp.presetai.dev/animatic/mcp \
+  --header "Authorization: Bearer ak_live_…"
 ```
 
-Works across MCP clients: Claude Code, Claude Desktop, Cursor, VS Code.
+A request with no (or an invalid) token is rejected with `401 Unauthorized`. On
+success, `tools/list` returns the 60 hosted tools.
+
+Works across MCP clients: Claude Code, Claude Desktop, Cursor, VS Code (the
+`--header` form carries the token in each client's MCP config).
 
 **Need a Tier 2/3 tool** (own a project, render a video)? Install Animatic
 locally — the local surface exposes all 78 tools.

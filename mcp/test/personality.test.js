@@ -18,9 +18,10 @@ import {
   unregisterPersonality,
   getGuardrailBoundaries,
   getShotGrammarRestrictions,
+  resolveChoreographyPersonality,
 } from '../lib/personality.js';
 import { loadCustomPersonalityDefinitions } from '../data/loader.js';
-import { handleCreatePersonality, handleGetPersonality } from '../handlers.js';
+import { handleCreatePersonality, handleGetPersonality, handleRecommendChoreography } from '../handlers.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -338,6 +339,171 @@ describe('custom personality persistence (ANI-164)', () => {
       const got = handleGetPersonality({ slug });
       assert.ok(!got.isError, 'get_personality must resolve the custom slug, not 404');
       assert.ok(got.content[0].text.includes(slug));
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+});
+
+// ── Choreography inheritance (ANI-166) ───────────────────────────────────────
+
+describe('inherits_choreography_from validation (ANI-166)', () => {
+  it('accepts a built-in slug', () => {
+    const result = validatePersonalityDefinition(
+      makeDefinition({ inherits_choreography_from: 'cinematic-dark' })
+    );
+    assert.ok(result.valid, `Errors: ${result.errors.join('; ')}`);
+  });
+
+  it('rejects a non-built-in slug', () => {
+    const result = validatePersonalityDefinition(
+      makeDefinition({ inherits_choreography_from: 'not-a-real-personality' })
+    );
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some(e => e.includes('inherits_choreography_from')));
+  });
+
+  it('omitting the field is valid', () => {
+    const result = validatePersonalityDefinition(makeDefinition());
+    assert.ok(result.valid);
+  });
+
+  it('round-trips onto the built personality object', () => {
+    const def = makeDefinition({ slug: 'test-inherit-build', inherits_choreography_from: 'editorial' });
+    const { personality } = registerPersonality(def, { persist: false });
+    try {
+      assert.equal(personality.inherits_choreography_from, 'editorial');
+    } finally {
+      unregisterPersonality('test-inherit-build');
+    }
+  });
+});
+
+describe('resolveChoreographyPersonality (ANI-166)', () => {
+  it('built-in resolves to itself', () => {
+    const r = resolveChoreographyPersonality('cinematic-dark');
+    assert.deepEqual(r, { slug: 'cinematic-dark', source: 'builtin' });
+  });
+
+  it('returns null for an unknown slug', () => {
+    assert.equal(resolveChoreographyPersonality('nope-not-here'), null);
+  });
+
+  it('derives the analog from camera mode', () => {
+    const cases = [
+      ['full-3d', 'cinematic-dark'],
+      ['2d-only', 'editorial'],
+      ['attention-direction', 'neutral-light'],
+      ['none', 'editorial'],
+    ];
+    for (const [mode, expected] of cases) {
+      const slug = `test-derive-${mode}`;
+      registerPersonality(makeDefinition({ slug, camera_behavior: { mode } }), { persist: false });
+      try {
+        const r = resolveChoreographyPersonality(slug);
+        assert.equal(r.source, 'derived');
+        assert.equal(r.mode, mode);
+        assert.equal(r.slug, expected, `mode ${mode} should map to ${expected}`);
+      } finally {
+        unregisterPersonality(slug);
+      }
+    }
+  });
+
+  it('explicit inheritance overrides the mode-derived analog', () => {
+    // 2d-only would derive editorial, but inheritance pins cinematic-dark.
+    const slug = 'test-inherit-override';
+    registerPersonality(
+      makeDefinition({ slug, camera_behavior: { mode: '2d-only' }, inherits_choreography_from: 'cinematic-dark' }),
+      { persist: false }
+    );
+    try {
+      const r = resolveChoreographyPersonality(slug);
+      assert.equal(r.source, 'inherited');
+      assert.equal(r.slug, 'cinematic-dark');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+});
+
+describe('create_personality → recommend_choreography (ANI-166)', () => {
+  it('a custom full-3d personality returns a usable plan via its derived analog', () => {
+    const slug = 'test-choreo-full3d';
+    const created = handleCreatePersonality({
+      definition: makeDefinition({ slug, camera_behavior: { mode: 'full-3d' } }),
+    });
+    try {
+      assert.ok(!created.isError, 'create_personality should succeed');
+      // full-3d derives cinematic-dark, which supports dramatic-reveal.
+      const plan = handleRecommendChoreography({ intent: 'dramatic-reveal', personality: slug });
+      assert.ok(!plan.isError, 'choreography must not flat-reject a custom slug');
+      const text = plan.content[0].text;
+      assert.ok(text.includes('Choreography: Dramatic Reveal'));
+      // Plan is a clearly-explained fallback, not a silent substitution.
+      assert.ok(text.includes(slug) && text.includes('cinematic-dark'),
+        'plan should name the custom slug and the matrix it borrowed');
+      // Primitives keyed off cinematic-dark's matrix surface, not an empty table.
+      assert.ok(text.includes('ct-camera-dolly'), 'cinematic-dark camera primitives should appear');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('explicit inherits_choreography_from drives the matrix', () => {
+    const slug = 'test-choreo-inherit';
+    handleCreatePersonality({
+      definition: makeDefinition({
+        slug,
+        camera_behavior: { mode: '2d-only' },
+        inherits_choreography_from: 'cinematic-dark',
+      }),
+    });
+    try {
+      const plan = handleRecommendChoreography({ intent: 'dramatic-reveal', personality: slug });
+      assert.ok(!plan.isError, 'inherited matrix should make dramatic-reveal available');
+      assert.ok(plan.content[0].text.includes('inherits'), 'plan should note inheritance');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('an unsupported intent yields a deterministic, analog-aware rejection (not a flat one)', () => {
+    const slug = 'test-choreo-2d';
+    handleCreatePersonality({ definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' } }) });
+    try {
+      // 2d-only derives editorial; dramatic-reveal supports only cinematic-dark.
+      const plan = handleRecommendChoreography({ intent: 'dramatic-reveal', personality: slug });
+      assert.ok(plan.isError, 'editorial does not support dramatic-reveal');
+      const text = plan.content[0].text;
+      assert.ok(text.includes('editorial'), 'rejection should name the resolved analog');
+      // Recoverable: it names intents editorial DOES support, not "no intents support <slug>".
+      assert.ok(text.includes('content-focus'), 'tip should list analog-compatible intents');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('an unknown personality slug is reported as not found', () => {
+    const plan = handleRecommendChoreography({ intent: 'dramatic-reveal', personality: 'ghost-slug' });
+    assert.ok(plan.isError);
+    assert.ok(plan.content[0].text.includes('not found'));
+  });
+
+  it('inherits_choreography_from survives a reload (persistence round-trip)', () => {
+    const slug = 'test-choreo-reload';
+    registerPersonality(
+      makeDefinition({ slug, camera_behavior: { mode: '2d-only' }, inherits_choreography_from: 'cinematic-dark' })
+    );
+    try {
+      const persisted = loadCustomPersonalityDefinitions().find(d => d.slug === slug);
+      assert.ok(persisted, 'definition should be on disk');
+      assert.equal(persisted.inherits_choreography_from, 'cinematic-dark', 'field persists raw');
+      // Re-register as a fresh process would, then confirm the matrix still resolves.
+      registerPersonality(persisted, { persist: false });
+      const r = resolveChoreographyPersonality(slug);
+      assert.equal(r.source, 'inherited');
+      assert.equal(r.slug, 'cinematic-dark');
     } finally {
       unregisterPersonality(slug);
     }

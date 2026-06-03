@@ -25,7 +25,7 @@ import { validateFullManifest } from './lib/guardrails.js';
 import { generateScenes } from './lib/generator.js';
 import { detectBeats, computeEnergyCurve, decodeWav } from './lib/beats.js';
 import { syncSequenceToBeats, generateHitMarkers, planAudioCues, scoreAudioSync } from './lib/audio-sync.js';
-import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality } from './lib/personality.js';
+import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality, resolveChoreographyPersonality } from './lib/personality.js';
 import { compileMotion, isReactiveScene } from './lib/compiler.js';
 import {
   UI_SURFACE_KEYWORDS,
@@ -559,21 +559,45 @@ export function handleRecommendChoreography(args) {
     };
   }
 
-  // If a specific personality was requested, validate it's supported
-  if (requestedPersonality && !mapping.personality_support.includes(requestedPersonality)) {
+  // Resolve the requested personality to the built-in whose choreography matrix
+  // applies. Built-in → itself; custom → inherits_choreography_from, else derived
+  // from camera mode (ANI-166). Routing through the registry (not
+  // personalitiesCatalog.bySlug) lets custom slugs reach a usable plan.
+  let choreo = null;
+  if (requestedPersonality) {
+    choreo = resolveChoreographyPersonality(requestedPersonality);
+    if (!choreo) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Personality "${requestedPersonality}" not found. Available: ${getAllPersonalitySlugs().join(', ')}`,
+        }],
+        isError: true,
+      };
+    }
+  }
+
+  // If a specific personality was requested, validate the intent supports its
+  // (resolved) choreography matrix.
+  const gateSlug = choreo ? choreo.slug : null;
+  if (gateSlug && !mapping.personality_support.includes(gateSlug)) {
     const supported = mapping.personality_support.join(', ');
-    // Name the intents that ARE compatible with the requested personality, so
-    // the user doesn't have to read the full intent matrix to recover (ANI-152).
+    // Name the intents that ARE compatible with the resolved matrix, so the user
+    // doesn't have to read the full intent matrix to recover (ANI-152).
     const compatibleIntents = intentMappings.array
-      .filter(m => m.personality_support.includes(requestedPersonality))
+      .filter(m => m.personality_support.includes(gateSlug))
       .map(m => m.intent);
+    // For a custom personality, surface that the gate ran against its analog.
+    const via = choreo.source === 'builtin'
+      ? `"${requestedPersonality}"`
+      : `"${requestedPersonality}" (${choreo.source === 'inherited' ? 'inherits' : 'derives'} choreography from "${gateSlug}")`;
     const tip = compatibleIntents.length > 0
-      ? `Tip: intents available for "${requestedPersonality}": ${compatibleIntents.join(', ')}.`
-      : `Tip: no intents currently support "${requestedPersonality}".`;
+      ? `Tip: intents available for ${via}: ${compatibleIntents.join(', ')}.`
+      : `Tip: no intents currently support ${via}.`;
     return {
       content: [{
         type: 'text',
-        text: `Intent "${intentSlug}" is not supported by the "${requestedPersonality}" personality.\n\nSupported personalities for this intent: ${supported}\n\n${tip}`,
+        text: `Intent "${intentSlug}" is not supported by the ${via} personality.\n\nSupported personalities for this intent: ${supported}\n\n${tip}`,
       }],
       isError: true,
     };
@@ -587,16 +611,27 @@ export function handleRecommendChoreography(args) {
   let out = `# Choreography: ${mapping.label}\n\n`;
   out += `> ${mapping.camera_description}\n\n`;
 
+  // Make the analog explicit when a custom personality borrowed a matrix, so the
+  // plan is a clearly-explained fallback rather than a silent substitution.
+  if (choreo && choreo.source !== 'builtin') {
+    const verb = choreo.source === 'inherited' ? 'inherits' : 'derives';
+    out += `> Custom personality \`${requestedPersonality}\` (camera mode: ${choreo.mode}) ${verb} its choreography matrix from built-in \`${choreo.slug}\`. Camera/parallax/ambient specifics below use \`${requestedPersonality}\`'s own settings.\n\n`;
+  }
+
   for (const pSlug of personalities) {
-    const personality = personalitiesCatalog.bySlug.get(pSlug);
+    const personality = getPersonality(pSlug);
     if (!personality) continue;
+
+    // Primitive eligibility keys off the resolved built-in matrix; a custom
+    // personality carries no primitive personality tags of its own.
+    const choreoSlug = (choreo && pSlug === requestedPersonality) ? choreo.slug : pSlug;
 
     if (personalities.length > 1) {
       out += `---\n\n## ${personality.name}\n\n`;
     }
 
     // Camera move — filter by personality
-    const cameraPrims = filterByPersonality(mapping.camera_primitives, pSlug, registry);
+    const cameraPrims = filterByPersonality(mapping.camera_primitives, choreoSlug, registry);
     out += `### Camera Move\n\n`;
     if (cameraPrims.length === 0) {
       out += `No camera movement — use attention-direction primitives instead.\n\n`;
@@ -658,7 +693,7 @@ export function handleRecommendChoreography(args) {
     out += '\n';
 
     // Ambient motion — filter by personality
-    const ambientPrims = filterByPersonality(mapping.ambient_primitives, pSlug, registry);
+    const ambientPrims = filterByPersonality(mapping.ambient_primitives, choreoSlug, registry);
     if (ambientPrims.length > 0) {
       out += `### Ambient Motion\n\n`;
       out += `| Primitive | Name | Duration |\n`;
@@ -681,7 +716,7 @@ export function handleRecommendChoreography(args) {
 
     // Companion entrance primitives — filter by personality
     if (mapping.companion_entrance.length > 0) {
-      const relevantCompanions = filterByPersonality(mapping.companion_entrance, pSlug, registry);
+      const relevantCompanions = filterByPersonality(mapping.companion_entrance, choreoSlug, registry);
 
       if (relevantCompanions.length > 0) {
         out += `### Companion Entrances\n\n`;
@@ -1837,7 +1872,19 @@ export function handleCreatePersonality(args) {
   } else {
     out += `\nRegistered for this session only (the current surface has no writable storage), so reference it by slug \`${p.slug}\` within this session.\n`;
   }
-  out += `\n_Note: \`recommend_choreography\` supports built-in personalities only — its intent→personality matrix is curated per built-in, so custom slugs aren't accepted there yet (ANI-166)._\n`;
+  // Choreography support (ANI-166): custom slugs now resolve to a built-in's
+  // intent/primitive matrix — explicitly via inherits_choreography_from, else
+  // derived from camera mode. Surface which matrix this personality will use.
+  const choreo = resolveChoreographyPersonality(p.slug);
+  if (choreo) {
+    out += '\n## Choreography\n\n';
+    if (choreo.source === 'inherited') {
+      out += `\`recommend_choreography\` will use the **\`${choreo.slug}\`** intent/primitive matrix (declared via \`inherits_choreography_from\`).\n`;
+    } else {
+      out += `\`recommend_choreography\` will use the **\`${choreo.slug}\`** intent/primitive matrix, derived from camera mode \`${choreo.mode}\`. To pin a different matrix, set \`inherits_choreography_from: <built-in slug>\` in the definition.\n`;
+    }
+    out += `Camera, parallax, depth-of-field, and ambient specifics still use \`${p.slug}\`'s own settings.\n`;
+  }
 
   // Full definition JSON
   out += '\n## Full Definition\n\n```json\n';

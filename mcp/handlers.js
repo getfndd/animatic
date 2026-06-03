@@ -17,7 +17,7 @@ import { resolve } from 'node:path';
 
 import { loadBenchmarks, readBreakdown, readReferenceDoc, listReferenceDocs } from './data/loader.js';
 
-import { filterByPersonality, parseDurationMs, checkBlurViolations } from './lib.js';
+import { filterByPersonality, filterByGuardrails, parseDurationMs, checkBlurViolations } from './lib.js';
 import { analyzeScene } from './lib/analyze.js';
 import { planSequence, planVariants, STYLE_PACKS } from './lib/planner.js';
 import { evaluateSequence, compareVariants } from './lib/evaluate.js';
@@ -25,7 +25,7 @@ import { validateFullManifest } from './lib/guardrails.js';
 import { generateScenes } from './lib/generator.js';
 import { detectBeats, computeEnergyCurve, decodeWav } from './lib/beats.js';
 import { syncSequenceToBeats, generateHitMarkers, planAudioCues, scoreAudioSync } from './lib/audio-sync.js';
-import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality, resolveChoreographyPersonality } from './lib/personality.js';
+import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality, getGuardrailBoundaries, resolveChoreographyPersonality } from './lib/personality.js';
 import { compileMotion, isReactiveScene } from './lib/compiler.js';
 import {
   UI_SURFACE_KEYWORDS,
@@ -611,11 +611,20 @@ export function handleRecommendChoreography(args) {
   let out = `# Choreography: ${mapping.label}\n\n`;
   out += `> ${mapping.camera_description}\n\n`;
 
-  // Make the analog explicit when a custom personality borrowed a matrix, so the
-  // plan is a clearly-explained fallback rather than a silent substitution.
+  // When a custom personality borrowed a matrix, the intent-level targets
+  // (speed, parallax strength, DOF, framing) and primitive *candidates* come
+  // from the inherited/derived built-in — but candidates are then filtered to
+  // the custom personality's OWN guardrails, so the plan can't surface a
+  // primitive it forbids (e.g. a `none`-camera personality won't list camera
+  // moves it inherited). Make that explicit rather than silently substituting.
+  const ownForbidden = (choreo && choreo.source !== 'builtin')
+    ? (getGuardrailBoundaries(requestedPersonality)?.forbidden_features || [])
+    : [];
   if (choreo && choreo.source !== 'builtin') {
     const verb = choreo.source === 'inherited' ? 'inherits' : 'derives';
-    out += `> Custom personality \`${requestedPersonality}\` (camera mode: ${choreo.mode}) ${verb} its choreography matrix from built-in \`${choreo.slug}\`. Camera/parallax/ambient specifics below use \`${requestedPersonality}\`'s own settings.\n\n`;
+    out += `> Custom personality \`${requestedPersonality}\` (camera mode: ${choreo.mode}) ${verb} its choreography matrix (intent targets + primitive candidates) from built-in \`${choreo.slug}\`. Candidates are filtered to \`${requestedPersonality}\`'s own guardrails`;
+    out += ownForbidden.length > 0 ? ` (forbidden: ${ownForbidden.join(', ')}).` : '.';
+    out += ` Run \`validate_choreography\` to confirm the final set.\n\n`;
   }
 
   for (const pSlug of personalities) {
@@ -630,8 +639,14 @@ export function handleRecommendChoreography(args) {
       out += `---\n\n## ${personality.name}\n\n`;
     }
 
-    // Camera move — filter by personality
-    const cameraPrims = filterByPersonality(mapping.camera_primitives, choreoSlug, registry);
+    // Camera move — filter by personality, then by the requesting personality's
+    // own guardrails. camera_primitives ARE camera moves by definition, so a
+    // personality that forbids camera_movement drops the whole list (covers
+    // scale-based moves the property check alone wouldn't catch).
+    let cameraPrims = filterByPersonality(mapping.camera_primitives, choreoSlug, registry);
+    cameraPrims = ownForbidden.includes('camera_movement')
+      ? []
+      : filterByGuardrails(cameraPrims, ownForbidden, cameraGuardrails, registry);
     out += `### Camera Move\n\n`;
     if (cameraPrims.length === 0) {
       out += `No camera movement — use attention-direction primitives instead.\n\n`;
@@ -669,8 +684,10 @@ export function handleRecommendChoreography(args) {
     out += `### Parallax\n\n`;
     out += `- **Strength:** ${mapping.parallax}\n`;
     out += `- **Layers:** ${mapping.parallax_layers}\n`;
-    if (personality.camera_behavior?.parallax) {
-      const px = personality.camera_behavior.parallax;
+    const px = personality.camera_behavior?.parallax;
+    if (px?.enabled === false) {
+      out += `- **Disabled for ${pSlug}** — this personality uses no parallax.\n`;
+    } else if (px?.mode) {
       out += `- **Mode (${pSlug}):** ${px.mode}\n`;
       out += `- **Max layers allowed:** ${px.max_layers}\n`;
       out += `- **Intensity:** ${px.intensity}\n`;
@@ -692,8 +709,13 @@ export function handleRecommendChoreography(args) {
     }
     out += '\n';
 
-    // Ambient motion — filter by personality
-    const ambientPrims = filterByPersonality(mapping.ambient_primitives, choreoSlug, registry);
+    // Ambient motion — filter by personality, then own guardrails. Ambient
+    // primitives are ambient by definition, so a personality that forbids
+    // ambient_motion drops the whole list.
+    let ambientPrims = filterByPersonality(mapping.ambient_primitives, choreoSlug, registry);
+    ambientPrims = ownForbidden.includes('ambient_motion')
+      ? []
+      : filterByGuardrails(ambientPrims, ownForbidden, cameraGuardrails, registry);
     if (ambientPrims.length > 0) {
       out += `### Ambient Motion\n\n`;
       out += `| Primitive | Name | Duration |\n`;
@@ -716,7 +738,10 @@ export function handleRecommendChoreography(args) {
 
     // Companion entrance primitives — filter by personality
     if (mapping.companion_entrance.length > 0) {
-      const relevantCompanions = filterByPersonality(mapping.companion_entrance, choreoSlug, registry);
+      const relevantCompanions = filterByGuardrails(
+        filterByPersonality(mapping.companion_entrance, choreoSlug, registry),
+        ownForbidden, cameraGuardrails, registry,
+      );
 
       if (relevantCompanions.length > 0) {
         out += `### Companion Entrances\n\n`;

@@ -468,6 +468,32 @@ describe('create_personality → recommend_choreography (ANI-166)', () => {
     }
   });
 
+  it('borrowed primitives are filtered to the custom personality\'s own guardrails', () => {
+    // Reviewer repro: a no-camera personality that inherits cinematic-dark must
+    // NOT surface the inherited camera primitives — its guardrails forbid them.
+    const slug = 'test-choreo-none-inherit';
+    handleCreatePersonality({
+      definition: makeDefinition({
+        slug,
+        camera_behavior: { mode: 'none' },
+        inherits_choreography_from: 'cinematic-dark',
+      }),
+    });
+    try {
+      const plan = handleRecommendChoreography({ intent: 'dramatic-reveal', personality: slug });
+      assert.ok(!plan.isError, 'still a usable plan, just camera-free');
+      const text = plan.content[0].text;
+      // None of cinematic-dark's camera moves leak through.
+      for (const prim of ['ct-camera-dolly', 'ct-camera-crane', 'ct-dolly-zoom']) {
+        assert.ok(!text.includes(prim), `forbidden camera primitive ${prim} must be filtered out`);
+      }
+      assert.ok(text.includes('No camera movement'), 'camera section should reflect the none mode');
+      assert.ok(text.includes('guardrails'), 'note should explain candidates are guardrail-filtered');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
   it('an unsupported intent yields a deterministic, analog-aware rejection (not a flat one)', () => {
     const slug = 'test-choreo-2d';
     handleCreatePersonality({ definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' } }) });

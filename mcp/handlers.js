@@ -3314,11 +3314,16 @@ export function handleAssembleVideoSequence(args) {
       for (const w of result.warnings) summary += `- ${w}\n`;
     }
 
-    // Render command
-    if (output_dir || output_path) {
-      const propsPath = output_dir ? `${output_dir}/render-props.json` : 'render-props.json';
+    // Render command — gated on output_dir, the ONLY param that writes
+    // render-props.json (video-assembly.js writes it under outputDir, and only
+    // then). Emitting a command off output_path alone — including on the hosted
+    // edge, where output_dir is stripped — would reference a props file that was
+    // never written, producing an unrunnable command (ANI-165). On the edge this
+    // is therefore plan-only by construction; locally you get a runnable command
+    // exactly when the props file exists.
+    if (output_dir) {
       const cmd = buildRenderCommand({
-        propsPath,
+        propsPath: `${output_dir}/render-props.json`,
         outputPath: output_path || 'out/sequence.mp4',
       });
       summary += `\n### Render Command\n\`\`\`\n${cmd}\n\`\`\`\n`;

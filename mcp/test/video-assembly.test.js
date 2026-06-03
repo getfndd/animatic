@@ -9,6 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { assembleVideoSequence, buildRenderCommand } from '../lib/video-assembly.js';
+import { handleAssembleVideoSequence } from '../handlers.js';
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -191,5 +192,35 @@ describe('buildRenderCommand', () => {
     });
     assert.ok(cmd.includes('--codec vp8'));
     assert.ok(cmd.includes('--crf 20'));
+  });
+});
+
+// ── handleAssembleVideoSequence — render command gating (ANI-165) ─────────────
+//
+// The render command references `${output_dir}/render-props.json`, and that file
+// is only written when output_dir is set. Command emission must therefore be
+// gated on output_dir alone — never output_path — so a hosted edge call (where
+// output_dir is stripped) or a local output_path-only call can't receive a
+// command pointing at a props file that was never produced.
+describe('handleAssembleVideoSequence render command gating (ANI-165)', () => {
+  it('emits a render command when output_dir is set', () => {
+    const res = handleAssembleVideoSequence({ manifest, scene_defs: sceneDefs, output_dir: '/tmp/ani165' });
+    const text = res.content[0].text;
+    assert.ok(text.includes('### Render Command'), 'output_dir should yield a runnable command');
+    assert.ok(text.includes('/tmp/ani165/render-props.json'), 'command must reference the written props path');
+  });
+
+  it('does NOT emit a command for output_path alone (props file is never written)', () => {
+    const res = handleAssembleVideoSequence({ manifest, scene_defs: sceneDefs, output_path: 'out/final.mp4' });
+    const text = res.content[0].text;
+    assert.ok(!text.includes('### Render Command'),
+      'without output_dir there is no render-props.json, so no command may be emitted');
+  });
+
+  it('does NOT emit a command with neither path (hosted edge: output_dir stripped → plan-only)', () => {
+    const res = handleAssembleVideoSequence({ manifest, scene_defs: sceneDefs });
+    const text = res.content[0].text;
+    assert.ok(text.includes('## Video Assembly'), 'still returns the assembly summary');
+    assert.ok(!text.includes('### Render Command'), 'plan-only: no command on the hosted surface');
   });
 });

@@ -39,10 +39,10 @@ export function primitiveViolatesForbidden(id, entry, forbiddenFeatures, cameraG
 
   if (checkBlurViolations(id, entry, cameraGuardrails, forbiddenFeatures).length > 0) return true;
 
-  if (
-    forbiddenFeatures.includes('camera_movement') && amplitude &&
-    ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY'].includes(amplitude.property)
-  ) return true;
+  // primitive_amplitudes is the camera-motion table by construction — every
+  // entry is a camera move. Keying on membership (not a translate/rotate
+  // property list) also catches scale-based moves like ct-dolly-zoom (ANI-168).
+  if (forbiddenFeatures.includes('camera_movement') && amplitude) return true;
 
   if (forbiddenFeatures.includes('camera_shake') && id === 'ct-camera-shake') return true;
 

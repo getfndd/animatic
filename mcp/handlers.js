@@ -852,11 +852,12 @@ export function handleValidateChoreography(args) {
       }
     }
 
-    // Camera movement check
+    // Camera movement check — any primitive_amplitudes entry is a camera move
+    // by construction, so membership alone violates camera_movement. A property
+    // list (translate/rotate) missed scale-based moves like ct-dolly-zoom and
+    // diverged from recommend_choreography's guardrail filter (ANI-168).
     if (forbiddenFeatures.includes('camera_movement') && amplitude) {
-      if (['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY'].includes(amplitude.property)) {
-        blocks.push(`**Forbidden feature (camera movement):** \`${id}\` uses ${amplitude.property}, which is forbidden in ${targetPersonality}.`);
-      }
+      blocks.push(`**Forbidden feature (camera movement):** \`${id}\` is a camera move (${amplitude.property}), forbidden in ${targetPersonality}.`);
     }
 
     // Camera shake check

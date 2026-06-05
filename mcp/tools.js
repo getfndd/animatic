@@ -165,7 +165,7 @@ export function buildTools({
     {
       name: 'validate_choreography',
       description:
-        'Validate a set of primitives against personality guardrails. Checks primitive existence, personality compatibility, forbidden features (3D in editorial, camera in neutral-light), speed limits, lens bounds, and intent cross-references. Returns PASS/WARN/BLOCK verdict with detailed diagnostics. Use after recommend_choreography to verify a plan before implementing.',
+        'Validate a set of primitives against personality guardrails. Checks primitive existence, personality compatibility, forbidden features (3D in editorial, camera in neutral-light), speed limits, lens bounds, and intent cross-references. Returns PASS/WARN/BLOCK verdict with detailed diagnostics. Use after recommend_choreography to verify a plan before implementing. Custom personalities (from create_personality) resolve to their inherited/derived built-in matrix for compatibility checks while their own derived guardrails are enforced (ANI-166).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -175,9 +175,11 @@ export function buildTools({
             description: 'Array of primitive IDs in the choreography plan.',
           },
           personality: {
+            // No enum: a custom slug from create_personality is also valid here —
+            // affinity resolves through its built-in matrix while its own derived
+            // guardrails are enforced (ANI-169).
             type: 'string',
-            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
-            description: 'Target personality — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
+            description: 'Target personality slug. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`. A custom slug is accepted too — primitive compatibility resolves through its inherited/derived built-in matrix, and its own derived guardrails are enforced.',
           },
           intent: {
             type: 'string',

@@ -25,7 +25,7 @@ import { validateFullManifest } from './lib/guardrails.js';
 import { generateScenes } from './lib/generator.js';
 import { detectBeats, computeEnergyCurve, decodeWav } from './lib/beats.js';
 import { syncSequenceToBeats, generateHitMarkers, planAudioCues, scoreAudioSync } from './lib/audio-sync.js';
-import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality, getGuardrailBoundaries, resolveChoreographyPersonality } from './lib/personality.js';
+import { registerPersonality, listCustomPersonalities, getAllPersonalitySlugs, getPersonality, getGuardrailBoundaries, isValidPersonality, resolveChoreographyPersonality } from './lib/personality.js';
 import { compileMotion, isReactiveScene } from './lib/compiler.js';
 import {
   UI_SURFACE_KEYWORDS,
@@ -1339,12 +1339,14 @@ export function handleValidateManifest(args) {
     };
   }
 
-  const validPersonalities = ['cinematic-dark', 'editorial', 'neutral-light', 'montage'];
-  if (!validPersonalities.includes(personality)) {
+  // Registry-routed (ANI-171): custom personalities validate too — their
+  // derived boundaries are enforced by validateFullManifest via
+  // getGuardrailBoundaries, mirroring validate_choreography (ANI-166).
+  if (!isValidPersonality(personality)) {
     return {
       content: [{
         type: 'text',
-        text: `Invalid personality "${personality}". Valid: ${validPersonalities.join(', ')}`,
+        text: `Invalid personality "${personality}". Valid: ${getAllPersonalitySlugs().join(', ')}`,
       }],
       isError: true,
     };
@@ -1908,9 +1910,11 @@ export function handleCreatePersonality(args) {
   out += `**Allowed Framings:** ${result.shot_grammar.allowed_framings.join(', ')}\n`;
   out += `**3D Rotation:** ${result.shot_grammar.use_3d_rotation ? 'yes' : 'no'}\n`;
 
-  // Usage instructions
+  // Usage instructions — name the true surface split (ANI-171): registry-routed
+  // mechanical surfaces accept custom slugs; curated aesthetic surfaces do not.
   out += '\n## Usage\n\n';
   out += `To use this personality, create a style pack that maps to \`${p.slug}\`, or use it directly in scene analysis and planning.\n`;
+  out += `\n\`${p.slug}\` works across choreography, validation, render-routing, and motion-search surfaces (\`recommend_choreography\`, \`validate_choreography\`, \`validate_manifest\`, \`resolve_render_targets\`, \`compile_motion\`, \`search_motion_recipes\`) — its derived guardrails above are what those tools enforce. Curated aesthetic surfaces (brand packages, type treatments, art directions, sequence archetypes, hero moments) are built-in-only.\n`;
   if (result.persisted) {
     out += `\nSaved to \`catalog/custom-personalities/${p.slug}.json\` — it persists across restarts and is resolvable by slug \`${p.slug}\` via \`get_personality\`, \`list_personalities\`, and registry-backed planning.\n`;
   } else {

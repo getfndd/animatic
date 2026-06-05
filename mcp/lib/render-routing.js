@@ -21,6 +21,10 @@
  *   throws on any compatibility warning instead of returning it.
  */
 
+// In-memory registry lookup only (built-in catalog + runtime customs hydrate at
+// module init, not per request) — keeps this module edge-safe (ANI-171).
+import { getGuardrailBoundaries } from './personality.js';
+
 export const RENDER_TARGETS = ['web_native', 'browser_capture', 'remotion_native', 'hybrid'];
 
 const COMPLEX_HTML_THRESHOLD = 500; // chars of HTML content considered "complex"
@@ -59,22 +63,50 @@ const CAPTURE_COST_SECONDS = {
 // happens at the motion compiler / primitive-selection layer where the
 // "is this primitive in the Entrances category" context exists. neutral-
 // light and montage forbid blur outright, so the regex still applies there.
+// The two forbidden features that ARE statically CSS-detectable, as named in
+// the guardrail boundaries' forbidden_features vocabulary. camera_movement /
+// ambient_motion / camera_shake / spring_physics are runtime behaviors, not
+// static CSS — they're enforced at the compiler/choreography layers.
+const FEATURE_CSS_PATTERNS = {
+  '3d_transforms': /transform[^;]*(?:perspective\(|translate3d|translateZ|rotateX|rotateY|matrix3d)/i,
+  'blur': /(?:filter|backdrop-filter)[^;]*blur\(/i,
+};
+
 const PERSONALITY_FORBIDDEN_CSS = {
   editorial: {
-    '3d_transforms': /transform[^;]*(?:perspective\(|translate3d|translateZ|rotateX|rotateY|matrix3d)/i,
+    '3d_transforms': FEATURE_CSS_PATTERNS['3d_transforms'],
   },
   'neutral-light': {
-    '3d_transforms': /transform[^;]*(?:perspective\(|translate3d|translateZ|rotateX|rotateY|matrix3d)/i,
-    'blur': /(?:filter|backdrop-filter)[^;]*blur\(/i,
+    '3d_transforms': FEATURE_CSS_PATTERNS['3d_transforms'],
+    'blur': FEATURE_CSS_PATTERNS['blur'],
   },
   montage: {
-    '3d_transforms': /transform[^;]*(?:perspective\(|translate3d|translateZ|rotateX|rotateY|matrix3d)/i,
-    'blur': /(?:filter|backdrop-filter)[^;]*blur\(/i,
+    '3d_transforms': FEATURE_CSS_PATTERNS['3d_transforms'],
+    'blur': FEATURE_CSS_PATTERNS['blur'],
   },
   'cinematic-dark': {},
 };
 
 const KNOWN_PERSONALITIES = new Set(Object.keys(PERSONALITY_FORBIDDEN_CSS));
+
+/**
+ * Forbidden-CSS map for a personality (ANI-171). Built-ins keep their curated
+ * static maps (incl. the editorial blur_entrance carve-out documented above).
+ * A custom personality derives its map from the registry's forbidden_features:
+ * only the statically-detectable features map to patterns — `blur` covers the
+ * full ban; `blur_entrance` alone is deliberately NOT mapped (same carve-out).
+ * Returns null for a slug the registry doesn't know.
+ */
+function forbiddenCssFor(personality) {
+  if (KNOWN_PERSONALITIES.has(personality)) return PERSONALITY_FORBIDDEN_CSS[personality];
+  const boundaries = getGuardrailBoundaries(personality);
+  if (!boundaries) return null;
+  const out = {};
+  for (const feature of boundaries.forbidden_features || []) {
+    if (FEATURE_CSS_PATTERNS[feature]) out[feature] = FEATURE_CSS_PATTERNS[feature];
+  }
+  return out;
+}
 
 /** Scan a scene's layers for primitive references targeting library-driven
  * compound primitives (slug prefix lib-). Used for capture-cost telemetry. */
@@ -353,13 +385,15 @@ function resolveScene(scene, defaults, ctx) {
  */
 function detectPersonalityViolations(scene, personality) {
   if (!personality) return [];
-  if (!KNOWN_PERSONALITIES.has(personality)) {
+  // Registry-routed (ANI-171): custom personalities derive their forbidden-CSS
+  // map from their registered guardrail boundaries instead of warning unknown.
+  const forbidden = forbiddenCssFor(personality);
+  if (!forbidden) {
     return [{
       rule: 'unknown_personality',
-      message: `Unknown personality "${personality}" — known: ${[...KNOWN_PERSONALITIES].join(', ')}`,
+      message: `Unknown personality "${personality}" — known: ${[...KNOWN_PERSONALITIES].join(', ')}, or a registered custom personality slug`,
     }];
   }
-  const forbidden = PERSONALITY_FORBIDDEN_CSS[personality];
   const warnings = [];
   for (const layer of scene.layers || []) {
     const content = typeof layer.content === 'string' ? layer.content : '';

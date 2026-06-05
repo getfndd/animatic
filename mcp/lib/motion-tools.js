@@ -15,7 +15,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, extname, relative } from 'node:path';
 
-import { loadMotionRecipes, loadCameraGuardrails } from '../data/loader.js';
+import { loadMotionRecipes } from '../data/loader.js';
+import { getGuardrailBoundaries } from './personality.js';
 import { matchesKeyword } from './recommend-layout.js';
 
 // Fold transform-family animated properties (Framer x/y/scale/rotate, CSS
@@ -31,14 +32,9 @@ function normalizeMotionProp(key) {
 }
 
 let _recipes = null;
-let _guardrails = null;
 function recipes() {
   if (!_recipes) _recipes = loadMotionRecipes();
   return _recipes;
-}
-function guardrails() {
-  if (!_guardrails) _guardrails = loadCameraGuardrails();
-  return _guardrails;
 }
 
 // Canonical token families used by the catalog (catalog/motion-recipes.json).
@@ -74,7 +70,11 @@ function isFramerOnly(recipe) {
 
 function personalityForbidsSpring(personality) {
   if (!personality) return false;
-  const fb = guardrails().personality_boundaries?.[personality]?.forbidden_features || [];
+  // Registry-routed (ANI-171): resolves built-ins from the static catalog AND
+  // custom personalities' derived boundaries — a restrained/gentle custom
+  // personality forbids spring_physics too. The old direct catalog read
+  // silently skipped the filter for custom slugs.
+  const fb = getGuardrailBoundaries(personality)?.forbidden_features || [];
   return fb.includes('spring_physics');
 }
 

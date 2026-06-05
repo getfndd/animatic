@@ -9,6 +9,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveRenderTargets, RENDER_TARGETS } from '../lib/render-routing.js';
+import { registerPersonality, unregisterPersonality } from '../lib/personality.js';
 import { annotateScenes } from '../lib/scene-annotations.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -484,5 +485,53 @@ describe('resolveRenderTargets — routing rationale (ANI-118)', () => {
     assert.equal(s.hero_type, 'html');
     assert.ok(s.longest_html_chars > 600);
     assert.equal(s.scene_role, 'result');
+  });
+});
+
+// ── Custom personalities (ANI-171) ──────────────────────────────────────────
+// The forbidden-CSS map for a custom slug derives from its registered guardrail
+// boundaries — previously any custom slug warned "unknown personality".
+
+describe('resolveRenderTargets — custom personalities (ANI-171)', () => {
+  const css3d = (id) => makeScene(id, {
+    content: '<div style="transform:perspective(800px) translateZ(50px)">' + 'x'.repeat(600) + '</div>',
+  });
+
+  it('2d-only custom personality flags 3D CSS via derived guardrails', () => {
+    const slug = 'test-rr-2d';
+    registerPersonality({
+      name: 'Flat', slug,
+      camera_behavior: { mode: '2d-only' },
+    }, { persist: false });
+    try {
+      const { routes } = resolveRenderTargets([css3d('sc_3d')], { personality: slug });
+      assert.equal(routes[0].personality_compat.ok, false);
+      const issue = routes[0].personality_compat.warnings.find(w => w.feature === '3d_transforms');
+      assert.ok(issue, 'derived 3d_transforms ban must flag 3D CSS');
+      assert.ok(!routes[0].personality_compat.warnings.some(w => w.rule === 'unknown_personality'),
+        'a registered custom slug is not unknown');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('full-3d custom personality accepts 3D CSS', () => {
+    const slug = 'test-rr-3d';
+    registerPersonality({
+      name: 'Deep', slug,
+      characteristics: { motion_intensity: 'dramatic' },
+      camera_behavior: { mode: 'full-3d' },
+    }, { persist: false });
+    try {
+      const { routes } = resolveRenderTargets([css3d('sc_3d')], { personality: slug });
+      assert.equal(routes[0].personality_compat.ok, true, '3D allowed for a full-3d custom personality');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('unregistered slug still warns unknown_personality (regression)', () => {
+    const { routes } = resolveRenderTargets([makeScene('sc_01')], { personality: 'never-registered' });
+    assert.ok(routes[0].personality_compat.warnings.some(w => w.rule === 'unknown_personality'));
   });
 });

@@ -18,6 +18,7 @@ import {
   validateManifestScene,
   validateFullManifest,
 } from '../lib/guardrails.js';
+import { registerPersonality, unregisterPersonality } from '../lib/personality.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -360,5 +361,72 @@ describe('validateFullManifest', () => {
     const result = validateFullManifest(manifest, 'cinematic-dark');
     const linearFindings = result.cumulativeFindings.filter(f => f.check === 'consecutive_linear');
     assert.equal(linearFindings.length, 0);
+  });
+});
+
+// ── Custom personalities (ANI-171) ──────────────────────────────────────────
+// Boundaries resolve via the registry, so a custom personality's DERIVED
+// guardrails are enforced — previously the static catalog read returned
+// undefined for custom slugs and skipped Check 5 entirely.
+
+describe('validateFullManifest — custom personalities (ANI-171)', () => {
+  it('none-camera custom personality blocks camera moves', () => {
+    const slug = 'test-gr-no-camera';
+    registerPersonality({
+      name: 'No Camera', slug,
+      camera_behavior: { mode: 'none' },
+    }, { persist: false });
+    try {
+      const manifest = makeManifest([
+        makeManifestScene('sc_cam', 3, { camera_override: { move: 'push_in', intensity: 0.3 } }),
+      ]);
+      const result = validateFullManifest(manifest, slug);
+      assert.equal(result.verdict, 'BLOCK');
+      const camBlocks = result.sceneResults[0].blocks.filter(b => b.feature === 'camera_movement');
+      assert.ok(camBlocks.length > 0, 'derived camera_movement ban must block');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('full-3d custom personality permits camera moves (no personality blocks)', () => {
+    const slug = 'test-gr-full3d';
+    registerPersonality({
+      name: 'Full 3D', slug,
+      characteristics: { motion_intensity: 'dramatic' },
+      camera_behavior: { mode: 'full-3d' },
+    }, { persist: false });
+    try {
+      const manifest = makeManifest([
+        makeManifestScene('sc_cam', 3, { camera_override: { move: 'push_in', intensity: 0.3 } }),
+      ]);
+      const result = validateFullManifest(manifest, slug);
+      const persBlocks = result.sceneResults[0].blocks.filter(b => b.check === 'personality');
+      assert.equal(persBlocks.length, 0, 'dramatic full-3d custom personality allows camera');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('restrained custom personality warns on translation beyond its derived limit', () => {
+    const slug = 'test-gr-restrained';
+    registerPersonality({
+      name: 'Restrained', slug,
+      characteristics: { motion_intensity: 'restrained' },
+      camera_behavior: { mode: '2d-only' },
+    }, { persist: false });
+    try {
+      // restrained derives max_translateXY = 30px; full-intensity pan exceeds it.
+      const manifest = makeManifest([
+        makeManifestScene('sc_pan', 6, { camera_override: { move: 'pan_left', intensity: 1.0 } }),
+      ]);
+      const result = validateFullManifest(manifest, slug);
+      const translationWarnings = result.sceneResults[0].warnings.filter(
+        w => w.check === 'personality' && /Translation/.test(w.message)
+      );
+      assert.ok(translationWarnings.length > 0, 'derived translation limit must warn');
+    } finally {
+      unregisterPersonality(slug);
+    }
   });
 });

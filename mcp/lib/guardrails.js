@@ -10,6 +10,7 @@
  */
 
 import { loadCameraGuardrails } from '../data/loader.js';
+import { getGuardrailBoundaries } from './personality.js';
 import { CAMERA_CONSTANTS, getShotGrammarCSS } from '../../src/remotion/lib.js';
 
 const guardrails = loadCameraGuardrails();
@@ -171,7 +172,10 @@ export function validateCameraMove(camera, shotGrammar, durationS, personality) 
 
   // ── Check 5: Personality boundaries ────────────────────────────────────────
 
-  const boundaries = guardrails.personality_boundaries[personality];
+  // Registry-routed (ANI-171): built-ins resolve from the static catalog,
+  // custom personalities from their derived boundaries — same shape
+  // (forbidden_features + max_* limits), so the checks below apply unchanged.
+  const boundaries = getGuardrailBoundaries(personality);
   if (boundaries) {
     const forbiddenFeatures = boundaries.forbidden_features || [];
 

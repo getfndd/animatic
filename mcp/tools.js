@@ -305,11 +305,9 @@ export function buildTools({
           },
           personality: {
             type: 'string',
-            // ANI-170: enum intentional — handler validates against built-ins and
-            // guardrails read the static personality_boundaries catalog (custom
-            // support tracked separately).
-            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
-            description: 'Personality to validate against — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
+            // No enum: custom slugs validate too — the gate is isValidPersonality
+            // and guardrail boundaries resolve via the registry (ANI-171).
+            description: 'Personality to validate against. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`. A custom slug from create_personality is accepted — its derived guardrail boundaries are enforced.',
           },
         },
         required: ['manifest', 'personality'],
@@ -504,7 +502,7 @@ export function buildTools({
     {
       name: 'create_personality',
       description:
-        'Create a custom personality definition. Validates the definition, derives guardrail boundaries and shot grammar restrictions from characteristics, and registers it for use in the current session. Custom personalities work with all pipeline tools (plan_sequence, evaluate_sequence, etc.).',
+        'Create a custom personality definition. Validates the definition, derives guardrail boundaries and shot grammar restrictions from characteristics, and registers it for use in the current session. Custom slugs work across choreography, validation, render-routing, and motion-search surfaces (recommend/validate_choreography, validate_manifest, resolve_render_targets, compile_motion, search_motion_recipes, get_personality) — curated aesthetic surfaces (brand packages, type treatments, art directions, sequence archetypes, hero moments) remain built-in-only (ANI-171).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1324,10 +1322,9 @@ export function buildTools({
           },
           personality: {
             type: 'string',
-            // ANI-170: enum intentional — spring filter reads the static guardrails
-            // catalog (built-in keys only); registry reroute tracked separately.
-            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
-            description: 'Optional personality. Applies the spring_physics guardrail (montage excludes spring/framer-only recipes).',
+            // No enum: custom slugs apply too — the spring filter resolves
+            // guardrail boundaries via the registry (ANI-171).
+            description: 'Optional personality. Applies the spring_physics guardrail (montage and any custom personality whose derived boundaries forbid spring exclude spring/framer-only recipes).',
           },
         },
       },
@@ -1726,10 +1723,9 @@ export function buildTools({
           },
           personality: {
             type: 'string',
-            // ANI-170: enum intentional — render routing checks a KNOWN_PERSONALITIES
-            // whitelist + per-built-in forbidden-CSS map (render-routing.js).
-            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
-            description: 'Personality slug. Used to detect forbidden CSS features (3d_transforms, blur) per scene. Falls back to scene.personality.',
+            // No enum: custom slugs work too — their forbidden-CSS map derives
+            // from registered guardrail boundaries (ANI-171).
+            description: 'Personality slug. Used to detect forbidden CSS features (3d_transforms, blur) per scene; a custom slug derives its forbidden set from its registered guardrails. Falls back to scene.personality.',
           },
           strict: {
             type: 'boolean',

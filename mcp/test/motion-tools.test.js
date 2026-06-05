@@ -74,6 +74,16 @@ describe('search_motion_recipes', () => {
     }
   });
 
+  it('unknown personality slug errors instead of silently returning unfiltered results (ANI-171 review)', () => {
+    // With the enum gone, the registry gate is the only validation — a typo
+    // must not skip the spring filter and pretend everything matched.
+    const result = searchMotionRecipes({ context: 'input', personality: 'never-registered' });
+    assert.ok(result.error, 'unknown slug must error');
+    assert.match(result.error, /Unknown personality "never-registered"/);
+    assert.match(result.error, /cinematic-dark/, 'error lists valid slugs');
+    assert.equal(result.matches, undefined, 'no results leak past the gate');
+  });
+
   it('custom personality that allows spring does not exclude (ANI-171)', () => {
     const slug = 'test-mt-spring-ok';
     registerPersonality({

@@ -16,7 +16,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, extname, relative } from 'node:path';
 
 import { loadMotionRecipes } from '../data/loader.js';
-import { getGuardrailBoundaries } from './personality.js';
+import { getGuardrailBoundaries, getAllPersonalitySlugs, isValidPersonality } from './personality.js';
 import { matchesKeyword } from './recommend-layout.js';
 
 // Fold transform-family animated properties (Framer x/y/scale/rotate, CSS
@@ -87,6 +87,14 @@ function tokenize(text) {
  * @returns {{ matches: Array<{recipe_id, score, reason}>, excluded?: Array }}
  */
 export function searchMotionRecipes({ intent, personality, context } = {}) {
+  // With the schema enum dropped (ANI-171), the registry gate is the only
+  // validation — reject unknown slugs explicitly rather than silently
+  // returning unfiltered results, matching validate_manifest's gate and
+  // this module's getMotionRecipe error convention (ANI-171 review).
+  if (personality && !isValidPersonality(personality)) {
+    return { error: `Unknown personality "${personality}". Valid: ${getAllPersonalitySlugs().join(', ')}` };
+  }
+
   // Recipes are register-neutral; the only hard personality constraint we can
   // honor is the camera-guardrails spring_physics ban (montage) — spring
   // recipes are the framer-only ones. Excluded recipes are reported, not hidden.

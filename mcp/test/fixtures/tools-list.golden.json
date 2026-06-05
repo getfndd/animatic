@@ -393,13 +393,7 @@
         },
         "personality": {
           "type": "string",
-          "enum": [
-            "cinematic-dark",
-            "editorial",
-            "neutral-light",
-            "montage"
-          ],
-          "description": "Personality to validate against — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`."
+          "description": "Personality to validate against. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`. A custom slug from create_personality is accepted — its derived guardrail boundaries are enforced."
         }
       },
       "required": [
@@ -649,7 +643,7 @@
   },
   {
     "name": "create_personality",
-    "description": "Create a custom personality definition. Validates the definition, derives guardrail boundaries and shot grammar restrictions from characteristics, and registers it for use in the current session. Custom personalities work with all pipeline tools (plan_sequence, evaluate_sequence, etc.).",
+    "description": "Create a custom personality definition. Validates the definition, derives guardrail boundaries and shot grammar restrictions from characteristics, and registers it for use in the current session. Custom slugs work across choreography, validation, render-routing, and motion-search surfaces (recommend/validate_choreography, validate_manifest, resolve_render_targets, compile_motion, search_motion_recipes, get_personality) — curated aesthetic surfaces (brand packages, type treatments, art directions, sequence archetypes, hero moments) remain built-in-only (ANI-171).",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1758,13 +1752,7 @@
         },
         "personality": {
           "type": "string",
-          "enum": [
-            "cinematic-dark",
-            "editorial",
-            "neutral-light",
-            "montage"
-          ],
-          "description": "Optional personality. Applies the spring_physics guardrail (montage excludes spring/framer-only recipes)."
+          "description": "Optional personality. Applies the spring_physics guardrail (montage and any custom personality whose derived boundaries forbid spring exclude spring/framer-only recipes)."
         }
       }
     }
@@ -2418,13 +2406,7 @@
         },
         "personality": {
           "type": "string",
-          "enum": [
-            "cinematic-dark",
-            "editorial",
-            "neutral-light",
-            "montage"
-          ],
-          "description": "Personality slug. Used to detect forbidden CSS features (3d_transforms, blur) per scene. Falls back to scene.personality."
+          "description": "Personality slug. Used to detect forbidden CSS features (3d_transforms, blur) per scene; a custom slug derives its forbidden set from its registered guardrails. Falls back to scene.personality."
         },
         "strict": {
           "type": "boolean",

@@ -19,6 +19,7 @@ import {
   auditMotionCoverage,
   MOTION_RULES,
 } from '../lib/motion-tools.js';
+import { registerPersonality, unregisterPersonality } from '../lib/personality.js';
 
 describe('get_motion_recipe', () => {
   it('returns the full recipe for a valid id', () => {
@@ -52,6 +53,50 @@ describe('search_motion_recipes', () => {
   it('does not exclude spring recipes for personalities that permit them (editorial)', () => {
     const { excluded } = searchMotionRecipes({ context: 'input', personality: 'editorial' });
     assert.ok(!(excluded || []).some(e => e.recipe_id === 'state.error'));
+  });
+
+  it('custom personality with derived spring ban excludes spring recipes (ANI-171)', () => {
+    // Restrained motion without 'spring' in speed_hierarchy derives a
+    // spring_physics ban. The old static-catalog read silently skipped this.
+    const slug = 'test-mt-no-spring';
+    registerPersonality({
+      name: 'No Spring', slug,
+      characteristics: { motion_intensity: 'restrained' },
+      camera_behavior: { mode: '2d-only' },
+    }, { persist: false });
+    try {
+      const { matches, excluded } = searchMotionRecipes({ context: 'input', personality: slug });
+      assert.ok((excluded || []).some(e => e.recipe_id === 'state.error'),
+        'custom spring ban must exclude framer-only recipes');
+      assert.ok(!matches.some(m => m.recipe_id === 'state.error'));
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('unknown personality slug errors instead of silently returning unfiltered results (ANI-171 review)', () => {
+    // With the enum gone, the registry gate is the only validation — a typo
+    // must not skip the spring filter and pretend everything matched.
+    const result = searchMotionRecipes({ context: 'input', personality: 'never-registered' });
+    assert.ok(result.error, 'unknown slug must error');
+    assert.match(result.error, /Unknown personality "never-registered"/);
+    assert.match(result.error, /cinematic-dark/, 'error lists valid slugs');
+    assert.equal(result.matches, undefined, 'no results leak past the gate');
+  });
+
+  it('custom personality that allows spring does not exclude (ANI-171)', () => {
+    const slug = 'test-mt-spring-ok';
+    registerPersonality({
+      name: 'Springy', slug,
+      characteristics: { motion_intensity: 'dramatic' },
+      camera_behavior: { mode: 'full-3d' },
+    }, { persist: false });
+    try {
+      const { excluded } = searchMotionRecipes({ context: 'input', personality: slug });
+      assert.ok(!(excluded || []).some(e => e.recipe_id === 'state.error'));
+    } finally {
+      unregisterPersonality(slug);
+    }
   });
 
   it('lists recipes for an empty query (discovery)', () => {

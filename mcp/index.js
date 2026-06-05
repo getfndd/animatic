@@ -24,7 +24,6 @@ import { fileURLToPath } from 'node:url';
 // serves resources, and starts the stdio transport.
 import { listReferenceDocs } from './data/loader.js';
 import { STYLE_PACKS } from './lib/planner.js';
-import { getAllPersonalitySlugs } from './lib/personality.js';
 import { ART_DIRECTION_SLUGS } from './lib/art-direction.js';
 import { COMPOSITING_PASS_SLUGS } from './lib/compositing.js';
 import { trackBoot, trackTool } from './lib/telemetry.js';
@@ -184,7 +183,6 @@ const tools = buildTools({
   STYLE_PACKS,
   intentMappings,
   briefTemplatesCatalog,
-  getAllPersonalitySlugs,
   ART_DIRECTION_SLUGS,
   COMPOSITING_PASS_SLUGS,
   listReferenceDocs,

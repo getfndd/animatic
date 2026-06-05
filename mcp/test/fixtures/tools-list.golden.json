@@ -56,19 +56,13 @@
   },
   {
     "name": "get_personality",
-    "description": "Get full personality definition including timing tiers, easing curves, characteristics, camera behavior rules (allowed movements, parallax, DOF, ambient motion), default primitives, and recommended primitives by category from the registry.",
+    "description": "Get full personality definition including timing tiers, easing curves, characteristics, camera behavior rules (allowed movements, parallax, DOF, ambient motion), default primitives, and recommended primitives by category from the registry. Custom personalities (from create_personality) resolve by slug too (ANI-164).",
     "inputSchema": {
       "type": "object",
       "properties": {
         "slug": {
           "type": "string",
-          "enum": [
-            "cinematic-dark",
-            "editorial",
-            "neutral-light",
-            "montage"
-          ],
-          "description": "Personality slug — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`."
+          "description": "Personality slug. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`. A custom slug from create_personality resolves too."
         }
       },
       "required": [
@@ -689,13 +683,7 @@
         },
         "personality": {
           "type": "string",
-          "enum": [
-            "cinematic-dark",
-            "editorial",
-            "neutral-light",
-            "montage"
-          ],
-          "description": "Personality slug used for guardrail validation. Optional — falls back to `scene.personality` when omitted."
+          "description": "Personality slug. Optional — falls back to `scene.personality` when omitted. Built-ins (`cinematic-dark`, `editorial`, `neutral-light`, `montage`) apply personality-specific camera constants; a custom slug from create_personality is accepted and persisted into the compiled timeline (camera constants fall back to base)."
         }
       },
       "required": [

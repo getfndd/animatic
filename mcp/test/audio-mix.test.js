@@ -9,7 +9,9 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildDuckedMuxArgs,
   buildDuckingFfmpegArgs,
+  buildMuxArgs,
   buildVoiceoverTrackArgs,
   DEFAULT_DUCKING_PARAMS,
 } from '../lib/audio-mix.js';
@@ -104,6 +106,81 @@ describe('buildVoiceoverTrackArgs', () => {
     });
     const graph = args[args.indexOf('-filter_complex') + 1];
     assert.match(graph, /adelay=0:all=1/);
+  });
+});
+
+// ── buildMuxArgs ────────────────────────────────────────────────────────────
+
+describe('buildMuxArgs', () => {
+  const baseOpts = {
+    videoPath: 'render.mp4',
+    audioPath: 'track.wav',
+    outputPath: 'final.mp4',
+  };
+
+  it('copies the video stream and encodes audio as AAC', () => {
+    const args = buildMuxArgs(baseOpts);
+    const cvIdx = args.indexOf('-c:v');
+    assert.equal(args[cvIdx + 1], 'copy');
+    const caIdx = args.indexOf('-c:a');
+    assert.equal(args[caIdx + 1], 'aac');
+  });
+
+  it('maps video from input 0 and audio from input 1', () => {
+    const args = buildMuxArgs(baseOpts);
+    const firstMap = args.indexOf('-map');
+    assert.equal(args[firstMap + 1], '0:v');
+    const secondMap = args.indexOf('-map', firstMap + 1);
+    assert.equal(args[secondMap + 1], '1:a');
+  });
+
+  it('does not truncate the picture with -shortest', () => {
+    const args = buildMuxArgs(baseOpts);
+    assert.equal(args.includes('-shortest'), false);
+  });
+
+  it('throws when paths are missing', () => {
+    assert.throws(() => buildMuxArgs({ videoPath: 'x.mp4' }));
+  });
+});
+
+// ── buildDuckedMuxArgs ──────────────────────────────────────────────────────
+
+describe('buildDuckedMuxArgs', () => {
+  const baseOpts = {
+    videoPath: 'render.mp4',
+    voiceoverPath: 'narration.wav',
+    outputPath: 'final.mp4',
+  };
+
+  it('ducks the video\'s own audio stream under the voiceover', () => {
+    const args = buildDuckedMuxArgs(baseOpts);
+    const graph = args[args.indexOf('-filter_complex') + 1];
+    // Input 0 (the video) supplies the "music" side of the compressor.
+    assert.match(graph, /\[0:a\]volume=0dB\[music_g\]/);
+    assert.match(graph, /sidechaincompress=threshold=0\.05:ratio=8/);
+    assert.match(graph, /asplit=2\[vkey\]\[vplay\]/);
+  });
+
+  it('copies video and maps the mixed [out] track', () => {
+    const args = buildDuckedMuxArgs(baseOpts);
+    const cvIdx = args.indexOf('-c:v');
+    assert.equal(args[cvIdx + 1], 'copy');
+    const firstMap = args.indexOf('-map');
+    assert.equal(args[firstMap + 1], '0:v');
+    const secondMap = args.indexOf('-map', firstMap + 1);
+    assert.equal(args[secondMap + 1], '[out]');
+  });
+
+  it('honors ducking overrides like buildDuckingFfmpegArgs', () => {
+    const args = buildDuckedMuxArgs({ ...baseOpts, threshold: 0.1, music_gain_db: -3 });
+    const graph = args[args.indexOf('-filter_complex') + 1];
+    assert.match(graph, /threshold=0\.1/);
+    assert.match(graph, /volume=-3dB/);
+  });
+
+  it('throws when paths are missing', () => {
+    assert.throws(() => buildDuckedMuxArgs({ videoPath: 'x.mp4' }));
   });
 });
 

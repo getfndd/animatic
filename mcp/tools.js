@@ -13,6 +13,7 @@ export function buildTools({
   briefTemplatesCatalog,
   ART_DIRECTION_SLUGS,
   COMPOSITING_PASS_SLUGS,
+  TTS_PROVIDERS,
   listReferenceDocs,
 }) {
   return [
@@ -740,7 +741,7 @@ export function buildTools({
     {
       name: 'render_project',
       description:
-        'Render a project manifest to video. Writes output to renders/ within the project. Runs the preflight doctor (ANI-115) by default — encoder / font / plate / manifest / disk checks — and aborts on any fail-level check unless skip_preflight is true.',
+        'Render a project manifest to video. Writes output to renders/ within the project. Runs the preflight doctor (ANI-115) by default — encoder / font / plate / manifest / disk checks — and aborts on any fail-level check unless skip_preflight is true. Scenes with `voiceover.text` get TTS narration synthesized and mixed into the output, with any embedded music/SFX ducked under the narration (ANI-129).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -750,6 +751,7 @@ export function buildTools({
           mark_as_latest: { type: 'boolean', description: 'Update `entrypoints.latest_render` after a successful render. Default: `true`.' },
           skip_preflight: { type: 'boolean', description: 'Skip the preflight doctor. Default: `false`. Use when you know the environment is ready and want to bypass checks.' },
           dry_run: { type: 'boolean', description: 'Assemble render props and run preflight without spawning the render. Default: `false`.' },
+          tts_provider: { type: 'string', enum: TTS_PROVIDERS, description: 'TTS provider for scenes with `voiceover.text`. Default: `macos_say` on macOS, `mock` elsewhere. Scene-level `voiceover.provider` overrides.' },
         },
         required: ['project'],
       },

@@ -26,6 +26,7 @@ import { listReferenceDocs } from './data/loader.js';
 import { STYLE_PACKS } from './lib/planner.js';
 import { ART_DIRECTION_SLUGS } from './lib/art-direction.js';
 import { COMPOSITING_PASS_SLUGS } from './lib/compositing.js';
+import { AVAILABLE_PROVIDERS as TTS_PROVIDERS } from './lib/tts.js';
 import { trackBoot, trackTool } from './lib/telemetry.js';
 import { buildTools } from './tools.js';
 import { registerTools } from './tools-registry.js';
@@ -185,6 +186,7 @@ const tools = buildTools({
   briefTemplatesCatalog,
   ART_DIRECTION_SLUGS,
   COMPOSITING_PASS_SLUGS,
+  TTS_PROVIDERS,
   listReferenceDocs,
 });
 

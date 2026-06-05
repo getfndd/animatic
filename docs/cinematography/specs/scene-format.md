@@ -68,7 +68,7 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
     },
     "voiceover": {
       "$ref": "#/$defs/voiceover",
-      "description": "Optional narration for this scene (ANI-111). Text is synthesized via a TTS provider. `checkVoiceoverFit` + the preflight doctor warn when the expected spoken duration won't fit the scene hold time."
+      "description": "Optional narration for this scene (ANI-111). Text is synthesized via a TTS provider. `checkVoiceoverFit` + the preflight doctor warn when the expected spoken duration won't fit the scene hold time. At render time (ANI-129), `render_project` synthesizes one clip per speaking scene into `audio/voiceover/`, assembles a timeline-aligned narration track (offsets honor transition overlap), and mixes it into the output MP4 — any embedded music bed / SFX duck ~6dB under the narration via sidechain compression."
     }
   }
 }
@@ -102,7 +102,7 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
       "required": ["text"],
       "properties": {
         "text": { "type": "string", "minLength": 1, "description": "The narration text to synthesize." },
-        "provider": { "type": "string", "description": "TTS provider key. Currently shipped: `mock` (deterministic, silent placeholder for tests), `macos_say` (real speech via the built-in `say` command on macOS). Defaults to `mock` when unset." },
+        "provider": { "type": "string", "description": "TTS provider key. Currently shipped: `mock` (deterministic, silent placeholder for tests), `macos_say` (real speech via the built-in `say` command on macOS). When unset, `render_project` uses its `tts_provider` option (default: `macos_say` on macOS, `mock` elsewhere); other call paths default to `mock`." },
         "voice": { "type": "string", "description": "Provider-specific voice identifier, e.g. `Samantha` / `Alex` for `macos_say`." },
         "speed": { "type": "number", "exclusiveMinimum": 0, "description": "Speed multiplier. 1 = baseline (~165 wpm), 1.2 = 20% faster, 0.9 = slightly slower. Used by the duration estimator and passed through to providers that honor it." }
       }

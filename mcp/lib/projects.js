@@ -16,6 +16,12 @@ import { STYLE_PACKS, STYLE_TO_PERSONALITY } from './planner.js';
 import { buildCaptionsSidecar } from './captions.js';
 import { runPreflight } from './preflight.js';
 import { renderRemotionSequence } from './video.js';
+import {
+  muxVoiceoverIntoRender,
+  planVoiceoverClips,
+  prepareVoiceoverTrack,
+  renderHasEmbeddedAudio,
+} from './voiceover-mix.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -564,7 +570,10 @@ export async function reviewProject(options) {
  * @param {boolean} [options.mark_as_latest=true] - Register output as latest_render.
  * @param {boolean} [options.dry_run=false] - Assemble props and skip the render.
  * @param {boolean} [options.skip_preflight=false] - Skip the preflight doctor (ANI-115).
- * @returns {Promise<{ output, props, missing_scenes, skipped, preflight? } | { error: string, preflight? }>}
+ * @param {string} [options.tts_provider] - TTS provider for scenes with `voiceover.text`
+ *   (ANI-129). Defaults to `macos_say` on macOS, `mock` elsewhere; scene-level
+ *   `voiceover.provider` overrides.
+ * @returns {Promise<{ output, props, missing_scenes, skipped, preflight?, voiceover? } | { error: string, preflight? }>}
  */
 export async function renderProject(options) {
   const {
@@ -574,6 +583,7 @@ export async function renderProject(options) {
     mark_as_latest = true,
     dry_run = false,
     skip_preflight = false,
+    tts_provider = undefined,
   } = options;
 
   const proj = await getProject({ project: projectId });
@@ -640,6 +650,13 @@ export async function renderProject(options) {
     }
   }
 
+  // Voiceover (ANI-129) — scenes carrying `voiceover.text` get synthesized
+  // narration mixed into the final output. Planned before the render so a
+  // failed synthesis aborts before Remotion compute is spent; the mux itself
+  // happens post-render (the render's embedded music/SFX duck under the
+  // narration, see voiceover-mix.js).
+  const voiceoverClips = planVoiceoverClips(manifest, sceneDefs);
+
   if (dry_run) {
     return {
       output: outputPath,
@@ -648,10 +665,47 @@ export async function renderProject(options) {
       missing_scenes: missingScenes,
       skipped: 'dry_run',
       preflight,
+      voiceover: voiceoverClips.length > 0
+        ? {
+            planned_clips: voiceoverClips.map(({ scene_id, offset_ms }) => ({ scene_id, offset_ms })),
+            will_duck_embedded_audio: renderHasEmbeddedAudio(manifest),
+          }
+        : null,
     };
   }
 
+  let voiceoverTrack = null;
+  if (voiceoverClips.length > 0) {
+    voiceoverTrack = await prepareVoiceoverTrack({
+      clips: voiceoverClips,
+      projectRoot: proj.project_root,
+      ...(tts_provider ? { provider: tts_provider } : {}),
+    });
+    if (voiceoverTrack.error) {
+      return {
+        error: `Voiceover synthesis failed: ${voiceoverTrack.error}`,
+        voiceover: { results: voiceoverTrack.results },
+        preflight,
+      };
+    }
+  }
+
   await renderRemotionSequence(props, outputPath);
+
+  let voiceoverOutput = null;
+  if (voiceoverTrack) {
+    const mux = await muxVoiceoverIntoRender({
+      videoPath: outputPath,
+      trackPath: voiceoverTrack.track,
+      hasEmbeddedAudio: renderHasEmbeddedAudio(manifest),
+    });
+    voiceoverOutput = {
+      clips: voiceoverTrack.clips.map(({ scene_id, path_relative, offset_ms, duration_ms, provider }) =>
+        ({ scene_id, path: path_relative, offset_ms, duration_ms, provider })),
+      track: voiceoverTrack.track_relative,
+      ducked_embedded_audio: mux.ducked,
+    };
+  }
 
   // Captions sidecar (ANI-112) — emit an SRT alongside the MP4 whenever any
   // scene carries caption cues. Silently skipped when there are no cues, so
@@ -685,5 +739,6 @@ export async function renderProject(options) {
     missing_scenes: missingScenes,
     preflight,
     captions: captionsOutput,
+    voiceover: voiceoverOutput,
   };
 }

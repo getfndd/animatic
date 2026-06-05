@@ -30,6 +30,8 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — filters registry entries by built-in
+            // personality tags (+universal); a custom slug would match nothing.
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage', 'universal'],
             description: 'Filter by personality affinity: `cinematic-dark`, `editorial`, `neutral-light`, `montage`, or `universal`.',
           },
@@ -63,14 +65,15 @@ export function buildTools({
     {
       name: 'get_personality',
       description:
-        'Get full personality definition including timing tiers, easing curves, characteristics, camera behavior rules (allowed movements, parallax, DOF, ambient motion), default primitives, and recommended primitives by category from the registry.',
+        'Get full personality definition including timing tiers, easing curves, characteristics, camera behavior rules (allowed movements, parallax, DOF, ambient motion), default primitives, and recommended primitives by category from the registry. Custom personalities (from create_personality) resolve by slug too (ANI-164).',
       inputSchema: {
         type: 'object',
         properties: {
           slug: {
+            // No enum: a custom slug from create_personality is also valid here —
+            // the handler resolves via the registry (getPersonality, ANI-164/170).
             type: 'string',
-            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
-            description: 'Personality slug — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
+            description: 'Personality slug. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`. A custom slug from create_personality resolves too.',
           },
         },
         required: ['slug'],
@@ -85,6 +88,8 @@ export function buildTools({
         properties: {
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — filters the breakdown index by built-in
+            // personality tags (+universal); a custom slug would match nothing.
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage', 'universal'],
             description: 'Filter by personality: `cinematic-dark`, `editorial`, `neutral-light`, `montage`, or `universal`.',
           },
@@ -301,6 +306,9 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — handler validates against built-ins and
+            // guardrails read the static personality_boundaries catalog (custom
+            // support tracked separately).
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Personality to validate against — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
           },
@@ -590,6 +598,8 @@ export function buildTools({
           personality: {
             type: 'string',
             description: 'Override auto-detected personality',
+            // ANI-170: enum intentional — value flows into a manifest consumed by
+            // built-in-keyed validators downstream (validate_manifest, render routing).
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
           },
           enhance: {
@@ -614,6 +624,8 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — filters archetypes by built-in
+            // personality tags; a custom slug would match nothing.
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Filter archetypes by personality compatibility — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
           },
@@ -638,6 +650,9 @@ export function buildTools({
           brand: { type: 'string', description: 'Brand identifier to associate with the project.' },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — stored in project.json and consumed by
+            // built-in-keyed pipeline stages downstream (custom support tracked
+            // separately).
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Animation personality — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
           },
@@ -777,6 +792,8 @@ export function buildTools({
         properties: {
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — filters art directions by their curated
+            // compatible_personalities tags (built-in only).
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Filter by compatible personality',
           },
@@ -801,6 +818,8 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — filters hero moments by their built-in
+            // personality_affinity tags.
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Animation personality to filter by affinity',
           },
@@ -826,6 +845,8 @@ export function buildTools({
         properties: {
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — compositing stacks + scoring rules are
+            // keyed per built-in personality (compositing.js PERSONALITY_STACKS).
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Personality slug — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
           },
@@ -875,6 +896,8 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — brands.js validates against the built-in
+            // slug list before persisting the brand package.
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Default animation personality — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
           },
@@ -1032,6 +1055,8 @@ export function buildTools({
         type: 'object',
         properties: {
           archetype_slug: { type: 'string', description: 'Archetype slug (e.g., `prompt_to_answer`, `brief_to_board`).' },
+          // ANI-170: enum intentional — stored into the instantiated manifest,
+          // which built-in-keyed validators consume downstream.
           personality: { type: 'string', enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'], description: 'Personality — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.' },
           duration_s: { type: 'number', description: 'Target total duration in seconds.' },
           content_hints: { type: 'object', description: 'Optional content hints keyed by scene role.' },
@@ -1207,6 +1232,8 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — layout notes are a static per-built-in
+            // map (falls back to editorial for unknown keys).
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Animation personality for style-appropriate defaults — `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
           },
@@ -1227,6 +1254,8 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — layout guidance hardcodes built-in
+            // checks (recommend-layout.js).
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Animation personality. Product-UI surfaces are usually storyboarded in editorial or neutral-light register.',
           },
@@ -1291,6 +1320,8 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — spring filter reads the static guardrails
+            // catalog (built-in keys only); registry reroute tracked separately.
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Optional personality. Applies the spring_physics guardrail (montage excludes spring/framer-only recipes).',
           },
@@ -1399,6 +1430,8 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — treatments are a static nested map keyed
+            // per built-in; the handler errors on unknown keys.
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Animation personality context: `cinematic-dark`, `editorial`, `neutral-light`, or `montage`.',
           },
@@ -1689,6 +1722,8 @@ export function buildTools({
           },
           personality: {
             type: 'string',
+            // ANI-170: enum intentional — render routing checks a KNOWN_PERSONALITIES
+            // whitelist + per-built-in forbidden-CSS map (render-routing.js).
             enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage'],
             description: 'Personality slug. Used to detect forbidden CSS features (3d_transforms, blur) per scene. Falls back to scene.personality.',
           },

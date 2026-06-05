@@ -21,7 +21,7 @@ import {
   resolveChoreographyPersonality,
 } from '../lib/personality.js';
 import { loadCustomPersonalityDefinitions } from '../data/loader.js';
-import { handleCreatePersonality, handleGetPersonality, handleRecommendChoreography, handleValidateChoreography } from '../handlers.js';
+import { handleCreatePersonality, handleGetPersonality, handleRecommendChoreography, handleValidateChoreography, handleSearchPrimitives, handleSearchBreakdowns } from '../handlers.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -487,6 +487,10 @@ describe('create_personality → recommend_choreography (ANI-166)', () => {
       for (const prim of ['ct-camera-dolly', 'ct-camera-crane', 'ct-dolly-zoom']) {
         assert.ok(!text.includes(prim), `forbidden camera primitive ${prim} must be filtered out`);
       }
+      // Spring companions don't leak either — restrained none-mode derives a
+      // spring_physics ban (ANI-172 review); the non-spring stagger survives.
+      assert.ok(!text.includes('lib-gsap-spring-stagger'), 'spring companion must be filtered out');
+      assert.ok(text.includes('lib-gsap-radial-stagger'), 'non-spring companion survives');
       assert.ok(text.includes('No camera movement'), 'camera section should reflect the none mode');
       assert.ok(text.includes('guardrails'), 'note should explain candidates are guardrail-filtered');
     } finally {
@@ -546,6 +550,31 @@ describe('create_personality → recommend_choreography (ANI-166)', () => {
     }
   });
 
+  it('validate_choreography blocks spring primitives for a spring-forbidding custom personality (ANI-172 review)', () => {
+    const slug = 'test-validate-spring';
+    handleCreatePersonality({
+      definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' }, inherits_choreography_from: 'cinematic-dark' }),
+    });
+    try {
+      const res = handleValidateChoreography({ primitive_ids: ['lib-gsap-spring-stagger'], personality: slug });
+      const text = res.content[0].text;
+      assert.ok(text.includes('BLOCK'), 'derived spring ban must block');
+      assert.ok(text.includes('(spring)'), 'block reason is the spring guardrail');
+      assert.ok(!text.includes('Personality mismatch'), 'affinity passes via the inherited matrix');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('montage blocks universal-tagged spring primitives (built-in fix, ANI-172 review)', () => {
+    // bk-spring-card-hover is universal-tagged, so affinity passes for montage —
+    // but montage forbids spring_physics. Previously a false PASS.
+    const res = handleValidateChoreography({ primitive_ids: ['bk-spring-card-hover'], personality: 'montage' });
+    const text = res.content[0].text;
+    assert.ok(text.includes('BLOCK'));
+    assert.ok(text.includes('(spring)'));
+  });
+
   it('validate_choreography blocks scale-based camera moves for a no-camera personality (ANI-168)', () => {
     // recommend_choreography drops ALL camera moves for a none-mode personality;
     // validate must agree. ct-dolly-zoom's amplitude is `scale`, which the old
@@ -588,6 +617,109 @@ describe('create_personality → recommend_choreography (ANI-166)', () => {
     } finally {
       unregisterPersonality(slug);
     }
+  });
+});
+
+// ── Search analog resolution (ANI-172) ───────────────────────────────────────
+// Mechanical-vs-curatorial rule: search_primitives/search_breakdowns resolve a
+// custom slug through its choreography analog (with explicit framing);
+// curatorial catalogs (archetypes, art directions, hero moments) do not.
+
+describe('search_primitives — custom personalities (ANI-172)', () => {
+  const idsIn = (text) => [...text.matchAll(/^\| ([a-z0-9.-]+) \|/gm)].map(m => m[1]);
+
+  it('custom 2d-only slug returns a guardrail-filtered subset of its editorial analog, with framing', () => {
+    const slug = 'test-sp-2d';
+    handleCreatePersonality({ definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' } }) });
+    try {
+      const custom = handleSearchPrimitives({ personality: slug });
+      const editorial = handleSearchPrimitives({ personality: 'editorial' });
+      assert.ok(!custom.isError);
+      const customText = custom.content[0].text;
+      assert.ok(customText.includes('derives its matrix from built-in `editorial`'),
+        'analog framing note must be present');
+      const editorialIds = new Set(idsIn(editorial.content[0].text));
+      const customIds = idsIn(customText);
+      assert.ok(customIds.length > 0, 'analog resolution must return results, not an empty set');
+      for (const id of customIds) {
+        assert.ok(editorialIds.has(id), `${id} must come from the editorial analog`);
+      }
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('none-camera custom slug excludes the analog\'s camera-move primitives', () => {
+    const slug = 'test-sp-none';
+    handleCreatePersonality({ definition: makeDefinition({ slug, camera_behavior: { mode: 'none' } }) });
+    try {
+      const editorialIds = idsIn(handleSearchPrimitives({ personality: 'editorial' }).content[0].text);
+      assert.ok(editorialIds.includes('ed-camera-drift'), 'precondition: editorial has a camera-move primitive');
+      const customIds = idsIn(handleSearchPrimitives({ personality: slug }).content[0].text);
+      assert.ok(!customIds.includes('ed-camera-drift'),
+        'camera_movement-forbidding personality must not surface analog camera moves');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('spring-forbidding custom slug excludes spring primitives (ANI-172 review)', () => {
+    // Reviewer repro: restrained/none custom personalities derive a
+    // spring_physics ban; the analog's spring-driven primitives must not leak.
+    const slug = 'test-sp-no-spring';
+    handleCreatePersonality({ definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' } }) });
+    try {
+      const text = handleSearchPrimitives({ personality: slug }).content[0].text;
+      for (const id of ['lib-gsap-spring-stagger', 'lib-framer-spring-stagger', 'lib-framer-shared-layout', 'bk-spring-card-hover']) {
+        assert.ok(!text.includes(` ${id} `), `${id} is spring-driven and must be filtered out`);
+      }
+      assert.ok(text.includes('spring_physics'), 'framing note names the spring ban');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('unknown slug errors with the valid list', () => {
+    const res = handleSearchPrimitives({ personality: 'never-registered' });
+    assert.ok(res.isError);
+    assert.match(res.content[0].text, /Unknown personality "never-registered"/);
+    assert.match(res.content[0].text, /cinematic-dark/);
+  });
+
+  it('built-in and universal filters are unchanged (regression)', () => {
+    const editorial = handleSearchPrimitives({ personality: 'editorial' });
+    assert.ok(!editorial.isError);
+    assert.ok(!editorial.content[0].text.includes('Custom personality'), 'no analog note for built-ins');
+    const universal = handleSearchPrimitives({ personality: 'universal' });
+    assert.ok(!universal.isError, 'universal remains a valid filter value');
+  });
+});
+
+describe('search_breakdowns — custom personalities (ANI-172)', () => {
+  it('custom slug returns its analog\'s breakdowns with framing', () => {
+    const slug = 'test-sb-2d';
+    handleCreatePersonality({ definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' } }) });
+    try {
+      const custom = handleSearchBreakdowns({ personality: slug });
+      const editorial = handleSearchBreakdowns({ personality: 'editorial' });
+      assert.ok(!custom.isError);
+      const customText = custom.content[0].text;
+      assert.ok(customText.includes('derives its matrix from built-in `editorial`'));
+      // Same row set as the analog (no guardrail post-filter for breakdowns).
+      const rows = (t) => t.split('\n').filter(l => /^\| [a-z]/.test(l));
+      assert.deepEqual(rows(customText), rows(editorial.content[0].text));
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('unknown slug errors; built-in filter unchanged (regression)', () => {
+    const bad = handleSearchBreakdowns({ personality: 'never-registered' });
+    assert.ok(bad.isError);
+    assert.match(bad.content[0].text, /Unknown personality/);
+    const editorial = handleSearchBreakdowns({ personality: 'editorial' });
+    assert.ok(!editorial.isError);
+    assert.ok(!editorial.content[0].text.includes('Custom personality'));
   });
 });
 

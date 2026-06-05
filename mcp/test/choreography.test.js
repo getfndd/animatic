@@ -236,6 +236,47 @@ describe('blur_primitives data integrity', () => {
   });
 });
 
+// ── spring_primitives (ANI-172 review) ───────────────────────────────────────
+// Spring isn't derivable from amplitudes; the catalog curates the list (same
+// mechanism as blur_primitives) and the shared predicate enforces it.
+
+describe('spring_primitives guardrail', () => {
+  it('all spring_primitives IDs exist in the registry', () => {
+    const missing = cameraGuardrails.spring_primitives.filter(id => !registry.byId.has(id));
+    assert.deepEqual(missing, [], `spring_primitives references unknown IDs: ${missing.join(', ')}`);
+  });
+
+  it('spring-driven primitives violate a spring_physics ban', () => {
+    for (const id of cameraGuardrails.spring_primitives) {
+      const entry = registry.byId.get(id);
+      assert.ok(
+        primitiveViolatesForbidden(id, entry, ['spring_physics'], cameraGuardrails),
+        `${id} must violate spring_physics`
+      );
+    }
+  });
+
+  it('non-spring primitives are unaffected by a spring_physics ban', () => {
+    for (const id of ['ed-scene-breathe', 'lib-gsap-radial-stagger']) {
+      const entry = registry.byId.get(id);
+      assert.ok(entry, `${id} must exist`);
+      assert.equal(
+        primitiveViolatesForbidden(id, entry, ['spring_physics'], cameraGuardrails),
+        false,
+        `${id} is not spring-driven (radial stagger has no spring config)`
+      );
+    }
+  });
+
+  it('filterByGuardrails drops spring primitives when spring_physics is forbidden', () => {
+    const result = filterByGuardrails(
+      ['lib-gsap-spring-stagger', 'lib-gsap-radial-stagger'],
+      ['spring_physics'], cameraGuardrails, registry
+    );
+    assert.deepEqual(result, ['lib-gsap-radial-stagger']);
+  });
+});
+
 // ── Tier 6: intent cross-reference ───────────────────────────────────────────
 
 describe('Tier 6 intent cross-reference', () => {

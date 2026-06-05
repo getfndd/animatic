@@ -22,7 +22,6 @@ import { TOOL_GROUPS, EDGE_EXCLUDE, edgeStripParams } from '../tool-groups.js';
 
 import { loadIntentMappings, loadBriefTemplates, listReferenceDocs } from '../data/loader.js';
 import { STYLE_PACKS } from '../lib/planner.js';
-import { getAllPersonalitySlugs } from '../lib/personality.js';
 import { ART_DIRECTION_SLUGS } from '../lib/art-direction.js';
 import { COMPOSITING_PASS_SLUGS } from '../lib/compositing.js';
 import { buildTools } from '../tools.js';
@@ -35,7 +34,6 @@ function buildAllTools() {
     STYLE_PACKS,
     intentMappings: loadIntentMappings(),
     briefTemplatesCatalog: loadBriefTemplates(),
-    getAllPersonalitySlugs,
     ART_DIRECTION_SLUGS,
     COMPOSITING_PASS_SLUGS,
     listReferenceDocs,

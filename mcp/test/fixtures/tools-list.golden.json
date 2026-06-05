@@ -683,13 +683,7 @@
         },
         "personality": {
           "type": "string",
-          "enum": [
-            "cinematic-dark",
-            "editorial",
-            "neutral-light",
-            "montage"
-          ],
-          "description": "Personality slug used for guardrail validation. Optional — falls back to `scene.personality` when omitted."
+          "description": "Personality slug. Optional — falls back to `scene.personality` when omitted. Built-ins (`cinematic-dark`, `editorial`, `neutral-light`, `montage`) apply personality-specific camera constants; a custom slug from create_personality is accepted and persisted into the compiled timeline (camera constants fall back to base)."
         }
       },
       "required": [

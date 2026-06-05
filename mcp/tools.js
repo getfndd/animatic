@@ -11,7 +11,6 @@ export function buildTools({
   STYLE_PACKS,
   intentMappings,
   briefTemplatesCatalog,
-  getAllPersonalitySlugs,
   ART_DIRECTION_SLUGS,
   COMPOSITING_PASS_SLUGS,
   listReferenceDocs,
@@ -538,9 +537,14 @@ export function buildTools({
             description: 'A v2 or v3 scene definition. v2 scenes carry a `motion` block with groups, recipes, stagger, cues, and camera sync; v3 scenes carry a `semantic` block with components, interactions, and camera_behavior.',
           },
           personality: {
+            // No enum: the valid set is runtime-mutable (create_personality can
+            // register slugs mid-session) but schemas are built once at startup —
+            // a frozen enum would reject slugs created after launch and advertise
+            // since-deleted ones. The handler tolerates any slug: built-ins get
+            // personality-specific camera constants, unknown slugs fall back to
+            // base constants and carry through to the timeline (ANI-170 review).
             type: 'string',
-            enum: getAllPersonalitySlugs(),
-            description: 'Personality slug used for guardrail validation. Optional — falls back to `scene.personality` when omitted.',
+            description: 'Personality slug. Optional — falls back to `scene.personality` when omitted. Built-ins (`cinematic-dark`, `editorial`, `neutral-light`, `montage`) apply personality-specific camera constants; a custom slug from create_personality is accepted and persisted into the compiled timeline (camera constants fall back to base).',
           },
         },
         required: ['scene'],

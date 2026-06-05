@@ -17,7 +17,7 @@ import { resolve } from 'node:path';
 
 import { loadBenchmarks, readBreakdown, readReferenceDoc, listReferenceDocs } from './data/loader.js';
 
-import { filterByPersonality, filterByGuardrails, parseDurationMs, checkBlurViolations } from './lib.js';
+import { filterByPersonality, filterByGuardrails, primitiveViolatesForbidden, parseDurationMs, checkBlurViolations } from './lib.js';
 import { analyzeScene } from './lib/analyze.js';
 import { planSequence, planVariants, STYLE_PACKS } from './lib/planner.js';
 import { evaluateSequence, compareVariants } from './lib/evaluate.js';
@@ -153,12 +153,37 @@ export function handleSearchPrimitives(args) {
     );
   }
 
-  if (args.personality) {
+  // Personality filter (ANI-172): `universal` filters for universally-tagged
+  // primitives; built-ins filter by their own tag. A custom slug resolves to
+  // its choreography analog (this is a mechanical-compatibility surface), and
+  // the analog's results are post-filtered by the custom personality's OWN
+  // derived guardrails — mirroring recommend_choreography. Curatorial catalogs
+  // (archetypes, art directions, hero moments) deliberately do NOT do this.
+  let analogNote = '';
+  if (args.personality === 'universal') {
+    results = results.filter((e) => e.personality.includes('universal'));
+  } else if (args.personality) {
+    const choreo = resolveChoreographyPersonality(args.personality);
+    if (!choreo) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Unknown personality "${args.personality}". Valid: ${getAllPersonalitySlugs().join(', ')}, or \`universal\`.`,
+        }],
+        isError: true,
+      };
+    }
     results = results.filter((e) =>
-      e.personality.some(
-        (p) => p === args.personality || p === 'universal'
-      )
+      e.personality.some((p) => p === choreo.slug || p === 'universal')
     );
+    if (choreo.source !== 'builtin') {
+      const ownForbidden = getGuardrailBoundaries(args.personality)?.forbidden_features || [];
+      results = results.filter(
+        (e) => !primitiveViolatesForbidden(e.id, e, ownForbidden, cameraGuardrails)
+      );
+      const verb = choreo.source === 'inherited' ? 'inherits' : 'derives';
+      analogNote = `> Custom personality \`${args.personality}\` (camera mode: ${choreo.mode}) ${verb} its matrix from built-in \`${choreo.slug}\` — results shown via that analog, post-filtered by \`${args.personality}\`'s own guardrails${ownForbidden.length > 0 ? ` (forbidden: ${ownForbidden.join(', ')})` : ''}.\n\n`;
+    }
   }
 
   if (args.category) {
@@ -172,9 +197,9 @@ export function handleSearchPrimitives(args) {
     results = results.filter((e) => e.source === args.source);
   }
 
-  const text = results.length === 0
+  const text = analogNote + (results.length === 0
     ? 'No primitives found matching the given filters.'
-    : formatPrimitivesTable(results);
+    : formatPrimitivesTable(results));
 
   return { content: [{ type: 'text', text }] };
 }
@@ -446,12 +471,31 @@ export function handleGetPersonality(args) {
 export function handleSearchBreakdowns(args) {
   let results = [...breakdownIndex];
 
-  if (args.personality) {
+  // Personality filter (ANI-172): a custom slug resolves to its choreography
+  // analog, same as search_primitives. Breakdowns are reference analyses (not
+  // registry primitives), so no guardrail post-filter applies — the analog tag
+  // is the whole mechanical signal here.
+  let analogNote = '';
+  if (args.personality === 'universal') {
+    results = results.filter((b) => b.personality === 'universal');
+  } else if (args.personality) {
+    const choreo = resolveChoreographyPersonality(args.personality);
+    if (!choreo) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Unknown personality "${args.personality}". Valid: ${getAllPersonalitySlugs().join(', ')}, or \`universal\`.`,
+        }],
+        isError: true,
+      };
+    }
     results = results.filter(
-      (b) =>
-        b.personality === args.personality ||
-        b.personality === 'universal'
+      (b) => b.personality === choreo.slug || b.personality === 'universal'
     );
+    if (choreo.source !== 'builtin') {
+      const verb = choreo.source === 'inherited' ? 'inherits' : 'derives';
+      analogNote = `> Custom personality \`${args.personality}\` (camera mode: ${choreo.mode}) ${verb} its matrix from built-in \`${choreo.slug}\` — breakdowns shown via that analog.\n\n`;
+    }
   }
 
   if (args.quality) {
@@ -471,11 +515,11 @@ export function handleSearchBreakdowns(args) {
 
   if (results.length === 0) {
     return {
-      content: [{ type: 'text', text: 'No breakdowns found matching the given filters.' }],
+      content: [{ type: 'text', text: analogNote + 'No breakdowns found matching the given filters.' }],
     };
   }
 
-  let out = `Found ${results.length} breakdown(s):\n\n`;
+  let out = analogNote + `Found ${results.length} breakdown(s):\n\n`;
   out += '| Slug | Title | Type | Personality | Quality | Tags |\n';
   out += '|------|-------|------|-------------|---------|------|\n';
   for (const b of results) {

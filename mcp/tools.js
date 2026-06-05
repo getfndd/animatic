@@ -29,10 +29,9 @@ export function buildTools({
           },
           personality: {
             type: 'string',
-            // ANI-170: enum intentional — filters registry entries by built-in
-            // personality tags (+universal); a custom slug would match nothing.
-            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage', 'universal'],
-            description: 'Filter by personality affinity: `cinematic-dark`, `editorial`, `neutral-light`, `montage`, or `universal`.',
+            // No enum: a custom slug resolves through its choreography analog and
+            // results post-filter by its derived guardrails (ANI-172).
+            description: 'Filter by personality affinity. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`; `universal` for universally-tagged primitives. A custom slug from create_personality resolves through its choreography analog, post-filtered by its own derived guardrails.',
           },
           category: {
             type: 'string',
@@ -87,10 +86,10 @@ export function buildTools({
         properties: {
           personality: {
             type: 'string',
-            // ANI-170: enum intentional — filters the breakdown index by built-in
-            // personality tags (+universal); a custom slug would match nothing.
-            enum: ['cinematic-dark', 'editorial', 'neutral-light', 'montage', 'universal'],
-            description: 'Filter by personality: `cinematic-dark`, `editorial`, `neutral-light`, `montage`, or `universal`.',
+            // No enum: a custom slug resolves through its choreography analog
+            // (ANI-172). Breakdowns aren't registry primitives, so no guardrail
+            // post-filter applies.
+            description: 'Filter by personality. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`; `universal` for universal breakdowns. A custom slug from create_personality resolves through its choreography analog.',
           },
           quality: {
             type: 'string',

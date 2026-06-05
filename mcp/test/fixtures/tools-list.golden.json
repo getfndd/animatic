@@ -11,14 +11,7 @@
         },
         "personality": {
           "type": "string",
-          "enum": [
-            "cinematic-dark",
-            "editorial",
-            "neutral-light",
-            "montage",
-            "universal"
-          ],
-          "description": "Filter by personality affinity: `cinematic-dark`, `editorial`, `neutral-light`, `montage`, or `universal`."
+          "description": "Filter by personality affinity. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`; `universal` for universally-tagged primitives. A custom slug from create_personality resolves through its choreography analog, post-filtered by its own derived guardrails."
         },
         "category": {
           "type": "string",
@@ -78,14 +71,7 @@
       "properties": {
         "personality": {
           "type": "string",
-          "enum": [
-            "cinematic-dark",
-            "editorial",
-            "neutral-light",
-            "montage",
-            "universal"
-          ],
-          "description": "Filter by personality: `cinematic-dark`, `editorial`, `neutral-light`, `montage`, or `universal`."
+          "description": "Filter by personality. Built-ins: `cinematic-dark`, `editorial`, `neutral-light`, `montage`; `universal` for universal breakdowns. A custom slug from create_personality resolves through its choreography analog."
         },
         "quality": {
           "type": "string",

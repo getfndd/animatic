@@ -115,6 +115,40 @@ describe('prepareVoiceoverTrack', () => {
     }
   });
 
+  it('names clips by the resolved clip id when scene JSON lacks scene_id', async () => {
+    // renderProject keys sceneDefs by `sceneData.scene_id || entry.id` — a
+    // scene file without its own scene_id is valid. Regression: these clips
+    // all collided on `undefined.wav` while the report claimed per-scene
+    // paths, duplicating narration in the final mix.
+    const projectRoot = mkdtempSync(join(tmpdir(), 'ani-129-'));
+    try {
+      const { exec, commands } = fakeExec();
+      const sceneDefs = {
+        sc_01: { voiceover: { text: 'First line.' } },   // no scene_id field
+        sc_02: { voiceover: { text: 'Second line.' } },  // no scene_id field
+      };
+      const manifest = {
+        scenes: [
+          { scene: 'sc_01', duration_s: 3 },
+          { scene: 'sc_02', duration_s: 3 },
+        ],
+      };
+      const clips = planVoiceoverClips(manifest, sceneDefs);
+      const result = await prepareVoiceoverTrack({ clips, projectRoot, provider: 'mock', exec });
+
+      assert.equal(result.error, undefined);
+      assert.ok(existsSync(join(projectRoot, VOICEOVER_DIR, 'sc_01.wav')));
+      assert.ok(existsSync(join(projectRoot, VOICEOVER_DIR, 'sc_02.wav')));
+      assert.equal(existsSync(join(projectRoot, VOICEOVER_DIR, 'undefined.wav')), false);
+      // The track build references both distinct files.
+      const args = commands[0];
+      assert.ok(args.includes(join(projectRoot, VOICEOVER_DIR, 'sc_01.wav')));
+      assert.ok(args.includes(join(projectRoot, VOICEOVER_DIR, 'sc_02.wav')));
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
   it('fails hard when a clip fails to synthesize', async () => {
     const projectRoot = mkdtempSync(join(tmpdir(), 'ani-129-'));
     try {

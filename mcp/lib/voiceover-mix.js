@@ -105,7 +105,14 @@ export async function prepareVoiceoverTrack(opts) {
   }
 
   const outputDir = join(projectRoot, VOICEOVER_DIR);
-  const results = await synthesizeVoiceovers(clips.map(c => c.scene), { outputDir, provider });
+  // Carry the clip's resolved id into synthesis: scene JSON may lack its own
+  // scene_id (renderProject keys sceneDefs by `sceneData.scene_id || entry.id`),
+  // and synthesizeVoiceovers derives the output filename from the scene object —
+  // without this, such scenes all collide on `undefined.wav`.
+  const results = await synthesizeVoiceovers(
+    clips.map(c => ({ ...c.scene, scene_id: c.scene_id })),
+    { outputDir, provider },
+  );
 
   const failed = results.filter(r => r.status === 'failed');
   if (failed.length > 0) {

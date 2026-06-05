@@ -908,6 +908,11 @@ export function handleValidateChoreography(args) {
     if (forbiddenFeatures.includes('camera_shake') && id === 'ct-camera-shake') {
       blocks.push(`**Forbidden feature (camera shake):** \`${id}\` is forbidden in ${targetPersonality}.`);
     }
+
+    // Spring physics check — catalog-curated list, like blur (ANI-172 review)
+    if (forbiddenFeatures.includes('spring_physics') && cameraGuardrails.spring_primitives?.includes(id)) {
+      blocks.push(`**Forbidden feature (spring):** \`${id}\` is spring-driven, forbidden in ${targetPersonality}.`);
+    }
   }
 
   // ── Tier 4: WARN — Speed limits ──────────────────────────────────────────

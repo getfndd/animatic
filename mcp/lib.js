@@ -46,6 +46,13 @@ export function primitiveViolatesForbidden(id, entry, forbiddenFeatures, cameraG
 
   if (forbiddenFeatures.includes('camera_shake') && id === 'ct-camera-shake') return true;
 
+  // Spring physics — like blur, not derivable from amplitudes; the catalog
+  // curates the spring-driven primitive list (ANI-172 review).
+  if (
+    forbiddenFeatures.includes('spring_physics') &&
+    cameraGuardrails.spring_primitives?.includes(id)
+  ) return true;
+
   return false;
 }
 

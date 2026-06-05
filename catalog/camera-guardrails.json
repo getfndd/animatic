@@ -65,5 +65,11 @@
     "ct-text-hero",
     "ct-camera-rack-focus",
     "ct-glow-pulse"
+  ],
+  "spring_primitives": [
+    "lib-gsap-spring-stagger",
+    "lib-framer-spring-stagger",
+    "lib-framer-shared-layout",
+    "bk-spring-card-hover"
   ]
 }

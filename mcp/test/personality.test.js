@@ -487,6 +487,10 @@ describe('create_personality → recommend_choreography (ANI-166)', () => {
       for (const prim of ['ct-camera-dolly', 'ct-camera-crane', 'ct-dolly-zoom']) {
         assert.ok(!text.includes(prim), `forbidden camera primitive ${prim} must be filtered out`);
       }
+      // Spring companions don't leak either — restrained none-mode derives a
+      // spring_physics ban (ANI-172 review); the non-spring stagger survives.
+      assert.ok(!text.includes('lib-gsap-spring-stagger'), 'spring companion must be filtered out');
+      assert.ok(text.includes('lib-gsap-radial-stagger'), 'non-spring companion survives');
       assert.ok(text.includes('No camera movement'), 'camera section should reflect the none mode');
       assert.ok(text.includes('guardrails'), 'note should explain candidates are guardrail-filtered');
     } finally {
@@ -544,6 +548,31 @@ describe('create_personality → recommend_choreography (ANI-166)', () => {
     } finally {
       unregisterPersonality(slug);
     }
+  });
+
+  it('validate_choreography blocks spring primitives for a spring-forbidding custom personality (ANI-172 review)', () => {
+    const slug = 'test-validate-spring';
+    handleCreatePersonality({
+      definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' }, inherits_choreography_from: 'cinematic-dark' }),
+    });
+    try {
+      const res = handleValidateChoreography({ primitive_ids: ['lib-gsap-spring-stagger'], personality: slug });
+      const text = res.content[0].text;
+      assert.ok(text.includes('BLOCK'), 'derived spring ban must block');
+      assert.ok(text.includes('(spring)'), 'block reason is the spring guardrail');
+      assert.ok(!text.includes('Personality mismatch'), 'affinity passes via the inherited matrix');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('montage blocks universal-tagged spring primitives (built-in fix, ANI-172 review)', () => {
+    // bk-spring-card-hover is universal-tagged, so affinity passes for montage —
+    // but montage forbids spring_physics. Previously a false PASS.
+    const res = handleValidateChoreography({ primitive_ids: ['bk-spring-card-hover'], personality: 'montage' });
+    const text = res.content[0].text;
+    assert.ok(text.includes('BLOCK'));
+    assert.ok(text.includes('(spring)'));
   });
 
   it('validate_choreography blocks scale-based camera moves for a no-camera personality (ANI-168)', () => {
@@ -629,6 +658,22 @@ describe('search_primitives — custom personalities (ANI-172)', () => {
       const customIds = idsIn(handleSearchPrimitives({ personality: slug }).content[0].text);
       assert.ok(!customIds.includes('ed-camera-drift'),
         'camera_movement-forbidding personality must not surface analog camera moves');
+    } finally {
+      unregisterPersonality(slug);
+    }
+  });
+
+  it('spring-forbidding custom slug excludes spring primitives (ANI-172 review)', () => {
+    // Reviewer repro: restrained/none custom personalities derive a
+    // spring_physics ban; the analog's spring-driven primitives must not leak.
+    const slug = 'test-sp-no-spring';
+    handleCreatePersonality({ definition: makeDefinition({ slug, camera_behavior: { mode: '2d-only' } }) });
+    try {
+      const text = handleSearchPrimitives({ personality: slug }).content[0].text;
+      for (const id of ['lib-gsap-spring-stagger', 'lib-framer-spring-stagger', 'lib-framer-shared-layout', 'bk-spring-card-hover']) {
+        assert.ok(!text.includes(` ${id} `), `${id} is spring-driven and must be filtered out`);
+      }
+      assert.ok(text.includes('spring_physics'), 'framing note names the spring ban');
     } finally {
       unregisterPersonality(slug);
     }

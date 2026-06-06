@@ -62,14 +62,22 @@ export function buildDuckingFfmpegArgs(opts) {
   // Filter graph:
   //   [music] → volume adjust → [music_g]
   //   [voice] → volume adjust + asplit so it both drives the sidechain and
-  //            plays on the mix → [vkey][vplay]
+  //            plays on the mix → [vk0][vplay]
+  //   [vk0] → apad → [vkey]  (ANI-127: sidechaincompress ends when its KEY
+  //            input ends, so an un-padded key truncated the music to the
+  //            narration length — infinite-pad the key and let the main
+  //            input decide the compressor's duration)
   //   [music_g][vkey] → sidechaincompress → [ducked]
-  //   [ducked][vplay] → amix → [out]
+  //   [ducked][vplay] → amix duration=longest → [out]
   const filterGraph = [
     `[0:a]volume=${music_gain_db}dB[music_g]`,
-    `[1:a]volume=${voice_gain_db}dB,asplit=2[vkey][vplay]`,
+    `[1:a]volume=${voice_gain_db}dB,asplit=2[vk0][vplay]`,
+    `[vk0]apad[vkey]`,
     `[music_g][vkey]sidechaincompress=threshold=${threshold}:ratio=${ratio}:attack=${attack_ms}:release=${release_ms}[ducked]`,
-    `[ducked][vplay]amix=inputs=2:duration=longest:dropout_transition=0[out]`,
+    // normalize=0: amix's default 1/n input scaling stepped the level up
+    // ~6dB the moment the narration track ended (ANI-127 fingerprint catch).
+    // The bed is already ducked under the voice, so plain summing is safe.
+    `[ducked][vplay]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]`,
   ].join(';');
 
   return [
@@ -193,12 +201,19 @@ export function buildDuckedMuxArgs(opts) {
   }
 
   // Same graph as buildDuckingFfmpegArgs with the roles re-mapped:
-  // input 0 is the video (its audio stream is the "music"), input 1 the voice.
+  // input 0 is the video (its audio stream is the "music"), input 1 the
+  // voice. The apad on the key branch matters even more here — without it
+  // the render's entire audio track truncated at the last narration clip
+  // (ANI-127 caught this via the fingerprint harness).
   const filterGraph = [
     `[0:a]volume=${music_gain_db}dB[music_g]`,
-    `[1:a]volume=${voice_gain_db}dB,asplit=2[vkey][vplay]`,
+    `[1:a]volume=${voice_gain_db}dB,asplit=2[vk0][vplay]`,
+    `[vk0]apad[vkey]`,
     `[music_g][vkey]sidechaincompress=threshold=${threshold}:ratio=${ratio}:attack=${attack_ms}:release=${release_ms}[ducked]`,
-    `[ducked][vplay]amix=inputs=2:duration=longest:dropout_transition=0[out]`,
+    // normalize=0: amix's default 1/n input scaling stepped the level up
+    // ~6dB the moment the narration track ended (ANI-127 fingerprint catch).
+    // The bed is already ducked under the voice, so plain summing is safe.
+    `[ducked][vplay]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]`,
   ].join(';');
 
   return [

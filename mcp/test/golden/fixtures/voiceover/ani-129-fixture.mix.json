@@ -51,7 +51,7 @@
       "-i",
       "<project>/audio/voiceover/voiceover-track.wav",
       "-filter_complex",
-      "[0:a]volume=0dB[music_g];[1:a]volume=0dB,asplit=2[vkey][vplay];[music_g][vkey]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[ducked];[ducked][vplay]amix=inputs=2:duration=longest:dropout_transition=0[out]",
+      "[0:a]volume=0dB[music_g];[1:a]volume=0dB,asplit=2[vk0][vplay];[vk0]apad[vkey];[music_g][vkey]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[ducked];[ducked][vplay]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]",
       "-map",
       "0:v",
       "-map",

@@ -52,8 +52,17 @@ describe('buildDuckingFfmpegArgs', () => {
   it('splits voiceover so it plays while also keying the ducker', () => {
     const args = buildDuckingFfmpegArgs(baseOpts);
     const graph = args[args.indexOf('-filter_complex') + 1];
-    assert.match(graph, /asplit=2\[vkey\]\[vplay\]/);
+    assert.match(graph, /asplit=2\[vk0\]\[vplay\]/);
     assert.match(graph, /\[ducked\]\[vplay\]amix/);
+  });
+
+  it('pads the sidechain key so a short voiceover cannot truncate the music (ANI-127)', () => {
+    // sidechaincompress ends when its key input ends; without apad the
+    // mixed output truncated to the narration length.
+    const args = buildDuckingFfmpegArgs(baseOpts);
+    const graph = args[args.indexOf('-filter_complex') + 1];
+    assert.match(graph, /\[vk0\]apad\[vkey\]/);
+    assert.match(graph, /amix=inputs=2:duration=longest/);
   });
 
   it('honors custom gain + threshold overrides', () => {
@@ -159,7 +168,14 @@ describe('buildDuckedMuxArgs', () => {
     // Input 0 (the video) supplies the "music" side of the compressor.
     assert.match(graph, /\[0:a\]volume=0dB\[music_g\]/);
     assert.match(graph, /sidechaincompress=threshold=0\.05:ratio=8/);
-    assert.match(graph, /asplit=2\[vkey\]\[vplay\]/);
+    assert.match(graph, /asplit=2\[vk0\]\[vplay\]/);
+  });
+
+  it('pads the sidechain key so narration shorter than the render cannot truncate its audio (ANI-127)', () => {
+    const args = buildDuckedMuxArgs(baseOpts);
+    const graph = args[args.indexOf('-filter_complex') + 1];
+    assert.match(graph, /\[vk0\]apad\[vkey\]/);
+    assert.match(graph, /amix=inputs=2:duration=longest/);
   });
 
   it('copies video and maps the mixed [out] track', () => {

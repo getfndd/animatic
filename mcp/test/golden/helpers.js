@@ -9,9 +9,13 @@
  *   ANIMATIC_UPDATE_GOLDENS=1 npm run test:golden
  * rewrites the fixture files with current output. Review the diff, commit.
  *
- * Deliberately JSON-only for now. Frame-level (pixel diff) and audio-level
- * (waveform fingerprint) goldens are intentionally out of scope for this
- * pass — tracked as follow-up work.
+ * Two comparison modes:
+ *   - `assertMatchesGolden`       — exact JSON equality (structural snapshots)
+ *   - `assertMatchesGoldenApprox` — same structure, but numeric leaves may
+ *     drift within per-key tolerances (audio fingerprints, ANI-127 — lossy
+ *     codecs are not bit-stable across encoder versions)
+ *
+ * Frame-level (pixel diff) goldens remain follow-up work (ANI-126).
  */
 
 import assert from 'node:assert/strict';
@@ -67,6 +71,97 @@ export function assertMatchesGolden(label, actual) {
     assert.fail(
       `Golden mismatch at ${label}. ` +
       `If this drift is intentional, rerun with ANIMATIC_UPDATE_GOLDENS=1 and commit the updated fixture.${hint}`,
+    );
+  }
+}
+
+/**
+ * Recursively compare `actual` against `expected`, allowing numeric leaves
+ * to drift within a tolerance chosen by the nearest enclosing object key.
+ * Returns the first mismatch as a string, or null when everything matches.
+ *
+ * @param {unknown} actual
+ * @param {unknown} expected
+ * @param {Record<string, number>} tolerances - Per-key absolute tolerance.
+ *   The key applying to a leaf is the closest ancestor object key (so each
+ *   element of `bands: [...]` uses the `bands` tolerance).
+ * @param {string} path - Current location (for the mismatch message)
+ * @param {number} tolerance - Tolerance inherited from the enclosing key
+ */
+export function diffWithTolerance(actual, expected, tolerances, path = '$', tolerance = 0) {
+  if (typeof expected === 'number' && typeof actual === 'number') {
+    if (Math.abs(actual - expected) > tolerance) {
+      return `${path}: ${actual} differs from golden ${expected} by more than ±${tolerance}`;
+    }
+    return null;
+  }
+  if (Array.isArray(expected) || Array.isArray(actual)) {
+    if (!Array.isArray(expected) || !Array.isArray(actual)) {
+      return `${path}: type mismatch (array vs non-array)`;
+    }
+    if (actual.length !== expected.length) {
+      return `${path}: length ${actual.length} differs from golden ${expected.length}`;
+    }
+    for (let i = 0; i < expected.length; i++) {
+      const d = diffWithTolerance(actual[i], expected[i], tolerances, `${path}[${i}]`, tolerance);
+      if (d) return d;
+    }
+    return null;
+  }
+  if (expected !== null && typeof expected === 'object' && actual !== null && typeof actual === 'object') {
+    const expectedKeys = Object.keys(expected);
+    const actualKeys = Object.keys(actual);
+    if (expectedKeys.length !== actualKeys.length ||
+        expectedKeys.some(k => !Object.hasOwn(actual, k))) {
+      return `${path}: keys [${actualKeys}] differ from golden [${expectedKeys}]`;
+    }
+    for (const key of expectedKeys) {
+      const d = diffWithTolerance(
+        actual[key], expected[key], tolerances, `${path}.${key}`,
+        Object.hasOwn(tolerances, key) ? tolerances[key] : tolerance,
+      );
+      if (d) return d;
+    }
+    return null;
+  }
+  if (actual !== expected) {
+    return `${path}: ${JSON.stringify(actual)} differs from golden ${JSON.stringify(expected)}`;
+  }
+  return null;
+}
+
+/**
+ * Like `assertMatchesGolden`, but numeric leaves may drift within per-key
+ * absolute tolerances. Structure, strings, and key sets still match exactly.
+ * Update mode rewrites the fixture with the current actual value.
+ *
+ * @param {string} label - Fixture identifier (see assertMatchesGolden)
+ * @param {unknown} actual - JSON-serializable value
+ * @param {Record<string, number>} tolerances - e.g. { rms_db: 1, centroid_hz: 50 }
+ */
+export function assertMatchesGoldenApprox(label, actual, tolerances) {
+  const fixturePath = resolve(FIXTURES_ROOT, `${label}.json`);
+  const serialized = JSON.stringify(actual, null, 2) + '\n';
+
+  if (UPDATE_MODE) {
+    mkdirSync(dirname(fixturePath), { recursive: true });
+    writeFileSync(fixturePath, serialized);
+    return;
+  }
+
+  if (!existsSync(fixturePath)) {
+    throw new Error(
+      `Golden fixture missing at ${fixturePath}. ` +
+      `Run \`ANIMATIC_UPDATE_GOLDENS=1 npm run test:golden\` to create it, then review the diff before committing.`,
+    );
+  }
+
+  const expected = JSON.parse(readFileSync(fixturePath, 'utf-8'));
+  const mismatch = diffWithTolerance(JSON.parse(serialized), expected, tolerances);
+  if (mismatch) {
+    assert.fail(
+      `Golden mismatch at ${label} (tolerance-aware): ${mismatch}. ` +
+      `If this drift is intentional, rerun with ANIMATIC_UPDATE_GOLDENS=1 and commit the updated fixture.`,
     );
   }
 }

@@ -1,0 +1,72 @@
+{
+  "sample_rate": 8000,
+  "duration_s": 5.5,
+  "seconds": [
+    {
+      "t": 0,
+      "rms_db": -21.1,
+      "bands": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "centroid_hz": 880
+    },
+    {
+      "t": 1,
+      "rms_db": -21.1,
+      "bands": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "centroid_hz": 880
+    },
+    {
+      "t": 2,
+      "rms_db": -81,
+      "bands": [
+        0,
+        0.01,
+        0.01,
+        0.99
+      ],
+      "centroid_hz": 3727
+    },
+    {
+      "t": 3,
+      "rms_db": -87.1,
+      "bands": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "centroid_hz": 0
+    },
+    {
+      "t": 4,
+      "rms_db": -21.1,
+      "bands": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "centroid_hz": 1760
+    },
+    {
+      "t": 5,
+      "rms_db": -21.1,
+      "bands": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "centroid_hz": 1760
+    }
+  ]
+}

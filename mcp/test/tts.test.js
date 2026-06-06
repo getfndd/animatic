@@ -420,6 +420,24 @@ describe('voiceoverCacheKey', () => {
       voiceoverCacheKey({ text: 'x', provider: 'mock', voice: null, speed: 1 }),
     );
   });
+
+  it('keys speed at the provider-clamped value, not the raw scene value', () => {
+    // openai renders speed 9 and speed 4 identically (cap is 4.0) — they
+    // must share a cache entry instead of billing a second synthesis.
+    assert.equal(
+      voiceoverCacheKey({ text: 'x', provider: 'openai', speed: 9 }),
+      voiceoverCacheKey({ text: 'x', provider: 'openai', speed: 4 }),
+    );
+    assert.equal(
+      voiceoverCacheKey({ text: 'x', provider: 'openai', speed: 0.1 }),
+      voiceoverCacheKey({ text: 'x', provider: 'openai', speed: 0.25 }),
+    );
+    // Uncapped providers really do render different audio at 9 vs 4.
+    assert.notEqual(
+      voiceoverCacheKey({ text: 'x', provider: 'mock', speed: 9 }),
+      voiceoverCacheKey({ text: 'x', provider: 'mock', speed: 4 }),
+    );
+  });
 });
 
 describe('synthesizeVoiceovers — cache', () => {

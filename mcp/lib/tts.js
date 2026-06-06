@@ -346,6 +346,11 @@ export async function generateSpeech(input) {
  * Content-addressed cache key for one voiceover cue. Everything that
  * changes the rendered audio participates; scene ids and offsets don't.
  *
+ * Speed is keyed at its provider-clamped value (`effectiveSpeed`), not the
+ * raw scene value — openai renders speed 9 and speed 4 identically, so
+ * they must share a cache entry rather than billing twice (ANI-128
+ * review finding).
+ *
  * @param {{ text: string, provider: string, voice?: string, speed?: number }} cue
  * @returns {string} sha256 hex digest
  */
@@ -355,7 +360,7 @@ export function voiceoverCacheKey({ text, provider, voice, speed }) {
       text,
       provider,
       voice: voice || null,
-      speed: speed && speed > 0 ? speed : 1,
+      speed: effectiveSpeed(provider, speed),
       model: provider === 'openai' ? OPENAI_TTS_MODEL : null,
     }))
     .digest('hex');

@@ -124,9 +124,13 @@ function esc(text) {
  * flexbox, text keeps its typography, image fills become placeholders that
  * reference the Figma image (export wiring is follow-up scope).
  *
- * Sizing rules (review finding on PR #89 — bare divs collapse to 0 height):
- *   - the layer ROOT (depth 0) fills its positioned layer box (100%/100%),
- *     so fill-only rectangles like full-frame backgrounds actually paint
+ * Sizing rules (review findings on PR #89 — bare divs collapse to 0 height):
+ *   - the layer ROOT (depth 0) is `position:absolute;inset:0` so it fills
+ *     its container in EVERY embedding the renderer uses: inside an iframe
+ *     srcDoc (HtmlLayer — a bare fragment's body has default margin and no
+ *     height chain, so width/height:100% computes to 0 there) it anchors
+ *     to the iframe viewport; inside dangerouslySetInnerHTML it anchors to
+ *     the positioned layer wrapper
  *   - childless non-text nodes with a fill get explicit px dimensions from
  *     their bounding box, so they hold their shape inside flex parents
  */
@@ -134,7 +138,9 @@ function nodeToHtml(node, depth = 0) {
   if (node.visible === false) return '';
   if (depth > 6) return '';
 
-  const rootStyles = depth === 0 ? ['width:100%', 'height:100%', 'box-sizing:border-box'] : [];
+  const rootStyles = depth === 0
+    ? ['position:absolute', 'inset:0', 'margin:0', 'box-sizing:border-box']
+    : [];
 
   if (node.type === 'TEXT') {
     return `<div style="${[...rootStyles, textStyleToCss(node)].join(';')}">${esc(node.characters)}</div>`;

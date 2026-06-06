@@ -102,7 +102,7 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
       "required": ["text"],
       "properties": {
         "text": { "type": "string", "minLength": 1, "description": "The narration text to synthesize." },
-        "provider": { "type": "string", "description": "TTS provider key. Currently shipped: `mock` (deterministic, silent placeholder for tests), `macos_say` (real speech via the built-in `say` command on macOS). When unset, `render_project` uses its `tts_provider` option (default: `macos_say` on macOS, `mock` elsewhere); other call paths default to `mock`." },
+        "provider": { "type": "string", "description": "TTS provider key. Currently shipped: `mock` (deterministic, silent placeholder for tests), `macos_say` (real speech via the built-in `say` command on macOS), `openai` (production narration via OpenAI `tts-1`; requires `OPENAI_API_KEY` — for MCP users, set it in the server config `env` block). When unset, `render_project` uses its `tts_provider` option (default: `macos_say` on macOS, `mock` elsewhere); other call paths default to `mock`. Cloud synthesis is content-address cached under `audio/voiceover/cache/` (ANI-128) — re-renders with unchanged text/voice/speed make zero provider calls." },
         "voice": { "type": "string", "description": "Provider-specific voice identifier, e.g. `Samantha` / `Alex` for `macos_say`." },
         "speed": { "type": "number", "exclusiveMinimum": 0, "description": "Speed multiplier. 1 = baseline (~165 wpm), 1.2 = 20% faster, 0.9 = slightly slower. Used by the duration estimator and passed through to providers that honor it." }
       }

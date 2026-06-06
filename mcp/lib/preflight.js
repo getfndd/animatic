@@ -162,14 +162,17 @@ export function checkPlates(manifest, { plates = {}, sceneDefs = {} } = {}) {
  *
  * @param {object} [ctx]
  * @param {object} [ctx.sceneDefs] - Scene definitions keyed by scene_id
+ * @param {string} [ctx.ttsProvider] - The render's resolved provider, so
+ *   provider speed caps (e.g. openai's 4.0 max) shape the estimate for
+ *   scenes that don't pin their own provider (ANI-128).
  */
-export function checkVoiceoverFits({ sceneDefs = {} } = {}) {
+export function checkVoiceoverFits({ sceneDefs = {}, ttsProvider } = {}) {
   const issues = [];
   let total = 0;
   for (const [id, scene] of Object.entries(sceneDefs)) {
     if (!scene?.voiceover?.text) continue;
     total += 1;
-    const fit = checkVoiceoverFit(scene);
+    const fit = checkVoiceoverFit(scene, { defaultProvider: ttsProvider });
     if (fit.severity !== 'ok') issues.push({ scene_id: id, ...fit });
   }
 

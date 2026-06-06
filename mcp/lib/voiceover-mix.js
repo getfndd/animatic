@@ -28,6 +28,9 @@ const execFileAsync = promisify(execFile);
 /** Relative directory (under the project root) for synthesized narration. */
 export const VOICEOVER_DIR = 'audio/voiceover';
 
+/** Content-addressed synthesis cache (ANI-128) — survives re-renders. */
+export const VOICEOVER_CACHE_DIR = 'audio/voiceover/cache';
+
 /** Default ffmpeg runner. 5-minute ceiling — audio passes are fast. */
 async function runFfmpeg(args) {
   await execFileAsync('ffmpeg', args, { timeout: 300_000 });
@@ -109,9 +112,12 @@ export async function prepareVoiceoverTrack(opts) {
   // scene_id (renderProject keys sceneDefs by `sceneData.scene_id || entry.id`),
   // and synthesizeVoiceovers derives the output filename from the scene object —
   // without this, such scenes all collide on `undefined.wav`.
+  // cacheDir makes synthesis content-addressed (ANI-128): re-renders with
+  // unchanged narration make zero provider calls — the spend gate for
+  // metered providers like `openai`.
   const results = await synthesizeVoiceovers(
     clips.map(c => ({ ...c.scene, scene_id: c.scene_id })),
-    { outputDir, provider },
+    { outputDir, provider, cacheDir: join(projectRoot, VOICEOVER_CACHE_DIR) },
   );
 
   const failed = results.filter(r => r.status === 'failed');
@@ -129,6 +135,7 @@ export async function prepareVoiceoverTrack(opts) {
     path_relative: `${VOICEOVER_DIR}/${clip.scene_id}.wav`,
     duration_ms: results[i].duration_ms,
     provider: results[i].provider,
+    cached: results[i].cached === true,
   }));
 
   const trackRelative = `${VOICEOVER_DIR}/voiceover-track.wav`;

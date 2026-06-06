@@ -6,7 +6,8 @@
       "path": "<project>/audio/voiceover/sc_intro.wav",
       "path_relative": "audio/voiceover/sc_intro.wav",
       "duration_ms": 3273,
-      "provider": "mock"
+      "provider": "mock",
+      "cached": false
     },
     {
       "scene_id": "sc_feature",
@@ -14,7 +15,8 @@
       "path": "<project>/audio/voiceover/sc_feature.wav",
       "path_relative": "audio/voiceover/sc_feature.wav",
       "duration_ms": 4297,
-      "provider": "mock"
+      "provider": "mock",
+      "cached": false
     },
     {
       "scene_id": "sc_close",
@@ -22,7 +24,8 @@
       "path": "<project>/audio/voiceover/sc_close.wav",
       "path_relative": "audio/voiceover/sc_close.wav",
       "duration_ms": 1455,
-      "provider": "mock"
+      "provider": "mock",
+      "cached": false
     }
   ],
   "track": "audio/voiceover/voiceover-track.wav",

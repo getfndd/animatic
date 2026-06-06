@@ -73,6 +73,7 @@ describe('golden: rendered frames', () => {
   let probe = { ok: false, reason: 'probe not run' };
   let dir;
   let serveUrl;
+  let browser;
   let renderStill;
   let selectComposition;
 
@@ -80,9 +81,14 @@ describe('golden: rendered frames', () => {
     probe = await probeEnvironment();
     if (!probe.ok) return;
 
-    // Bundle once; every keyframe renders off the same serveUrl. A failure
-    // here (missing Chrome headless shell, sandboxed CI, …) downgrades the
-    // whole suite to skipped rather than failing it.
+    // Bundle once and render one probe still end-to-end. bundle() is just
+    // webpack-to-disk — the actual environment surface (headless Chrome
+    // launch, the local server's port listen) only trips inside
+    // renderStill, so the probe must exercise a real render. Any failure
+    // here (missing Chrome headless shell, sandboxed CI denying listen, …)
+    // downgrades the whole suite to skipped rather than failing it.
+    // The browser is opened explicitly and shared across all stills so
+    // teardown is a single close() — no lingering compositor processes.
     try {
       const bundler = await import('@remotion/bundler');
       const renderer = await import('@remotion/renderer');
@@ -93,12 +99,35 @@ describe('golden: rendered frames', () => {
         publicDir: join(REPO_ROOT, 'public'),
       });
       dir = mkdtempSync(join(tmpdir(), 'ani-126-golden-'));
+
+      browser = await renderer.openBrowser('chrome');
+      const probeProps = JSON.parse(readFileSync(
+        join(REPO_ROOT, 'src/remotion/manifests', `${TARGETS[0].manifest}.json`), 'utf-8',
+      ));
+      const probeComposition = await selectComposition({
+        serveUrl, id: 'Sequence', inputProps: probeProps, puppeteerInstance: browser,
+      });
+      await renderStill({
+        serveUrl,
+        composition: probeComposition,
+        inputProps: probeProps,
+        frame: 0,
+        output: join(dir, 'probe.png'),
+        scale: 0.1,
+        chromiumOptions: { gl: 'swangle' },
+        puppeteerInstance: browser,
+      });
     } catch (err) {
-      probe = { ok: false, reason: `Remotion toolchain unavailable: ${err.message}` };
+      probe = { ok: false, reason: `Remotion render environment unavailable: ${err.message}` };
+      if (browser) {
+        await browser.close({ silent: true }).catch(() => {});
+        browser = null;
+      }
     }
   });
 
-  after(() => {
+  after(async () => {
+    if (browser) await browser.close({ silent: true }).catch(() => {});
     if (dir) rmSync(dir, { recursive: true, force: true });
   });
 
@@ -110,7 +139,7 @@ describe('golden: rendered frames', () => {
         join(REPO_ROOT, 'src/remotion/manifests', `${target.manifest}.json`), 'utf-8',
       ));
       const composition = await selectComposition({
-        serveUrl, id: 'Sequence', inputProps: props,
+        serveUrl, id: 'Sequence', inputProps: props, puppeteerInstance: browser,
       });
 
       for (const frame of target.frames) {
@@ -123,6 +152,7 @@ describe('golden: rendered frames', () => {
           output,
           scale: 0.25,
           chromiumOptions: { gl: 'swangle' },
+          puppeteerInstance: browser,
         });
         await assertMatchesGoldenImage(`frames/${target.manifest}.f${frame}`, output, DIFF_OPTS);
       }

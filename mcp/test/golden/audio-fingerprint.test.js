@@ -83,10 +83,26 @@ describe('golden: audio waveform fingerprints', () => {
       '-i', 'music.wav',
       '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', 'render.mp4'], dir);
 
+    // The narration track is shared by most subtests — build it here so
+    // each subtest is independently runnable (--test-name-pattern safe).
+    // Clip A at 0s, clip B at 4s: the gap second must fingerprint as silence.
+    await ffmpeg(buildVoiceoverTrackArgs({
+      clips: [
+        { path: 'vo_a.wav', offset_ms: 0 },
+        { path: 'vo_b.wav', offset_ms: 4000 },
+      ],
+      outputPath: 'track.wav',
+    }), dir);
+
     // Frames for the delivery-profile encodes (buildFfmpegArgs takes a
-    // frame pattern, mirroring the real frames → profile pipeline).
-    await ffmpeg(['-y', '-f', 'lavfi', '-i', 'testsrc=duration=6:size=160x120:rate=2',
-      'frame_%06d.png'], dir);
+    // frame pattern, mirroring the real frames → profile pipeline). One set
+    // per profile fps: buildFfmpegArgs emits -shortest, so the frame count
+    // must give the video enough runtime (6s) to outlast the 5.5s track —
+    // otherwise the encode truncates and the fingerprint covers nothing.
+    await ffmpeg(['-y', '-f', 'lavfi', '-i', 'testsrc=duration=6:size=160x120:rate=60',
+      'frames60_%06d.png'], dir);
+    await ffmpeg(['-y', '-f', 'lavfi', '-i', 'testsrc=duration=6:size=160x120:rate=30',
+      'frames30_%06d.png'], dir);
   });
 
   after(() => {
@@ -95,15 +111,6 @@ describe('golden: audio waveform fingerprints', () => {
 
   it('voiceover timeline track (adelay/amix)', { timeout: 120_000 }, async (t) => {
     if (!probe.ok) return t.skip(probe.reason);
-
-    // Clip A at 0s, clip B at 4s — the gap second must fingerprint as silence.
-    await ffmpeg(buildVoiceoverTrackArgs({
-      clips: [
-        { path: 'vo_a.wav', offset_ms: 0 },
-        { path: 'vo_b.wav', offset_ms: 4000 },
-      ],
-      outputPath: 'track.wav',
-    }), dir);
 
     const fp = await fingerprintAudioFile(join(dir, 'track.wav'));
     assertMatchesGoldenApprox('audio/voiceover-track.fingerprint', fp, TOLERANCES);
@@ -135,8 +142,8 @@ describe('golden: audio waveform fingerprints', () => {
   it('web-hero delivery encode (aac 48k) preserves the mix', { timeout: 120_000 }, async (t) => {
     if (!probe.ok) return t.skip(probe.reason);
 
-    const profile = getDeliveryProfile('web-hero');
-    await ffmpeg(buildFfmpegArgs(profile, 'frame_%06d.png', 'web-hero.mp4', {
+    const profile = getDeliveryProfile('web-hero'); // fps 60
+    await ffmpeg(buildFfmpegArgs(profile, 'frames60_%06d.png', 'web-hero.mp4', {
       audioInput: 'track.wav',
     }), dir);
 
@@ -147,8 +154,8 @@ describe('golden: audio waveform fingerprints', () => {
   it('master delivery encode (pcm_s24le / prores) preserves the mix', { timeout: 120_000 }, async (t) => {
     if (!probe.ok) return t.skip(probe.reason);
 
-    const profile = getDeliveryProfile('master');
-    await ffmpeg(buildFfmpegArgs(profile, 'frame_%06d.png', 'master.mov', {
+    const profile = getDeliveryProfile('master'); // fps 60
+    await ffmpeg(buildFfmpegArgs(profile, 'frames60_%06d.png', 'master.mov', {
       audioInput: 'track.wav',
     }), dir);
 
@@ -162,12 +169,12 @@ describe('golden: audio waveform fingerprints', () => {
     // email-gif's own encode goes through gifski externally, so exercise the
     // -an decision through a video profile with no audioInput — the same
     // code path that guards email-gif (audio: null) in buildFfmpegArgs.
-    const profile = getDeliveryProfile('web-embed');
-    await ffmpeg(buildFfmpegArgs(profile, 'frame_%06d.png', 'silent.mp4'), dir);
+    const profile = getDeliveryProfile('web-embed'); // fps 30
+    await ffmpeg(buildFfmpegArgs(profile, 'frames30_%06d.png', 'silent.mp4'), dir);
     assert.equal(await countAudioStreams(join(dir, 'silent.mp4')), 0);
 
     // And the with-audio variant of the same profile must carry exactly one.
-    await ffmpeg(buildFfmpegArgs(profile, 'frame_%06d.png', 'with-audio.mp4', {
+    await ffmpeg(buildFfmpegArgs(profile, 'frames30_%06d.png', 'with-audio.mp4', {
       audioInput: 'track.wav',
     }), dir);
     assert.equal(await countAudioStreams(join(dir, 'with-audio.mp4')), 1);

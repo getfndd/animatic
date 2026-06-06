@@ -258,6 +258,10 @@ npm run preflight -- <manifest.json> [--scenes <dir>]
 
 Checks ffmpeg encoders, vendored fonts (`public/fonts/satoshi/`), plate assets for `browser_capture` scenes, manifest scene references, and disk-space headroom. The `render_project` MCP tool runs the same preflight automatically before compute is spent; pass `skip_preflight: true` to bypass. See ANI-115.
 
+## Troubleshooting
+
+When a render fails or comes out wrong, **[docs/troubleshooting.md](docs/troubleshooting.md)** covers the ten most common failure modes — encoder/font/plate issues, render hangs, voiceover overruns, TTS errors, audio problems, and quality regressions — with the symptom, cause, and fix for each.
+
 ## License
 
 MIT

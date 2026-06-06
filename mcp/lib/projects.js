@@ -625,7 +625,8 @@ export async function renderProject(options) {
   const unresolved = manifestSceneIds.filter(id => !sceneDefs[id]);
   if (unresolved.length > 0) {
     return {
-      error: `Manifest references scene(s) not found in project: ${unresolved.join(', ')}`,
+      error: `Manifest references scene(s) not found in project: ${unresolved.join(', ')}. ` +
+        'See docs/troubleshooting.md §3 (manifest scene references).',
       missing_scenes: missingScenes,
     };
   }
@@ -649,7 +650,8 @@ export async function renderProject(options) {
     });
     if (!preflight.ok && !dry_run) {
       return {
-        error: `Preflight failed: ${preflight.summary}. Fix the blockers or pass skip_preflight: true to override.`,
+        error: `Preflight failed: ${preflight.summary}. Fix the blockers or pass skip_preflight: true to override. ` +
+          'See docs/troubleshooting.md for fixes per check.',
         preflight,
       };
     }
@@ -698,7 +700,8 @@ export async function renderProject(options) {
     });
     if (voiceoverTrack.error) {
       return {
-        error: `Voiceover synthesis failed: ${voiceoverTrack.error}`,
+        error: `Voiceover synthesis failed: ${voiceoverTrack.error}. ` +
+          'See docs/troubleshooting.md §7 (TTS synthesis failures).',
         voiceover: { results: voiceoverTrack.results },
         preflight,
       };

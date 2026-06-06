@@ -9,19 +9,22 @@
  *   ANIMATIC_UPDATE_GOLDENS=1 npm run test:golden
  * rewrites the fixture files with current output. Review the diff, commit.
  *
- * Two comparison modes:
+ * Three comparison modes:
  *   - `assertMatchesGolden`       — exact JSON equality (structural snapshots)
  *   - `assertMatchesGoldenApprox` — same structure, but numeric leaves may
  *     drift within per-key tolerances (audio fingerprints, ANI-127 — lossy
  *     codecs are not bit-stable across encoder versions)
- *
- * Frame-level (pixel diff) goldens remain follow-up work (ANI-126).
+ *   - `assertMatchesGoldenImage`  — fuzzy pixel diff against a checked-in
+ *     reference PNG (rendered frames, ANI-126 — per-channel threshold
+ *     absorbs anti-aliasing, mismatch budget absorbs sub-pixel text drift)
  */
 
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { compareImageFiles } from '../../lib/pixel-diff.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const FIXTURES_ROOT = resolve(dirname(__filename), 'fixtures');
@@ -162,6 +165,52 @@ export function assertMatchesGoldenApprox(label, actual, tolerances) {
     assert.fail(
       `Golden mismatch at ${label} (tolerance-aware): ${mismatch}. ` +
       `If this drift is intentional, rerun with ANIMATIC_UPDATE_GOLDENS=1 and commit the updated fixture.`,
+    );
+  }
+}
+
+/**
+ * Compare a rendered image against the reference PNG stored at
+ * `fixtures/<label>.png` using the fuzzy pixel diff from `pixel-diff.js`.
+ * Update mode copies the rendered image over the reference.
+ *
+ * Requires ffmpeg (the decode path) — callers are expected to be
+ * skip-gated on its availability already.
+ *
+ * @param {string} label - Fixture identifier, e.g. `"frames/test-3-scene.f270"`
+ * @param {string} actualPath - Path to the freshly rendered image
+ * @param {object} [opts] - comparePixels options ({ channel_threshold, mismatch_budget })
+ */
+export async function assertMatchesGoldenImage(label, actualPath, opts = {}) {
+  const fixturePath = resolve(FIXTURES_ROOT, `${label}.png`);
+
+  if (UPDATE_MODE) {
+    mkdirSync(dirname(fixturePath), { recursive: true });
+    copyFileSync(actualPath, fixturePath);
+    return;
+  }
+
+  if (!existsSync(fixturePath)) {
+    throw new Error(
+      `Golden reference missing at ${fixturePath}. ` +
+      `Run \`ANIMATIC_UPDATE_GOLDENS=1 npm run test:golden\` to create it, then review the image before committing.`,
+    );
+  }
+
+  const result = await compareImageFiles(actualPath, fixturePath, opts);
+  if (!result.ok) {
+    // Park the failing render next to the reference (gitignored) so the
+    // drift can be reviewed visually after the test's temp dir is cleaned.
+    const actualCopy = fixturePath.replace(/\.png$/, '.actual.png');
+    copyFileSync(actualPath, actualCopy);
+    const detail = result.dimensions_match
+      ? `${result.mismatched_pixels}/${result.total_pixels} pixels ` +
+        `(${(result.mismatch_ratio * 100).toFixed(2)}%) differ beyond the channel threshold ` +
+        `(max channel delta ${result.max_channel_delta})`
+      : 'image dimensions differ';
+    assert.fail(
+      `Golden image mismatch at ${label}: ${detail}. Failing render copied to ${actualCopy} for inspection. ` +
+      `If this drift is intentional, rerun with ANIMATIC_UPDATE_GOLDENS=1 and commit the updated reference.`,
     );
   }
 }

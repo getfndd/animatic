@@ -42,3 +42,6 @@ catalog/custom-personalities/
 .agents/
 .codex/
 AGENTS.md
+
+# Golden image harness — failing-render inspection copies (ANI-126)
+*.actual.png

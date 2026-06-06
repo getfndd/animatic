@@ -77,15 +77,42 @@ export function validateVoiceover(voiceover) {
 }
 
 /**
+ * Hard speed ranges enforced by providers. Anything outside gets clamped
+ * at synthesis time, so duration estimates must clamp identically — a
+ * fit check at an unclamped speed would approve narration the provider
+ * can't actually deliver (ANI-128 review finding).
+ */
+const PROVIDER_SPEED_RANGE = {
+  openai: { min: 0.25, max: 4 },
+};
+
+/**
+ * The speed a provider will actually synthesize at for a requested value.
+ *
+ * @param {string|undefined} provider
+ * @param {number|undefined} speed
+ * @returns {number}
+ */
+export function effectiveSpeed(provider, speed) {
+  const s = speed && speed > 0 ? speed : 1;
+  const range = PROVIDER_SPEED_RANGE[provider];
+  return range ? Math.min(range.max, Math.max(range.min, s)) : s;
+}
+
+/**
  * Compare expected narration duration to scene hold time. Returns a
  * structured advisory so the preflight doctor / analyzer can surface it.
  *
- * @param {{ duration_s?: number, voiceover?: { text?: string, speed?: number } }} scene
+ * @param {{ duration_s?: number, voiceover?: { text?: string, speed?: number, provider?: string } }} scene
+ * @param {object} [opts]
+ * @param {string} [opts.defaultProvider] - Provider used when the scene
+ *   doesn't pin its own (the render's resolved `tts_provider`), so
+ *   provider speed caps apply to the estimate either way.
  * @returns {{ fits: boolean, severity: 'ok' | 'warn' | 'fail',
  *             estimated_ms: number, scene_duration_ms: number,
  *             overrun_ms: number, message: string }}
  */
-export function checkVoiceoverFit(scene) {
+export function checkVoiceoverFit(scene, opts = {}) {
   const voiceover = scene?.voiceover;
   const sceneDurationMs = Math.round((scene?.duration_s || 0) * 1000);
   if (!voiceover?.text) {
@@ -96,8 +123,9 @@ export function checkVoiceoverFit(scene) {
     };
   }
   const baseMs = estimateSpeechDurationMs(voiceover.text);
-  // A `speed` of 1 is baseline; 1.2 = 20% faster = shorter duration.
-  const speed = voiceover.speed && voiceover.speed > 0 ? voiceover.speed : 1;
+  // A `speed` of 1 is baseline; 1.2 = 20% faster = shorter duration —
+  // clamped to what the resolved provider will actually honor.
+  const speed = effectiveSpeed(voiceover.provider || opts.defaultProvider, voiceover.speed);
   const estimatedMs = Math.round(baseMs / speed);
   const overrunMs = estimatedMs - sceneDurationMs;
   if (overrunMs <= 0) {
@@ -217,9 +245,9 @@ async function openaiProvider({ text, voice, outputPath, speed = 1, fetchImpl })
   const doFetch = fetchImpl ?? fetch;
 
   // OpenAI accepts 0.25-4.0; clamp rather than erroring on out-of-range
-  // scene values. The clamped value also drives the duration-estimate
-  // fallback so it matches what was actually requested.
-  const clampedSpeed = Math.min(4, Math.max(0.25, speed > 0 ? speed : 1));
+  // scene values. Shares effectiveSpeed with checkVoiceoverFit so the
+  // preflight estimate and the synthesized audio always agree.
+  const clampedSpeed = effectiveSpeed('openai', speed);
 
   const body = JSON.stringify({
     model: OPENAI_TTS_MODEL,

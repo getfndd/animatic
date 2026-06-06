@@ -13,6 +13,7 @@ import path from 'node:path';
 import {
   generateSpeech,
   synthesizeVoiceovers,
+  effectiveSpeed,
   estimateSpeechDurationMs,
   estimateSynthesisCost,
   validateVoiceover,
@@ -215,6 +216,50 @@ describe('synthesizeVoiceovers', () => {
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
+  });
+});
+
+// ── Provider speed caps in fit checks (ANI-128 review finding) ─────────────
+
+describe('effectiveSpeed', () => {
+  it('clamps openai to its 0.25-4.0 range and normalizes invalid values', () => {
+    assert.equal(effectiveSpeed('openai', 9), 4);
+    assert.equal(effectiveSpeed('openai', 0.1), 0.25);
+    assert.equal(effectiveSpeed('openai', 1.5), 1.5);
+    assert.equal(effectiveSpeed('openai', 0), 1);
+    assert.equal(effectiveSpeed('openai', undefined), 1);
+  });
+
+  it('leaves uncapped providers alone', () => {
+    assert.equal(effectiveSpeed('mock', 9), 9);
+    assert.equal(effectiveSpeed('macos_say', 0.1), 0.1);
+    assert.equal(effectiveSpeed(undefined, 2), 2);
+  });
+});
+
+describe('checkVoiceoverFit — provider speed caps', () => {
+  // ~40 words ≈ 14.5s at baseline; a 3s scene "fits" at 9x (1.6s) but
+  // openai caps at 4x (3.6s) → real audio overruns the scene.
+  const longLine = Array(40).fill('word').join(' ');
+
+  it('estimates at the clamped speed for openai scenes', () => {
+    const scene = {
+      duration_s: 3,
+      voiceover: { text: longLine, provider: 'openai', speed: 9 },
+    };
+    const fit = checkVoiceoverFit(scene);
+    assert.equal(fit.fits, false, 'speed 9 must not pass a check the provider caps at 4');
+    const expectedMs = Math.round(estimateSpeechDurationMs(longLine) / 4);
+    assert.equal(fit.estimated_ms, expectedMs);
+  });
+
+  it('applies the render default provider when the scene does not pin one', () => {
+    const scene = { duration_s: 3, voiceover: { text: longLine, speed: 9 } };
+    const capped = checkVoiceoverFit(scene, { defaultProvider: 'openai' });
+    assert.equal(capped.fits, false);
+    // Uncapped providers keep the raw-speed behavior.
+    const uncapped = checkVoiceoverFit(scene, { defaultProvider: 'mock' });
+    assert.equal(uncapped.fits, true);
   });
 });
 

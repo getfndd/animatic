@@ -634,15 +634,18 @@ export async function renderProject(options) {
   const outputPath = join(proj.project_root, outputName);
 
   const props = { manifest, sceneDefs };
+  const resolvedTtsProvider = tts_provider || defaultTtsProvider();
 
   // Preflight before anything expensive. Dry runs still benefit from the
   // report — they just don't abort on failure, mirroring the "assemble
-  // props and skip the render" contract.
+  // props and skip the render" contract. The resolved TTS provider rides
+  // along so voiceover fit estimates honor provider speed caps (ANI-128).
   let preflight = null;
   if (!skip_preflight) {
     preflight = await runPreflight(manifest, {
       sceneDefs,
       outputDir: join(proj.project_root, 'renders'),
+      ttsProvider: resolvedTtsProvider,
     });
     if (!preflight.ok && !dry_run) {
       return {
@@ -658,7 +661,6 @@ export async function renderProject(options) {
   // happens post-render (the render's embedded music/SFX duck under the
   // narration, see voiceover-mix.js).
   const voiceoverClips = planVoiceoverClips(manifest, sceneDefs);
-  const resolvedTtsProvider = tts_provider || defaultTtsProvider();
   // Advisory spend estimate (ANI-128) — worst case, before cache hits are
   // known. Local providers estimate $0.
   const voiceoverCost = voiceoverClips.length > 0

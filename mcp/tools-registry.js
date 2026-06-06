@@ -27,6 +27,7 @@ export const HANDLERS = {
   recommend_choreography: H.handleRecommendChoreography,
   validate_choreography: H.handleValidateChoreography,
   analyze_scene: H.handleAnalyzeScene,
+  figma_frame_to_scene: H.handleFigmaFrameToScene,
   plan_sequence: H.handlePlanSequence,
   get_style_pack: H.handleGetStylePack,
   evaluate_sequence: H.handleEvaluateSequence,

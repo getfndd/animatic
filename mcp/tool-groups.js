@@ -85,6 +85,7 @@ export const TOOL_GROUPS = {
   recommend_choreography: { tier: TIER.TRANSFORM, edgeReady: true },
   validate_choreography: { tier: TIER.TRANSFORM, edgeReady: true },
   analyze_scene: { tier: TIER.TRANSFORM, edgeReady: true },
+  figma_frame_to_scene: { tier: TIER.TRANSFORM, edgeReady: false, note: 'reads the user-local FIGMA_TOKEN env (BYOK, ANI-114) and makes outbound Figma API calls — LOCAL only; a hosted variant would need per-account token storage' },
   plan_sequence: { tier: TIER.TRANSFORM, edgeReady: true },
   evaluate_sequence: { tier: TIER.TRANSFORM, edgeReady: true },
   validate_manifest: { tier: TIER.TRANSFORM, edgeReady: true },

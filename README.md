@@ -49,7 +49,7 @@ The install script copies skills to `.claude/skills/`, hooks to `.claude/hooks/`
 
 ### Option C: MCP server only
 
-Add the Animatic MCP server to your Claude Code config for access to all 78 tools without installing skills:
+Add the Animatic MCP server to your Claude Code config for access to all 79 tools without installing skills:
 
 ```json
 {

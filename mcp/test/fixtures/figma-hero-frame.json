@@ -1,0 +1,149 @@
+{
+  "file_key": "FIXTUREKEY123",
+  "node_id": "10:1",
+  "name": "Product Site",
+  "document": {
+    "id": "10:1",
+    "name": "Hero / Landing",
+    "type": "FRAME",
+    "absoluteBoundingBox": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+    "fills": [{ "type": "SOLID", "visible": true, "color": { "r": 0.04, "g": 0.04, "b": 0.08, "a": 1 } }],
+    "layoutMode": "VERTICAL",
+    "itemSpacing": 32,
+    "paddingTop": 120,
+    "paddingBottom": 120,
+    "paddingLeft": 160,
+    "paddingRight": 160,
+    "primaryAxisAlignItems": "CENTER",
+    "counterAxisAlignItems": "CENTER",
+    "children": [
+      {
+        "id": "10:2",
+        "name": "Background Gradient",
+        "type": "RECTANGLE",
+        "absoluteBoundingBox": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+        "fills": [{ "type": "SOLID", "visible": true, "color": { "r": 0.06, "g": 0.07, "b": 0.12, "a": 1 } }]
+      },
+      {
+        "id": "10:3",
+        "name": "Headline",
+        "type": "TEXT",
+        "characters": "Ship product stories, not screen recordings",
+        "absoluteBoundingBox": { "x": 460, "y": 320, "width": 1000, "height": 140 },
+        "style": {
+          "fontFamily": "Satoshi",
+          "fontSize": 72,
+          "fontWeight": 700,
+          "lineHeightPx": 80,
+          "textAlignHorizontal": "CENTER"
+        },
+        "fills": [{ "type": "SOLID", "visible": true, "color": { "r": 1, "g": 1, "b": 1, "a": 1 } }]
+      },
+      {
+        "id": "10:4",
+        "name": "Subtitle",
+        "type": "TEXT",
+        "characters": "Animatic turns prototypes into cinematic demos.",
+        "absoluteBoundingBox": { "x": 560, "y": 480, "width": 800, "height": 40 },
+        "style": {
+          "fontFamily": "Satoshi",
+          "fontSize": 24,
+          "fontWeight": 400,
+          "lineHeightPx": 34,
+          "textAlignHorizontal": "CENTER"
+        },
+        "fills": [{ "type": "SOLID", "visible": true, "color": { "r": 0.7, "g": 0.72, "b": 0.8, "a": 1 } }]
+      },
+      {
+        "id": "10:5",
+        "name": "Feature Card Row",
+        "type": "FRAME",
+        "absoluteBoundingBox": { "x": 360, "y": 580, "width": 1200, "height": 260 },
+        "layoutMode": "HORIZONTAL",
+        "itemSpacing": 24,
+        "paddingTop": 0,
+        "paddingBottom": 0,
+        "paddingLeft": 0,
+        "paddingRight": 0,
+        "primaryAxisAlignItems": "SPACE_BETWEEN",
+        "counterAxisAlignItems": "CENTER",
+        "children": [
+          {
+            "id": "10:6",
+            "name": "Card / Screenshot",
+            "type": "FRAME",
+            "cornerRadius": 16,
+            "absoluteBoundingBox": { "x": 360, "y": 580, "width": 384, "height": 260 },
+            "fills": [{ "type": "IMAGE", "visible": true, "imageRef": "img-abc123" }],
+            "children": []
+          },
+          {
+            "id": "10:7",
+            "name": "Card / Copy",
+            "type": "FRAME",
+            "cornerRadius": 16,
+            "absoluteBoundingBox": { "x": 768, "y": 580, "width": 384, "height": 260 },
+            "fills": [{ "type": "SOLID", "visible": true, "color": { "r": 0.1, "g": 0.11, "b": 0.16, "a": 1 } }],
+            "layoutMode": "VERTICAL",
+            "itemSpacing": 12,
+            "paddingTop": 24,
+            "paddingBottom": 24,
+            "paddingLeft": 24,
+            "paddingRight": 24,
+            "children": [
+              {
+                "id": "10:8",
+                "name": "Card Title",
+                "type": "TEXT",
+                "characters": "Spring physics",
+                "style": { "fontFamily": "Satoshi", "fontSize": 20, "fontWeight": 600 },
+                "fills": [{ "type": "SOLID", "visible": true, "color": { "r": 1, "g": 1, "b": 1, "a": 1 } }]
+              },
+              {
+                "id": "10:9",
+                "name": "Card Body",
+                "type": "TEXT",
+                "characters": "Motion that feels engineered, not keyframed.",
+                "style": { "fontFamily": "Satoshi", "fontSize": 14, "fontWeight": 400 },
+                "fills": [{ "type": "SOLID", "visible": true, "color": { "r": 0.7, "g": 0.72, "b": 0.8, "a": 1 } }]
+              }
+            ]
+          },
+          {
+            "id": "10:10",
+            "name": "Hidden Draft Card",
+            "type": "FRAME",
+            "visible": false,
+            "absoluteBoundingBox": { "x": 1176, "y": 580, "width": 384, "height": 260 },
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "10:11",
+        "name": "CTA / Get Started Button",
+        "type": "FRAME",
+        "cornerRadius": 8,
+        "absoluteBoundingBox": { "x": 860, "y": 900, "width": 200, "height": 56 },
+        "fills": [{ "type": "SOLID", "visible": true, "color": { "r": 0.35, "g": 0.4, "b": 1, "a": 1 } }],
+        "layoutMode": "HORIZONTAL",
+        "primaryAxisAlignItems": "CENTER",
+        "counterAxisAlignItems": "CENTER",
+        "paddingTop": 16,
+        "paddingBottom": 16,
+        "paddingLeft": 32,
+        "paddingRight": 32,
+        "children": [
+          {
+            "id": "10:12",
+            "name": "Button Label",
+            "type": "TEXT",
+            "characters": "Get started",
+            "style": { "fontFamily": "Satoshi", "fontSize": 16, "fontWeight": 600 },
+            "fills": [{ "type": "SOLID", "visible": true, "color": { "r": 1, "g": 1, "b": 1, "a": 1 } }]
+          }
+        ]
+      }
+    ]
+  }
+}

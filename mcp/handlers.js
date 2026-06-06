@@ -59,6 +59,8 @@ import { scoreCandidateVideo, autoReviseLoop, DEFAULT_WEIGHTS as SCORE_WEIGHTS }
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
 import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
+import { fetchNode as fetchFigmaNode } from './lib/figma/client.js';
+import { frameToScene } from './lib/figma/frame-to-scene.js';
 import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
 import { analyzeSceneComprehension } from './lib/scene-comprehension.js';
@@ -1012,6 +1014,20 @@ export function handleValidateChoreography(args) {
   }
 
   return { content: [{ type: 'text', text: out }] };
+}
+
+export async function handleFigmaFrameToScene(args) {
+  const { file_key, node_id, personality, duration_s } = args;
+  try {
+    const fetched = await fetchFigmaNode(file_key, node_id);
+    const result = frameToScene(fetched, { personality, duration_s });
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `figma_frame_to_scene failed: ${err.message}` }],
+      isError: true,
+    };
+  }
 }
 
 export function handleAnalyzeScene(args) {

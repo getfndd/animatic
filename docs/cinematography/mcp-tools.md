@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-78 tools across 11 categories. Run via MCP server (`mcp/index.js`).
+79 tools across 11 categories. Run via MCP server (`mcp/index.js`).
 
 ## Primitives & Reference (8)
 
@@ -15,12 +15,13 @@
 | `get_reference_doc` | Get a reference document by slug |
 | `recommend_choreography` | Recommend animation choreography for a scene |
 
-## Scene Authoring (9)
+## Scene Authoring (10)
 
 | Tool | What |
 |------|------|
 | `analyze_scene` | Classify content type, visual weight, motion energy, intent tags + semantic annotations |
 | `generate_scenes` | Brief → classified assets → validated scene JSON with auto-annotations |
+| `figma_frame_to_scene` | Convert a Figma frame into a v3 semantic scene (layers, components, roles, palette) — needs FIGMA_TOKEN, local only |
 | `validate_choreography` | Validate animation choreography against guardrails |
 | `compile_motion` | Compile scene motion (groups, stagger, camera) into a timeline |
 | `critique_motion` | Critique a compiled timeline for static-track and reactive (lib-*) quality issues |

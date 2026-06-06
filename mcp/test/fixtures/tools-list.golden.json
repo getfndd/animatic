@@ -251,6 +251,35 @@
     }
   },
   {
+    "name": "figma_frame_to_scene",
+    "description": "Convert a Figma frame into an Animatic v3 semantic scene (ANI-114). Fetches the node tree via the Figma REST API (requires FIGMA_TOKEN in the server environment), maps direct children to semantic components with real HTML layers (auto-layout → flexbox, text typography preserved), infers component types/roles from layer names + structure with confidence scores, extracts a brand palette, and emits a conservative staggered-entrance choreography with a reactive camera. Returns { scene, report } — the report lists per-layer inferences and low-confidence advisories to review.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "file_key": {
+          "type": "string",
+          "description": "Figma file key, or a full figma.com/file/... or /design/... URL."
+        },
+        "node_id": {
+          "type": "string",
+          "description": "Frame node id — API form `12:34` or URL form `12-34` both accepted."
+        },
+        "personality": {
+          "type": "string",
+          "description": "Optional personality to pin on the scene (affects downstream compile choices)."
+        },
+        "duration_s": {
+          "type": "number",
+          "description": "Scene duration in seconds. Default: 4."
+        }
+      },
+      "required": [
+        "file_key",
+        "node_id"
+      ]
+    }
+  },
+  {
     "name": "plan_sequence",
     "description": "Plan a sequence from analyzed scenes and a style pack. Decides shot order, hold durations, transitions, and camera overrides. Returns a valid sequence manifest with editorial notes. Scenes must have metadata (use analyze_scene first). Supports per-scene style blending via metadata.style_override. Pass beats from analyze_beats for beat-synced editing.",
     "inputSchema": {

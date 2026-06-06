@@ -123,16 +123,24 @@ function esc(text) {
  * Render a node subtree to simple HTML. Depth-limited; auto-layout becomes
  * flexbox, text keeps its typography, image fills become placeholders that
  * reference the Figma image (export wiring is follow-up scope).
+ *
+ * Sizing rules (review finding on PR #89 — bare divs collapse to 0 height):
+ *   - the layer ROOT (depth 0) fills its positioned layer box (100%/100%),
+ *     so fill-only rectangles like full-frame backgrounds actually paint
+ *   - childless non-text nodes with a fill get explicit px dimensions from
+ *     their bounding box, so they hold their shape inside flex parents
  */
 function nodeToHtml(node, depth = 0) {
   if (node.visible === false) return '';
   if (depth > 6) return '';
 
+  const rootStyles = depth === 0 ? ['width:100%', 'height:100%', 'box-sizing:border-box'] : [];
+
   if (node.type === 'TEXT') {
-    return `<div style="${textStyleToCss(node)}">${esc(node.characters)}</div>`;
+    return `<div style="${[...rootStyles, textStyleToCss(node)].join(';')}">${esc(node.characters)}</div>`;
   }
 
-  const styles = [];
+  const styles = [...rootStyles];
   const layout = autoLayoutToCss(node);
   if (layout) styles.push(layout);
   const bg = solidFill(node);
@@ -140,7 +148,15 @@ function nodeToHtml(node, depth = 0) {
   if (node.cornerRadius) styles.push(`border-radius:${Math.round(node.cornerRadius)}px`);
   if (hasImageFill(node)) {
     styles.push('background:#222');
-    styles.push(`min-height:${Math.round(node.absoluteBoundingBox?.height || 120)}px`);
+  }
+
+  const hasChildren = (node.children || []).some(c => c.visible !== false);
+  const filled = Boolean(bg) || hasImageFill(node);
+  if (depth > 0 && !hasChildren && filled) {
+    const box = node.absoluteBoundingBox || {};
+    if (box.width) styles.push(`width:${Math.round(box.width)}px`);
+    if (box.height) styles.push(`height:${Math.round(box.height)}px`);
+    styles.push('flex-shrink:0');
   }
 
   const children = (node.children || [])

@@ -157,6 +157,22 @@ describe('frameToScene', () => {
     assert.equal(cards.content.includes('Hidden Draft Card'), false); // visible:false dropped
   });
 
+  it('sizes layer roots and filled leaves so fill-only nodes paint (PR #89 finding)', () => {
+    // The full-frame background rectangle is a childless filled node — as a
+    // bare div it collapsed to 0 height and never painted.
+    const bgLayer = scene.layers.find(l => l.product_role === 'atmosphere');
+    assert.match(bgLayer.content, /^<div [^>]*style="width:100%;height:100%;box-sizing:border-box/);
+
+    // Nested childless filled node (the image card) holds explicit px dims.
+    const cards = scene.layers.find(l => l.id.includes('feature_card_row'));
+    assert.match(cards.content, /data-image-fill="true"[^>]*style="[^"]*width:384px;height:260px/);
+
+    // Every layer root fills its positioned box, filled or not.
+    for (const layer of scene.layers) {
+      assert.match(layer.content, /width:100%;height:100%/, `${layer.id} root must fill its layer box`);
+    }
+  });
+
   it('escapes text content', () => {
     const { scene: s } = frameToScene({
       document: {

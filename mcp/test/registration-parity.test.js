@@ -24,6 +24,7 @@ import { loadIntentMappings, loadBriefTemplates, listReferenceDocs } from '../da
 import { STYLE_PACKS } from '../lib/planner.js';
 import { ART_DIRECTION_SLUGS } from '../lib/art-direction.js';
 import { COMPOSITING_PASS_SLUGS } from '../lib/compositing.js';
+import { AVAILABLE_PROVIDERS as TTS_PROVIDERS } from '../lib/tts.js';
 import { buildTools } from '../tools.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -36,6 +37,7 @@ function buildAllTools() {
     briefTemplatesCatalog: loadBriefTemplates(),
     ART_DIRECTION_SLUGS,
     COMPOSITING_PASS_SLUGS,
+    TTS_PROVIDERS,
     listReferenceDocs,
   });
 }

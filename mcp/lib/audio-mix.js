@@ -126,4 +126,92 @@ export function buildVoiceoverTrackArgs(opts) {
   ];
 }
 
+/**
+ * Build ffmpeg args that attach an audio track to a rendered video that has
+ * no audio of its own (ANI-129). Video stream is copied untouched; the audio
+ * is encoded AAC so the result stays a valid MP4. No `-shortest` — a
+ * narration track that ends early must not truncate the picture.
+ *
+ * @param {object} opts
+ * @param {string} opts.videoPath - Rendered video (no audio stream expected)
+ * @param {string} opts.audioPath - Track to attach
+ * @param {string} opts.outputPath - Destination file (must differ from videoPath)
+ * @returns {string[]}
+ */
+export function buildMuxArgs(opts) {
+  const { videoPath, audioPath, outputPath } = opts || {};
+  if (!videoPath || !audioPath || !outputPath) {
+    throw new Error('buildMuxArgs requires { videoPath, audioPath, outputPath }');
+  }
+
+  return [
+    '-y',
+    '-i', videoPath,
+    '-i', audioPath,
+    '-map', '0:v',
+    '-map', '1:a',
+    '-c:v', 'copy',
+    '-c:a', 'aac',
+    outputPath,
+  ];
+}
+
+/**
+ * Build ffmpeg args that duck a rendered video's embedded audio (music bed
+ * + per-scene SFX, embedded by Remotion per ANI-106) under a voiceover
+ * track, in a single pass (ANI-129). Same sidechain graph as
+ * `buildDuckingFfmpegArgs`, but the music input is the video's own audio
+ * stream and the video stream is copied through to the output.
+ *
+ * @param {object} opts
+ * @param {string} opts.videoPath - Rendered video with an audio stream
+ * @param {string} opts.voiceoverPath - Narration track
+ * @param {string} opts.outputPath - Destination file (must differ from videoPath)
+ * @param {number} [opts.threshold=0.05]
+ * @param {number} [opts.ratio=8]
+ * @param {number} [opts.attack_ms=20]
+ * @param {number} [opts.release_ms=250]
+ * @param {number} [opts.music_gain_db=0]
+ * @param {number} [opts.voice_gain_db=0]
+ * @returns {string[]}
+ */
+export function buildDuckedMuxArgs(opts) {
+  const {
+    videoPath,
+    voiceoverPath,
+    outputPath,
+    threshold = DEFAULT_DUCKING.threshold,
+    ratio = DEFAULT_DUCKING.ratio,
+    attack_ms = DEFAULT_DUCKING.attack_ms,
+    release_ms = DEFAULT_DUCKING.release_ms,
+    music_gain_db = DEFAULT_DUCKING.music_gain_db,
+    voice_gain_db = DEFAULT_DUCKING.voice_gain_db,
+  } = opts || {};
+
+  if (!videoPath || !voiceoverPath || !outputPath) {
+    throw new Error('buildDuckedMuxArgs requires { videoPath, voiceoverPath, outputPath }');
+  }
+
+  // Same graph as buildDuckingFfmpegArgs with the roles re-mapped:
+  // input 0 is the video (its audio stream is the "music"), input 1 the voice.
+  const filterGraph = [
+    `[0:a]volume=${music_gain_db}dB[music_g]`,
+    `[1:a]volume=${voice_gain_db}dB,asplit=2[vkey][vplay]`,
+    `[music_g][vkey]sidechaincompress=threshold=${threshold}:ratio=${ratio}:attack=${attack_ms}:release=${release_ms}[ducked]`,
+    `[ducked][vplay]amix=inputs=2:duration=longest:dropout_transition=0[out]`,
+  ].join(';');
+
+  return [
+    '-y',
+    '-i', videoPath,
+    '-i', voiceoverPath,
+    '-filter_complex', filterGraph,
+    '-map', '0:v',
+    '-map', '[out]',
+    '-c:v', 'copy',
+    '-c:a', 'aac',
+    outputPath,
+  ];
+}
+
 export const DEFAULT_DUCKING_PARAMS = Object.freeze({ ...DEFAULT_DUCKING });

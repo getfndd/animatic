@@ -1,0 +1,66 @@
+{
+  "clips": [
+    {
+      "scene_id": "sc_intro",
+      "offset_ms": 0,
+      "path": "<project>/audio/voiceover/sc_intro.wav",
+      "path_relative": "audio/voiceover/sc_intro.wav",
+      "duration_ms": 3273,
+      "provider": "mock"
+    },
+    {
+      "scene_id": "sc_feature",
+      "offset_ms": 3400,
+      "path": "<project>/audio/voiceover/sc_feature.wav",
+      "path_relative": "audio/voiceover/sc_feature.wav",
+      "duration_ms": 4297,
+      "provider": "mock"
+    },
+    {
+      "scene_id": "sc_close",
+      "offset_ms": 12000,
+      "path": "<project>/audio/voiceover/sc_close.wav",
+      "path_relative": "audio/voiceover/sc_close.wav",
+      "duration_ms": 1455,
+      "provider": "mock"
+    }
+  ],
+  "track": "audio/voiceover/voiceover-track.wav",
+  "ducked": true,
+  "commands": [
+    [
+      "-y",
+      "-i",
+      "<project>/audio/voiceover/sc_intro.wav",
+      "-i",
+      "<project>/audio/voiceover/sc_feature.wav",
+      "-i",
+      "<project>/audio/voiceover/sc_close.wav",
+      "-filter_complex",
+      "[0:a]adelay=0:all=1[v0];[1:a]adelay=3400:all=1[v1];[2:a]adelay=12000:all=1[v2];[v0][v1][v2]amix=inputs=3:duration=longest:normalize=0[out]",
+      "-map",
+      "[out]",
+      "-ar",
+      "22050",
+      "<project>/audio/voiceover/voiceover-track.wav"
+    ],
+    [
+      "-y",
+      "-i",
+      "<project>/renders/draft/fixture-render.mp4",
+      "-i",
+      "<project>/audio/voiceover/voiceover-track.wav",
+      "-filter_complex",
+      "[0:a]volume=0dB[music_g];[1:a]volume=0dB,asplit=2[vkey][vplay];[music_g][vkey]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[ducked];[ducked][vplay]amix=inputs=2:duration=longest:dropout_transition=0[out]",
+      "-map",
+      "0:v",
+      "-map",
+      "[out]",
+      "-c:v",
+      "copy",
+      "-c:a",
+      "aac",
+      "<project>/renders/draft/fixture-render.voiceover-mix.mp4"
+    ]
+  ]
+}

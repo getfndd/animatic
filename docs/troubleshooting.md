@@ -163,12 +163,16 @@ tiers.
 **Fix, in order:**
 1. `validate_choreography` — checks the primitive set against personality
    guardrails before you render again.
-2. `review_project` — stores evaluation + critique scores under `review/`;
-   scores below 70 list the specific issues.
-3. Never mix personality-specific primitives across personalities — the
+2. `review_project` — runs manifest guardrail validation plus the
+   sequence-level evaluation and stores both in `review/evaluation.json`
+   (evaluation is skipped, with the reason recorded, when the project has
+   no style pack or no loadable scenes).
+3. `critique_motion` — per-scene timeline critique; scores below 70 list
+   the specific issues (orphan layers, timing violations, etc.).
+4. Never mix personality-specific primitives across personalities — the
    four built-ins (`cinematic-dark`, `editorial`, `neutral-light`,
    `montage`) have intentionally disjoint vocabularies.
-4. Use the personality's timing tokens rather than raw durations — arbitrary
+5. Use the personality's timing tokens rather than raw durations — arbitrary
    values defeat the speed hierarchy that makes motion feel coherent.
 
 ---

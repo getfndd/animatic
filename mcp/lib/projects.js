@@ -17,11 +17,13 @@ import { buildCaptionsSidecar } from './captions.js';
 import { runPreflight } from './preflight.js';
 import { renderRemotionSequence } from './video.js';
 import {
+  defaultTtsProvider,
   muxVoiceoverIntoRender,
   planVoiceoverClips,
   prepareVoiceoverTrack,
   renderHasEmbeddedAudio,
 } from './voiceover-mix.js';
+import { estimateSynthesisCost } from './tts.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -656,6 +658,15 @@ export async function renderProject(options) {
   // happens post-render (the render's embedded music/SFX duck under the
   // narration, see voiceover-mix.js).
   const voiceoverClips = planVoiceoverClips(manifest, sceneDefs);
+  const resolvedTtsProvider = tts_provider || defaultTtsProvider();
+  // Advisory spend estimate (ANI-128) — worst case, before cache hits are
+  // known. Local providers estimate $0.
+  const voiceoverCost = voiceoverClips.length > 0
+    ? estimateSynthesisCost(
+        voiceoverClips.map(c => ({ text: c.scene.voiceover.text, provider: c.scene.voiceover.provider })),
+        resolvedTtsProvider,
+      )
+    : null;
 
   if (dry_run) {
     return {
@@ -669,6 +680,8 @@ export async function renderProject(options) {
         ? {
             planned_clips: voiceoverClips.map(({ scene_id, offset_ms }) => ({ scene_id, offset_ms })),
             will_duck_embedded_audio: renderHasEmbeddedAudio(manifest),
+            tts_provider: resolvedTtsProvider,
+            estimated_cost: voiceoverCost,
           }
         : null,
     };
@@ -700,10 +713,14 @@ export async function renderProject(options) {
       hasEmbeddedAudio: renderHasEmbeddedAudio(manifest),
     });
     voiceoverOutput = {
-      clips: voiceoverTrack.clips.map(({ scene_id, path_relative, offset_ms, duration_ms, provider }) =>
-        ({ scene_id, path: path_relative, offset_ms, duration_ms, provider })),
+      clips: voiceoverTrack.clips.map(({ scene_id, path_relative, offset_ms, duration_ms, provider, cached }) =>
+        ({ scene_id, path: path_relative, offset_ms, duration_ms, provider, cached })),
       track: voiceoverTrack.track_relative,
       ducked_embedded_audio: mux.ducked,
+      // Spend transparency (ANI-128): worst-case estimate + how much of it
+      // the content-addressed cache actually avoided this render.
+      estimated_cost: voiceoverCost,
+      cache_hits: voiceoverTrack.clips.filter(c => c.cached).length,
     };
   }
 

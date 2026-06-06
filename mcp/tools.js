@@ -751,7 +751,7 @@ export function buildTools({
           mark_as_latest: { type: 'boolean', description: 'Update `entrypoints.latest_render` after a successful render. Default: `true`.' },
           skip_preflight: { type: 'boolean', description: 'Skip the preflight doctor. Default: `false`. Use when you know the environment is ready and want to bypass checks.' },
           dry_run: { type: 'boolean', description: 'Assemble render props and run preflight without spawning the render. Default: `false`.' },
-          tts_provider: { type: 'string', enum: TTS_PROVIDERS, description: 'TTS provider for scenes with `voiceover.text`. Default: `macos_say` on macOS, `mock` elsewhere. Scene-level `voiceover.provider` overrides.' },
+          tts_provider: { type: 'string', enum: TTS_PROVIDERS, description: 'TTS provider for scenes with `voiceover.text`. Default: `macos_say` on macOS, `mock` elsewhere; `openai` needs OPENAI_API_KEY and is content-address cached so re-renders with unchanged narration make zero billed calls. Scene-level `voiceover.provider` overrides. A dry_run reports the estimated synthesis cost before any spend.' },
         },
         required: ['project'],
       },

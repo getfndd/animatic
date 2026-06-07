@@ -55,8 +55,10 @@ export function buildStoryboardExportPayload(manifest, sceneDefs, options = {}) 
     const sceneId = entry.scene || entry.scene_id;
     const scene = sceneDefs?.[sceneId];
     const start = timeline[i] || { start_ms: 0, duration_ms: 0 };
+    // Manifests use transition_in.type (see planner/revision/audio-sync);
+    // `kind` accepted as a fallback for hand-authored variants.
     const transition = entry.transition_in
-      ? `${entry.transition_in.kind || 'transition'} (${entry.transition_in.duration_ms || 0}ms)`
+      ? `${entry.transition_in.type || entry.transition_in.kind || 'transition'} (${entry.transition_in.duration_ms || 0}ms)`
       : i === 0 ? 'cut (open)' : 'cut';
 
     return {
@@ -65,6 +67,7 @@ export function buildStoryboardExportPayload(manifest, sceneDefs, options = {}) 
       frame_name: `${STORYBOARD_FRAME_PREFIX}${sceneId}`,
       panel_png: `${panelsDir}/${sceneId}.png`,
       title: scene?.primary_subject || sceneId,
+      scene_loaded: Boolean(scene),
       description: scene ? describeThumbnail(scene) : 'Scene definition not loaded',
       duration_s: entry.duration_s || scene?.duration_s || 0,
       starts_at_ms: start.start_ms,
@@ -94,6 +97,8 @@ export function buildStoryboardExportPayload(manifest, sceneDefs, options = {}) 
     expected_frames: panels.map(p => p.frame_name),
   };
 
+  const missing_scene_defs = panels.filter(p => !p.scene_loaded).map(p => p.scene_id);
+
   const figma_instructions = [
     `Create a Figma page "${layout_plan.page_name}" with one frame per storyboard panel.`,
     `NAMING CONTRACT (verification + comment round-trip key on this): ${naming_contract.rule}`,
@@ -102,7 +107,7 @@ export function buildStoryboardExportPayload(manifest, sceneDefs, options = {}) 
     'After creation, report the file key so verify_figma_export can run the read-back.',
   ].join('\n');
 
-  return { panels, layout_plan, naming_contract, figma_instructions };
+  return { panels, layout_plan, naming_contract, figma_instructions, missing_scene_defs };
 }
 
 /**

@@ -33,6 +33,26 @@ function collectStoryboardFrames(node, found = new Map(), depth = 0) {
 }
 
 /**
+ * Map every node id at or below an sb_ frame to that frame's scene id —
+ * designers pin comments to the panel image or caption INSIDE the frame
+ * at least as often as to the frame itself (PR #90 review finding), so
+ * attribution must cover descendants, not just frame roots. Bounded by
+ * the depth of the fetched tree (fetch with depth ≥ 4).
+ */
+function collectNodeSceneMap(node, map = new Map(), currentScene = null, depth = 0) {
+  if (!node || depth > 8) return map;
+  let scene = currentScene;
+  if (typeof node.name === 'string' && node.name.startsWith(STORYBOARD_FRAME_PREFIX)) {
+    scene = node.name.slice(STORYBOARD_FRAME_PREFIX.length);
+  }
+  if (scene && node.id) map.set(node.id, scene);
+  for (const child of node.children || []) {
+    collectNodeSceneMap(child, map, scene, depth + 1);
+  }
+  return map;
+}
+
+/**
  * Verify a created Figma file against the export payload's naming contract.
  *
  * @param {object} payload - From buildStoryboardExportPayload
@@ -84,12 +104,12 @@ export function verifyExportAgainstTree(payload, fileTree) {
  * Map Figma comments to storyboard scenes.
  *
  * Attribution order per comment:
- *   1. pinned node id (`client_meta.node_id`) → the storyboard frame it
- *      sits on (or inside — node ids of children aren't resolvable without
- *      a deep tree, so child pins attribute via the frames map when the id
- *      matches a known frame, else fall through)
- *   2. an `sb_<scene_id>` mention in the comment text
- *   3. otherwise → `unmapped`
+ *   1. pinned node id (`client_meta.node_id`) → the sb_ frame it sits on
+ *      OR inside (every fetched descendant of a frame attributes to it —
+ *      fetch the tree with depth ≥ 4 so panel images/captions resolve)
+ *   2. reply-thread inheritance from the parent comment
+ *   3. an `sb_<scene_id>` mention in the comment text
+ *   4. otherwise → `unmapped`
  *
  * Comment threads keep their structure: replies inherit the parent's
  * scene attribution.
@@ -101,11 +121,9 @@ export function verifyExportAgainstTree(payload, fileTree) {
  */
 export function mapCommentsToScenes(comments, fileTree) {
   const frames = collectStoryboardFrames(fileTree?.document || {});
-  const idToScene = new Map();
-  for (const [name, ids] of frames.entries()) {
-    const sceneId = name.slice(STORYBOARD_FRAME_PREFIX.length);
-    for (const id of ids) idToScene.set(id, sceneId);
-  }
+  // Every descendant of an sb_ frame attributes to that scene — pins land
+  // on panel images and captions, not just frame roots.
+  const idToScene = collectNodeSceneMap(fileTree?.document || {});
 
   const mentionRe = new RegExp(`${STORYBOARD_FRAME_PREFIX}([a-zA-Z0-9_]+)`);
   const parentScene = new Map(); // comment id → scene attribution for replies

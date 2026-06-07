@@ -49,9 +49,16 @@ const SCENE_DEFS = {
   sc_close: { scene_id: 'sc_close', duration_s: 3, layers: [] },
 };
 
-/** A Figma file tree as the agent should have created it. */
+/** A Figma file tree as the agent should have created it — frames carry
+ *  the panel image + caption children designers actually pin comments to. */
 function goodTree() {
-  const frame = (name, id) => ({ id, name, type: 'FRAME', children: [] });
+  const frame = (name, id) => ({
+    id, name, type: 'FRAME',
+    children: [
+      { id: `${id}0`, name: 'panel image', type: 'RECTANGLE' },
+      { id: `${id}1`, name: 'caption', type: 'TEXT' },
+    ],
+  });
   return {
     file_key: 'SBKEY',
     document: {
@@ -87,7 +94,7 @@ describe('buildStoryboardExportPayload', () => {
     assert.equal(open.transition_in, 'cut (open)');
     assert.equal(open.voiceover, 'Meet the product.');
     assert.equal(feature.camera, 'push_in'); // camera_override wins
-    assert.equal(feature.transition_in, 'whip_wipe (500ms)');
+    assert.equal(feature.transition_in, 'whip_wipe (500ms)'); // .kind fallback
     assert.equal(close.camera, 'static');
     // transition overlap honored (captions timeline convention)
     assert.equal(feature.starts_at_ms, 3500);
@@ -103,6 +110,20 @@ describe('buildStoryboardExportPayload', () => {
 
   it('rejects empty manifests', () => {
     assert.throws(() => buildStoryboardExportPayload({ scenes: [] }, {}), /requires a manifest/);
+  });
+
+  it('uses transition_in.type (repo convention) and reports missing scene defs (PR #90 findings)', () => {
+    const p = buildStoryboardExportPayload(
+      { scenes: [
+        { scene: 'sc_a', duration_s: 2 },
+        { scene: 'sc_b', duration_s: 2, transition_in: { type: 'crossfade', duration_ms: 400 } },
+      ] },
+      { sc_a: SCENE_DEFS.sc_open }, // sc_b has no definition
+    );
+    assert.equal(p.panels[1].transition_in, 'crossfade (400ms)');
+    assert.equal(p.panels[0].scene_loaded, true);
+    assert.equal(p.panels[1].scene_loaded, false);
+    assert.deepEqual(p.missing_scene_defs, ['sc_b']);
   });
 });
 
@@ -187,6 +208,17 @@ describe('mapCommentsToScenes', () => {
     assert.equal(result.scenes.sc_feature[0].id, 'c3');
     assert.equal(result.unmapped.length, 2); // c4 + mention of nonexistent frame
     assert.equal(result.total, 5);
+  });
+
+  it('attributes pins on frame CHILDREN — panel image / caption (PR #90 finding)', () => {
+    const comments = [
+      { id: 'c1', message: 'Crop this tighter', user, client_meta: { node_id: '1:10' } },  // panel image inside sb_sc_open
+      { id: 'c2', message: 'Caption typo', user, client_meta: { node_id: '1:21' } },        // caption inside sb_sc_feature
+    ];
+    const result = mapCommentsToScenes(comments, tree);
+    assert.equal(result.scenes.sc_open[0].id, 'c1');
+    assert.equal(result.scenes.sc_feature[0].id, 'c2');
+    assert.equal(result.unmapped.length, 0);
   });
 
   it('marks resolved comments', () => {

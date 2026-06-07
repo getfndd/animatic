@@ -1043,12 +1043,37 @@ export async function handleExportStoryboardToFigma(args) {
       project_title: project_title || proj.title || proj.slug,
     });
 
+    // Fail-closed (PR #90 review finding): a payload with no loaded scene
+    // definitions — or zero rendered panels when panels were requested —
+    // would produce an unusable Figma file. Error instead of "success".
+    if (payload.missing_scene_defs.length === payload.panels.length) {
+      return {
+        content: [{
+          type: 'text',
+          text: `export_storyboard_to_figma failed: none of the manifest's ${payload.panels.length} scene(s) ` +
+            `have loadable definitions (${payload.missing_scene_defs.join(', ')}). ` +
+            'Check project.scenes paths — see docs/troubleshooting.md §3.',
+        }],
+        isError: true,
+      };
+    }
+
     let rendered = null;
     if (render_panels) {
       rendered = await renderStoryboardPanels(manifest, sceneDefs, {
         outputDir: join(proj.project_root, 'storyboards/figma-export'),
       });
+      if (rendered.length === 0) {
+        return {
+          content: [{ type: 'text', text: 'export_storyboard_to_figma failed: panel rendering produced 0 stills.' }],
+          isError: true,
+        };
+      }
     }
+
+    const warnings = payload.missing_scene_defs.length > 0
+      ? [`${payload.missing_scene_defs.length} scene(s) have no loadable definition and export as metadata-only panels: ${payload.missing_scene_defs.join(', ')}`]
+      : [];
 
     return {
       content: [{
@@ -1056,6 +1081,7 @@ export async function handleExportStoryboardToFigma(args) {
         text: JSON.stringify({
           ...payload,
           panels_rendered: rendered ? rendered.length : 0,
+          warnings,
           project_root: proj.project_root,
         }, null, 2),
       }],
@@ -1080,7 +1106,9 @@ export async function handleImportFigmaComments(args) {
   const { file_key } = args;
   try {
     const [tree, { comments }] = await Promise.all([
-      fetchFileTree(file_key, { depth: 3 }),
+      // Depth 4 reaches document → page → sb_ frame → panel image/caption,
+      // so pins on a frame's children attribute correctly (PR #90 finding).
+      fetchFileTree(file_key, { depth: 4 }),
       fetchComments(file_key),
     ]);
     const result = mapCommentsToScenes(comments, tree);

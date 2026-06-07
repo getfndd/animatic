@@ -153,6 +153,37 @@ export async function figmaGet(path, opts = {}) {
 }
 
 /**
+ * Fetch the top of a file's node tree (for frame-name read-back, ANI-113).
+ * Depth 2 reaches document → pages → top-level frames.
+ *
+ * @param {string} fileKeyOrUrl
+ * @param {object} [opts] - { depth=2, fetchImpl, env }
+ * @returns {Promise<{ file_key: string, name: string, document: object }>}
+ */
+export async function fetchFileTree(fileKeyOrUrl, opts = {}) {
+  const fileKey = extractFileKey(fileKeyOrUrl);
+  if (!fileKey) throw new Error(`Cannot extract a Figma file key from "${fileKeyOrUrl}".`);
+  const depth = opts.depth ?? 2;
+  const body = await figmaGet(`/files/${encodeURIComponent(fileKey)}?depth=${depth}`, opts);
+  if (!body?.document) throw new Error(`Figma returned no document for file ${fileKey}.`);
+  return { file_key: fileKey, name: body.name || null, document: body.document };
+}
+
+/**
+ * Fetch a file's comments (ANI-113 round-trip — plain REST, no plugin).
+ *
+ * @param {string} fileKeyOrUrl
+ * @param {object} [opts] - { fetchImpl, env }
+ * @returns {Promise<{ file_key: string, comments: object[] }>}
+ */
+export async function fetchComments(fileKeyOrUrl, opts = {}) {
+  const fileKey = extractFileKey(fileKeyOrUrl);
+  if (!fileKey) throw new Error(`Cannot extract a Figma file key from "${fileKeyOrUrl}".`);
+  const body = await figmaGet(`/files/${encodeURIComponent(fileKey)}/comments`, opts);
+  return { file_key: fileKey, comments: body?.comments || [] };
+}
+
+/**
  * Fetch a single node's document subtree.
  *
  * @param {string} fileKeyOrUrl - File key or full figma.com URL

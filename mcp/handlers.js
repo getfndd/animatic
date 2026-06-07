@@ -13,7 +13,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { loadBenchmarks, readBreakdown, readReferenceDoc, listReferenceDocs } from './data/loader.js';
 
@@ -59,8 +59,10 @@ import { scoreCandidateVideo, autoReviseLoop, DEFAULT_WEIGHTS as SCORE_WEIGHTS }
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
 import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
-import { fetchNode as fetchFigmaNode } from './lib/figma/client.js';
+import { fetchNode as fetchFigmaNode, fetchFileTree, fetchComments } from './lib/figma/client.js';
 import { frameToScene } from './lib/figma/frame-to-scene.js';
+import { buildStoryboardExportPayload, renderStoryboardPanels } from './lib/figma/storyboard-export.js';
+import { verifyExportAgainstTree, mapCommentsToScenes } from './lib/figma/figma-roundtrip.js';
 import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
 import { analyzeSceneComprehension } from './lib/scene-comprehension.js';
@@ -1014,6 +1016,78 @@ export function handleValidateChoreography(args) {
   }
 
   return { content: [{ type: 'text', text: out }] };
+}
+
+export async function handleExportStoryboardToFigma(args) {
+  const { project: projectId, render_panels = true, project_title } = args;
+  try {
+    const proj = await getProject({ project: projectId });
+    if (!proj) return { content: [{ type: 'text', text: `Project "${projectId}" not found` }], isError: true };
+
+    const manifestPath = proj.entrypoints?.root_manifest;
+    if (!manifestPath) return { content: [{ type: 'text', text: 'No root_manifest on project' }], isError: true };
+    const manifest = JSON.parse(readFileSync(join(proj.project_root, manifestPath), 'utf-8'));
+
+    const sceneDefs = {};
+    for (const entry of proj.scenes || []) {
+      const p = entry.source || entry.path;
+      if (!p) continue;
+      try {
+        const sceneData = JSON.parse(readFileSync(join(proj.project_root, p), 'utf-8'));
+        const id = sceneData.scene_id || entry.id;
+        if (id) sceneDefs[id] = sceneData;
+      } catch { /* unreadable scene — payload marks it as not loaded */ }
+    }
+
+    const payload = buildStoryboardExportPayload(manifest, sceneDefs, {
+      project_title: project_title || proj.title || proj.slug,
+    });
+
+    let rendered = null;
+    if (render_panels) {
+      rendered = await renderStoryboardPanels(manifest, sceneDefs, {
+        outputDir: join(proj.project_root, 'storyboards/figma-export'),
+      });
+    }
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          ...payload,
+          panels_rendered: rendered ? rendered.length : 0,
+          project_root: proj.project_root,
+        }, null, 2),
+      }],
+    };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `export_storyboard_to_figma failed: ${err.message}` }], isError: true };
+  }
+}
+
+export async function handleVerifyFigmaExport(args) {
+  const { file_key, payload } = args;
+  try {
+    const tree = await fetchFileTree(file_key, { depth: 3 });
+    const result = verifyExportAgainstTree(payload, tree);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: !result.ok };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `verify_figma_export failed: ${err.message}` }], isError: true };
+  }
+}
+
+export async function handleImportFigmaComments(args) {
+  const { file_key } = args;
+  try {
+    const [tree, { comments }] = await Promise.all([
+      fetchFileTree(file_key, { depth: 3 }),
+      fetchComments(file_key),
+    ]);
+    const result = mapCommentsToScenes(comments, tree);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `import_figma_comments failed: ${err.message}` }], isError: true };
+  }
 }
 
 export async function handleFigmaFrameToScene(args) {

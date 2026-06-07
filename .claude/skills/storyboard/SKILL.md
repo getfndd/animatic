@@ -225,6 +225,21 @@ Each step is a quality gate. Bad prototype? Fix the HTML before animating. Bad a
 
 ---
 
+## Figma Export (ANI-113)
+
+When the user asks to export the storyboard to Figma (or `--figma` is passed):
+
+1. **Build the payload:** call `export_storyboard_to_figma` with the project slug. It renders one panel still per scene (960x540, `storyboards/figma-export/`) and returns `{ panels, layout_plan, naming_contract, figma_instructions }`.
+2. **Create the file via the Figma MCP server** (configured in `.mcp.json`): follow `figma_instructions` exactly — one frame per panel named `sb_<scene_id>` (the naming contract; verification and comment round-trip key on it), positioned per `layout_plan.positions`, panel PNG inside, caption text below (title / duration / camera / transition, voiceover when present). Use `generate_figma_design` or `use_figma` (load the `/figma-use` skill first when using `use_figma`).
+3. **Verify (mandatory):** call `verify_figma_export` with the new file key + the payload. It REST-reads the file and fail-closes on missing/duplicated/unexpected frames. If it fails, fix the file and re-verify — do not report success on an unverified export.
+4. **Emit the Figma file link** to the user.
+
+**Round-trip:** later, `import_figma_comments(file_key)` maps designer comments back to scenes (pinned frame → thread inheritance → `sb_` mention). Feed `scenes[scene_id]` notes into storyboard revisions; surface the `unmapped` bucket rather than dropping it.
+
+Requires `FIGMA_TOKEN` in the animatic MCP server env (verification + comments read). The Figma MCP server handles the write side with its own auth.
+
+---
+
 ## Spec Reference
 
 Full storyboard JSON format: `docs/cinematography/specs/storyboard-format.md`
@@ -238,3 +253,5 @@ Full storyboard JSON format: `docs/cinematography/specs/storyboard-format.md`
 | `/animate` | Add motion to prototypes (downstream) |
 | `/sizzle` | Capture to video (downstream) |
 | `/review` | Evaluate sequence quality |
+| `export_storyboard_to_figma` → figma MCP → `verify_figma_export` | Push panels to Figma for designer iteration (ANI-113) |
+| `import_figma_comments` | Pull designer comments back as per-scene revision notes |

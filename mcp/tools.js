@@ -246,6 +246,45 @@ export function buildTools({
       },
     },
     {
+      name: 'export_storyboard_to_figma',
+      description:
+        'Build the storyboard→Figma export payload for a project (ANI-113): one panel still per scene (rendered via Remotion at 960x540 into storyboards/figma-export/), scene metadata (title, duration, camera, transition, voiceover), a grid layout_plan, and the frame-naming contract (sb_<scene_id>) plus figma_instructions. Animatic does NOT write into Figma — the agent drives the Figma MCP server (use_figma / generate_figma_design) from this payload to create the file, then verify_figma_export runs the REST read-back. LOCAL only (spawns Remotion).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: { type: 'string', description: 'Project slug.' },
+          render_panels: { type: 'boolean', description: 'Render panel PNGs via Remotion. Default: true. Set false for a metadata-only payload (no Remotion needed).' },
+          project_title: { type: 'string', description: 'Title for the Figma page name. Defaults to the project title/slug.' },
+        },
+        required: ['project'],
+      },
+    },
+    {
+      name: 'verify_figma_export',
+      description:
+        'Verify a Figma file created from an export_storyboard_to_figma payload (ANI-113). REST-reads the file tree (requires FIGMA_TOKEN) and checks the frame-naming contract fail-closed: missing, duplicated, or unexpected sb_* frames are reported. Run after the agent creates the file; isError is set when the file does not match the payload.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          file_key: { type: 'string', description: 'Figma file key or figma.com URL of the created file.' },
+          payload: { type: 'object', description: 'The payload returned by export_storyboard_to_figma (naming_contract.expected_frames is what gets checked).' },
+        },
+        required: ['file_key', 'payload'],
+      },
+    },
+    {
+      name: 'import_figma_comments',
+      description:
+        'Read designer comments from a storyboard Figma file and map them to scenes (ANI-113 round-trip; requires FIGMA_TOKEN). Attribution: pinned frame (client_meta node id) → reply-thread inheritance → sb_<scene_id> mention in the text. Returns { scenes: { scene_id: [notes] }, unmapped, total } — unmappable comments are surfaced, never dropped. Feed the per-scene notes back into storyboard revision.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          file_key: { type: 'string', description: 'Figma file key or figma.com URL of the storyboard file.' },
+        },
+        required: ['file_key'],
+      },
+    },
+    {
       name: 'plan_sequence',
       description:
         'Plan a sequence from analyzed scenes and a style pack. Decides shot order, hold durations, transitions, and camera overrides. Returns a valid sequence manifest with editorial notes. Scenes must have metadata (use analyze_scene first). Supports per-scene style blending via metadata.style_override. Pass beats from analyze_beats for beat-synced editing.',

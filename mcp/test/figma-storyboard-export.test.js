@@ -124,6 +124,32 @@ describe('buildStoryboardExportPayload', () => {
     assert.equal(p.panels[0].scene_loaded, true);
     assert.equal(p.panels[1].scene_loaded, false);
     assert.deepEqual(p.missing_scene_defs, ['sc_b']);
+    // A panel without a loaded scene must not advertise a still the
+    // renderer will never produce — the agent would place a broken image.
+    assert.equal(p.panels[0].panel_png, 'storyboards/figma-export/sc_a.png');
+    assert.equal(p.panels[1].panel_png, null);
+    assert.match(p.figma_instructions, /panel_png: null/);
+  });
+
+  it('payload and renderer agree on which panels have stills (partial defs)', async () => {
+    const partialManifest = { scenes: [{ scene: 'sc_open', duration_s: 4 }, { scene: 'sc_ghost', duration_s: 2 }] };
+    const partialDefs = { sc_open: SCENE_DEFS.sc_open };
+    const p = buildStoryboardExportPayload(partialManifest, partialDefs);
+
+    const renderer = {
+      bundle: async () => 'serve://x',
+      selectComposition: async () => ({ durationInFrames: 240 }),
+      renderStill: async () => {},
+    };
+    const dir = mkdtempSync(join(tmpdir(), 'ani-113-'));
+    try {
+      const rendered = await renderStoryboardPanels(partialManifest, partialDefs, { outputDir: dir, renderer });
+      // The contract the handler enforces: stills rendered === panels advertising panel_png.
+      assert.equal(rendered.length, p.panels.filter(x => x.panel_png).length);
+      assert.deepEqual(rendered.map(r => r.scene_id), ['sc_open']);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

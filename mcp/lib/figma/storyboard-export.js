@@ -65,7 +65,10 @@ export function buildStoryboardExportPayload(manifest, sceneDefs, options = {}) 
       index: i,
       scene_id: sceneId,
       frame_name: `${STORYBOARD_FRAME_PREFIX}${sceneId}`,
-      panel_png: `${panelsDir}/${sceneId}.png`,
+      // Only loadable scenes get a still — renderStoryboardPanels skips the
+      // rest, so advertising a path that never materializes would hand the
+      // agent a broken image reference (PR #90 review finding).
+      panel_png: scene ? `${panelsDir}/${sceneId}.png` : null,
       title: scene?.primary_subject || sceneId,
       scene_loaded: Boolean(scene),
       description: scene ? describeThumbnail(scene) : 'Scene definition not loaded',
@@ -104,6 +107,7 @@ export function buildStoryboardExportPayload(manifest, sceneDefs, options = {}) 
     `NAMING CONTRACT (verification + comment round-trip key on this): ${naming_contract.rule}`,
     `Place frames on the grid in layout_plan.positions (${PANEL_W}x${PANEL_H} each).`,
     'Fill each frame with its panel_png image. Below the image, add a small caption text node with: title, duration_s, camera, transition_in (and voiceover when present).',
+    'Panels with panel_png: null have no still (scene definition missing) — render those frames caption-only with a placeholder fill, never an image reference.',
     'After creation, report the file key so verify_figma_export can run the read-back.',
   ].join('\n');
 

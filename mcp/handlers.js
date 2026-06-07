@@ -1063,9 +1063,21 @@ export async function handleExportStoryboardToFigma(args) {
       rendered = await renderStoryboardPanels(manifest, sceneDefs, {
         outputDir: join(proj.project_root, 'storyboards/figma-export'),
       });
-      if (rendered.length === 0) {
+      // Every panel that advertises a panel_png must actually have one —
+      // a payload referencing stills the renderer skipped hands the agent
+      // broken image paths (PR #90 review finding).
+      const expectedStills = payload.panels.filter(p => p.panel_png).length;
+      if (rendered.length !== expectedStills) {
+        const renderedIds = new Set(rendered.map(r => r.scene_id));
+        const missing = payload.panels
+          .filter(p => p.panel_png && !renderedIds.has(p.scene_id))
+          .map(p => p.scene_id);
         return {
-          content: [{ type: 'text', text: 'export_storyboard_to_figma failed: panel rendering produced 0 stills.' }],
+          content: [{
+            type: 'text',
+            text: `export_storyboard_to_figma failed: ${rendered.length}/${expectedStills} panel stills rendered ` +
+              `(missing: ${missing.join(', ')}). The payload would reference images that do not exist.`,
+          }],
           isError: true,
         };
       }

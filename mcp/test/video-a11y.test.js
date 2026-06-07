@@ -215,6 +215,39 @@ describe('auditVideoAccessibility (static mode)', () => {
   it('rejects empty manifests', async () => {
     await assert.rejects(() => auditVideoAccessibility({ manifest: { scenes: [] } }), /requires a manifest/);
   });
+
+  it('fail-closes when zero scene definitions are loaded (PR #91 finding)', async () => {
+    // The reviewer's repro: a real manifest + sceneDefs: {} — every static
+    // check passes vacuously, so without coverage accounting the audit
+    // claimed "No accessibility issues detected".
+    const result = await auditVideoAccessibility({ manifest: MANIFEST, sceneDefs: {} });
+    assert.equal(result.ok, false);
+    const cov = result.issues.find(i => i.check === 'coverage');
+    assert.equal(cov.severity, 'fail');
+    assert.match(cov.message, /0 of 3.*assessed nothing/);
+    assert.deepEqual(result.checks.coverage, {
+      manifest_scenes: 3, scenes_with_defs: 0,
+      missing_defs: ['sc_hero', 'sc_body', 'sc_close'],
+    });
+    assert.equal(result.summary.includes('No accessibility issues'), false);
+  });
+
+  it('warns on partial coverage and scopes the clean summary honestly', async () => {
+    const cleanDef = {
+      sc_hero: {
+        scene_id: 'sc_hero',
+        background: '#0a0a14',
+        layers: [{ id: 't', type: 'html', content: '<div style="color:#ffffff">Hi</div>' }],
+      },
+    };
+    const result = await auditVideoAccessibility({ manifest: MANIFEST, sceneDefs: cleanDef });
+    const cov = result.issues.find(i => i.check === 'coverage');
+    assert.equal(cov.severity, 'warn');
+    assert.deepEqual(cov.scene_ids, ['sc_body', 'sc_close']);
+    // ok stays true (warn, not fail) but the summary must not claim a full clean bill.
+    assert.equal(result.ok, true);
+    assert.match(result.summary, /warning/);
+  });
 });
 
 // ── Frame layer against real ffmpeg (skip-gated) ────────────────────────────

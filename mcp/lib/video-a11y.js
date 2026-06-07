@@ -352,6 +352,34 @@ export async function auditVideoAccessibility(input, opts = {}) {
   const issues = [];
   const checks = {};
 
+  // Coverage accounting (PR #91 review finding): static checks inspect
+  // scene DEFINITIONS — with none loaded they pass vacuously, and "no
+  // issues detected" would be a false clean bill. The audit fail-closes
+  // on zero coverage and warns on partial coverage instead.
+  const manifestSceneIds = (manifest.scenes || []).map(e => e.scene || e.scene_id).filter(Boolean);
+  const missingDefs = manifestSceneIds.filter(id => !sceneDefs[id]);
+  const coveredCount = manifestSceneIds.length - missingDefs.length;
+  checks.coverage = {
+    manifest_scenes: manifestSceneIds.length,
+    scenes_with_defs: coveredCount,
+    missing_defs: missingDefs,
+  };
+  if (coveredCount === 0) {
+    issues.push({
+      check: 'coverage', severity: 'fail',
+      scene_ids: missingDefs,
+      message: `0 of ${manifestSceneIds.length} manifest scenes have loaded definitions — the static checks (contrast, captions, motion) assessed nothing`,
+      suggestion: 'Pass the scene definitions referenced by the manifest (see docs/troubleshooting.md §3) — an audit over zero scenes is not a clean audit',
+    });
+  } else if (missingDefs.length > 0) {
+    issues.push({
+      check: 'coverage', severity: 'warn',
+      scene_ids: missingDefs,
+      message: `${missingDefs.length} of ${manifestSceneIds.length} manifest scenes have no loaded definition and were not assessed: ${missingDefs.join(', ')}`,
+      suggestion: 'Provide the missing scene definitions so contrast/captions/motion checks cover the full sequence',
+    });
+  }
+
   // Frame layer.
   if (video_path) {
     const { fps, frames } = await decodeVideoFrames(video_path, { exec });
@@ -403,12 +431,15 @@ export async function auditVideoAccessibility(input, opts = {}) {
 
   const fails = issues.filter(i => i.severity === 'fail').length;
   const warns = issues.filter(i => i.severity === 'warn').length;
+  const cleanSummary = missingDefs.length > 0
+    ? `No issues in the ${coveredCount}/${manifestSceneIds.length} scenes assessed`
+    : 'No accessibility issues detected';
   return {
     ok: fails === 0,
     issues,
     checks,
     summary: fails === 0 && warns === 0
-      ? 'No accessibility issues detected' + (video_path ? '' : ' (static checks only — pass video_path for flash/strobe analysis)')
+      ? cleanSummary + (video_path ? '' : ' (static checks only — pass video_path for flash/strobe analysis)')
       : `${fails} failure(s), ${warns} advisory warning(s) — see issues[] for per-scene fixes`,
   };
 }

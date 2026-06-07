@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-79 tools across 11 categories. Run via MCP server (`mcp/index.js`).
+82 tools across 11 categories. Run via MCP server (`mcp/index.js`).
 
 ## Primitives & Reference (8)
 
@@ -111,7 +111,7 @@
 | `analyze_beats` | Analyze audio for beats, tempo, energy curve |
 | `sync_sequence_to_beats` | Snap scene transitions to beat points |
 
-## Project Management (7)
+## Project Management (10)
 
 | Tool | What |
 |------|------|
@@ -119,6 +119,9 @@
 | `list_projects` / `get_project` / `get_project_context` | Load projects |
 | `save_project_artifact` | Save artifact (brief, manifest, render, review) to project |
 | `render_project` | Trigger project render |
+| `export_storyboard_to_figma` | Storyboard→Figma export payload + panel stills (agent drives the Figma MCP; sb_<scene_id> contract) |
+| `verify_figma_export` | REST read-back: created Figma file vs payload contract (fail-closed) |
+| `import_figma_comments` | Designer comments → per-scene storyboard revision notes |
 | `review_project` | Generate project review |
 
 ## Render Pipeline (4)

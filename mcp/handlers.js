@@ -13,7 +13,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { loadBenchmarks, readBreakdown, readReferenceDoc, listReferenceDocs } from './data/loader.js';
 
@@ -59,8 +59,10 @@ import { scoreCandidateVideo, autoReviseLoop, DEFAULT_WEIGHTS as SCORE_WEIGHTS }
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
 import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
-import { fetchNode as fetchFigmaNode } from './lib/figma/client.js';
+import { fetchNode as fetchFigmaNode, fetchFileTree, fetchComments } from './lib/figma/client.js';
 import { frameToScene } from './lib/figma/frame-to-scene.js';
+import { buildStoryboardExportPayload, renderStoryboardPanels } from './lib/figma/storyboard-export.js';
+import { verifyExportAgainstTree, mapCommentsToScenes } from './lib/figma/figma-roundtrip.js';
 import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
 import { analyzeSceneComprehension } from './lib/scene-comprehension.js';
@@ -1014,6 +1016,118 @@ export function handleValidateChoreography(args) {
   }
 
   return { content: [{ type: 'text', text: out }] };
+}
+
+export async function handleExportStoryboardToFigma(args) {
+  const { project: projectId, render_panels = true, project_title } = args;
+  try {
+    const proj = await getProject({ project: projectId });
+    if (!proj) return { content: [{ type: 'text', text: `Project "${projectId}" not found` }], isError: true };
+
+    const manifestPath = proj.entrypoints?.root_manifest;
+    if (!manifestPath) return { content: [{ type: 'text', text: 'No root_manifest on project' }], isError: true };
+    const manifest = JSON.parse(readFileSync(join(proj.project_root, manifestPath), 'utf-8'));
+
+    const sceneDefs = {};
+    for (const entry of proj.scenes || []) {
+      const p = entry.source || entry.path;
+      if (!p) continue;
+      try {
+        const sceneData = JSON.parse(readFileSync(join(proj.project_root, p), 'utf-8'));
+        const id = sceneData.scene_id || entry.id;
+        if (id) sceneDefs[id] = sceneData;
+      } catch { /* unreadable scene — payload marks it as not loaded */ }
+    }
+
+    const payload = buildStoryboardExportPayload(manifest, sceneDefs, {
+      project_title: project_title || proj.title || proj.slug,
+    });
+
+    // Fail-closed (PR #90 review finding): a payload with no loaded scene
+    // definitions — or zero rendered panels when panels were requested —
+    // would produce an unusable Figma file. Error instead of "success".
+    if (payload.missing_scene_defs.length === payload.panels.length) {
+      return {
+        content: [{
+          type: 'text',
+          text: `export_storyboard_to_figma failed: none of the manifest's ${payload.panels.length} scene(s) ` +
+            `have loadable definitions (${payload.missing_scene_defs.join(', ')}). ` +
+            'Check project.scenes paths — see docs/troubleshooting.md §3.',
+        }],
+        isError: true,
+      };
+    }
+
+    let rendered = null;
+    if (render_panels) {
+      rendered = await renderStoryboardPanels(manifest, sceneDefs, {
+        outputDir: join(proj.project_root, 'storyboards/figma-export'),
+      });
+      // Every panel that advertises a panel_png must actually have one —
+      // a payload referencing stills the renderer skipped hands the agent
+      // broken image paths (PR #90 review finding).
+      const expectedStills = payload.panels.filter(p => p.panel_png).length;
+      if (rendered.length !== expectedStills) {
+        const renderedIds = new Set(rendered.map(r => r.scene_id));
+        const missing = payload.panels
+          .filter(p => p.panel_png && !renderedIds.has(p.scene_id))
+          .map(p => p.scene_id);
+        return {
+          content: [{
+            type: 'text',
+            text: `export_storyboard_to_figma failed: ${rendered.length}/${expectedStills} panel stills rendered ` +
+              `(missing: ${missing.join(', ')}). The payload would reference images that do not exist.`,
+          }],
+          isError: true,
+        };
+      }
+    }
+
+    const warnings = payload.missing_scene_defs.length > 0
+      ? [`${payload.missing_scene_defs.length} scene(s) have no loadable definition and export as metadata-only panels: ${payload.missing_scene_defs.join(', ')}`]
+      : [];
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          ...payload,
+          panels_rendered: rendered ? rendered.length : 0,
+          warnings,
+          project_root: proj.project_root,
+        }, null, 2),
+      }],
+    };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `export_storyboard_to_figma failed: ${err.message}` }], isError: true };
+  }
+}
+
+export async function handleVerifyFigmaExport(args) {
+  const { file_key, payload } = args;
+  try {
+    const tree = await fetchFileTree(file_key, { depth: 3 });
+    const result = verifyExportAgainstTree(payload, tree);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: !result.ok };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `verify_figma_export failed: ${err.message}` }], isError: true };
+  }
+}
+
+export async function handleImportFigmaComments(args) {
+  const { file_key } = args;
+  try {
+    const [tree, { comments }] = await Promise.all([
+      // Depth 4 reaches document → page → sb_ frame → panel image/caption,
+      // so pins on a frame's children attribute correctly (PR #90 finding).
+      fetchFileTree(file_key, { depth: 4 }),
+      fetchComments(file_key),
+    ]);
+    const result = mapCommentsToScenes(comments, tree);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `import_figma_comments failed: ${err.message}` }], isError: true };
+  }
 }
 
 export async function handleFigmaFrameToScene(args) {

@@ -24,6 +24,7 @@ import {
   renderHasEmbeddedAudio,
 } from './voiceover-mix.js';
 import { estimateSynthesisCost } from './tts.js';
+import { auditVideoAccessibility } from './video-a11y.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -500,37 +501,57 @@ export async function reviewProject(options) {
 
   const validationResult = validateFullManifest(manifest, personality);
 
+  // Scene definitions load once, shared by evaluation and the a11y audit
+  // (the audit must not depend on a style pack being set — ANI-122).
+  const loadedScenes = [];
+  const loadErrors = [];
+  for (const entry of proj.scenes || []) {
+    const scenePath = entry.source || entry.path;
+    if (!scenePath) continue;
+    const sceneData = await readJSON(join(proj.project_root, scenePath));
+    if (!sceneData) {
+      loadErrors.push(scenePath);
+      continue;
+    }
+    loadedScenes.push(sceneData);
+  }
+
   let evaluationResult = null;
   let evaluationError = null;
   if (!style) {
     evaluationError = 'No style_pack set on project — evaluation skipped';
   } else if (!STYLE_PACKS.includes(style)) {
     evaluationError = `Unknown style "${style}" — evaluation skipped`;
+  } else if (loadedScenes.length === 0) {
+    evaluationError = loadErrors.length > 0
+      ? `No loadable scenes (errors: ${loadErrors.join(', ')}) — evaluation skipped`
+      : 'No scenes registered on project — evaluation skipped';
   } else {
-    const analyzedScenes = [];
-    const loadErrors = [];
-    for (const entry of proj.scenes || []) {
-      const scenePath = entry.source || entry.path;
-      if (!scenePath) continue;
-      const sceneData = await readJSON(join(proj.project_root, scenePath));
-      if (!sceneData) {
-        loadErrors.push(scenePath);
-        continue;
-      }
-      const { metadata } = analyzeScene(sceneData);
-      analyzedScenes.push({ ...sceneData, metadata });
+    try {
+      const analyzedScenes = loadedScenes.map(sceneData => {
+        const { metadata } = analyzeScene(sceneData);
+        return { ...sceneData, metadata };
+      });
+      evaluationResult = evaluateSequence({ manifest, scenes: analyzedScenes, style });
+    } catch (err) {
+      evaluationError = `Evaluation failed: ${err.message}`;
     }
-    if (analyzedScenes.length === 0) {
-      evaluationError = loadErrors.length > 0
-        ? `No loadable scenes (errors: ${loadErrors.join(', ')}) — evaluation skipped`
-        : 'No scenes registered on project — evaluation skipped';
-    } else {
-      try {
-        evaluationResult = evaluateSequence({ manifest, scenes: analyzedScenes, style });
-      } catch (err) {
-        evaluationError = `Evaluation failed: ${err.message}`;
-      }
+  }
+
+  // Static accessibility audit (ANI-122) — contrast, captions coverage,
+  // motion-intensity advisory. Frame-layer checks (flash/strobe) need the
+  // rendered video: run audit_video_accessibility with video_path for those.
+  let accessibilityResult = null;
+  let accessibilityError = null;
+  try {
+    const sceneDefs = {};
+    for (const sceneData of loadedScenes) {
+      const id = sceneData.scene_id || sceneData.id;
+      if (id) sceneDefs[id] = sceneData;
     }
+    accessibilityResult = await auditVideoAccessibility({ manifest, sceneDefs });
+  } catch (err) {
+    accessibilityError = `Accessibility audit failed: ${err.message}`;
   }
 
   const reviewDir = join(proj.project_root, 'review');
@@ -539,6 +560,8 @@ export async function reviewProject(options) {
     validation: validationResult,
     evaluation: evaluationResult,
     evaluation_error: evaluationError,
+    accessibility: accessibilityResult,
+    accessibility_error: accessibilityError,
     personality,
     style,
     reviewed_at: new Date().toISOString(),

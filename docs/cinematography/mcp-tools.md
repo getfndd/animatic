@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-82 tools across 11 categories. Run via MCP server (`mcp/index.js`).
+83 tools across 11 categories. Run via MCP server (`mcp/index.js`).
 
 ## Primitives & Reference (8)
 
@@ -46,6 +46,7 @@
 | `plan_sequence` | Analyzed scenes + style pack → sequence manifest |
 | `plan_variants` | Generate multiple sequence variants |
 | `compare_variants` | Rank sequence variants |
+| `audit_video_accessibility` | WCAG-for-motion audit: flash/strobe, text contrast, captions coverage, autoplay-muted, motion intensity |
 | `evaluate_sequence` | Score sequence (pacing, variety, flow, adherence) |
 | `validate_manifest` | Validate manifest against personality guardrails |
 | `recommend_sequence_archetype` | Recommend archetype for scenes (6 archetypes) |
@@ -74,7 +75,7 @@
 | `audit_annotation_quality` | Check annotation quality (advisory/strict modes) |
 | `upgrade_project_confidence` | Safe metadata repair — suggest/apply/apply_safe_only patches |
 
-## Scoring & Critique (6)
+## Scoring & Critique (7)
 
 | Tool | What |
 |------|------|

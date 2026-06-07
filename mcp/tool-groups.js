@@ -99,6 +99,7 @@ export const TOOL_GROUPS = {
   // (ANI-160). Re-enable only with an inline contract (audio_base64/audio_url +
   // stripParams:['audio_path']), not by flipping this back to true.
   analyze_beats: { tier: TIER.TRANSFORM, edgeReady: false, note: 'reads a local audio_path file; needs an inline-audio contract before edge (ANI-160)' },
+  audit_video_accessibility: { tier: TIER.TRANSFORM, edgeReady: false, note: 'optionally reads a local video_path + shells to ffmpeg/ffprobe for frame analysis (ANI-122) — same local-path constraint as analyze_beats' },
   sync_sequence_to_beats: { tier: TIER.TRANSFORM, edgeReady: true },
   compile_motion: { tier: TIER.TRANSFORM, edgeReady: true },
   critique_motion: { tier: TIER.TRANSFORM, edgeReady: true },

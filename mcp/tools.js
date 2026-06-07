@@ -491,6 +491,20 @@ export function buildTools({
       },
     },
     {
+      name: 'audit_video_accessibility',
+      description:
+        'Audit a sequence for accessibility — WCAG for motion (ANI-122). Static checks (always): text contrast ratios on layers where colors are derivable (WCAG 1.4.3, undeterminable pairs reported as unknown rather than passed), captions coverage for narrated scenes (1.2.2), and a vestibular motion-intensity advisory (camera intensity + cut cadence). Frame-layer checks (when video_path is provided; needs ffmpeg): flash/strobe frequency against the three-flashes-per-second limit (2.3.1, general-flash approximation) and muted-autoplay compatibility (narration audio with zero captions fails). Every issue references the specific scene/layer and carries an actionable fix suggestion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: { type: 'object', description: 'Sequence manifest with a `scenes` array.' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Scene definitions (each with scene_id) referenced by the manifest.' },
+          video_path: { type: 'string', description: 'Optional path to the rendered video — enables flash/strobe analysis and the audio-stream probe. Without it, only static checks run.' },
+        },
+        required: ['manifest', 'scenes'],
+      },
+    },
+    {
       name: 'analyze_beats',
       description:
         'Analyze a WAV audio file to detect beats, tempo (BPM), and energy curve. Returns beat timestamps and energy data that can be passed to plan_sequence for beat-synced editing. Supports 16-bit and 24-bit PCM WAV files.',

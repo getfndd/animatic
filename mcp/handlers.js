@@ -62,6 +62,7 @@ import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.
 import { fetchNode as fetchFigmaNode, fetchFileTree, fetchComments } from './lib/figma/client.js';
 import { frameToScene } from './lib/figma/frame-to-scene.js';
 import { buildStoryboardExportPayload, renderStoryboardPanels } from './lib/figma/storyboard-export.js';
+import { auditVideoAccessibility } from './lib/video-a11y.js';
 import { verifyExportAgainstTree, mapCommentsToScenes } from './lib/figma/figma-roundtrip.js';
 import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
@@ -2549,6 +2550,21 @@ export async function handleRenderProject(args) {
 export async function handleReviewProject(args) {
   const result = await reviewProject(args);
   return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+}
+
+export async function handleAuditVideoAccessibility(args) {
+  const { manifest, scenes, video_path } = args;
+  try {
+    const sceneDefs = {};
+    for (const scene of scenes || []) {
+      const id = scene?.scene_id || scene?.id;
+      if (id) sceneDefs[id] = scene;
+    }
+    const result = await auditVideoAccessibility({ manifest, sceneDefs, video_path });
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: !result.ok };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `audit_video_accessibility failed: ${err.message}` }], isError: true };
+  }
 }
 
 export function handleGetArtDirection(args) {

@@ -125,6 +125,16 @@ describe('autoReviseLoop — frame evidence', () => {
     assert.ok(on.improvement >= off.improvement, 'frame evidence does not regress the score');
   });
 
+  it('runs the frame pass even when JSON converges on the final allowed round (max_rounds:1)', async () => {
+    // Regression: the frame pass must not be skipped when JSON converges on the
+    // last round of a tight budget — otherwise frame_evidence silently no-ops.
+    const manifest = manifestFor(['sc_strong', 'sc_weak']);
+    const scenes = [strongScene('sc_strong'), weakHeroScene('sc_weak')];
+    const r1 = await autoReviseLoop({ manifest, scenes, frame_evidence: true, capture: async () => null, max_rounds: 1 });
+    assert.ok(r1.frame_passes >= 1, 'frame pass runs at max_rounds:1');
+    assert.ok(r1.rounds.some(r => r.source === 'frame'), 'a frame-sourced round was recorded');
+  });
+
   it('advisory-only frame pass: nothing applied, revision_count unchanged, renders do not recur (state guard)', async () => {
     // Strong legibility everywhere → no boost. Vision judges geometry weak on one
     // scene → advisory only. The frame pass must record the advisory, apply NO

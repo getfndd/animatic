@@ -715,95 +715,48 @@ function computeDensity(manifest, scenes) {
  * `frame_passes`, `estimated_render_seconds`) are added only when the flag is on.
  */
 export async function autoReviseLoop({ manifest, scenes, style, brand, audio_beats, max_rounds = 3, min_improvement = 0.01, frame_evidence = false, frame_tier = 'T3', capture, client }) {
-  let currentManifest = JSON.parse(JSON.stringify(manifest));
-  let currentScenes = JSON.parse(JSON.stringify(scenes));
-
+  const currentManifest = JSON.parse(JSON.stringify(manifest));
+  const currentScenes = JSON.parse(JSON.stringify(scenes));
   const initialCard = scoreCandidateVideo({ manifest: currentManifest, scenes: currentScenes, style, brand, audio_beats });
   const scoreBefore = initialCard.overall;
+
+  // frame_evidence:false runs the original JSON-only loop verbatim, so its output
+  // is byte-identical to the pre-ANI-180 sync loop.
+  if (!frame_evidence) {
+    return jsonOnlyLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, scoreBefore });
+  }
+  return frameAwareLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, frame_tier, capture, client, scoreBefore });
+}
+
+/** The original JSON/structural loop — unchanged output shape (no frame fields). */
+function jsonOnlyLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, scoreBefore }) {
   let currentScore = scoreBefore;
   const rounds = [];
   let totalRevisions = 0;
 
-  // Frame-pass state (only meaningful when frame_evidence is on).
-  const appliedOps = new Set();       // op:target accepted this run — frame dedup
-  let frameTriedSinceChange = false;  // explicit guard: a frame pass ran with no accepted change since
-  let jsonExhausted = false;          // JSON produced no useful move since last accepted change
-  let framePasses = 0;
-  let estimatedRenderSeconds = 0;
-
-  const opKey = (r) => `${r.op}:${r.target ?? r.from_scene ?? ''}`;
-
   for (let round = 1; round <= max_rounds; round++) {
-    let source = null;
-    let batch = [];
-    let frameMeta = null;
-    let advisories = [];
+    const card = scoreCandidateVideo({ manifest: currentManifest, scenes: currentScenes, style, brand, audio_beats });
+    const targeted = card.recommended_revisions.filter(r => r.target || r.from_scene);
 
-    // 1) Prefer JSON/structural revisions unless JSON is exhausted this stretch.
-    if (!jsonExhausted) {
-      const card = scoreCandidateVideo({ manifest: currentManifest, scenes: currentScenes, style, brand, audio_beats });
-      const targeted = card.recommended_revisions.filter(r => r.target || r.from_scene);
-      if (targeted.length > 0) {
-        source = 'json';
-        batch = targeted.slice(0, 3);
-      } else {
-        jsonExhausted = true; // fall through to a frame pass this same round
-      }
-    }
-
-    // 2) JSON gave nothing → opt-in, stall-gated frame pass (once per stall).
-    if (batch.length === 0 && frame_evidence && !frameTriedSinceChange) {
-      const fp = await runFramePass({ manifest: currentManifest, scenes: currentScenes, brand, frame_tier, capture, client, appliedOps });
-      frameTriedSinceChange = true;
-      framePasses++;
-      estimatedRenderSeconds += fp.estimated_render_seconds;
-      source = 'frame';
-      batch = fp.revisions.slice(0, 3);
-      advisories = fp.advisories;
-      frameMeta = fp.frame_evidence;
-    }
-
-    // 3) Nothing left to apply → stop.
-    if (batch.length === 0) {
-      const info = { round, revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'no_revisions' };
-      if (frame_evidence) {
-        if (source) info.source = source;
-        if (frameMeta) info.frame_evidence = frameMeta;
-        if (advisories.length) info.advisories = advisories;
-      }
-      rounds.push(info);
+    if (targeted.length === 0) {
+      rounds.push({ round, revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'no_revisions' });
       break;
     }
 
+    const batch = targeted.slice(0, 3);
     let revised;
     try {
       revised = reviseCandidateVideo({ manifest: currentManifest, scenes: currentScenes, revisions: batch });
     } catch {
-      const info = { round, revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'revision_error' };
-      if (frame_evidence && source) info.source = source;
-      rounds.push(info);
+      rounds.push({ round, revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'revision_error' });
       break;
     }
 
     const reScored = scoreCandidateVideo({ manifest: revised.manifest, scenes: revised.scenes, style, brand, audio_beats });
     const delta = reScored.overall - currentScore;
-
-    const roundInfo = {
-      round,
-      revisions: revised.revision_count,
-      diff: revised.diff,
-      score_before: currentScore,
-      score_after: reScored.overall,
-      delta: Math.round(delta * 1000) / 1000,
-    };
-    if (frame_evidence) {
-      roundInfo.source = source;
-      if (frameMeta) roundInfo.frame_evidence = frameMeta;
-      if (advisories.length) roundInfo.advisories = advisories;
-    }
+    const roundInfo = { round, revisions: revised.revision_count, diff: revised.diff, score_before: currentScore, score_after: reScored.overall, delta: Math.round(delta * 1000) / 1000 };
 
     if (delta < -0.005) {
-      // Score got worse — revert
       roundInfo.stopped = 'score_decreased';
       rounds.push(roundInfo);
       break;
@@ -813,25 +766,15 @@ export async function autoReviseLoop({ manifest, scenes, style, brand, audio_bea
     currentScenes = revised.scenes;
     currentScore = reScored.overall;
     totalRevisions += revised.revision_count;
-    for (const r of batch) appliedOps.add(opKey(r));
-    frameTriedSinceChange = false; // a real transform was accepted → frames may try again later
-    jsonExhausted = false;         // structure changed → JSON gets another shot
     rounds.push(roundInfo);
 
     if (delta < min_improvement) {
-      // Converged on this source. If JSON converged and frames are still
-      // available to try, don't stop — let the next iteration run a frame pass.
-      // Otherwise (JSON-only, or frames already exhausted) stop exactly as before.
-      if (source === 'json' && frame_evidence && !frameTriedSinceChange) {
-        jsonExhausted = true;
-      } else {
-        roundInfo.stopped = 'converged';
-        break;
-      }
+      roundInfo.stopped = 'converged';
+      break;
     }
   }
 
-  const result = {
+  return {
     manifest: currentManifest,
     scenes: currentScenes,
     score_before: scoreBefore,
@@ -840,11 +783,119 @@ export async function autoReviseLoop({ manifest, scenes, style, brand, audio_bea
     rounds,
     total_revisions: totalRevisions,
   };
-  if (frame_evidence) {
-    result.frame_passes = framePasses;
-    result.estimated_render_seconds = Math.round(estimatedRenderSeconds * 10) / 10;
+}
+
+/**
+ * JSON loop + a stall-triggered rendered-frame pass. The frame pass runs whenever
+ * JSON stalls (no targeted revisions, convergence, OR the JSON round budget is
+ * spent) — so it is NOT silently skipped at tight `max_rounds` (it has its own
+ * cap). Each accepted change re-opens both JSON and a future frame pass; the
+ * explicit `frameTriedSinceChange` state guard stops an unproductive pass from
+ * re-rendering every iteration.
+ */
+async function frameAwareLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, frame_tier, capture, client, scoreBefore }) {
+  let currentScore = scoreBefore;
+  const rounds = [];
+  let totalRevisions = 0;
+  const appliedOps = new Set();
+  let frameTriedSinceChange = false;
+  let framePasses = 0;
+  let estimatedRenderSeconds = 0;
+  let jsonRounds = 0;
+  let roundLabel = 0;
+  const FRAME_PASS_CAP = Math.max(1, max_rounds); // bound total frame passes
+
+  const opKey = (r) => `${r.op}:${r.target ?? r.from_scene ?? ''}`;
+  const score = (m, s) => scoreCandidateVideo({ manifest: m, scenes: s, style, brand, audio_beats });
+  // Apply a batch and return the scored delta (no state mutation).
+  const applyBatch = (batch) => {
+    let revised;
+    try { revised = reviseCandidateVideo({ manifest: currentManifest, scenes: currentScenes, revisions: batch }); }
+    catch { return { error: true }; }
+    const reScored = score(revised.manifest, revised.scenes);
+    return { revised, delta: reScored.overall - currentScore, after: reScored.overall };
+  };
+  const accept = (ap, batch) => {
+    currentManifest = ap.revised.manifest;
+    currentScenes = ap.revised.scenes;
+    currentScore = ap.after;
+    totalRevisions += ap.revised.revision_count;
+    for (const r of batch) appliedOps.add(opKey(r));
+    frameTriedSinceChange = false; // a real transform landed → frames may try again
+  };
+
+  const finalize = () => ({
+    manifest: currentManifest,
+    scenes: currentScenes,
+    score_before: scoreBefore,
+    score_after: currentScore,
+    improvement: Math.round((currentScore - scoreBefore) * 1000) / 1000,
+    rounds,
+    total_revisions: totalRevisions,
+    frame_passes: framePasses,
+    estimated_render_seconds: Math.round(estimatedRenderSeconds * 10) / 10,
+  });
+
+  while (true) {
+    // ── JSON phase: one round if budget remains ──
+    let stalled = false;
+    let stallReason = null; // 'converged' | 'no_targeted' | 'budget'
+    if (jsonRounds < max_rounds) {
+      const card = score(currentManifest, currentScenes);
+      const targeted = card.recommended_revisions.filter(r => r.target || r.from_scene);
+      if (targeted.length === 0) {
+        stalled = true; stallReason = 'no_targeted';
+      } else {
+        roundLabel++; jsonRounds++;
+        const batch = targeted.slice(0, 3);
+        const ap = applyBatch(batch);
+        if (ap.error) { rounds.push({ round: roundLabel, source: 'json', revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'revision_error' }); return finalize(); }
+        const roundInfo = { round: roundLabel, source: 'json', revisions: ap.revised.revision_count, diff: ap.revised.diff, score_before: currentScore, score_after: ap.after, delta: Math.round(ap.delta * 1000) / 1000 };
+        if (ap.delta < -0.005) { roundInfo.stopped = 'score_decreased'; rounds.push(roundInfo); return finalize(); }
+        accept(ap, batch); rounds.push(roundInfo);
+        if (ap.delta < min_improvement) { stalled = true; stallReason = 'converged'; } // converged → try frames before stopping
+        else { continue; } // good progress → keep doing JSON rounds
+      }
+    } else {
+      stalled = true; stallReason = 'budget'; // JSON budget spent — frames still allowed
+    }
+
+    if (!stalled) continue;
+
+    // ── Frame phase: stall-triggered, NOT bounded by the JSON round budget ──
+    if (frameTriedSinceChange || framePasses >= FRAME_PASS_CAP) {
+      // No frame help available — finalize, labeling the terminal stop.
+      if (stallReason === 'converged') { rounds[rounds.length - 1].stopped = 'converged'; }
+      else if (stallReason === 'no_targeted') { roundLabel++; rounds.push({ round: roundLabel, source: 'json', revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'no_revisions' }); }
+      break;
+    }
+
+    roundLabel++;
+    const fp = await runFramePass({ manifest: currentManifest, scenes: currentScenes, brand, frame_tier, capture, client, appliedOps });
+    frameTriedSinceChange = true;
+    framePasses++;
+    estimatedRenderSeconds += fp.estimated_render_seconds;
+
+    const fbatch = fp.revisions.slice(0, 3);
+    if (fbatch.length === 0) {
+      // Frame pass found no bounded transform (advisories only or nothing) → stop.
+      const info = { round: roundLabel, source: 'frame', revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'no_revisions', frame_evidence: fp.frame_evidence };
+      if (fp.advisories.length) info.advisories = fp.advisories;
+      rounds.push(info);
+      break;
+    }
+
+    const ap = applyBatch(fbatch);
+    if (ap.error) { rounds.push({ round: roundLabel, source: 'frame', revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'revision_error', frame_evidence: fp.frame_evidence }); break; }
+    const froundInfo = { round: roundLabel, source: 'frame', revisions: ap.revised.revision_count, diff: ap.revised.diff, score_before: currentScore, score_after: ap.after, delta: Math.round(ap.delta * 1000) / 1000, frame_evidence: fp.frame_evidence };
+    if (fp.advisories.length) froundInfo.advisories = fp.advisories;
+    if (ap.delta < -0.005) { froundInfo.stopped = 'score_decreased'; rounds.push(froundInfo); break; }
+    accept(ap, fbatch); rounds.push(froundInfo);
+    if (ap.delta < min_improvement) { froundInfo.stopped = 'converged'; break; }
+    // else: the frame fix moved the manifest → loop back, JSON may have new moves.
   }
-  return result;
+
+  return finalize();
 }
 
 /**

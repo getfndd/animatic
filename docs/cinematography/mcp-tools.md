@@ -107,7 +107,7 @@ Returns a sequence manifest with chosen transitions and camera. Validate it with
 | `score_candidate_video` | Unified 6-dimension score card with per-scene subscores |
 | `revise_candidate_video` | 9 bounded manifest transforms (trim, swap, reorder, etc.) |
 | `compare_candidate_videos` | Rank 2-3 candidates with trade-off analysis |
-| `auto_revise_loop` | Score → revise → re-score → repeat until convergence |
+| `auto_revise_loop` | Score → revise → re-score → repeat until convergence. `frame_evidence:true` adds a stall-gated rendered hero-frame pass (ANI-180) that drives bounded fixes the JSON loop misses |
 | `generate_brief_stub` | Generate structured brief markdown from project context |
 
 **Example — extract a structured brief from raw text:**

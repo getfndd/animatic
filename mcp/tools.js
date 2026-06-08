@@ -1741,7 +1741,7 @@ export function buildTools({
     {
       name: 'auto_revise_loop',
       description:
-        'Autonomous revision loop: scores per-scene, picks worst scenes, applies targeted revisions, re-scores, repeats until convergence or max rounds. Returns the best manifest with full revision history.',
+        'Autonomous revision loop: scores per-scene, picks worst scenes, applies targeted revisions, re-scores, repeats until convergence or max rounds. Returns the best manifest with full revision history. With `frame_evidence: true`, when the JSON loop stalls it runs ONE rendered-frame pass (the ANI-178 hero-frame audit) and turns failing axes into bounded transforms the structural loop would miss — cost-gated (renders only on stall, honors ANIMATIC_SKIP_REMOTION_RENDER, logs render count). Default behavior (flag off) is unchanged.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1752,6 +1752,8 @@ export function buildTools({
           audio_beats: { type: 'object', description: 'Beat data from `analyze_beats`. Enables audio-sync scoring.' },
           max_rounds: { type: 'number', description: 'Maximum revision rounds. Default: `3`.' },
           min_improvement: { type: 'number', description: 'Convergence threshold — stop when round-over-round score gain drops below this. Default: `0.01`.' },
+          frame_evidence: { type: 'boolean', description: 'Opt-in (default `false`). When `true`, a rendered hero-frame pass runs on JSON-loop stall to drive frame-evidence revisions. Expensive: renders one still per scene (degrades to metadata-only legibility when the toolchain/key is absent). Composition-geometry findings with no bounded lever are reported as advisories, never applied.' },
+          frame_tier: { type: 'string', enum: ['T1', 'T2', 'T3', 'T4'], description: 'Master tier for the hero-frame gate during the frame pass (default `T3`). Sets the threshold + required axes.' },
         },
         required: ['manifest', 'scenes'],
       },

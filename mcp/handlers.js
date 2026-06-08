@@ -67,6 +67,7 @@ import { verifyExportAgainstTree, mapCommentsToScenes } from './lib/figma/figma-
 import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
 import { analyzeSceneComprehension } from './lib/scene-comprehension.js';
+import { scoreHeroFrame, auditHeroFrames, HERO_FRAME_AXES } from './lib/hero-frame.js';
 import { resolveRenderTargets } from './lib/render-routing.js';
 import { assembleVideoSequence, buildRenderCommand } from './lib/video-assembly.js';
 import { getDeliveryProfile, listDeliveryProfiles, getProfileForChannel } from './lib/delivery-profiles.js';
@@ -3438,6 +3439,69 @@ export function handleScoreCandidateVideo(args) {
       content: [{ type: 'text', text: `Error: ${err.message}` }],
       isError: true,
     };
+  }
+}
+
+export async function handleScoreHeroFrame(args) {
+  const { scene, frame, brand, tier } = args;
+  if (!scene || !scene.layers) {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `scene` must be an object with a `layers` array.' }],
+      isError: true,
+    };
+  }
+  try {
+    const result = await scoreHeroFrame({ scene, frame, brand, tier });
+    const overall = result.overall == null ? 'UNVERIFIED' : result.overall.toFixed(3);
+    const header = `## Hero Frame — ${result.scene_id || 'scene'} (${result.tier}, threshold ${result.threshold})\n\n`
+      + `**Overall: ${overall}** · evidence: \`${result.evidence}\` · subject: \`${result.subject || '(none)'}\` @ ${Math.round(result.at * 100)}%\n\n`
+      + HERO_FRAME_AXES
+        .map(a => {
+          const s = result.subscores[a];
+          if (!s) return null;
+          const val = s.score == null ? 'UNVERIFIED' : s.score.toFixed(3);
+          return `- ${a}${s.required ? '*' : ''}: ${val}`;
+        })
+        .filter(Boolean)
+        .join('\n')
+      + (result.unverified.length ? `\n\n⚠ unverified required axes: ${result.unverified.join(', ')}` : '')
+      + '\n\n_* = required at this tier_\n';
+    return { content: [{ type: 'text', text: header + '\n' + JSON.stringify(result, null, 2) }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
+  }
+}
+
+export async function handleAuditHeroFrames(args) {
+  const { manifest, scenes, tier, brand } = args;
+  if (!manifest || !Array.isArray(manifest.scenes)) {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `manifest` must be an object with a `scenes` array.' }],
+      isError: true,
+    };
+  }
+  if (!scenes) {
+    return {
+      content: [{ type: 'text', text: 'Invalid input: `scenes` (array or scene_id→def map) is required to resolve the manifest.' }],
+      isError: true,
+    };
+  }
+  try {
+    const result = await auditHeroFrames({ manifest, scenes, tier, brand });
+    const e = result.evidence_summary;
+    const header = `# Hero Frame Audit: **${result.verdict}** (${result.tier}, threshold ${result.threshold})\n\n`
+      + `Evidence: ${e.rendered}/${e.scenes} rendered · ${e.metadata_only} metadata-only · ${e.missing} missing-definition\n\n`
+      + result.scenes
+        .map(s => {
+          const overall = s.overall == null ? 'UNVERIFIED' : s.overall.toFixed(3);
+          const reasons = (s.reasons || []).length ? ` — ${s.reasons.join('; ')}` : '';
+          return `- **${s.verdict}** ${s.scene_id} (${overall})${reasons}`;
+        })
+        .join('\n')
+      + '\n';
+    return { content: [{ type: 'text', text: header + '\n' + JSON.stringify(result, null, 2) }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
   }
 }
 

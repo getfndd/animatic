@@ -1658,6 +1658,36 @@ export function buildTools({
       },
     },
     {
+      name: 'score_hero_frame',
+      description:
+        "Score a scene's poster frame — the single still that best represents it (ANI-178). Separates LEGIBILITY (subject_clarity, readable_text, hierarchy — derived from scene structure, always available) from COMPOSITION + AESTHETIC (visual_center, subject_scale, contrast, whitespace_air, brand_presence, emotional_semantic_clarity — judged by a vision model on a REAL rendered frame). Pass a pre-rendered still as `frame` ({ media_type, data: base64 }) to verify the pixel axes; without it those axes are reported UNVERIFIED (never guessed). `tier` (T1–T4) sets the threshold and which axes are required. Returns per-axis subscores, an overall, an `evidence` flag, and the unverified axis list.",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scene: { type: 'object', description: 'Scene definition (must have a `layers` array). Reads optional `hero_frame { at, subject, intent }`; defaults to the 60%-through frame and `primary_subject`/hero layer.' },
+          frame: { type: 'object', description: 'Optional pre-rendered still `{ media_type, data }` (base64). When present and ANTHROPIC_API_KEY is set, the vision judge scores composition/aesthetic axes; otherwise they stay UNVERIFIED.' },
+          brand: { type: 'object', description: 'Optional brand package — informs the brand-presence prior.' },
+          tier: { type: 'string', enum: ['T1', 'T2', 'T3', 'T4'], description: 'Master tier (default T3). Sets the hero-frame threshold (T1≥0.55 → T4≥0.85) and the cumulative required-axis set.' },
+        },
+        required: ['scene'],
+      },
+    },
+    {
+      name: 'audit_hero_frames',
+      description:
+        "Fail-closed quality gate over a whole sequence's poster frames (ANI-178). Resolves each manifest entry to its scene definition, renders that scene's declared hero frame (Remotion still — local toolchain), and scores it with `score_hero_frame` at the given tier. Returns a PASS/WARN/BLOCK verdict that names the weak scene and failing axis. Fails CLOSED: a scene below threshold, a required axis that could not be verified (no rendered frame / no vision judge), a missing scene definition, or an explicitly-broken hero subject at T3/T4 all BLOCK — 'I didn't look' is a finding, not a pass.",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          manifest: { type: 'object', description: 'Sequence manifest with a `scenes` array of `{ scene, ... }` entries.' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Scene definitions (array, or a scene_id→def map) the manifest references.' },
+          tier: { type: 'string', enum: ['T1', 'T2', 'T3', 'T4'], description: 'Master tier to gate against (default T3).' },
+          brand: { type: 'object', description: 'Optional brand package.' },
+        },
+        required: ['manifest', 'scenes'],
+      },
+    },
+    {
       name: 'revise_candidate_video',
       description:
         'Apply bounded revision operations to a manifest. Operations: trim, extend_hold, swap_transition, reorder, boost_hierarchy, compress, add_continuity, adjust_density. Returns revised manifest, scenes, and a diff log.',

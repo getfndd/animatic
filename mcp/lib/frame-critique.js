@@ -127,7 +127,7 @@ function scoreContrast(sheets, sceneMap) {
   return { score: clamp(score), findings };
 }
 
-function scoreSceneContrast(sceneDef) {
+export function scoreSceneContrast(sceneDef) {
   if (!sceneDef?.layers) return 0.5;
   const hasMultipleDepths = new Set(sceneDef.layers.map(l => l.depth_class).filter(Boolean)).size >= 2;
   return hasMultipleDepths ? 0.7 : 0.4;
@@ -189,7 +189,7 @@ function scoreReadability(sheets, sceneMap, brand) {
   return { score: clamp(score), findings };
 }
 
-function scoreSceneReadability(sceneDef, brand) {
+export function scoreSceneReadability(sceneDef, brand) {
   if (!sceneDef?.layers) return 0.5;
   const textLayers = sceneDef.layers.filter(l => l.type === 'text' || l.content_class === 'typography');
   if (textLayers.length === 0) return 0.7; // No text = no readability concern
@@ -239,7 +239,7 @@ function scoreVisualHierarchy(sheets, sceneMap) {
   return { score: clamp(score), findings };
 }
 
-function scoreSceneHierarchy(sceneDef) {
+export function scoreSceneHierarchy(sceneDef) {
   if (!sceneDef?.layers) return 0.5;
   const hero = sceneDef.layers.find(l => l.product_role === 'hero');
   if (!hero) return 0.3;
@@ -299,7 +299,7 @@ function scoreBrandConsistency(sheets, sceneMap, brand) {
   return { score: clamp(score), findings };
 }
 
-function scoreSceneBrandMatch(sceneDef, brand) {
+export function scoreSceneBrandMatch(sceneDef, brand) {
   if (!brand) return 0.7;
   return sceneDef?.brand === brand.brand_id ? 0.9 : 0.5;
 }

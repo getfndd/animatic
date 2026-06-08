@@ -69,6 +69,10 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
     "voiceover": {
       "$ref": "#/$defs/voiceover",
       "description": "Optional narration for this scene (ANI-111). Text is synthesized via a TTS provider. `checkVoiceoverFit` + the preflight doctor warn when the expected spoken duration won't fit the scene hold time. At render time (ANI-129), `render_project` synthesizes one clip per speaking scene into `audio/voiceover/`, assembles a timeline-aligned narration track (offsets honor transition overlap), and mixes it into the output MP4 — any embedded music bed / SFX duck ~6dB under the narration via sidechain compression."
+    },
+    "hero_frame": {
+      "$ref": "#/$defs/hero_frame",
+      "description": "Optional poster-frame contract (ANI-178). Declares the single still that best represents this scene — the frame a viewer should be able to read and feel with no motion. `score_hero_frame` renders the declared frame and scores it; `audit_hero_frames` fails closed when it scores below the per-tier threshold. When absent, the hero frame defaults to the 60%-through position (`at: 0.6`) and the subject defaults to the scene's `primary_subject` (or its `product_role: hero` layer)."
     }
   }
 }
@@ -105,6 +109,35 @@ A scene is the atomic unit of the cinematography pipeline — a self-contained c
         "provider": { "type": "string", "description": "TTS provider key. Currently shipped: `mock` (deterministic, silent placeholder for tests), `macos_say` (real speech via the built-in `say` command on macOS), `openai` (production narration via OpenAI `tts-1`; requires `OPENAI_API_KEY` — for MCP users, set it in the server config `env` block). When unset, `render_project` uses its `tts_provider` option (default: `macos_say` on macOS, `mock` elsewhere); other call paths default to `mock`. Cloud synthesis is content-address cached under `audio/voiceover/cache/` (ANI-128) — re-renders with unchanged text/voice/speed make zero provider calls." },
         "voice": { "type": "string", "description": "Provider-specific voice identifier, e.g. `Samantha` / `Alex` for `macos_say`." },
         "speed": { "type": "number", "exclusiveMinimum": 0, "description": "Speed multiplier. 1 = baseline (~165 wpm), 1.2 = 20% faster, 0.9 = slightly slower. Used by the duration estimator and passed through to providers that honor it." }
+      }
+    }
+  }
+}
+```
+
+### Hero Frame Definition
+
+```json
+{
+  "$defs": {
+    "hero_frame": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.6,
+          "description": "Normalized timeline position (0.0–1.0) of the poster frame within the scene's hold duration. Defaults to 0.6 — past the entrance, before the exit, where a well-composed scene has settled."
+        },
+        "subject": {
+          "type": "string",
+          "description": "Layer `id` (or scene `primary_subject`) the frame is composed around — what the eye should land on. Must reference a layer that exists in this scene; a declared-but-unresolvable subject is a contract violation (warns, and blocks at higher master tiers where subject scale/placement can't otherwise be trusted). When omitted, defaults to the scene's `primary_subject`, else its `product_role: hero` layer."
+        },
+        "intent": {
+          "type": "string",
+          "description": "One line: what the viewer should grok from this still alone. Anchors the LLM judge's semantic/emotional-clarity axis — 'reveal the reassembled dashboard', not 'the dashboard'."
+        }
       }
     }
   }

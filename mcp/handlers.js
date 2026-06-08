@@ -256,6 +256,15 @@ export function handleGetPrimitive(args) {
     out += `**Source:** ${registryEntry.source}\n\n`;
   }
 
+  // Cookbook pattern: composition + recipe doc (ANI-123)
+  if (registryEntry?.source === 'pattern' && registryEntry.pattern) {
+    out += '## Cookbook Pattern\n\n';
+    out += `**Composed of:** ${registryEntry.pattern.primitives.map(p => `\`${p}\``).join(', ')}\n`;
+    out += `**Breakdown reference:** ${registryEntry.pattern.breakdown}\n`;
+    out += `**Recipe doc:** ${registryEntry.pattern.doc}\n\n`;
+    out += 'Read the recipe doc for the beat table, manifest snippet, and variations. Use get_primitive on the composed primitive IDs for CSS implementations.\n\n';
+  }
+
   // Full catalog data (engine primitives only)
   if (catalogEntry) {
     out += '## Engine Catalog Data\n\n';

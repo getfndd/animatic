@@ -75,6 +75,7 @@ const HOT_RELOAD_FILES = [
   'catalog/personalities.json',
   'catalog/intent-mappings.json',
   '.claude/skills/animate/reference/primitives/REGISTRY.md',
+  'docs/cookbook/INDEX.md',
 ];
 const HOT_RELOAD_DIRS = ['catalog/compound'];
 

@@ -11,7 +11,7 @@
  */
 
 import { validateManifest } from '../../src/remotion/lib.js';
-import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar } from '../data/loader.js';
+import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar, loadSequenceArchetypes } from '../data/loader.js';
 import { validateShotGrammar } from './shot-grammar.js';
 import { syncToBeats, matchEnergyToScenes } from './beats.js';
 
@@ -530,6 +530,105 @@ export function preFilterShotGrammar(orderedScenes, style) {
   return { filtered, corrections };
 }
 
+// ── Shot-grammar-first direction (ANI-179) ──────────────────────────────────
+
+// Weak hint: broad top-level product_role labels → keywords that appear in
+// archetype role names. Used only after exact-role / scene_id-suffix matches.
+const PRODUCT_ROLE_SYNONYMS = {
+  atmosphere: ['atmosphere', 'welcome', 'hook', 'tease', 'open', 'countdown'],
+  hero: ['hero', 'feature', 'product', 'reveal', 'demo', 'glimpse', 'flash'],
+  result: ['payoff', 'success', 'benefit', 'result', 'metric'],
+  proof: ['proof', 'social_proof', 'benefit_proof', 'metric', 'testimonial', 'quote'],
+  input: ['step', 'prompt', 'context', 'frame', 'problem'],
+  dashboard: ['detail', 'dashboard', 'feature', 'metric', 'zoom'],
+  cta: ['cta', 'close', 'next', 'launch_cta', 'tagline'],
+  decorative: ['logo', 'resolve', 'lockup'],
+};
+
+/**
+ * Resolve which archetype shot role a scene plays, by an explicit priority order
+ * (so assignment is directed, not just index-based). Returns the role object + a
+ * label for how it matched.
+ */
+function resolveShotRole(scene, i, M, roles, roleByName) {
+  const N = roles.length;
+  const tryExact = (val, label) => (val && roleByName.has(val) ? { role: roleByName.get(val), match: label } : null);
+
+  return (
+    tryExact(scene.metadata?.role, 'metadata.role') ||
+    tryExact(scene.metadata?._role, 'metadata._role') ||
+    tryExact(scene.role, 'role') ||
+    (() => {
+      const sid = scene.scene_id || scene.id || '';
+      const suffix = roles.find(r => sid === r.role || sid.endsWith(`_${r.role}`) || sid.endsWith(r.role));
+      return suffix ? { role: suffix, match: 'scene_id_suffix' } : null;
+    })() ||
+    (() => {
+      const pr = scene.product_role || scene.metadata?.product_role;
+      if (!pr) return null;
+      const keywords = PRODUCT_ROLE_SYNONYMS[pr] || [pr];
+      const hinted = roles.find(r => keywords.some(k => r.role.includes(k)));
+      return hinted ? { role: hinted, match: `product_role:${pr}` } : null;
+    })() ||
+    (() => {
+      const idx = M <= 1 ? 0 : Math.min(N - 1, Math.round((i * (N - 1)) / (M - 1)));
+      return { role: roles[idx], match: 'proportional' };
+    })()
+  );
+}
+
+/**
+ * Shot-grammar-first assignment: map each scene to an archetype shot role, then
+ * derive shot_grammar (from the role's `shot` block, personality-validated) and
+ * camera (from the role's camera, personality-validated) FROM the shot — motion
+ * serves the shot. Returns parallel arrays + an inspectable shot list.
+ *
+ * @returns {{ shotGrammars, cameraOverrides, shotList, corrections }}
+ */
+export function assignShotRoles(ordered, archetypeDef, style) {
+  const roles = archetypeDef.scenes;
+  const roleByName = new Map(roles.map(r => [r.role, r]));
+  const M = ordered.length;
+
+  const shotGrammars = [];
+  const cameraOverrides = [];
+  const shotList = [];
+  const corrections = [];
+
+  ordered.forEach((scene, i) => {
+    const { role, match } = resolveShotRole(scene, i, M, roles, roleByName);
+    const sceneId = scene.scene_id || scene.id || `scene_${i}`;
+    const scenePack = resolveScenePack(scene, style);
+
+    // shot_grammar — destructure ONLY the three grammar axes so shot_role never
+    // leaks into the manifest (validateShotGrammar preserves unknown keys).
+    const { shot_size, angle, framing } = role.shot;
+    const validation = validateShotGrammar({ shot_size, angle, framing }, scenePack.personality);
+    if (!validation.valid) {
+      for (const c of validation.corrections) corrections.push(`${sceneId}: ${c}`);
+    }
+    shotGrammars.push(validation.result);
+
+    // camera FROM the shot role (personality-validated; may downgrade to null).
+    const camera = validateCameraMove({ ...role.camera }, scenePack.personality);
+    cameraOverrides.push(camera);
+
+    shotList.push({
+      shot_index: i,
+      shot_role: role.shot.shot_role,
+      archetype_role: role.role,
+      assigned_scene: sceneId,
+      match,
+      shot_grammar: validation.result,
+      camera,
+      motion_candidates: role.recommended_primitives || [],
+      energy: role.energy, // advisory only (different value space than the planner)
+    });
+  });
+
+  return { shotGrammars, cameraOverrides, shotList, corrections };
+}
+
 // ── Top-level orchestrator ──────────────────────────────────────────────────
 
 /**
@@ -547,12 +646,23 @@ export function preFilterShotGrammar(orderedScenes, style) {
  * @param {object} [params.beats] — beat analysis from analyzeBeats(). If provided, snaps transitions to beats.
  * @returns {{ manifest: object, notes: object }}
  */
-export function planSequence({ scenes, style, sequence_id, audio, beats, duration_target_s, preserve_source_order = true }) {
+export function planSequence({ scenes, style, sequence_id, audio, beats, duration_target_s, preserve_source_order = true, archetype }) {
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     throw new Error('planSequence requires a non-empty scenes array');
   }
   if (!STYLE_PACKS.includes(style)) {
     throw new Error(`Unknown style "${style}". Valid: ${STYLE_PACKS.join(', ')}`);
+  }
+
+  // Shot-grammar-first (ANI-179): when an archetype is supplied, the planner
+  // picks the shot list FIRST and motion serves the shot. Absent → unchanged.
+  let archetypeDef = null;
+  if (archetype) {
+    archetypeDef = loadSequenceArchetypes().find(a => a.slug === archetype);
+    if (!archetypeDef) {
+      const slugs = loadSequenceArchetypes().map(a => a.slug).join(', ');
+      throw new Error(`Unknown archetype "${archetype}". Valid: ${slugs}`);
+    }
   }
 
   // Stage 1: Order
@@ -627,12 +737,27 @@ export function planSequence({ scenes, style, sequence_id, audio, beats, duratio
   // Stage 3: Transitions
   const transitions = selectTransitions(ordered, style);
 
-  // Stage 4: Camera overrides
-  const cameraOverrides = assignCameraOverrides(ordered, style);
-
-  // Stage 5: Pre-filter shot grammar by personality (ANI-34)
-  const { filtered: shotGrammars, corrections: shotGrammarCorrections } =
-    preFilterShotGrammar(ordered, style);
+  // Stage 4+5: Camera + shot grammar.
+  // Shot-grammar-first (ANI-179): when an archetype drives the plan, assign
+  // scenes to shot roles and derive shot_grammar + camera FROM the shot role
+  // (motion serves the shot). Otherwise the original metadata-led path runs.
+  let cameraOverrides;
+  let shotGrammars;
+  let shotGrammarCorrections;
+  let shotList = null;
+  const shotGrammarMode = archetypeDef ? `archetype:${archetypeDef.slug}` : 'inferred-metadata';
+  if (archetypeDef) {
+    const assigned = assignShotRoles(ordered, archetypeDef, style);
+    cameraOverrides = assigned.cameraOverrides;
+    shotGrammars = assigned.shotGrammars;
+    shotGrammarCorrections = assigned.corrections;
+    shotList = assigned.shotList;
+  } else {
+    cameraOverrides = assignCameraOverrides(ordered, style);
+    const filtered = preFilterShotGrammar(ordered, style);
+    shotGrammars = filtered.filtered;
+    shotGrammarCorrections = filtered.corrections;
+  }
 
   // Assemble manifest
   const seqId = sequence_id || `seq_planned_${Date.now()}`;
@@ -670,7 +795,7 @@ export function planSequence({ scenes, style, sequence_id, audio, beats, duratio
     }
 
     // Build per-scene reasoning (ANI-45)
-    sceneReasoning.push(buildSceneReasoning(scene, i, style, durations[i], transitions[i], cameraOverrides[i], shotGrammars[i], shotGrammarCorrections));
+    sceneReasoning.push(buildSceneReasoning(scene, i, style, durations[i], transitions[i], cameraOverrides[i], shotGrammars[i], shotGrammarCorrections, shotList?.[i]));
 
     return entry;
   });
@@ -722,6 +847,9 @@ export function planSequence({ scenes, style, sequence_id, audio, beats, duratio
     ...(durationTargetNote ? { duration_target: durationTargetNote } : {}),
     ...(overridesUsed.size > 0 ? { style_overrides_used: [...overridesUsed] } : {}),
     ...(shotGrammarCorrections.length > 0 ? { shot_grammar_corrections: shotGrammarCorrections } : {}),
+    // Shot-grammar-first direction (ANI-179) — only present when archetype-driven,
+    // so the no-archetype notes stay byte-identical to the prior planner.
+    ...(shotList ? { shot_grammar_mode: shotGrammarMode, shot_list: shotList } : {}),
     ...(beatSyncNotes ? { beat_sync: beatSyncNotes } : {}),
   };
 
@@ -782,7 +910,7 @@ function buildDirectionBlock(scenes, cameraOverrides, durations, style) {
  * Build per-scene reasoning explaining each planning decision.
  * Traces: intent → style pack → duration/transition/camera rules applied.
  */
-function buildSceneReasoning(scene, index, style, duration, transition, cameraOverride, shotGrammar, sgCorrections) {
+function buildSceneReasoning(scene, index, style, duration, transition, cameraOverride, shotGrammar, sgCorrections, shotEntry) {
   const pack = resolveScenePack(scene, style);
   const packName = scene.metadata?.style_override || style;
   const energy = scene.metadata?.motion_energy || 'moderate';
@@ -810,8 +938,13 @@ function buildSceneReasoning(scene, index, style, duration, transition, cameraOv
     reasoning.transition = 'none';
   }
 
-  // Camera reasoning
-  if (cameraOverride) {
+  // Camera reasoning. Shot-grammar-first: camera serves the shot role.
+  if (shotEntry) {
+    reasoning.shot_role = `${shotEntry.shot_role} (archetype role ${shotEntry.archetype_role}; matched via ${shotEntry.match})`;
+    reasoning.camera = cameraOverride
+      ? `${cameraOverride.move}${cameraOverride.intensity != null ? ` ${cameraOverride.intensity}` : ''}: from shot role '${shotEntry.shot_role}'`
+      : `none: shot role '${shotEntry.shot_role}' camera downgraded by ${pack.personality}`;
+  } else if (cameraOverride) {
     const contentType = scene.metadata?.content_type;
     const intentTags = scene.metadata?.intent_tags || [];
     if (pack.camera_overrides.force_static) {

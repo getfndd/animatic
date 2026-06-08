@@ -39,6 +39,11 @@ function loadJSON(path) {
   return JSON.parse(readFileSync(path, 'utf-8'));
 }
 
+/** Load catalog/sequence-archetypes.json → array of archetype definitions (ANI-179). */
+export function loadSequenceArchetypes() {
+  return loadJSON(resolve(CATALOG_DIR, 'sequence-archetypes.json'));
+}
+
 /** Load catalog/primitives.json + catalog/compound/*.json → array + slug map */
 export function loadPrimitivesCatalog() {
   const arr = loadJSON(resolve(CATALOG_DIR, 'primitives.json'));

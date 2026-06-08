@@ -1318,7 +1318,7 @@ export function handleGetStylePack(args) {
 }
 
 export function handlePlanSequence(args) {
-  const { scenes, style, beats, duration_target_s, preserve_source_order } = args;
+  const { scenes, style, beats, duration_target_s, preserve_source_order, archetype } = args;
 
   if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
     return {
@@ -1344,6 +1344,7 @@ export function handlePlanSequence(args) {
     const { manifest, notes } = planSequence({
       scenes, style, beats, duration_target_s,
       ...(preserve_source_order !== undefined ? { preserve_source_order } : {}),
+      ...(archetype ? { archetype } : {}),
     });
 
     let out = `# Sequence Plan: ${manifest.sequence_id}\n\n`;
@@ -1357,6 +1358,9 @@ export function handlePlanSequence(args) {
       }
     }
     out += `**Ordering:** ${notes.ordering_mode}\n`;
+    if (notes.shot_grammar_mode) {
+      out += `**Direction:** shot-grammar-first (${notes.shot_grammar_mode})\n`;
+    }
     if (notes.beat_sync) {
       out += `**Beat Sync:** ${notes.beat_sync.adjustments_count} scene(s) adjusted to beat grid`;
       if (notes.beat_sync.bpm) out += ` (${notes.beat_sync.bpm} BPM)`;
@@ -1379,6 +1383,19 @@ export function handlePlanSequence(args) {
       out += `| ${i + 1} | ${s.scene} | ${s.duration_s}s | ${transition} | ${camera} |\n`;
     }
 
+    // Shot grammar direction (ANI-179) — only when archetype-driven.
+    if (notes.shot_list && notes.shot_list.length > 0) {
+      out += '\n## Shot Grammar (direction first)\n\n';
+      out += '| # | Scene | Shot role | Shot grammar | Camera | Motion candidates |\n';
+      out += '|---|-------|-----------|--------------|--------|-------------------|\n';
+      for (const sl of notes.shot_list) {
+        const sg = sl.shot_grammar ? `${sl.shot_grammar.shot_size}/${sl.shot_grammar.angle}/${sl.shot_grammar.framing}` : '—';
+        const cam = sl.camera ? `${sl.camera.move}${sl.camera.intensity != null ? ` ${sl.camera.intensity}` : ''}` : '—';
+        const motion = (sl.motion_candidates || []).slice(0, 3).join(', ') || '—';
+        out += `| ${sl.shot_index + 1} | ${sl.assigned_scene} | ${sl.shot_role} | ${sg} | ${cam} | ${motion} |\n`;
+      }
+    }
+
     // Transition summary
     out += '\n## Transitions\n\n';
     for (const [type, count] of Object.entries(notes.transition_summary)) {
@@ -1393,6 +1410,7 @@ export function handlePlanSequence(args) {
       out += '\n## Reasoning\n\n';
       for (const r of notes.reasoning) {
         out += `### ${r.scene}\n`;
+        if (r.shot_role) out += `- **Shot role:** ${r.shot_role}\n`;
         out += `- **Duration:** ${r.duration}\n`;
         out += `- **Transition:** ${r.transition}\n`;
         out += `- **Camera:** ${r.camera}\n`;
@@ -2506,10 +2524,22 @@ export function handleRecommendSequenceArchetype(args) {
     };
   }
 
+  // ANI-179: preview the shot grammar each archetype implies (ordered shot
+  // roles + grammar) so the recommendation shows the direction up front.
+  const withPreview = candidates.map(a => ({
+    ...a,
+    shot_list_preview: (a.scenes || []).map(s => ({
+      role: s.role,
+      shot_role: s.shot?.shot_role,
+      shot: s.shot ? `${s.shot.shot_size}/${s.shot.angle}/${s.shot.framing}` : null,
+      camera: s.camera?.move,
+    })),
+  }));
+
   return {
     content: [{
       type: 'text',
-      text: JSON.stringify(candidates.length === 1 ? candidates[0] : candidates, null, 2),
+      text: JSON.stringify(withPreview.length === 1 ? withPreview[0] : withPreview, null, 2),
     }],
   };
 }

@@ -99,22 +99,51 @@ export function composeMaster({ manifest, scenes, profile, beats, personality })
     workManifest = applyFinishPreset(workManifest, profile.finish_preset).manifest;
   }
 
-  // 3. Render routes (constrained to the profile policy).
+  // 3. Render routes (constrained to the profile policy), then STAMP them onto
+  //    the artifact so the routes travel with it. assemble_video_sequence
+  //    re-resolves routing from the manifest+sceneDefs (render-routing priority:
+  //    scene.render_target > entry.render_target > render_target_default); if the
+  //    constrained routes aren't written back, the encode can re-pick a target
+  //    that violates the master profile (e.g. T1 web_native → remotion_native).
+  //    Stamp the scene def (priority 1, authoritative) + the manifest entry +,
+  //    for pin mode, render_target_default.
   const resolved = resolveRenderTargets(scenesArray, { manifest: workManifest, personality });
   const render_routes = constrainRoutes(resolved.routes, profile.render_target_policy);
+  const routeByScene = new Map(render_routes.map(r => [r.scene_id, r.render_target]));
+  const policy = profile.render_target_policy;
+
+  const stampManifestRoutes = (m) => {
+    for (const entry of m.scenes || []) {
+      const id = entry.scene || entry.scene_id || entry.id;
+      if (routeByScene.has(id)) entry.render_target = routeByScene.get(id);
+    }
+    if (policy.mode === 'pin') m.render_target_default = policy.target;
+    return m;
+  };
+  const stampSceneDefRoute = (id, def) => {
+    if (routeByScene.has(id)) def.render_target = routeByScene.get(id);
+    return def;
+  };
+
+  stampManifestRoutes(workManifest);
 
   // 4. Aspect set — primary is the source ratio; others are deterministic recompositions.
-  const primary = { manifest: workManifest, sceneDefs: sourceSceneDefs };
+  //    Clone the source scene defs for the primary so stamping never mutates the caller's input.
+  const primarySceneDefs = {};
+  for (const [id, def] of Object.entries(sourceSceneDefs)) {
+    primarySceneDefs[id] = stampSceneDefRoute(id, JSON.parse(JSON.stringify(def)));
+  }
+  const primary = { manifest: workManifest, sceneDefs: primarySceneDefs };
   assertNoReauthor(sourceOrder, primary.manifest, `${sourceRatio} primary`);
 
   const aspect_variants = [];
   for (const ratio of profile.aspect_set) {
     if (ratio === sourceRatio) continue;
-    const variantManifest = adaptManifestAspectRatio(workManifest, ratio, { recompose: true });
+    const variantManifest = stampManifestRoutes(adaptManifestAspectRatio(workManifest, ratio, { recompose: true }));
     assertNoReauthor(sourceOrder, variantManifest, `${ratio} variant`);
     const variantSceneDefs = {};
     for (const [id, def] of Object.entries(sourceSceneDefs)) {
-      variantSceneDefs[id] = recomposeSceneForRatio(def, ratio, sourceResolution);
+      variantSceneDefs[id] = stampSceneDefRoute(id, recomposeSceneForRatio(def, ratio, sourceResolution));
     }
     aspect_variants.push({ ratio, resolution: variantManifest.resolution, manifest: variantManifest, sceneDefs: variantSceneDefs });
   }

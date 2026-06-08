@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 
 import { renderMaster, composeMaster } from '../lib/render-master.js';
 import { getMasterProfile } from '../lib/master-profiles.js';
+import { resolveRenderTargets } from '../lib/render-routing.js';
 
 // ── fixtures ───────────────────────────────────────────────────────────────────
 
@@ -129,6 +130,24 @@ describe('renderMaster', () => {
       assert.ok(v.manifest && v.sceneDefs && v.timelines, `${v.ratio} variant is renderable`);
     }
     assert.match(r.notes.join(' '), /assemble_video_sequence/);
+  });
+
+  it('(g) emitted routes survive the assemble re-resolution — the profile is honored end-to-end', async () => {
+    // assemble_video_sequence re-resolves routing from manifest+sceneDefs. The
+    // emitted artifact must carry the constrained route so it isn't overridden.
+    // T1 pins web_native:
+    const t1 = await renderMaster({ manifest: manifest(), scenes: [scene('sc_a')], tier: 'T1', capture: FAKE_STILL });
+    const reResolvedT1 = resolveRenderTargets(Object.values(t1.master.primary.sceneDefs), { manifest: t1.master.primary.manifest });
+    assert.ok(reResolvedT1.routes.every(r => r.render_target === 'web_native'),
+      `re-resolved T1 routes must stay web_native, got ${reResolvedT1.routes.map(r => r.render_target).join(',')}`);
+
+    // T3 resolve-mode disallows web_native — an HTML scene the auto-resolver would
+    // route web_native must instead land inside the allowed set.
+    const allowed = new Set(getMasterProfile('video').render_target_policy.allowed);
+    const t3 = await renderMaster({ manifest: manifest(), scenes: [scene('sc_a')], tier: 'T3', capture: markerCapture, client: strongClient });
+    const reResolvedT3 = resolveRenderTargets(Object.values(t3.master.primary.sceneDefs), { manifest: t3.master.primary.manifest });
+    assert.ok(reResolvedT3.routes.every(r => allowed.has(r.render_target)),
+      `re-resolved T3 routes must stay within ${[...allowed].join(',')}, got ${reResolvedT3.routes.map(r => r.render_target).join(',')}`);
   });
 
   it('throws on an unknown tier', async () => {

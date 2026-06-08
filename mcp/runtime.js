@@ -60,6 +60,35 @@ export function getFinishPresets() {
   return _finishPresets;
 }
 
+/**
+ * Apply a finish preset to a manifest — sets `manifest.finish` from the preset's
+ * passes + color grade, merging any per-pass overrides. Pure: deep-clones the
+ * manifest, no mutation of the input. Shared by `apply_finish_preset` and the
+ * `render_master` orchestrator (ANI-183) so finish is applied one way.
+ *
+ * @param {object} manifest - Sequence manifest (cloned internally).
+ * @param {string} slug - Finish preset slug.
+ * @param {object} [overrides] - { [passSlug]: {…} } per-pass overrides.
+ * @returns {{ preset: string, manifest: object }}
+ * @throws if the slug is unknown.
+ */
+export function applyFinishPreset(manifest, slug, overrides = {}) {
+  const preset = getFinishPresets().find(p => p.slug === slug);
+  if (!preset) {
+    throw new Error(`Unknown finish preset "${slug}". Available: ${getFinishPresets().map(p => p.slug).join(', ')}`);
+  }
+  const out = manifest ? JSON.parse(JSON.stringify(manifest)) : {};
+  out.finish = {
+    preset: preset.slug,
+    passes: preset.passes.map(pass => ({
+      ...pass,
+      overrides: { ...pass.overrides, ...(overrides[pass.slug] || {}) },
+    })),
+    color_grade: preset.color_grade || null,
+  };
+  return { preset: preset.slug, manifest: out };
+}
+
 // ── Hot reload ──────────────────────────────────────────────────────────────
 //
 // Catalog and registry files may be edited live during a Claude Code session

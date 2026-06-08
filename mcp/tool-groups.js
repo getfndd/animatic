@@ -129,6 +129,7 @@ export const TOOL_GROUPS = {
   score_candidate_video: { tier: TIER.TRANSFORM, edgeReady: true, note: 'pure scoring over inline objects (scoring.js — proprietary rubric, stays server-side)' },
   score_hero_frame: { tier: TIER.TRANSFORM, edgeReady: true, note: 'pure scoring over an inline scene; composition/aesthetic axes only score when given a pre-rendered frame + ANTHROPIC_API_KEY (vision), else UNVERIFIED' },
   audit_hero_frames: { tier: TIER.TRANSFORM, edgeReady: false, note: 'renders one still per scene via Remotion (bundler + headless Chrome) to score composition on real pixels — local toolchain, same constraint as audit_video_accessibility' },
+  render_master: { tier: TIER.TRANSFORM, edgeReady: false, note: 'loads a project from disk + runs the hero-frame gate (Remotion stills) on each emitted artifact — local toolchain, like render_project/audit_hero_frames' },
   revise_candidate_video: { tier: TIER.TRANSFORM, edgeReady: true },
   compare_candidate_videos: { tier: TIER.TRANSFORM, edgeReady: true },
   audit_annotation_quality: { tier: TIER.TRANSFORM, edgeReady: true },

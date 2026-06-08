@@ -1689,6 +1689,23 @@ export function buildTools({
       },
     },
     {
+      name: 'render_master',
+      description:
+        "Resolve + gate + compose one of the four masters (ANI-181/ANI-183) from a single source: prototype (T1), directed-html (T2), video (T3), hero-film (T4). Loads the project (or inline manifest+scenes), runs the fail-closed hero-frame gate at the tier on the EMITTED artifacts (primary + each aspect recomposition), then composes finish + retime + render-target routes + aspect set + delivery profiles. Returns a renderable master — each artifact is an inline `{ manifest, sceneDefs, timelines }` to hand to `assemble_video_sequence` for the actual encode (NOT render_project). Honesty contract: a master may re-time + re-finish but never re-author (scene set/order is asserted unchanged; cutdowns stay create_social_cutdown). Fail-closed: a weak/unverified/missing emitted artifact BLOCKs (`emitted:false`); a BLOCK from missing pixels/vision is reported as a missing-evidence state, not a quality failure.",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          project: { type: 'string', description: 'Project slug or path (loads root manifest + scene defs from disk). Provide this OR inline `manifest`+`scenes`.' },
+          manifest: { type: 'object', description: 'Inline source manifest (skips project load).' },
+          scenes: { type: 'array', items: { type: 'object' }, description: 'Inline scene definitions (array or scene_id→def map) the manifest references.' },
+          tier: { type: 'string', enum: ['prototype', 'directed-html', 'video', 'hero-film', 'T1', 'T2', 'T3', 'T4'], description: 'Master profile name or tier.' },
+          beats: { type: 'object', description: 'Optional beat data (from `analyze_beats`). Enables retime where the profile allows (T2 holds-only; T3/T4 full). Retime is duration-only; re-authoring is rejected.' },
+          brand: { type: 'object', description: 'Optional brand package — informs the hero-frame gate.' },
+        },
+        required: ['tier'],
+      },
+    },
+    {
       name: 'revise_candidate_video',
       description:
         'Apply bounded revision operations to a manifest. Operations: trim, extend_hold, swap_transition, reorder, boost_hierarchy, compress, add_continuity, adjust_density. Returns revised manifest, scenes, and a diff log.',

@@ -91,6 +91,7 @@ export const HANDLERS = {
   score_candidate_video: H.handleScoreCandidateVideo,
   score_hero_frame: H.handleScoreHeroFrame,
   audit_hero_frames: H.handleAuditHeroFrames,
+  render_master: H.handleRenderMaster,
   revise_candidate_video: H.handleReviseCandidateVideo,
   compare_candidate_videos: H.handleCompareCandidateVideos,
   annotate_scenes: H.handleAnnotateScenes,

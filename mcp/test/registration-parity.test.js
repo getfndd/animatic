@@ -63,7 +63,7 @@ describe('PRE-1439 acceptance A — stdio surface unchanged', () => {
     const srv = mockServer();
     registerTools(srv, { tools: buildAllTools(), exclude: [], stripParams: false });
     const { tools } = await srv.captured.list();
-    assert.equal(tools.length, 85);
+    assert.equal(tools.length, 86);
     assert.deepEqual(tools, golden, 'stdio tool surface drifted from the pre-refactor golden snapshot');
   });
 });
@@ -147,7 +147,7 @@ describe('PRE-1439 acceptance C — handler map covers the universe, no drift', 
     const handlerNames = Object.keys(HANDLERS).sort();
     const groupNames = Object.keys(TOOL_GROUPS).sort();
     assert.deepEqual(handlerNames, groupNames);
-    assert.equal(handlerNames.length, 85);
+    assert.equal(handlerNames.length, 86);
   });
 
   it('every handler is a function', () => {
@@ -165,8 +165,8 @@ describe('PRE-1439 acceptance C — handler map covers the universe, no drift', 
 
   it('throws when the advertised tools array is missing a manifest tool (fail-closed)', () => {
     const srv = mockServer();
-    const short = buildAllTools().filter(t => t.name !== 'search_primitives'); // 84, not 85
-    assert.equal(short.length, 84);
+    const short = buildAllTools().filter(t => t.name !== 'search_primitives'); // 85, not 86
+    assert.equal(short.length, 85);
     assert.throws(
       () => registerTools(srv, { tools: short, exclude: [], stripParams: false }),
       /search_primitives is in the manifest but missing from the advertised tools/,

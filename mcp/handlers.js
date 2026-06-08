@@ -68,6 +68,7 @@ import { upgradeProjectConfidence } from './lib/confidence-upgrade.js';
 import { scoreFrameStrip } from './lib/frame-critique.js';
 import { analyzeSceneComprehension } from './lib/scene-comprehension.js';
 import { scoreHeroFrame, auditHeroFrames, HERO_FRAME_AXES } from './lib/hero-frame.js';
+import { renderMaster } from './lib/render-master.js';
 import { resolveRenderTargets } from './lib/render-routing.js';
 import { assembleVideoSequence, buildRenderCommand } from './lib/video-assembly.js';
 import { getDeliveryProfile, listDeliveryProfiles, getProfileForChannel } from './lib/delivery-profiles.js';
@@ -84,7 +85,7 @@ import {
   breakdownIndex,
   sequenceArchetypes,
   getAiDemoArchetypes,
-  getFinishPresets,
+  applyFinishPreset,
   ROOT,
 } from './runtime.js';
 
@@ -2448,26 +2449,12 @@ export function handleInstantiateSequenceArchetype(args) {
 }
 
 export function handleApplyFinishPreset(args) {
-  const presets = getFinishPresets();
-  const preset = presets.find(p => p.slug === args.preset_slug);
-  if (!preset) {
-    return { content: [{ type: 'text', text: `Unknown preset "${args.preset_slug}". Available: ${presets.map(p => p.slug).join(', ')}` }] };
+  try {
+    const result = applyFinishPreset(args.manifest, args.preset_slug, args.overrides || {});
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: err.message }] };
   }
-
-  const manifest = args.manifest ? JSON.parse(JSON.stringify(args.manifest)) : {};
-  const overrides = args.overrides || {};
-
-  // Apply finish block
-  manifest.finish = {
-    preset: preset.slug,
-    passes: preset.passes.map(pass => ({
-      ...pass,
-      overrides: { ...pass.overrides, ...(overrides[pass.slug] || {}) },
-    })),
-    color_grade: preset.color_grade || null,
-  };
-
-  return { content: [{ type: 'text', text: JSON.stringify({ preset: preset.slug, manifest }, null, 2) }] };
 }
 
 export function handleAuditMotionDensity(args) {
@@ -3500,6 +3487,31 @@ export async function handleAuditHeroFrames(args) {
         .join('\n')
       + '\n';
     return { content: [{ type: 'text', text: header + '\n' + JSON.stringify(result, null, 2) }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
+  }
+}
+
+export async function handleRenderMaster(args) {
+  const { project, manifest, scenes, tier, beats, brand } = args;
+  if (!tier) {
+    return { content: [{ type: 'text', text: 'Invalid input: `tier` is required (prototype/directed-html/video/hero-film or T1–T4).' }], isError: true };
+  }
+  if (!project && !(manifest && scenes)) {
+    return { content: [{ type: 'text', text: 'Invalid input: provide either `project`, or inline `manifest` + `scenes`.' }], isError: true };
+  }
+  try {
+    const result = await renderMaster({ project, manifest, scenes, tier, beats, brand });
+    const m = result.master;
+    const aspects = [m.primary.ratio, ...m.aspect_variants.map(v => v.ratio)].join(', ');
+    const delivery = m.delivery_profiles.map(d => d.slug).join(', ') || '(none — live surface)';
+    let head = `# Master: **${result.profile}** (${result.tier}) — ${result.verdict}${result.emitted ? ' · emitted' : ' · NOT emitted'}\n\n`;
+    head += `Finish: ${m.finish_preset || 'none'} · audio: ${m.audio_policy} · aspects: ${aspects} · delivery: ${delivery}\n`;
+    head += `Retime: ${m.retime.applied ? `applied (${(m.retime.adjustments || []).length} adjustments, ops ${m.retime.ops_allowed.join('/') || 'none'})` : `none (allowed: ${m.retime.ops_allowed.join('/') || 'none'})`}\n\n`;
+    head += result.gate_by_artifact.map(g => `- gate ${g.ratio}: **${g.verdict}** (${g.evidence_summary.rendered}/${g.evidence_summary.scenes} rendered)`).join('\n') + '\n';
+    if (result.block_reason) head += `\n⚠ ${result.block_reason}\n`;
+    head += `\n_Encode via assemble_video_sequence with each artifact's { manifest, sceneDefs, timelines }._\n`;
+    return { content: [{ type: 'text', text: head + '\n```json\n' + JSON.stringify(result, null, 2) + '\n```' }] };
   } catch (err) {
     return { content: [{ type: 'text', text: `Error: ${err.message}` }], isError: true };
   }

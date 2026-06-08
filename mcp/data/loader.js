@@ -30,6 +30,8 @@ const REFERENCE_DIR = existsSync(resolve(ROOT, 'reference/primitives/REGISTRY.md
 const PRIMITIVES_DIR = resolve(REFERENCE_DIR, 'primitives');
 const BREAKDOWNS_DIR = resolve(REFERENCE_DIR, 'breakdowns');
 const BENCHMARKS_DIR = resolve(CATALOG_DIR, 'benchmarks');
+// Cookbook patterns (ANI-123) are repo docs — absent in the npm package layout.
+const COOKBOOK_DIR = resolve(ROOT, 'docs/cookbook');
 
 // ── JSON catalog loaders ────────────────────────────────────────────────────
 
@@ -373,6 +375,25 @@ export function parseRegistry() {
     cssBlocks.set(currentCssId, cssBuffer.join('\n').trim());
   }
 
+  // ── Pass 3: Merge cookbook patterns ───────────────────────────────────
+  // Cookbook entries (docs/cookbook/INDEX.md) surface in search_primitives
+  // as source `pattern` (ANI-123). Merging here means the hot-reload path
+  // (registry = parseRegistry()) refreshes patterns with no extra wiring.
+  for (const p of parseCookbookIndex()) {
+    if (byId.has(p.id)) continue;
+    const entry = {
+      id: p.id,
+      name: p.title,
+      duration: p.duration,
+      personality: p.personality,
+      source: 'pattern',
+      category: `Pattern: ${p.category}`,
+      pattern: { primitives: p.primitives, breakdown: p.breakdown, doc: p.doc },
+    };
+    entries.push(entry);
+    byId.set(p.id, entry);
+  }
+
   return { entries, byId, cssBlocks, personalityRecommendations };
 }
 
@@ -410,6 +431,41 @@ export function parseBreakdownIndex() {
   }
 
   return breakdowns;
+}
+
+/**
+ * Parse docs/cookbook/INDEX.md into array of:
+ *   { id, title, category, personality[], duration, primitives[], breakdown, tags[], doc }
+ * Returns [] when the cookbook is absent (npm package layout ships no docs/).
+ */
+export function parseCookbookIndex() {
+  const indexPath = resolve(COOKBOOK_DIR, 'INDEX.md');
+  if (!existsSync(indexPath)) return [];
+  const lines = readFileSync(indexPath, 'utf-8').split('\n');
+  const patterns = [];
+
+  for (const line of lines) {
+    // Match: | [id](id.md) | Title | Category | Personality | Duration | Primitives | Breakdown | Tags |
+    const match = line.match(
+      /^\|\s*\[([^\]]+)\]\(([^)]+)\)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|$/
+    );
+    if (!match) continue;
+    const [, id, file, title, category, personalityStr, duration, primitivesStr, breakdown, tagsStr] = match;
+    const split = (s) => s.split(',').map(t => t.trim()).filter(Boolean);
+    patterns.push({
+      id: id.trim(),
+      doc: `docs/cookbook/${file.trim()}`,
+      title: title.trim(),
+      category: category.trim(),
+      personality: split(personalityStr),
+      duration: duration.trim(),
+      primitives: split(primitivesStr),
+      breakdown: breakdown.trim(),
+      tags: split(tagsStr),
+    });
+  }
+
+  return patterns;
 }
 
 // ── On-demand file readers ──────────────────────────────────────────────────

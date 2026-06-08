@@ -23,14 +23,23 @@ rendering infra.
 
 | Profile | `render_target_policy` | `finish_preset` | `delivery_profile` | `aspect_set` | `audio_policy` | `retime_policy` | `hero_frame_threshold` |
 | -- | -- | -- | -- | -- | -- | -- | -- |
-| **prototype** (T1) | `web_native` (live DOM, never captured) | none — reduced-motion required | — (live surface, no encode) | `16:9` authoring only | muted | none — source timing as authored | **T1 ≥ 0.55** |
-| **directed-html** (T2) | `web_native`, capture-ready | `clean-digital` (light captions/labels) | `web-embed` | `16:9` (+ `1:1` via deterministic recompose) | muted-autoplay; optional bg | holds only — `extend_hold`, `trim` | **T2 ≥ 0.65** |
-| **video** (T3) | auto-route `browser_capture` / `remotion_native` (`hybrid` allowed) | `editorial-subtle` or `social-punchy` (grade + crops) | `web-hero` + `social-feed` / `social-landscape` / `story-reel` | `16:9` + `1:1` + `9:16` (deterministic recompose) | bg track + mix, `aac`, captions on | `trim` + `extend_hold` + `compress` | **T3 ≥ 0.75** |
-| **hero-film** (T4) | `remotion_native` (full native compose) | `cinematic-film` or `premium-brand` (full art direction) | `master` (ProRes) → `web-hero` / social derivatives | `16:9` master + full social set via recompose | full mix — music + sonic cues + VO, 48k | `trim` + `extend_hold` + `compress` | **T4 ≥ 0.85** |
+| **prototype** (T1) | `pin: web_native` (live DOM, never captured) | none — reduced-motion required | — (live surface, no encode) | `16:9` authoring only | muted | none — source timing as authored | **T1 ≥ 0.55** |
+| **directed-html** (T2) | `pin: web_native`, capture-ready | `clean-digital` (light captions/labels) | `web-embed` | `16:9` (+ `1:1` via deterministic recompose) | muted-autoplay; optional bg | holds only — `extend_hold`, `trim` | **T2 ≥ 0.65** |
+| **video** (T3) | `resolve` — allowed `{browser_capture, remotion_native, hybrid}` | `editorial-subtle` or `social-punchy` (grade + crops) | `web-hero` + `social-feed` / `social-landscape` / `story-reel` | `16:9` + `1:1` + `9:16` (deterministic recompose) | bg track + mix, `aac`, captions on | `trim` + `extend_hold` + `compress` | **T3 ≥ 0.75** |
+| **hero-film** (T4) | `resolve, prefer: remotion_native` — allowed `{remotion_native, hybrid, browser_capture}` | `cinematic-film` or `premium-brand` (full art direction) | `master` (ProRes) → `web-hero` / social derivatives | `16:9` master + full social set via recompose | full mix — music + sonic cues + VO, 48k | `trim` + `extend_hold` + `compress` | **T4 ≥ 0.85** |
 
 **Vocabulary is real, not invented:**
-- `render_target_policy` values → `RENDER_TARGETS` at `mcp/lib/render-routing.js:28`
-  (`web_native`, `browser_capture`, `remotion_native`, `hybrid`).
+- `render_target_policy` is a **routing mode + allowed-target set**, not a single enum value.
+  The *targets* are the shipping `RENDER_TARGETS` (`web_native`, `browser_capture`,
+  `remotion_native`, `hybrid`) at `mcp/lib/render-routing.js:28`; the *mode* is how a master
+  picks among them:
+    - `pin: <target>` — force one target (T1/T2 pin `web_native`; the source stays a live surface).
+    - `resolve` — delegate per-scene routing to `resolve_render_targets`, constrained to the
+      master's `allowed` set; `prefer: <target>` biases the resolver but does not force it.
+  T4 **prefers** `remotion_native` but keeps `browser_capture`/`hybrid` in its allowed set so a
+  browser-dependent HTML source (gradients, backdrop-filter, clip-path — the `BROWSER_SIGNALS`
+  at `render-routing.js:36`) can still become a video master. Pinning `remotion_native` would
+  break "one source, four masters" for exactly those sources, so the policy is prefer-not-pin.
 - `finish_preset` slugs → `catalog/finish-presets.json` (`clean-digital`, `editorial-subtle`,
   `social-punchy`, `cinematic-film`, `premium-brand`).
 - `delivery_profile` slugs → `catalog/delivery-profiles.json` (`web-embed`, `web-hero`,
@@ -78,6 +87,7 @@ From `REVISION_OPS` (`mcp/lib/revision.js:19`):
 | `boost_hierarchy` | re-author (composition) | ❌ no — fork |
 | `add_continuity` | re-author (edit relationships) | ❌ no — fork |
 | `adjust_density` | re-author (motion authoring) | ❌ no — fork |
+| `needs_annotation` | advisory (flags for human review; transforms nothing) | ❌ no — advisory only, not in `retime_policy`, and not a fork by itself |
 | add / remove scene | source authoring (not an op) | ❌ no — fork |
 
 `swap_transition` is the one gray case: it is re-*finish*, allowed within a master, but it

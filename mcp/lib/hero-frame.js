@@ -407,10 +407,20 @@ export async function auditHeroFrames({ manifest, scenes, tier = 'T3', brand, ti
   let session = null;
   let captureFn = capture || null;
   if (!captureFn) {
-    const { openHeroCaptureSession } = await import('./hero-frame-capture.js');
-    session = await openHeroCaptureSession({});
-    if (session && !session.unavailable) {
-      captureFn = (scene, at, opts) => session.capture(scene, at, opts);
+    // The import itself can fail on the hosted edge (Node-only deps absent) —
+    // that must degrade to metadata-only, not throw the tool. A failed import,
+    // an unavailable session, or a thrown openHeroCaptureSession all leave
+    // captureFn null → the audit scores legibility only and fails closed at
+    // the pixel-required tiers, exactly like a missing toolchain locally.
+    try {
+      const { openHeroCaptureSession } = await import('./hero-frame-capture.js');
+      session = await openHeroCaptureSession({});
+      if (session && !session.unavailable) {
+        captureFn = (scene, at, opts) => session.capture(scene, at, opts);
+      }
+    } catch {
+      session = null;
+      captureFn = null;
     }
   }
 

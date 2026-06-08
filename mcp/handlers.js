@@ -3573,32 +3573,46 @@ export function handleCompareCandidateVideos(args) {
   }
 }
 
-export function handleAutoReviseLoop(args) {
-  const { manifest, scenes, style, brand, audio_beats, max_rounds, min_improvement } = args;
+export async function handleAutoReviseLoop(args) {
+  const { manifest, scenes, style, brand, audio_beats, max_rounds, min_improvement, frame_evidence, frame_tier } = args;
 
   if (!manifest || !scenes) {
     return { content: [{ type: 'text', text: 'manifest and scenes are required' }], isError: true };
   }
 
   try {
-    const result = autoReviseLoop({
+    const result = await autoReviseLoop({
       manifest, scenes, style, brand, audio_beats,
       max_rounds: max_rounds || 3,
       min_improvement: min_improvement || 0.01,
+      frame_evidence: frame_evidence === true,
+      frame_tier: frame_tier || 'T3',
     });
 
     let summary = `## Auto-Revise Results\n\n`;
     summary += `**Score:** ${result.score_before.toFixed(3)} → ${result.score_after.toFixed(3)} (${result.improvement >= 0 ? '+' : ''}${result.improvement.toFixed(3)})\n`;
-    summary += `**Rounds:** ${result.rounds.length} | **Total revisions:** ${result.total_revisions}\n\n`;
+    summary += `**Rounds:** ${result.rounds.length} | **Total revisions:** ${result.total_revisions}\n`;
+    if (frame_evidence === true) {
+      summary += `**Frame passes:** ${result.frame_passes} | **Rendered:** ~${result.estimated_render_seconds}s of stills\n`;
+    }
+    summary += '\n';
 
     for (const r of result.rounds) {
-      summary += `### Round ${r.round}\n`;
+      summary += `### Round ${r.round}${r.source ? ` (${r.source})` : ''}\n`;
       summary += `Score: ${r.score_before.toFixed(3)} → ${r.score_after.toFixed(3)} (${r.delta >= 0 ? '+' : ''}${r.delta.toFixed(3)})`;
       if (r.stopped) summary += ` — stopped: ${r.stopped}`;
       summary += '\n';
+      if (r.frame_evidence) {
+        summary += `_frame evidence: ${r.frame_evidence.source}, ${r.frame_evidence.scenes_rendered} rendered, ${r.frame_evidence.findings} findings_\n`;
+      }
       if (r.diff) {
         for (const d of r.diff) {
           summary += `- ${d.op} ${d.target}: ${d.before} → ${d.after}\n`;
+        }
+      }
+      if (r.advisories) {
+        for (const a of r.advisories) {
+          summary += `- ⚠ advisory: ${a.reason}\n`;
         }
       }
       summary += '\n';

@@ -89,6 +89,8 @@ export const HANDLERS = {
   compose_storyboard: H.handleComposeStoryboard,
   plan_story_beats: H.handlePlanStoryBeats,
   score_candidate_video: H.handleScoreCandidateVideo,
+  score_hero_frame: H.handleScoreHeroFrame,
+  audit_hero_frames: H.handleAuditHeroFrames,
   revise_candidate_video: H.handleReviseCandidateVideo,
   compare_candidate_videos: H.handleCompareCandidateVideos,
   annotate_scenes: H.handleAnnotateScenes,

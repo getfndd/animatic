@@ -63,7 +63,7 @@ describe('PRE-1439 acceptance A — stdio surface unchanged', () => {
     const srv = mockServer();
     registerTools(srv, { tools: buildAllTools(), exclude: [], stripParams: false });
     const { tools } = await srv.captured.list();
-    assert.equal(tools.length, 83);
+    assert.equal(tools.length, 85);
     assert.deepEqual(tools, golden, 'stdio tool surface drifted from the pre-refactor golden snapshot');
   });
 });
@@ -71,10 +71,10 @@ describe('PRE-1439 acceptance A — stdio surface unchanged', () => {
 // ── B. edge surface correctness ───────────────────────────────────────────────
 
 describe('PRE-1439 acceptance B — edge surface', () => {
-  it('exposes exactly 60 tools and excludes EDGE_EXCLUDE', async () => {
+  it('exposes exactly 61 tools and excludes EDGE_EXCLUDE', async () => {
     const srv = mockServer();
     const { names } = registerTools(srv, { tools: buildAllTools(), exclude: EDGE_EXCLUDE });
-    assert.equal(names.length, 60);
+    assert.equal(names.length, 61);
     for (const n of EDGE_EXCLUDE) assert.ok(!names.includes(n), `edge surface must not expose ${n}`);
   });
 
@@ -147,7 +147,7 @@ describe('PRE-1439 acceptance C — handler map covers the universe, no drift', 
     const handlerNames = Object.keys(HANDLERS).sort();
     const groupNames = Object.keys(TOOL_GROUPS).sort();
     assert.deepEqual(handlerNames, groupNames);
-    assert.equal(handlerNames.length, 83);
+    assert.equal(handlerNames.length, 85);
   });
 
   it('every handler is a function', () => {
@@ -165,8 +165,8 @@ describe('PRE-1439 acceptance C — handler map covers the universe, no drift', 
 
   it('throws when the advertised tools array is missing a manifest tool (fail-closed)', () => {
     const srv = mockServer();
-    const short = buildAllTools().filter(t => t.name !== 'search_primitives'); // 82, not 83
-    assert.equal(short.length, 82);
+    const short = buildAllTools().filter(t => t.name !== 'search_primitives'); // 84, not 85
+    assert.equal(short.length, 84);
     assert.throws(
       () => registerTools(srv, { tools: short, exclude: [], stripParams: false }),
       /search_primitives is in the manifest but missing from the advertised tools/,

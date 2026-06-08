@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-83 tools across 11 categories. Run via MCP server (`mcp/index.js`).
+85 tools across 11 categories. Run via MCP server (`mcp/index.js`).
 
 ## Primitives & Reference (8)
 
@@ -136,7 +136,7 @@ Returns a structured brief (audience, promise, features, proof) with a quality s
 ```
 Returns each scene with inferred `product_role`, `primary_subject`, `interaction_truth`, and hero layers (each with a confidence). Gate the result with `audit_annotation_quality`.
 
-## Scoring & Critique (7)
+## Scoring & Critique (9)
 
 | Tool | What |
 |------|------|
@@ -144,6 +144,8 @@ Returns each scene with inferred `product_role`, `primary_subject`, `interaction
 | `score_brand_finish` | Compositing quality score per personality/style |
 | `score_product_demo_clarity` | Product interaction truthfulness, camera intent, pacing, hierarchy (structural) |
 | `score_frame_strip` | Visual quality: contrast, readability, hierarchy, brand consistency, pacing rhythm |
+| `score_hero_frame` | Poster-frame contract — legibility (metadata) vs composition/aesthetic (real rendered pixels + vision judge); per-tier required axes; pixel axes UNVERIFIED without a frame |
+| `audit_hero_frames` | Fail-closed gate over a sequence's hero frames — renders each, scores at a tier (T1–T4), BLOCKs on weak/unverified/missing scenes |
 | `analyze_scene_comprehension` | LLM judge — perceptual comprehension ("would a human get it?") with reasoning; deterministic fallback |
 | `audit_motion_density` | Motion density audit + simplification suggestions |
 

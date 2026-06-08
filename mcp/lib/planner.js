@@ -558,10 +558,24 @@ function resolveShotRole(scene, i, M, roles, roleByName) {
     tryExact(scene.metadata?.role, 'metadata.role') ||
     tryExact(scene.metadata?._role, 'metadata._role') ||
     tryExact(scene.role, 'role') ||
+    // primary_subject is a strong intentional signal (often the role itself, e.g.
+    // sc_05_logo carries primary_subject "logo_lockup").
+    tryExact(scene.primary_subject, 'primary_subject') ||
+    tryExact(scene.metadata?.primary_subject, 'metadata.primary_subject') ||
     (() => {
+      // scene_id name-part match: strip the `sc_NN_` prefix and match on the role
+      // (or its leading token), so `sc_05_logo` resolves to `logo_lockup` — not a
+      // bare endsWith, which would miss it.
       const sid = scene.scene_id || scene.id || '';
-      const suffix = roles.find(r => sid === r.role || sid.endsWith(`_${r.role}`) || sid.endsWith(r.role));
-      return suffix ? { role: suffix, match: 'scene_id_suffix' } : null;
+      const namePart = sid.replace(/^sc_\d+_?/i, '');
+      if (!namePart) return null;
+      const firstTok = namePart.split('_')[0];
+      const m = roles.find(r =>
+        r.role === namePart ||
+        r.role.startsWith(`${namePart}_`) ||
+        namePart.startsWith(`${r.role}_`) ||
+        (firstTok.length >= 4 && r.role.split('_')[0] === firstTok));
+      return m ? { role: m, match: 'scene_id_suffix' } : null;
     })() ||
     (() => {
       const pr = scene.product_role || scene.metadata?.product_role;

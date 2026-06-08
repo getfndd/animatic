@@ -8,8 +8,13 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { planSequence } from '../lib/planner.js';
+
+const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // Scenes whose ids end with archetype role slugs → deterministic role assignment.
 function scenesFor(roleSuffixes) {
@@ -36,6 +41,21 @@ describe('shot-grammar-first — opt-in', () => {
     assert.equal(establish.match, 'scene_id_suffix');
     // shot_grammar reached the manifest
     assert.ok(manifest.scenes[0].shot_grammar, 'manifest scene carries shot_grammar');
+  });
+});
+
+describe('shot-grammar-first — real example resolves correctly', () => {
+  it('examples/brand-teaser sc_05_logo maps to logo_lockup/resolve, not tagline_close', () => {
+    const dir = join(REPO, 'examples/brand-teaser/scenes');
+    const scenes = readdirSync(dir).filter(f => f.endsWith('.json')).sort()
+      .map(f => JSON.parse(readFileSync(join(dir, f), 'utf-8')));
+    const { notes } = planSequence({ scenes, style: 'dramatic', sequence_id: 'seq_bt', archetype: 'brand-teaser' });
+    const logo = notes.shot_list.find(s => s.assigned_scene === 'sc_05_logo');
+    assert.ok(logo, 'sc_05_logo is in the shot list');
+    assert.equal(logo.shot_role, 'resolve', 'the logo scene is the resolve shot, not restraint');
+    assert.equal(logo.archetype_role, 'logo_lockup');
+    // every scene resolves by a strong signal, none by proportional fallback
+    assert.ok(notes.shot_list.every(s => s.match !== 'proportional'), 'real scene names/subjects resolve without proportional fallback');
   });
 });
 

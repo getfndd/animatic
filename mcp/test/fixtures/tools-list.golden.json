@@ -2395,7 +2395,7 @@
   },
   {
     "name": "auto_revise_loop",
-    "description": "Autonomous revision loop: scores per-scene, picks worst scenes, applies targeted revisions, re-scores, repeats until convergence or max rounds. Returns the best manifest with full revision history. With `frame_evidence: true`, when the JSON loop stalls it runs ONE rendered-frame pass (the ANI-178 hero-frame audit) and turns failing axes into bounded transforms the structural loop would miss — cost-gated (renders only on stall, honors ANIMATIC_SKIP_REMOTION_RENDER, logs render count). Default behavior (flag off) is unchanged.",
+    "description": "Autonomous revision loop: scores per-scene, picks worst scenes, applies targeted revisions, re-scores, repeats until convergence or max rounds. Returns the best manifest with full revision history. With `frame_evidence: true`, whenever the JSON loop stalls it runs a rendered-frame pass (the ANI-178 hero-frame audit) and turns failing axes into bounded transforms the structural loop would miss; a frame fix can unlock further JSON rounds, so multiple bounded frame passes may run (capped per run, deduped). Cost-gated (renders only on stall, honors ANIMATIC_SKIP_REMOTION_RENDER, logs render count + ~seconds). Default behavior (flag off) is unchanged.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -2432,7 +2432,7 @@
         },
         "frame_evidence": {
           "type": "boolean",
-          "description": "Opt-in (default `false`). When `true`, a rendered hero-frame pass runs on JSON-loop stall to drive frame-evidence revisions. Expensive: renders one still per scene (degrades to metadata-only legibility when the toolchain/key is absent). Composition-geometry findings with no bounded lever are reported as advisories, never applied."
+          "description": "Opt-in (default `false`). When `true`, a rendered hero-frame pass runs on each JSON-loop stall (bounded per run, deduped) to drive frame-evidence revisions. Expensive: renders one still per scene (degrades to metadata-only legibility when the toolchain/key is absent). Composition-geometry findings with no bounded lever are reported as advisories, never applied."
         },
         "frame_tier": {
           "type": "string",

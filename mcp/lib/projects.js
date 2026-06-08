@@ -281,6 +281,42 @@ export async function getProject(identifier) {
   return null;
 }
 
+/**
+ * Load a project's root manifest + scene definitions as in-memory objects, the
+ * same way `renderProject` does (ANI-183 — so `render_master` and the renderer
+ * resolve a project to `{ manifest, sceneDefs }` identically).
+ *
+ * @param {string} projectId - Slug or path.
+ * @param {object} [opts] - { manifest?: string } root-manifest path override.
+ * @returns {Promise<{ project, manifest, sceneDefs }>}
+ * @throws if the project / manifest / a referenced scene can't be resolved.
+ */
+export async function loadProjectSource(projectId, opts = {}) {
+  const proj = await getProject({ project: projectId });
+  if (!proj) throw new Error(`Project "${projectId}" not found`);
+
+  const manifestPath = opts.manifest || proj.entrypoints?.root_manifest;
+  if (!manifestPath) throw new Error('No manifest specified and no root_manifest in project.json');
+
+  const manifest = await readJSON(join(proj.project_root, manifestPath));
+  if (!manifest) throw new Error(`Cannot read manifest at ${manifestPath}`);
+
+  const sceneDefs = {};
+  for (const entry of proj.scenes || []) {
+    const scenePath = entry.source || entry.path;
+    if (!scenePath) continue;
+    const sceneData = await readJSON(join(proj.project_root, scenePath));
+    if (!sceneData) continue;
+    const id = sceneData.scene_id || entry.id;
+    if (id) sceneDefs[id] = sceneData;
+  }
+
+  const unresolved = (manifest.scenes || []).map(s => s.scene).filter(Boolean).filter(id => !sceneDefs[id]);
+  if (unresolved.length > 0) throw new Error(`Unresolved scene definitions: ${unresolved.join(', ')}`);
+
+  return { project: proj, manifest, sceneDefs };
+}
+
 // ── getProjectContext ────────────────────────────────────────────────────────
 
 /**

@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-85 tools across 11 categories. Run via MCP server (`mcp/index.js`).
+86 tools across 11 categories. Run via MCP server (`mcp/index.js`).
 
 ## Primitives & Reference (8)
 
@@ -97,7 +97,7 @@ Returns matching motion-token recipes (id, tokens, interrupt contract, reduced-m
 ```
 Returns a sequence manifest with chosen transitions and camera. Validate it with `validate_manifest { "manifest": …, "personality": "cinematic-dark" }`.
 
-## Autonomous Direction (8)
+## Autonomous Direction (9)
 
 | Tool | What |
 |------|------|
@@ -109,6 +109,7 @@ Returns a sequence manifest with chosen transitions and camera. Validate it with
 | `compare_candidate_videos` | Rank 2-3 candidates with trade-off analysis |
 | `auto_revise_loop` | Score → revise → re-score → repeat until convergence |
 | `generate_brief_stub` | Generate structured brief markdown from project context |
+| `render_master` | One Source, Four Masters — resolve+gate+compose a tier master (prototype/directed-html/video/hero-film); fail-closed hero-frame gate on each emitted artifact; renderable `{manifest,sceneDefs,timelines}` for assemble_video_sequence |
 
 **Example — extract a structured brief from raw text:**
 ```json

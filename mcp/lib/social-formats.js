@@ -176,6 +176,38 @@ function _recomposeLayersForRatio(layers, format, sourceResolution) {
   }
 }
 
+/**
+ * Recompose a single SCENE DEFINITION's layers for a target aspect ratio (ANI-183).
+ *
+ * `adaptManifestAspectRatio` only recomposes layers embedded in
+ * `manifest.scenes[*].layers` — but in this repo scene layers live in separate
+ * sceneDefs, so the manifest adapter leaves the rendered layers untouched. The
+ * master orchestrator maps this over each sceneDef so aspect variants actually
+ * recompose what ships.
+ *
+ * Deliberately narrow: layer/layout recomposition ONLY. Manifest-entry concerns
+ * (duration clamp, camera-override adjust) stay with `adaptManifestAspectRatio`.
+ *
+ * @param {object} sceneDef - A scene definition (cloned internally).
+ * @param {string} targetRatio - '16:9' | '1:1' | '4:5' | '9:16'.
+ * @param {object} [sourceResolution] - Source resolution (default 1920x1080).
+ * @returns {object} A recomposed clone of the scene definition.
+ */
+export function recomposeSceneForRatio(sceneDef, targetRatio, sourceResolution = { w: 1920, h: 1080 }) {
+  if (!VALID_ASPECT_RATIOS.includes(targetRatio)) {
+    throw new Error(`Invalid aspect ratio "${targetRatio}". Must be one of: ${VALID_ASPECT_RATIOS.join(', ')}`);
+  }
+  const format = getFormatByRatio(targetRatio);
+  if (!format) {
+    throw new Error(`No format definition found for aspect ratio "${targetRatio}"`);
+  }
+  const out = JSON.parse(JSON.stringify(sceneDef || {}));
+  if (Array.isArray(out.layers)) {
+    _recomposeLayersForRatio(out.layers, format, sourceResolution);
+  }
+  return out;
+}
+
 // ── createSocialCutdown ─────────────────────────────────────────────────────
 
 /**

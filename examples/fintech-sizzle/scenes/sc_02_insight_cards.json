@@ -1,5 +1,6 @@
 {
   "scene_id": "sc_02_insight_cards",
+  "primary_subject": "insight_conveyor",
   "format_version": 2,
   "duration_s": 5,
   "brand": "fintech-demo",
@@ -11,11 +12,14 @@
       "id": "bg",
       "type": "html",
       "content": "<div style=\"width:100%;height:100%;background:#111827\"></div>",
+      "product_role": "decorative",
       "depth_class": "background"
     },
     {
       "id": "insight_conveyor",
       "type": "card_conveyor",
+      "product_role": "hero",
+      "clarity_weight": 5,
       "depth_class": "foreground",
       "stories": [
         { "title": "12% revenue growth", "excerpt": "From January to June revenue increased from $12,459 to $13,954.", "meta": "treasury report · 2 days ago", "trend": "↗", "trendColor": "#34d399" },

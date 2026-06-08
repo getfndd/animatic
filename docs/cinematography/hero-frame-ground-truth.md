@@ -60,36 +60,39 @@ T1 ≥ 0.55 · T2 ≥ 0.65 · T3 ≥ 0.75 · T4 ≥ 0.85.
 | sc_04_tagline_close | 1.0 | 0.5 | 0.9 | 1.0 | PASS |
 | sc_05_logo | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
 
-### fintech-sizzle  (9 scenes) — T1 **BLOCK** · T2 **BLOCK** · T3 **BLOCK**
+### fintech-sizzle  (9 scenes) — T1 **PASS** · T2 **PASS** · T3 **BLOCK** (composition UNVERIFIED)
+
+Re-baselined after [ANI-184](https://linear.app/fnddtech/issue/ANI-184): each scene now
+declares a `product_role: hero` layer + `primary_subject`. (Was all-BLOCK before annotation.)
 
 | scene | subject_clarity | readable_text | hierarchy | T1 overall | T2 verdict |
 | -- | -- | -- | -- | -- | -- |
-| sc_01_tagline_open | 0.3 | 0.7 | 0.3 | 0.3 | BLOCK |
-| sc_02_insight_cards | 0.3 | 0.7 | 0.3 | 0.3 | BLOCK |
-| sc_03_prompt_input | 0.3 | 0.7 | 0.3 | 0.3 | BLOCK |
-| sc_04_chart_drilldown | 0.3 | 0.7 | 0.3 | 0.3 | BLOCK |
-| sc_05_followup | 0.3 | 0.7 | 0.3 | 0.3 | BLOCK |
-| sc_06_dashboard | 0.3 | 0.7 | 0.3 | 0.3 | BLOCK |
-| sc_07_tagline_intro | 0.3 | 0.7 | 0.3 | 0.3 | BLOCK |
-| sc_08_tagline_close | 0.3 | 0.7 | 0.3 | 0.3 | BLOCK |
-| sc_09_logo | 0.3 | 0.7 | 0.3 | 0.3 | BLOCK |
+| sc_01_tagline_open | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
+| sc_02_insight_cards | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
+| sc_03_prompt_input | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
+| sc_04_chart_drilldown | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
+| sc_05_followup | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
+| sc_06_dashboard | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
+| sc_07_tagline_intro | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
+| sc_08_tagline_close | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
+| sc_09_logo | 1.0 | 0.7 | 0.9 | 1.0 | PASS |
 
 ## What the baseline tells us
 
-- **The three current-format walkthroughs declare their poster subjects** — every
-  scene has a `product_role: hero` layer and a `primary_subject`, so the contract
-  resolves cleanly and legibility passes T1/T2. They are correctly **pending** at
-  T3: the gate withholds a composition verdict until a frame is actually rendered
-  and judged, rather than rubber-stamping a manifest it never looked at.
+- **All four walkthroughs now declare their poster subjects** — every scene has a
+  `product_role: hero` layer and a `primary_subject`, so the contract resolves
+  cleanly and legibility passes T1/T2. They are correctly **pending** at T3: the
+  gate withholds a composition verdict until a frame is actually rendered and
+  judged, rather than rubber-stamping a manifest it never looked at.
 
-- **fintech-sizzle fails legibility at T1** — and that is a true finding, not a
-  scorer artifact. Its scenes (authored 2026-03-25, before hero-subject annotation
-  discipline) declare **no `primary_subject` and no hero layer** (e.g.
-  `sc_01_tagline_open`: layers `bg`, `tagline`, both `product_role: none`). The
-  contract's forcing question — *what is this scene's poster frame about?* — has no
-  answer, so `subject_clarity` and `hierarchy` floor at 0.3 and the scene blocks.
-  Fixing it is an annotation pass (declare each scene's hero subject), exactly the
-  behaviour ANI-178 is meant to force.
+- **fintech-sizzle was the gate doing its job.** Its scenes (authored 2026-03-25,
+  before hero-subject annotation discipline) originally declared **no
+  `primary_subject` and no hero layer**, so the contract's forcing question —
+  *what is this scene's poster frame about?* — had no answer and every scene floored
+  at 0.3 and blocked. [ANI-184](https://linear.app/fnddtech/issue/ANI-184) supplied
+  the annotation pass (each scene's foreground subject → `product_role: hero` +
+  `primary_subject`), and the walkthrough now passes T1/T2 — exactly the behaviour
+  ANI-178 is meant to force, then resolve.
 
 - **The legibility-vs-composition split holds.** `readable_text` already varies by
   scene (0.5 text-light vs 0.7 with a `block_role` headline) independent of the

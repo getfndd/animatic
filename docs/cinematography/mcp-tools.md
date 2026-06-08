@@ -72,7 +72,7 @@ Returns matching motion-token recipes (id, tokens, interrupt contract, reduced-m
 
 | Tool | What |
 |------|------|
-| `plan_sequence` | Analyzed scenes + style pack → sequence manifest |
+| `plan_sequence` | Analyzed scenes + style pack → sequence manifest. Pass `archetype` to plan shot-grammar-first (ANI-179): scenes → shot roles → shot_grammar + camera from the shot, surfaced in notes.shot_list |
 | `plan_variants` | Generate multiple sequence variants |
 | `compare_variants` | Rank sequence variants |
 | `audit_video_accessibility` | WCAG-for-motion audit: flash/strobe, text contrast, captions coverage, autoplay-muted, motion intensity |

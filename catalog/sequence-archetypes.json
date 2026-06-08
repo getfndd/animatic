@@ -14,7 +14,8 @@
         "camera": { "move": "drift", "intensity": 0.3 },
         "transition_in": null,
         "recommended_layers": ["background_video", "text_overlay"],
-        "recommended_primitives": ["cd-focus-stagger", "as-fadeIn", "bk-sparse-breathe"]
+        "recommended_primitives": ["cd-focus-stagger", "as-fadeIn", "bk-sparse-breathe"],
+        "shot": { "shot_role": "establish", "shot_size": "wide", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "brand_statement",
@@ -24,7 +25,8 @@
         "camera": { "move": "push_in", "intensity": 0.4 },
         "transition_in": { "type": "focus_dissolve", "duration_ms": 500 },
         "recommended_layers": ["text_hero", "background_ambient"],
-        "recommended_primitives": ["mo-text-hero", "cd-typewriter", "as-fadeInUp"]
+        "recommended_primitives": ["mo-text-hero", "cd-typewriter", "as-fadeInUp"],
+        "shot": { "shot_role": "statement", "shot_size": "close_up", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "product_glimpse",
@@ -34,7 +36,8 @@
         "camera": { "move": "breathe", "intensity": 0.5 },
         "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
         "recommended_layers": ["product_screenshot", "ui_overlay", "background_gradient"],
-        "recommended_primitives": ["cd-focus-stagger", "mo-scale-entrance", "as-zoomIn"]
+        "recommended_primitives": ["cd-focus-stagger", "mo-scale-entrance", "as-zoomIn"],
+        "shot": { "shot_role": "tease", "shot_size": "medium", "angle": "low", "framing": "dynamic_offset" }
       },
       {
         "role": "tagline_close",
@@ -44,7 +47,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "crossfade", "duration_ms": 400 },
         "recommended_layers": ["text_hero", "background_solid"],
-        "recommended_primitives": ["mo-text-hero", "as-fadeIn", "ed-blur-reveal"]
+        "recommended_primitives": ["mo-text-hero", "as-fadeIn", "ed-blur-reveal"],
+        "shot": { "shot_role": "restraint", "shot_size": "close_up", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "logo_lockup",
@@ -54,7 +58,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "hard_cut", "duration_ms": 0 },
         "recommended_layers": ["logo", "background_solid"],
-        "recommended_primitives": ["as-fadeIn", "fade-in"]
+        "recommended_primitives": ["as-fadeIn", "fade-in"],
+        "shot": { "shot_role": "resolve", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       }
     ],
     "pacing_profile": {
@@ -91,7 +96,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": null,
         "recommended_layers": ["ui_screenshot", "text_overlay"],
-        "recommended_primitives": ["ed-slide-stagger", "as-fadeIn", "nl-slide-stagger"]
+        "recommended_primitives": ["ed-slide-stagger", "as-fadeIn", "nl-slide-stagger"],
+        "shot": { "shot_role": "establish", "shot_size": "wide", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "problem_frame",
@@ -101,7 +107,8 @@
         "camera": { "move": "push_in", "intensity": 0.3 },
         "transition_in": { "type": "crossfade", "duration_ms": 400 },
         "recommended_layers": ["ui_screenshot", "annotation_overlay", "text_callout"],
-        "recommended_primitives": ["ed-slide-stagger", "bk-content-line-stagger", "as-fadeInUp"]
+        "recommended_primitives": ["ed-slide-stagger", "bk-content-line-stagger", "as-fadeInUp"],
+        "shot": { "shot_role": "frame", "shot_size": "medium", "angle": "eye_level", "framing": "rule_of_thirds_left" }
       },
       {
         "role": "feature_demo",
@@ -111,7 +118,8 @@
         "camera": { "move": "drift", "intensity": 0.4 },
         "transition_in": { "type": "parallax_crossfade", "duration_ms": 500 },
         "recommended_layers": ["ui_screenshot", "cursor_overlay", "highlight_ring"],
-        "recommended_primitives": ["cd-focus-stagger", "nl-cursor-to", "bk-chat-typewriter-submit"]
+        "recommended_primitives": ["cd-focus-stagger", "nl-cursor-to", "bk-chat-typewriter-submit"],
+        "shot": { "shot_role": "reveal", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "detail_zoom",
@@ -121,7 +129,8 @@
         "camera": { "move": "push_in", "intensity": 0.6 },
         "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
         "recommended_layers": ["ui_detail", "annotation_overlay"],
-        "recommended_primitives": ["ct-camera-push-in", "cd-panel-drilldown", "as-zoomIn"]
+        "recommended_primitives": ["ct-camera-push-in", "cd-panel-drilldown", "as-zoomIn"],
+        "shot": { "shot_role": "insert", "shot_size": "close_up", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "benefit_proof",
@@ -131,7 +140,8 @@
         "camera": { "move": "pull_out", "intensity": 0.3 },
         "transition_in": { "type": "match_cut_scale", "duration_ms": 350 },
         "recommended_layers": ["metric_card", "ui_screenshot", "text_overlay"],
-        "recommended_primitives": ["ed-count-up", "bk-stat-card-count-up", "cd-draw-checks"]
+        "recommended_primitives": ["ed-count-up", "bk-stat-card-count-up", "cd-draw-checks"],
+        "shot": { "shot_role": "payoff", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "cta_close",
@@ -141,7 +151,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "crossfade", "duration_ms": 400 },
         "recommended_layers": ["text_hero", "logo", "background_solid"],
-        "recommended_primitives": ["as-fadeIn", "ed-slide-stagger", "fade-in"]
+        "recommended_primitives": ["as-fadeIn", "ed-slide-stagger", "fade-in"],
+        "shot": { "shot_role": "close", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       }
     ],
     "pacing_profile": {
@@ -178,7 +189,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": null,
         "recommended_layers": ["text_hero", "background_gradient"],
-        "recommended_primitives": ["nl-slide-stagger", "as-fadeIn", "ed-slide-stagger"]
+        "recommended_primitives": ["nl-slide-stagger", "as-fadeIn", "ed-slide-stagger"],
+        "shot": { "shot_role": "orient", "shot_size": "wide", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "step_1",
@@ -188,7 +200,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "crossfade", "duration_ms": 400 },
         "recommended_layers": ["ui_screenshot", "cursor_overlay", "step_indicator"],
-        "recommended_primitives": ["nl-cursor-to", "nl-spotlight", "nl-step-progress"]
+        "recommended_primitives": ["nl-cursor-to", "nl-spotlight", "nl-step-progress"],
+        "shot": { "shot_role": "step", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "step_2",
@@ -198,7 +211,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "parallax_crossfade", "duration_ms": 500 },
         "recommended_layers": ["ui_screenshot", "cursor_overlay", "step_indicator"],
-        "recommended_primitives": ["nl-cursor-to", "nl-spotlight", "nl-step-progress"]
+        "recommended_primitives": ["nl-cursor-to", "nl-spotlight", "nl-step-progress"],
+        "shot": { "shot_role": "step", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "step_3",
@@ -208,7 +222,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "parallax_crossfade", "duration_ms": 500 },
         "recommended_layers": ["ui_screenshot", "cursor_overlay", "step_indicator"],
-        "recommended_primitives": ["nl-cursor-to", "nl-spotlight", "nl-step-progress"]
+        "recommended_primitives": ["nl-cursor-to", "nl-spotlight", "nl-step-progress"],
+        "shot": { "shot_role": "step", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "success_state",
@@ -218,7 +233,8 @@
         "camera": { "move": "breathe", "intensity": 0.2 },
         "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
         "recommended_layers": ["ui_screenshot", "success_overlay", "metric_card"],
-        "recommended_primitives": ["cd-draw-checks", "ed-count-up", "bk-stat-card-count-up"]
+        "recommended_primitives": ["cd-draw-checks", "ed-count-up", "bk-stat-card-count-up"],
+        "shot": { "shot_role": "confirm", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "next_steps",
@@ -228,7 +244,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "crossfade", "duration_ms": 400 },
         "recommended_layers": ["text_list", "logo", "background_solid"],
-        "recommended_primitives": ["nl-slide-stagger", "as-fadeIn", "fade-in"]
+        "recommended_primitives": ["nl-slide-stagger", "as-fadeIn", "fade-in"],
+        "shot": { "shot_role": "handoff", "shot_size": "wide", "angle": "eye_level", "framing": "center" }
       }
     ],
     "pacing_profile": {
@@ -265,7 +282,8 @@
         "camera": { "move": "handheld", "intensity": 0.6 },
         "transition_in": null,
         "recommended_layers": ["background_video", "text_overlay", "particle_overlay"],
-        "recommended_primitives": ["mo-scale-entrance", "ct-camera-handheld", "bk-concentric-pulse"]
+        "recommended_primitives": ["mo-scale-entrance", "ct-camera-handheld", "bk-concentric-pulse"],
+        "shot": { "shot_role": "tease", "shot_size": "wide", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "brand_flash",
@@ -275,7 +293,8 @@
         "camera": { "move": "push_in", "intensity": 0.7 },
         "transition_in": { "type": "hard_cut", "duration_ms": 0 },
         "recommended_layers": ["logo", "background_solid"],
-        "recommended_primitives": ["mo-scale-entrance", "as-zoomIn", "mo-text-hero"]
+        "recommended_primitives": ["mo-scale-entrance", "as-zoomIn", "mo-text-hero"],
+        "shot": { "shot_role": "flash", "shot_size": "extreme_close_up", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "hero_product",
@@ -285,7 +304,8 @@
         "camera": { "move": "drift", "intensity": 0.5 },
         "transition_in": { "type": "match_cut_scale", "duration_ms": 300 },
         "recommended_layers": ["product_screenshot", "ui_overlay", "background_gradient"],
-        "recommended_primitives": ["cd-focus-stagger", "mo-scale-entrance", "cd-card-cascade"]
+        "recommended_primitives": ["cd-focus-stagger", "mo-scale-entrance", "cd-card-cascade"],
+        "shot": { "shot_role": "hero", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "feature_montage",
@@ -295,7 +315,8 @@
         "camera": { "move": "handheld", "intensity": 0.5 },
         "transition_in": { "type": "whip_right", "duration_ms": 250 },
         "recommended_layers": ["ui_screenshot", "text_callout", "background_gradient"],
-        "recommended_primitives": ["mo-hard-cut", "mo-whip-wipe", "mo-grid-reveal"]
+        "recommended_primitives": ["mo-hard-cut", "mo-whip-wipe", "mo-grid-reveal"],
+        "shot": { "shot_role": "montage", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "social_proof",
@@ -305,7 +326,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "hard_cut", "duration_ms": 0 },
         "recommended_layers": ["metric_card", "logo_grid", "text_overlay"],
-        "recommended_primitives": ["mo-stat-reveal", "ed-count-up", "bk-stat-card-count-up"]
+        "recommended_primitives": ["mo-stat-reveal", "ed-count-up", "bk-stat-card-count-up"],
+        "shot": { "shot_role": "proof", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "launch_cta",
@@ -315,7 +337,8 @@
         "camera": { "move": "breathe", "intensity": 0.2 },
         "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
         "recommended_layers": ["text_hero", "cta_button", "background_gradient"],
-        "recommended_primitives": ["mo-text-hero", "as-fadeIn", "ed-blur-reveal"]
+        "recommended_primitives": ["mo-text-hero", "as-fadeIn", "ed-blur-reveal"],
+        "shot": { "shot_role": "cta", "shot_size": "close_up", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "logo_resolve",
@@ -325,7 +348,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "focus_dissolve", "duration_ms": 500 },
         "recommended_layers": ["logo", "background_solid"],
-        "recommended_primitives": ["as-fadeIn", "fade-in"]
+        "recommended_primitives": ["as-fadeIn", "fade-in"],
+        "shot": { "shot_role": "resolve", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       }
     ],
     "pacing_profile": {
@@ -362,7 +386,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": null,
         "recommended_layers": ["text_hero", "background_solid", "attribution_line"],
-        "recommended_primitives": ["ed-slide-stagger", "as-fadeIn", "cd-typewriter"]
+        "recommended_primitives": ["ed-slide-stagger", "as-fadeIn", "cd-typewriter"],
+        "shot": { "shot_role": "quote", "shot_size": "close_up", "angle": "eye_level", "framing": "rule_of_thirds_left" }
       },
       {
         "role": "context_visual",
@@ -372,7 +397,8 @@
         "camera": { "move": "drift", "intensity": 0.2 },
         "transition_in": { "type": "crossfade", "duration_ms": 500 },
         "recommended_layers": ["ui_screenshot", "device_mockup", "background_gradient"],
-        "recommended_primitives": ["ed-slide-stagger", "as-fadeInUp", "ed-camera-drift"]
+        "recommended_primitives": ["ed-slide-stagger", "as-fadeInUp", "ed-camera-drift"],
+        "shot": { "shot_role": "context", "shot_size": "wide", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "key_metric",
@@ -382,7 +408,8 @@
         "camera": { "move": "push_in", "intensity": 0.3 },
         "transition_in": { "type": "parallax_crossfade", "duration_ms": 500 },
         "recommended_layers": ["metric_card", "text_overlay", "background_solid"],
-        "recommended_primitives": ["ed-count-up", "bk-stat-card-count-up", "ed-blur-reveal"]
+        "recommended_primitives": ["ed-count-up", "bk-stat-card-count-up", "ed-blur-reveal"],
+        "shot": { "shot_role": "metric", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "quote_close",
@@ -392,7 +419,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "zoom_crossfade", "duration_ms": 400 },
         "recommended_layers": ["text_hero", "portrait", "background_solid"],
-        "recommended_primitives": ["as-fadeIn", "ed-slide-stagger", "fade-in"]
+        "recommended_primitives": ["as-fadeIn", "ed-slide-stagger", "fade-in"],
+        "shot": { "shot_role": "reprise", "shot_size": "close_up", "angle": "eye_level", "framing": "rule_of_thirds_right" }
       },
       {
         "role": "logo_lockup",
@@ -402,7 +430,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "crossfade", "duration_ms": 400 },
         "recommended_layers": ["logo", "customer_logo", "background_solid"],
-        "recommended_primitives": ["as-fadeIn", "fade-in"]
+        "recommended_primitives": ["as-fadeIn", "fade-in"],
+        "shot": { "shot_role": "resolve", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       }
     ],
     "pacing_profile": {
@@ -439,7 +468,8 @@
         "camera": { "move": "push_in", "intensity": 0.7 },
         "transition_in": null,
         "recommended_layers": ["text_hero", "background_bold", "product_screenshot"],
-        "recommended_primitives": ["mo-scale-entrance", "mo-text-hero", "as-zoomIn"]
+        "recommended_primitives": ["mo-scale-entrance", "mo-text-hero", "as-zoomIn"],
+        "shot": { "shot_role": "hook", "shot_size": "close_up", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "product_flash",
@@ -449,7 +479,8 @@
         "camera": { "move": "handheld", "intensity": 0.5 },
         "transition_in": { "type": "hard_cut", "duration_ms": 0 },
         "recommended_layers": ["product_screenshot", "ui_overlay"],
-        "recommended_primitives": ["mo-hard-cut", "mo-scale-entrance", "ct-camera-handheld"]
+        "recommended_primitives": ["mo-hard-cut", "mo-scale-entrance", "ct-camera-handheld"],
+        "shot": { "shot_role": "flash", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "value_prop",
@@ -459,7 +490,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "whip_right", "duration_ms": 250 },
         "recommended_layers": ["text_hero", "background_solid"],
-        "recommended_primitives": ["mo-text-hero", "as-fadeIn", "mo-stat-reveal"]
+        "recommended_primitives": ["mo-text-hero", "as-fadeIn", "mo-stat-reveal"],
+        "shot": { "shot_role": "prop", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       },
       {
         "role": "logo_tag",
@@ -469,7 +501,8 @@
         "camera": { "move": "static", "intensity": 0 },
         "transition_in": { "type": "hard_cut", "duration_ms": 0 },
         "recommended_layers": ["logo", "social_handle", "background_solid"],
-        "recommended_primitives": ["as-fadeIn", "fade-in"]
+        "recommended_primitives": ["as-fadeIn", "fade-in"],
+        "shot": { "shot_role": "tag", "shot_size": "medium", "angle": "eye_level", "framing": "center" }
       }
     ],
     "pacing_profile": {

@@ -287,7 +287,7 @@ export function buildTools({
     {
       name: 'plan_sequence',
       description:
-        'Plan a sequence from analyzed scenes and a style pack. Decides shot order, hold durations, transitions, and camera overrides. Returns a valid sequence manifest with editorial notes. Scenes must have metadata (use analyze_scene first). Supports per-scene style blending via metadata.style_override. Pass beats from analyze_beats for beat-synced editing.',
+        "Plan a sequence from analyzed scenes and a style pack. Decides shot order, hold durations, transitions, and camera overrides. Returns a valid sequence manifest with editorial notes. Scenes must have metadata (use analyze_scene first). Supports per-scene style blending via metadata.style_override. Pass beats from analyze_beats for beat-synced editing. Pass `archetype` (ANI-179) to plan SHOT-GRAMMAR-FIRST: scenes are assigned to the archetype's ordered shot roles, then shot_grammar + camera are derived FROM the shot role (motion serves the shot) — the chosen shot list surfaces in notes.shot_list. Omit `archetype` for the default metadata-led behavior (unchanged).",
       inputSchema: {
         type: 'object',
         properties: {
@@ -312,6 +312,11 @@ export function buildTools({
           preserve_source_order: {
             type: 'boolean',
             description: 'Default true: keep the input scene order (upstream already establishes narrative order). Set false to let the planner reorder by intent buckets / energy curve — the rewrite is logged in notes.ordering_rationale and notes.ordering_mode.',
+          },
+          archetype: {
+            type: 'string',
+            enum: ['brand-teaser', 'feature-reveal', 'onboarding-explainer', 'launch-reel', 'testimonial-cutdown', 'social-loop'],
+            description: "Optional. When set, plan shot-grammar-first: assign scenes to this archetype's ordered shot roles and derive shot_grammar + camera from the shot role. Surfaces notes.shot_list + notes.shot_grammar_mode. Omit for the default metadata-led plan (behavior unchanged).",
           },
         },
         required: ['scenes', 'style'],
@@ -696,7 +701,7 @@ export function buildTools({
     {
       name: 'recommend_sequence_archetype',
       description:
-        'Recommend a sequence archetype (multi-scene recipe) for a given output type. Returns scene roles, transitions, camera progression, pacing profile, and recommended primitives.',
+        'Recommend a sequence archetype (multi-scene recipe) for a given output type. Returns scene roles, transitions, camera progression, pacing profile, recommended primitives, and a `shot_list_preview` of the shot grammar it implies (ordered shot roles + shot_size/angle/framing, ANI-179) — pass the chosen slug to `plan_sequence` as `archetype` to plan shot-grammar-first.',
       inputSchema: {
         type: 'object',
         properties: {

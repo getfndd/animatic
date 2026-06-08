@@ -3473,7 +3473,7 @@ export async function handleScoreHeroFrame(args) {
 }
 
 export async function handleAuditHeroFrames(args) {
-  const { manifest, scenes, tier, brand } = args;
+  const { manifest, scenes, tier, brand, timelines } = args;
   if (!manifest || !Array.isArray(manifest.scenes)) {
     return {
       content: [{ type: 'text', text: 'Invalid input: `manifest` must be an object with a `scenes` array.' }],
@@ -3487,7 +3487,7 @@ export async function handleAuditHeroFrames(args) {
     };
   }
   try {
-    const result = await auditHeroFrames({ manifest, scenes, tier, brand });
+    const result = await auditHeroFrames({ manifest, scenes, tier, brand, timelines });
     const e = result.evidence_summary;
     const header = `# Hero Frame Audit: **${result.verdict}** (${result.tier}, threshold ${result.threshold})\n\n`
       + `Evidence: ${e.rendered}/${e.scenes} rendered · ${e.metadata_only} metadata-only · ${e.missing} missing-definition\n\n`

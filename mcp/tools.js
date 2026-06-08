@@ -1679,10 +1679,11 @@ export function buildTools({
       inputSchema: {
         type: 'object',
         properties: {
-          manifest: { type: 'object', description: 'Sequence manifest with a `scenes` array of `{ scene, ... }` entries.' },
+          manifest: { type: 'object', description: 'Sequence manifest with a `scenes` array of `{ scene, ... }` entries. Per-entry `camera_override`, `shot_grammar`, and `duration_s` are applied before rendering so the gate scores what the sequence ships.' },
           scenes: { type: 'array', items: { type: 'object' }, description: 'Scene definitions (array, or a scene_id→def map) the manifest references.' },
           tier: { type: 'string', enum: ['T1', 'T2', 'T3', 'T4'], description: 'Master tier to gate against (default T3).' },
           brand: { type: 'object', description: 'Optional brand package.' },
+          timelines: { type: 'object', description: 'Optional compiled motion timelines keyed by scene_id (from `compile_motion`). Threaded into the render so the hero still reflects compiled motion, matching the sequence renderer.' },
         },
         required: ['manifest', 'scenes'],
       },

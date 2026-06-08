@@ -94,20 +94,24 @@ export async function openHeroCaptureSession({ scale = 0.5 } = {}) {
   }
 
   let counter = 0;
-  const capture = async (scene, at = 0.6) => {
+  const capture = async (scene, at = 0.6, opts = {}) => {
     // Hard guard: never render a scene with no layers — there's nothing to
     // compose, and a blank frame must not be scored as if it were the scene.
     if (!scene?.layers?.length) return null;
     const frame = heroFrameIndex(scene, at);
     const output = join(dir, `hero-${counter++}.png`);
+    // Match the sequence renderer's per-scene inputs (SceneComposition accepts
+    // { scene, timeline }) so the still reflects compiled motion + entry overrides
+    // the caller already merged into `scene` — not a bare, un-mastered scene.
+    const inputProps = { scene, ...(opts.timeline ? { timeline: opts.timeline } : {}) };
     try {
       const composition = await renderer.selectComposition({
-        serveUrl, id: 'Scene', inputProps: { scene }, puppeteerInstance: browser,
+        serveUrl, id: 'Scene', inputProps, puppeteerInstance: browser,
       });
       await renderer.renderStill({
         serveUrl,
         composition,
-        inputProps: { scene },
+        inputProps,
         frame,
         output,
         scale,
@@ -135,17 +139,19 @@ export async function openHeroCaptureSession({ scale = 0.5 } = {}) {
  * openHeroCaptureSession() so the bundle/browser are reused.
  *
  * @param {object} params
- * @param {object} params.scene - Scene definition (must have layers).
+ * @param {object} params.scene - Scene definition (must have layers; merge any
+ *   manifest-entry camera_override/shot_grammar/duration_s in before calling).
  * @param {number} [params.at=0.6] - Normalized hero position.
+ * @param {object} [params.timeline] - Compiled motion timeline for the scene.
  * @param {number} [params.scale=0.5] - Render scale.
  * @returns {Promise<{ media_type, data, frame, scale } | null>} null/no-evidence
  *   when the toolchain is unavailable or the scene has no layers.
  */
-export async function captureHeroStill({ scene, at = 0.6, scale = 0.5 } = {}) {
+export async function captureHeroStill({ scene, at = 0.6, timeline, scale = 0.5 } = {}) {
   const session = await openHeroCaptureSession({ scale });
   if (!session || session.unavailable) return null;
   try {
-    const result = await session.capture(scene, at);
+    const result = await session.capture(scene, at, { timeline });
     return result && !result.error ? result : null;
   } finally {
     await session.close();

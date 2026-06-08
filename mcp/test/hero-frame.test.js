@@ -14,6 +14,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   resolveHeroFrame,
@@ -243,5 +244,31 @@ describe('auditHeroFrames — fail-closed gate', () => {
     assert.equal(t3.verdict, 'BLOCK');
     const t1 = await auditHeroFrames({ manifest, scenes, tier: 'T1', capture: noCapture });
     assert.equal(t1.verdict, 'PASS');
+  });
+
+  it('applies manifest-entry overrides + threads the timeline so it scores what ships', async () => {
+    const scene = { ...makeScene('sc_a'), duration_s: 4, camera: { move: 'static', intensity: 0 } };
+    const manifest = { scenes: [{ scene: 'sc_a', duration_s: 8, camera_override: { move: 'push_in', intensity: 0.3 }, shot_grammar: { shot: 'cu' } }] };
+    let seen;
+    const capture = async (s, at, opts) => { seen = { scene: s, at, opts }; return FAKE_STILL; };
+    await auditHeroFrames({ manifest, scenes: [scene], tier: 'T3', capture, client: visionClient(STRONG_DIMS), timelines: { sc_a: { tracks: ['x'] } } });
+    assert.equal(seen.scene.duration_s, 8, 'entry duration_s overrides the scene def');
+    assert.equal(seen.scene.camera.move, 'push_in', 'camera_override merges into the rendered scene');
+    assert.equal(seen.scene.camera.intensity, 0.3);
+    assert.deepEqual(seen.scene.shot_grammar, { shot: 'cu' }, 'shot_grammar carried from the entry');
+    assert.deepEqual(seen.opts.timeline, { tracks: ['x'] }, 'compiled timeline threaded to the renderer');
+  });
+});
+
+// ── Edge-safety: score_hero_frame must not drag the renderer into the bundle ──
+
+describe('hero-frame module — edge safety', () => {
+  it('imports the Node-only capture module lazily, not at top level', () => {
+    const src = readFileSync(new URL('../lib/hero-frame.js', import.meta.url), 'utf-8');
+    assert.ok(
+      !/^\s*import\s+[^;]*from\s+['"]\.\/hero-frame-capture\.js['"]/m.test(src),
+      'a static import of hero-frame-capture.js would pull node:fs/os/dns into the edge bundle where score_hero_frame is exposed',
+    );
+    assert.match(src, /await import\(['"]\.\/hero-frame-capture\.js['"]\)/, 'capture must be loaded via dynamic import inside auditHeroFrames');
   });
 });

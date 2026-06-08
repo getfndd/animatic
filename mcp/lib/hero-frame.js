@@ -33,7 +33,10 @@ import {
   scoreSceneHierarchy,
   scoreSceneBrandMatch,
 } from './frame-critique.js';
-import { openHeroCaptureSession } from './hero-frame-capture.js';
+// NOTE: hero-frame-capture.js pulls Node-only modules (fs/os/dns) and is imported
+// LAZILY inside auditHeroFrames only. score_hero_frame is edge-ready and must not
+// drag the renderer into the hosted bundle, so this module keeps no top-level
+// dependency on capture.
 
 // ── Client (mirrors scene-comprehension.js) ─────────────────────────────────
 
@@ -386,23 +389,28 @@ const VERDICT_RANK = { PASS: 0, WARN: 1, BLOCK: 2 };
  * @param {object[]|object} params.scenes - Scene defs (array or scene_id→def map).
  * @param {string} [params.tier='T3']
  * @param {object} [params.brand]
- * @param {function} [params.capture] - async (scene, at) => still|null. Overrides
- *   the real renderer (tests / pre-rendered frames / metadata-only runs).
+ * @param {object} [params.timelines] - Compiled motion timelines keyed by scene_id
+ *   (from compile_motion). Threaded into the render so the still reflects what ships.
+ * @param {function} [params.capture] - async (scene, at, { timeline }) => still|null.
+ *   Overrides the real renderer (tests / pre-rendered frames / metadata-only runs).
  * @param {object} [params.client] - Vision client override.
  * @returns {Promise<{ verdict, tier, threshold, scenes: [...], findings: [...], evidence_summary }>}
  */
-export async function auditHeroFrames({ manifest, scenes, tier = 'T3', brand, capture, client: explicitClient } = {}) {
+export async function auditHeroFrames({ manifest, scenes, tier = 'T3', brand, timelines = {}, capture, client: explicitClient } = {}) {
   const t = normalizeTier(tier);
   const entries = manifest?.scenes || [];
   const sceneMap = toSceneMap(scenes);
 
   // Resolve capture: explicit override > real session > none (metadata-only).
+  // The capture module is imported lazily — it pulls Node-only modules and must
+  // never load on the edge surface (where score_hero_frame is exposed).
   let session = null;
   let captureFn = capture || null;
   if (!captureFn) {
+    const { openHeroCaptureSession } = await import('./hero-frame-capture.js');
     session = await openHeroCaptureSession({});
     if (session && !session.unavailable) {
-      captureFn = (scene, at) => session.capture(scene, at);
+      captureFn = (scene, at, opts) => session.capture(scene, at, opts);
     }
   }
 
@@ -410,9 +418,9 @@ export async function auditHeroFrames({ manifest, scenes, tier = 'T3', brand, ca
   try {
     for (const entry of entries) {
       const sceneId = entry.scene || entry.scene_id;
-      const scene = sceneMap.get(sceneId);
+      const baseScene = sceneMap.get(sceneId);
 
-      if (!scene || !scene.layers?.length) {
+      if (!baseScene || !baseScene.layers?.length) {
         // Missing/empty scene def — never rendered, never scored as a placeholder.
         results.push({
           scene_id: sceneId,
@@ -425,10 +433,13 @@ export async function auditHeroFrames({ manifest, scenes, tier = 'T3', brand, ca
         continue;
       }
 
+      // Apply the manifest entry's overrides so we score what the SEQUENCE
+      // renderer ships, not the raw scene def (mirrors SequenceComposition.jsx).
+      const scene = applyEntryOverrides(baseScene, entry);
       const resolved = resolveHeroFrame(scene);
       let frame = null;
       if (captureFn) {
-        const still = await captureFn(scene, resolved.at);
+        const still = await captureFn(scene, resolved.at, { timeline: timelines[sceneId] });
         if (still && !still.error && still.data) frame = still;
       }
 
@@ -472,6 +483,22 @@ export async function auditHeroFrames({ manifest, scenes, tier = 'T3', brand, ca
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Merge a manifest entry's per-scene overrides into the scene def, mirroring
+ * SequenceComposition.jsx (camera_override, shot_grammar) plus the entry's
+ * `duration_s` (authoritative for the sequence — it sets the hero frame index).
+ * Without this the gate would score the bare scene, not what the sequence ships.
+ */
+function applyEntryOverrides(sceneDef, entry) {
+  if (!entry) return sceneDef;
+  return {
+    ...sceneDef,
+    ...(entry.duration_s != null ? { duration_s: entry.duration_s } : {}),
+    ...(entry.camera_override ? { camera: { ...sceneDef.camera, ...entry.camera_override } } : {}),
+    ...(entry.shot_grammar ? { shot_grammar: entry.shot_grammar } : {}),
+  };
+}
 
 function toSceneMap(scenes) {
   const map = new Map();

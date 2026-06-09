@@ -88,10 +88,17 @@ close the loop to a one-call master:
   persisted for inspection but **never encoded** (fail-closed). `dry_run_encode: true` assembles the
   props + resolves the plan without spawning Remotion (CI/preview).
 
-  **Delivery-profile transcodes are resolved but DEFERRED.** Each `delivery_profile` is mapped to the
-  matching-aspect master with its target codec/resolution/fps/crf recorded, but the per-profile encode
-  is not run here — `buildFfmpegArgs` has no runner in this pipeline. This avoids writing four identical
-  MP4s under four names.
+  **Delivery-profile transcodes (ANI-190).** Each `delivery_profile` is mapped to its matching-aspect
+  master and transcoded down to the profile's target via `buildTranscodeArgs` (mp4→mp4: scale + fps +
+  codec/CRF, audio re-encoded to the profile's bitrate/rate/channels) — "render once, deliver many" off
+  the one per-aspect master, not four identical re-renders. The container is **codec-aware**: ProRes (the
+  T4 `master` profile) writes `.mov` (ffmpeg rejects `prores_ks` in mp4); h264 writes `.mp4`. **Fail-soft
+  per profile** (one bad transcode is recorded, never aborts the rest). `max_size_mb` is **enforced as a
+  gate** — a single-pass CRF doesn't target a byte budget, so the output is stat'd and an over-cap result
+  is flagged `oversize` + deferred (never claimed as a clean `encoded` deliverable); 2-pass auto-correction
+  is a follow-up. Dry-run resolves the per-profile command without spawning ffmpeg. Still deferred: **GIF**
+  (`email-gif` — needs a palettegen pass) and **caption burn-in** (`captions.mode==='burn_in'` for
+  social-feed/story-reel — needs the subtitles filter) — each recorded with a reason.
 
 ## Audio realization (ANI-188)
 

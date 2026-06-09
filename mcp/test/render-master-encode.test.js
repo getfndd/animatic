@@ -55,6 +55,13 @@ async function emittedT3() {
   return r.master;
 }
 
+/** A passing T4 master — includes the ProRes `master` delivery profile. */
+async function emittedT4() {
+  const r = await renderMaster({ manifest: manifest(), scenes: [scene('sc_a')], tier: 'T4', capture: markerCapture, client: strongClient });
+  assert.equal(r.emitted, true, 'fixture precondition: T4 master emits');
+  return r.master;
+}
+
 function tmpProjectRoot() {
   return mkdtempSync(join(tmpdir(), 'ani185-'));
 }
@@ -193,6 +200,110 @@ describe('encodeMaster (ANI-185)', () => {
       const enc = await encodeMaster({ master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3', dryRun: false, render: fakeRender });
       assert.equal(calls.length, 3, 'rendered each aspect master');
       assert.ok(enc.masters.every(m => m.encoded === true));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-190] transcodes each delivery profile off its matching-aspect master, fail-soft', async () => {
+    const master = await emittedT3();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      const transcodeCalls = [];
+      // Fail the FIRST transcode to prove fail-soft (one bad profile ≠ dead encode).
+      let n = 0;
+      const transcodeExec = async (args) => { transcodeCalls.push(args); if (++n === 1) throw new Error('boom'); };
+
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3',
+        dryRun: false, render: async () => {}, transcodeExec,
+      });
+
+      const byP = Object.fromEntries(enc.transcodes.map(t => [t.profile, t]));
+      // T3: web-hero + social-landscape are sidecar-caption h264 → transcoded;
+      // social-feed + story-reel are burn_in → deferred (need the subtitles pass).
+      assert.equal(byP['social-feed'].deferred, true);
+      assert.match(byP['social-feed'].reason, /burn-in/);
+      assert.equal(byP['story-reel'].deferred, true);
+      // Two h264 transcodes attempted; the first failed soft (recorded, not thrown).
+      assert.equal(transcodeCalls.length, 2, 'only the two non-burn-in profiles transcode');
+      const failed = enc.transcodes.filter(t => t.error);
+      const ok = enc.transcodes.filter(t => t.encoded === true);
+      assert.equal(failed.length, 1, 'the failing profile is recorded, not fatal');
+      assert.equal(ok.length, 1, 'the other profile still transcoded');
+      assert.match(failed[0].error, /boom/);
+      assert.ok(transcodeCalls[0].includes('libx264'), 'real transcode args (scale + h264)');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-190] T4 ProRes master writes a .mov container (not .mp4)', async () => {
+    const master = await emittedT4();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T4' });
+      const calls = [];
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T4',
+        dryRun: false, render: async () => {}, transcodeExec: async (args) => calls.push(args),
+      });
+      const byP = Object.fromEntries(enc.transcodes.map(t => [t.profile, t]));
+      // ProRes must land in .mov — ffmpeg rejects prores_ks in an mp4 container.
+      assert.match(byP['master'].output, /\.mov$/, 'prores master is .mov, not .mp4');
+      assert.equal(byP['master'].deferred, false);
+      assert.equal(byP['master'].encoded, true);
+      const proresCall = calls.find(c => c.join(' ').includes('prores_ks'));
+      assert.ok(proresCall, 'a prores transcode ran');
+      assert.match(proresCall[proresCall.length - 1], /\.mov$/, 'prores output path is the .mov file');
+      // h264 deliverables still land in .mp4
+      assert.match(byP['web-hero'].output, /\.mp4$/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-190] enforces max_size_mb: an over-cap transcode is flagged oversize, not a clean encode', async () => {
+    const master = await emittedT3();
+    // Swap in a tiny-cap profile so a 2 KB output blows the budget deterministically.
+    master.delivery_profiles = [{ slug: 'tiny', resolution: { w: 1920, h: 1080 }, fps: 30, codec: 'h264', crf: 20, preset: 'medium', pixel_format: 'yuv420p', max_size_mb: 0.001, audio: null, captions: { mode: 'sidecar' } }];
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      // The injected runner writes a 0.5 MB file at the output path (last arg) —
+      // comfortably over the 0.001 MB cap.
+      const transcodeExec = async (args) => { writeFileSync(args[args.length - 1], Buffer.alloc(512 * 1024)); };
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3',
+        dryRun: false, render: async () => {}, transcodeExec,
+      });
+      const tiny = enc.transcodes.find(t => t.profile === 'tiny');
+      assert.equal(tiny.oversize, true, 'over-cap output is flagged oversize');
+      assert.equal(tiny.deferred, true, 'an over-cap file is NOT a clean deliverable');
+      assert.ok(!tiny.encoded, 'not marked a clean encode');
+      assert.equal(tiny.max_size_mb, 0.001);
+      assert.equal(tiny.size_mb, 0.5, 'reports the measured size');
+      assert.match(tiny.reason, /max_size_mb|2-pass/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-190] dry-run plans each transcode (command) without spawning ffmpeg', async () => {
+    const master = await emittedT3();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      let spawned = false;
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3',
+        dryRun: true, transcodeExec: async () => { spawned = true; },
+      });
+      assert.equal(spawned, false, 'dry-run never spawns a transcode');
+      const planned = enc.transcodes.filter(t => Array.isArray(t.command));
+      assert.ok(planned.length >= 1, 'non-burn-in profiles carry the planned transcode command');
+      assert.ok(planned.every(t => t.deferred === true), 'dry-run leaves everything deferred');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

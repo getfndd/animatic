@@ -204,6 +204,45 @@ export function buildTranscodeArgs(profile, inputPath, outputPath, opts = {}) {
   return args;
 }
 
+/** Shared fps + scale filter for the GIF passes (no dithering — palettegen handles color). */
+function gifScaleChain(profile) {
+  return `fps=${profile.fps},scale=${profile.resolution.w}:${profile.resolution.h}:flags=lanczos`;
+}
+
+/**
+ * Build the ffmpeg args for GIF pass 1 — generate an optimal palette from the
+ * master (ANI-194). The canonical high-quality animated-GIF path is two passes:
+ * palettegen → paletteuse. Self-contained (no gifski dependency).
+ *
+ * @param {object} profile - The `email-gif` delivery profile.
+ * @param {string} inputPath - Source master MP4.
+ * @param {string} palettePath - Where to write the palette PNG.
+ * @returns {string[]} ffmpeg arguments
+ */
+export function buildGifPaletteArgs(profile, inputPath, palettePath) {
+  if (!profile || !inputPath || !palettePath) throw new Error('buildGifPaletteArgs requires (profile, inputPath, palettePath)');
+  return ['-y', '-i', inputPath, '-vf', `${gifScaleChain(profile)},palettegen`, palettePath];
+}
+
+/**
+ * Build the ffmpeg args for GIF pass 2 — apply the palette to produce the
+ * animated GIF (ANI-194). Animated GIF carries no audio (`-an`).
+ *
+ * @param {object} profile - The `email-gif` delivery profile.
+ * @param {string} inputPath - Source master MP4.
+ * @param {string} palettePath - Palette PNG from pass 1.
+ * @param {string} outputPath - Destination GIF.
+ * @returns {string[]} ffmpeg arguments
+ */
+export function buildGifEncodeArgs(profile, inputPath, palettePath, outputPath) {
+  if (!profile || !inputPath || !palettePath || !outputPath) throw new Error('buildGifEncodeArgs requires (profile, inputPath, palettePath, outputPath)');
+  return [
+    '-y', '-i', inputPath, '-i', palettePath,
+    '-filter_complex', `${gifScaleChain(profile)}[x];[x][1:v]paletteuse`,
+    '-an', outputPath,
+  ];
+}
+
 export const DELIVERY_PROFILE_SLUGS = [
   'web-hero', 'web-embed', 'social-feed', 'social-landscape',
   'story-reel', 'email-gif', 'presentation', 'master',

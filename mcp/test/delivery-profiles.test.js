@@ -11,6 +11,8 @@ import {
   getProfileForChannel,
   buildFfmpegArgs,
   buildTranscodeArgs,
+  buildGifPaletteArgs,
+  buildGifEncodeArgs,
   escapeSubtitlesPath,
   DELIVERY_PROFILE_SLUGS,
 } from '../lib/delivery-profiles.js';
@@ -134,6 +136,34 @@ describe('buildTranscodeArgs (mp4→mp4, ANI-190)', () => {
   it('omits the subtitles filter when no burn-in is requested', () => {
     const vf = buildTranscodeArgs(getDeliveryProfile('social-feed'), 'm.mp4', 'sf.mp4')[buildTranscodeArgs(getDeliveryProfile('social-feed'), 'm.mp4', 'sf.mp4').indexOf('-vf') + 1];
     assert.doesNotMatch(vf, /subtitles=/);
+  });
+});
+
+describe('GIF palettegen builders (ANI-194)', () => {
+  const gif = getDeliveryProfile('email-gif');
+
+  it('pass 1 generates a palette: fps + scale + palettegen', () => {
+    const args = buildGifPaletteArgs(gif, 'master.mp4', 'palette.png');
+    assert.deepEqual(args.slice(0, 3), ['-y', '-i', 'master.mp4']);
+    const vf = args[args.indexOf('-vf') + 1];
+    assert.match(vf, /fps=15/);
+    assert.match(vf, /scale=600:338:flags=lanczos/);
+    assert.match(vf, /palettegen$/);
+    assert.equal(args[args.length - 1], 'palette.png');
+  });
+
+  it('pass 2 applies the palette via paletteuse, no audio', () => {
+    const args = buildGifEncodeArgs(gif, 'master.mp4', 'palette.png', 'out.gif');
+    assert.ok(args.includes('master.mp4') && args.includes('palette.png'), 'two inputs: video + palette');
+    const fc = args[args.indexOf('-filter_complex') + 1];
+    assert.match(fc, /fps=15,scale=600:338:flags=lanczos\[x\];\[x\]\[1:v\]paletteuse/);
+    assert.ok(args.includes('-an'), 'animated GIF carries no audio');
+    assert.equal(args[args.length - 1], 'out.gif');
+  });
+
+  it('both builders validate inputs', () => {
+    assert.throws(() => buildGifPaletteArgs(gif, 'm.mp4'), /requires/);
+    assert.throws(() => buildGifEncodeArgs(gif, 'm.mp4', 'p.png'), /requires/);
   });
 });
 

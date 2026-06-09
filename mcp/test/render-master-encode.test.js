@@ -16,6 +16,7 @@ import { join } from 'node:path';
 import { renderMaster } from '../lib/render-master.js';
 import { persistMaster, encodeMaster } from '../lib/master-persist.js';
 import { getMasterProfile } from '../lib/master-profiles.js';
+import { getDeliveryProfile } from '../lib/delivery-profiles.js';
 import { resolveRenderTargets } from '../lib/render-routing.js';
 
 // ── fixtures (mirror render-master.test.js) ──────────────────────────────────────
@@ -309,6 +310,7 @@ describe('encodeMaster (ANI-185)', () => {
       const enc = await encodeMaster({
         master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T4',
         dryRun: false, render: async () => {}, transcodeExec: async (args) => calls.push(args),
+        capabilities: { subtitles: true }, // injected: fake transcodeExec stands in for a libass ffmpeg
       });
       const byP = Object.fromEntries(enc.transcodes.map(t => [t.profile, t]));
       // burn_in profiles now transcode WITH captions burned in (no longer deferred).
@@ -345,6 +347,84 @@ describe('encodeMaster (ANI-185)', () => {
       assert.ok(Array.isArray(sf.command), 'social-feed has a planned command, not a no-sidecar deferral');
       assert.ok(!sf.reason, 'not deferred-with-reason');
       assert.match(sf.command[sf.command.indexOf('-vf') + 1], /subtitles=/, 'planned command burns the sidecar');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-194] GIF email delivery runs the 2-pass palettegen (palette → paletteuse)', async () => {
+    const master = await emittedT3();
+    // No tier emits email-gif yet, so exercise the capability via a constructed set.
+    master.delivery_profiles = [getDeliveryProfile('email-gif')];
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      const calls = [];
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3',
+        dryRun: false, render: async () => {}, transcodeExec: async (args) => calls.push(args),
+      });
+      const gif = enc.transcodes.find(t => t.profile === 'email-gif');
+      assert.match(gif.output, /\.gif$/);
+      assert.equal(gif.deferred, false);
+      assert.equal(gif.encoded, true);
+      assert.equal(calls.length, 2, 'two passes: palettegen then paletteuse');
+      assert.match(calls[0].join(' '), /palettegen/);
+      assert.match(calls[1].join(' '), /paletteuse/);
+      assert.ok(calls[1].includes('-an'));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-194] dry-run plans BOTH GIF passes (commands) without spawning', async () => {
+    const master = await emittedT3();
+    master.delivery_profiles = [getDeliveryProfile('email-gif')];
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      let spawned = false;
+      const enc = await encodeMaster({ master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3', dryRun: true, transcodeExec: async () => { spawned = true; } });
+      const gif = enc.transcodes.find(t => t.profile === 'email-gif');
+      assert.equal(spawned, false);
+      assert.equal(gif.commands.length, 2, 'both passes planned');
+      assert.match(gif.commands[0].join(' '), /palettegen/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-195] burn-in defers cleanly when ffmpeg lacks libass (subtitles filter)', async () => {
+    const master = await emittedT4Captioned();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T4' });
+      const calls = [];
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T4',
+        dryRun: false, render: async () => {}, transcodeExec: async (args) => calls.push(args),
+        capabilities: { subtitles: false }, // injected: no libass
+      });
+      const sf = enc.transcodes.find(t => t.profile === 'social-feed');
+      assert.equal(sf.deferred, true);
+      assert.match(sf.reason, /libass/);
+      assert.ok(!sf.error, 'a clean defer, not a fail-soft mid-transcode error');
+      // No doomed burn-in pass was attempted (non-burn-in profiles still transcode).
+      assert.ok(!calls.some(c => c.join(' ').includes('subtitles=')), 'no burn-in transcode attempted');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-195] dry-run still plans the burn-in command even when libass is absent', async () => {
+    const master = await emittedT4Captioned();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T4' });
+      const enc = await encodeMaster({ master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T4', dryRun: true, capabilities: { subtitles: false } });
+      const sf = enc.transcodes.find(t => t.profile === 'social-feed');
+      assert.ok(Array.isArray(sf.command), 'planning needs no libass — the command is planned regardless');
+      assert.match(sf.command[sf.command.indexOf('-vf') + 1], /subtitles=/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

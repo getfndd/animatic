@@ -236,7 +236,11 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
     // (no authored scene.captions) → keep deferred rather than ship blank burn-in.
     let burnIn = null;
     if (profile.captions?.mode === 'burn_in') {
-      const sidecar = source?.audio?.captions?.written ? source.audio.captions.path : null;
+      // Key on the sidecar's EXISTENCE (`path`, set whenever the audio pass found
+      // caption cues), NOT `written` — in a dry-run the pass reports written:false
+      // but the sidecar still gets written at a real encode, so keying on `written`
+      // would wrongly defer the burn-in and skip planning its command.
+      const sidecar = source?.audio?.captions?.path || null;
       if (!sidecar) { transcodes.push({ ...rec, deferred: true, reason: 'burn_in: no captions sidecar (no authored scene.captions)' }); continue; }
       burnIn = join(projectRoot, sidecar);
     }

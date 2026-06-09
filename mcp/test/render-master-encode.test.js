@@ -327,6 +327,29 @@ describe('encodeMaster (ANI-185)', () => {
     }
   });
 
+  it('[ANI-193] dry-run PLANS the burn-in command for a captioned master (not deferred-as-no-sidecar)', async () => {
+    // Regression: the audio pass reports captions written:false in dry-run, but
+    // the sidecar still exists at a real encode — so dry-run must plan the burn-in
+    // command, keying on the sidecar's path, not `written`.
+    const master = await emittedT4Captioned();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T4' });
+      let spawned = false;
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T4',
+        dryRun: true, transcodeExec: async () => { spawned = true; },
+      });
+      assert.equal(spawned, false, 'dry-run never spawns');
+      const sf = enc.transcodes.find(t => t.profile === 'social-feed');
+      assert.ok(Array.isArray(sf.command), 'social-feed has a planned command, not a no-sidecar deferral');
+      assert.ok(!sf.reason, 'not deferred-with-reason');
+      assert.match(sf.command[sf.command.indexOf('-vf') + 1], /subtitles=/, 'planned command burns the sidecar');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it('[ANI-193] burn_in stays deferred when there is no captions sidecar', async () => {
     const master = await emittedT4(); // scene has no authored captions → no sidecar
     const root = tmpProjectRoot();

@@ -47,6 +47,27 @@ which loads scene defs from disk and would drop the recomposed sceneDefs. A BLOC
 and the plan is returned for inspection only; the BLOCK reason distinguishes *missing evidence*
 ("needs rendered frames + a vision judge") from *below threshold* (a weak axis).
 
+## Auto-revise preflight (opt-in, ANI-186)
+
+By default a marginal master only *reports* a WARN/below-threshold gate. With **`auto_revise: true`** (off by
+default — cost-gated), a marginal master that has **rendered evidence** runs a bounded
+`auto_revise_loop({ frame_evidence: true, frame_tier, allowed_ops: RETIME_OPS })` on its source, then
+**re-gates**:
+
+- **Honesty contract.** The pass is constrained to `RETIME_OPS` (`trim`/`extend_hold`/`compress`) — re-time +
+  re-finish only. Structural ops the loop would otherwise apply (`boost_hierarchy`, `adjust_density`,
+  `reorder`, …) are filtered out, and the re-authored-scene-set guard (`assertNoReauthor`) backstops it. A
+  cutdown stays `create_social_cutdown`.
+- **Adopt on improvement only.** The revised source replaces the original only if the re-gate verdict
+  *improves*; an equal verdict keeps the original (no churn). The report carries
+  `before_verdict → after_verdict`, `adopted`, `ops_filtered`, `frame_passes`, and `estimated_render_seconds`
+  (cost is logged).
+- **Skipped** on a PASS (nothing to fix) or a *missing-evidence* BLOCK (no frames to revise on). Default
+  (`auto_revise` off) is unchanged.
+
+Note: a retime flips the gate via real **settling** (a longer hold → a more-settled hero frame at the same
+fraction); metadata-only legibility axes are structural and don't move on a retime.
+
 ## Durable persistence + one-button encode (opt-in, ANI-185)
 
 `render_master` emits in-memory artifacts; two opt-in flags (both requiring a `project` to write under)

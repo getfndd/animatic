@@ -3523,7 +3523,7 @@ export async function handleAuditHeroFrames(args) {
 }
 
 export async function handleRenderMaster(args) {
-  const { project, manifest, scenes, tier, beats, brand, persist, encode, dry_run_encode } = args;
+  const { project, manifest, scenes, tier, beats, brand, auto_revise, auto_revise_max_rounds, persist, encode, dry_run_encode } = args;
   if (!tier) {
     return { content: [{ type: 'text', text: 'Invalid input: `tier` is required (prototype/directed-html/video/hero-film or T1–T4).' }], isError: true };
   }
@@ -3534,7 +3534,7 @@ export async function handleRenderMaster(args) {
     return { content: [{ type: 'text', text: 'Invalid input: `persist`/`encode` require a `project` to write artifacts under.' }], isError: true };
   }
   try {
-    const result = await renderMaster({ project, manifest, scenes, tier, beats, brand, persist, encode, dry_run_encode });
+    const result = await renderMaster({ project, manifest, scenes, tier, beats, brand, auto_revise: auto_revise === true, ...(auto_revise_max_rounds != null ? { auto_revise_max_rounds } : {}), persist, encode, dry_run_encode });
     const m = result.master;
     const aspects = [m.primary.ratio, ...m.aspect_variants.map(v => v.ratio)].join(', ');
     const delivery = m.delivery_profiles.map(d => d.slug).join(', ') || '(none — live surface)';
@@ -3543,6 +3543,8 @@ export async function handleRenderMaster(args) {
     head += `Retime: ${m.retime.applied ? `applied (${(m.retime.adjustments || []).length} adjustments, ops ${m.retime.ops_allowed.join('/') || 'none'})` : `none (allowed: ${m.retime.ops_allowed.join('/') || 'none'})`}\n\n`;
     head += result.gate_by_artifact.map(g => `- gate ${g.ratio}: **${g.verdict}** (${g.evidence_summary.rendered}/${g.evidence_summary.scenes} rendered)`).join('\n') + '\n';
     if (result.block_reason) head += `\n⚠ ${result.block_reason}\n`;
+    if (result.auto_revise?.ran) head += `\nAuto-revise (RETIME_OPS): ${result.auto_revise.before_verdict} → ${result.auto_revise.after_verdict}${result.auto_revise.adopted ? ' · adopted' : ' · kept original'} (~${result.auto_revise.estimated_render_seconds}s stills, ${result.auto_revise.ops_filtered} structural op(s) filtered)\n`;
+    else if (result.auto_revise) head += `\nAuto-revise skipped: ${result.auto_revise.reason}\n`;
     if (result.persisted) head += `\nPersisted → \`${result.persisted.index}\` (${result.persisted.artifacts.length} artifact${result.persisted.artifacts.length === 1 ? '' : 's'}).\n`;
     if (result.encode) {
       if (result.encode.skipped) {

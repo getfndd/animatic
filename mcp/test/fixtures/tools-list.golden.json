@@ -2384,6 +2384,14 @@
           "type": "object",
           "description": "Optional brand package — informs the hero-frame gate."
         },
+        "auto_revise": {
+          "type": "boolean",
+          "description": "Opt-in (off by default — cost-gated). On a marginal master WITH rendered evidence, run a bounded frame-evidence revise pass constrained to RETIME_OPS (re-time + re-finish only, never re-author), then re-gate; the revision is adopted only if the verdict improves. Skipped on a PASS or a missing-evidence BLOCK."
+        },
+        "auto_revise_max_rounds": {
+          "type": "number",
+          "description": "Round cap for the `auto_revise` pass (default 2)."
+        },
         "persist": {
           "type": "boolean",
           "description": "Persist each emitted artifact ({manifest, sceneDefs, timelines}) under masters/<tier>/ and register it in project.json. Requires `project`."

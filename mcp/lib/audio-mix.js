@@ -229,4 +229,76 @@ export function buildDuckedMuxArgs(opts) {
   ];
 }
 
+/**
+ * Build ffmpeg args that mix N timed sonic cues onto a rendered video's audio
+ * (ANI-189). Each cue is delayed to its placement offset and summed into the
+ * existing audio bus (the already-ducked bed + voiceover) — or, when the master
+ * has no audio of its own, attached as a fresh track. The video stream is copied
+ * untouched; the mix is re-encoded AAC.
+ *
+ * `duration`/padding contract (the late-cue trap): when `hasBaseAudio` is true,
+ * the base audio stream can be SHORTER than the picture — e.g. a narration-only
+ * master whose audio ends at the last voiceover clip. A naive
+ * `[0:a][cues]amix=duration=first` would then cap the mix at that short base and
+ * DROP a logo sting placed near the end. So the base is first padded to the full
+ * video duration (`apad=whole_dur`) and the mix uses `duration=longest`, so a
+ * cue anywhere within the picture survives. Never `-shortest` — a short cue
+ * track must not truncate the video.
+ *
+ * @param {object} opts
+ * @param {string} opts.videoPath - Rendered MP4 (its audio is the base bus).
+ * @param {Array<{ path: string, offset_ms: number }>} opts.cues - Timed cues.
+ * @param {string} opts.outputPath - Destination (must differ from videoPath).
+ * @param {boolean} [opts.hasBaseAudio=true] - Whether the video carries an audio stream to mix onto.
+ * @param {number} [opts.videoDurationMs] - Full picture duration; pads the base so late cues land (required when hasBaseAudio).
+ * @returns {string[]}
+ */
+export function buildSonicCueMixArgs(opts) {
+  const { videoPath, cues, outputPath, hasBaseAudio = true, videoDurationMs } = opts || {};
+  if (!videoPath || !Array.isArray(cues) || cues.length === 0 || !outputPath) {
+    throw new Error('buildSonicCueMixArgs requires { videoPath, cues: [...], outputPath }');
+  }
+  if (hasBaseAudio && !(videoDurationMs > 0)) {
+    throw new Error('buildSonicCueMixArgs requires videoDurationMs when hasBaseAudio (to pad the base so late cues are not dropped)');
+  }
+
+  const inputs = ['-i', videoPath];
+  for (const cue of cues) inputs.push('-i', cue.path);
+
+  // Cue inputs are 1..N (input 0 is the video). Delay each to its offset.
+  const delayChains = cues.map((cue, i) =>
+    `[${i + 1}:a]adelay=${Math.max(0, Math.round(cue.offset_ms))}:all=1[c${i}]`,
+  );
+  const cueLabels = cues.map((_, i) => `[c${i}]`).join('');
+
+  let filterGraph;
+  if (hasBaseAudio) {
+    // Pad the base to the full picture duration so a late cue can't be truncated.
+    const padSec = Math.round((videoDurationMs / 1000) * 1000) / 1000;
+    filterGraph = [
+      ...delayChains,
+      `[0:a]apad=whole_dur=${padSec}[base]`,
+      `[base]${cueLabels}amix=inputs=${cues.length + 1}:duration=longest:normalize=0[out]`,
+    ].join(';');
+  } else {
+    // No base audio — the cues become the track. duration=longest keeps every
+    // cue; the video is mapped through and NOT shortened to the cue track.
+    filterGraph = [
+      ...delayChains,
+      `${cueLabels}amix=inputs=${cues.length}:duration=longest:normalize=0[out]`,
+    ].join(';');
+  }
+
+  return [
+    '-y',
+    ...inputs,
+    '-filter_complex', filterGraph,
+    '-map', '0:v',
+    '-map', '[out]',
+    '-c:v', 'copy',
+    '-c:a', 'aac',
+    outputPath,
+  ];
+}
+
 export const DEFAULT_DUCKING_PARAMS = Object.freeze({ ...DEFAULT_DUCKING });

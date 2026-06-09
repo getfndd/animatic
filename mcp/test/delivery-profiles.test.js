@@ -11,6 +11,7 @@ import {
   getProfileForChannel,
   buildFfmpegArgs,
   buildTranscodeArgs,
+  escapeSubtitlesPath,
   DELIVERY_PROFILE_SLUGS,
 } from '../lib/delivery-profiles.js';
 
@@ -120,6 +121,27 @@ describe('buildTranscodeArgs (mp4→mp4, ANI-190)', () => {
   it('refuses gif (needs palettegen) and bad input', () => {
     assert.throws(() => buildTranscodeArgs(getDeliveryProfile('email-gif'), 'm.mp4', 'out.gif'), /gif/);
     assert.throws(() => buildTranscodeArgs(null, 'm.mp4', 'out.mp4'), /requires/);
+  });
+
+  it('burns in subtitles AFTER scale when burnInSubtitles is given (ANI-193)', () => {
+    const args = buildTranscodeArgs(getDeliveryProfile('social-feed'), 'm.mp4', 'sf.mp4', { burnInSubtitles: '/p/master.vtt' });
+    const vf = args[args.indexOf('-vf') + 1];
+    assert.ok(vf.indexOf('scale=') < vf.indexOf('subtitles='), 'subtitles render after scale (at delivery resolution)');
+    // Unquoted argv form (no surrounding single quotes — those are a shell construct).
+    assert.match(vf, /subtitles=\/p\/master\.vtt/);
+  });
+
+  it('omits the subtitles filter when no burn-in is requested', () => {
+    const vf = buildTranscodeArgs(getDeliveryProfile('social-feed'), 'm.mp4', 'sf.mp4')[buildTranscodeArgs(getDeliveryProfile('social-feed'), 'm.mp4', 'sf.mp4').indexOf('-vf') + 1];
+    assert.doesNotMatch(vf, /subtitles=/);
+  });
+});
+
+describe('escapeSubtitlesPath (ANI-193)', () => {
+  it('escapes the filtergraph metacharacters : \\ and \'', () => {
+    assert.equal(escapeSubtitlesPath('/a/b.vtt'), '/a/b.vtt');
+    assert.equal(escapeSubtitlesPath('C:\\x\\y.vtt'), 'C\\:\\\\x\\\\y.vtt');
+    assert.equal(escapeSubtitlesPath("/o'brien/c.vtt"), "/o\\'brien/c.vtt");
   });
 });
 

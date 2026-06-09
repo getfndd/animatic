@@ -96,9 +96,12 @@ close the loop to a one-call master:
   per profile** (one bad transcode is recorded, never aborts the rest). `max_size_mb` is **enforced as a
   gate** — a single-pass CRF doesn't target a byte budget, so the output is stat'd and an over-cap result
   is flagged `oversize` + deferred (never claimed as a clean `encoded` deliverable); 2-pass auto-correction
-  is a follow-up. Dry-run resolves the per-profile command without spawning ffmpeg. Still deferred: **GIF**
-  (`email-gif` — needs a palettegen pass) and **caption burn-in** (`captions.mode==='burn_in'` for
-  social-feed/story-reel — needs the subtitles filter) — each recorded with a reason.
+  is a follow-up. **Caption burn-in (ANI-193)** — `burn_in` profiles (social-feed/story-reel) burn the
+  ANI-188 VTT sidecar into the picture via ffmpeg's `subtitles` filter (after scale, so captions sit at
+  delivery resolution); a profile with no sidecar (no authored `scene.captions`) stays deferred. Requires
+  an ffmpeg built with **libass** — absent it, the burn-in transcode fails soft with a libass hint.
+  Dry-run resolves the per-profile command without spawning ffmpeg. Still deferred: **GIF** (`email-gif` —
+  needs a palettegen pass), recorded with a reason.
 
 ## Audio realization (ANI-188)
 

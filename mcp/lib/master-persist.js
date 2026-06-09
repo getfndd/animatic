@@ -227,12 +227,21 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
       output: outputRel,
     };
 
-    // Deferred paths — need a builder/pass this runner doesn't cover yet.
+    // GIF still defers (needs a palettegen pass this runner doesn't cover).
     if (profile.codec === 'gif') { transcodes.push({ ...rec, deferred: true, reason: 'gif needs a palettegen pass — deferred' }); continue; }
-    if (profile.captions?.mode === 'burn_in') { transcodes.push({ ...rec, deferred: true, reason: 'caption burn-in needs the sidecar + subtitles filter — deferred' }); continue; }
     if (!source?.output) { transcodes.push({ ...rec, deferred: true, reason: 'no matching-aspect master to transcode from' }); continue; }
 
-    const args = buildTranscodeArgs(profile, join(projectRoot, source.output), join(projectRoot, outputRel));
+    // Caption burn-in (ANI-193): burn the matching-aspect master's captions
+    // sidecar (written by the audio pass, ANI-188) into the picture. No sidecar
+    // (no authored scene.captions) → keep deferred rather than ship blank burn-in.
+    let burnIn = null;
+    if (profile.captions?.mode === 'burn_in') {
+      const sidecar = source?.audio?.captions?.written ? source.audio.captions.path : null;
+      if (!sidecar) { transcodes.push({ ...rec, deferred: true, reason: 'burn_in: no captions sidecar (no authored scene.captions)' }); continue; }
+      burnIn = join(projectRoot, sidecar);
+    }
+
+    const args = buildTranscodeArgs(profile, join(projectRoot, source.output), join(projectRoot, outputRel), burnIn ? { burnInSubtitles: burnIn } : {});
     if (dryRun) { transcodes.push({ ...rec, deferred: true, command: args }); continue; }
     if (!source.encoded) { transcodes.push({ ...rec, deferred: true, reason: 'source master not encoded — nothing to transcode' }); continue; }
 
@@ -249,11 +258,15 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
       if (cap != null && sizeMb != null && sizeMb > cap) {
         transcodes.push({ ...rec, deferred: true, oversize: true, size_mb: Math.round(sizeMb * 10) / 10, max_size_mb: cap, reason: `over max_size_mb (${Math.round(sizeMb * 10) / 10}MB > ${cap}MB) — single-pass CRF; 2-pass size targeting is a follow-up` });
       } else {
-        transcodes.push({ ...rec, deferred: false, encoded: true, ...(sizeMb != null ? { size_mb: Math.round(sizeMb * 10) / 10 } : {}), ...(cap != null ? { max_size_mb: cap } : {}) });
+        transcodes.push({ ...rec, deferred: false, encoded: true, ...(burnIn ? { captions_burned: true } : {}), ...(sizeMb != null ? { size_mb: Math.round(sizeMb * 10) / 10 } : {}), ...(cap != null ? { max_size_mb: cap } : {}) });
       }
     } catch (err) {
       // Fail-soft: record the failure, keep going (one bad profile ≠ a dead encode).
-      transcodes.push({ ...rec, deferred: true, error: err.message });
+      // A burn-in failure on a filtergraph/subtitles error almost always means the
+      // ffmpeg build lacks libass — say so rather than surfacing a cryptic parse error.
+      const libassHint = burnIn && /filterchain|subtitles|No such filter/i.test(err.message)
+        ? ' (caption burn-in needs an ffmpeg built with libass)' : '';
+      transcodes.push({ ...rec, deferred: true, error: err.message + libassHint });
     }
   }
 

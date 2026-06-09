@@ -114,6 +114,75 @@ export function buildFfmpegArgs(profile, inputPattern, outputPath, opts = {}) {
   return args;
 }
 
+/**
+ * Build ffmpeg args that transcode an existing master MP4 down to a delivery
+ * profile (ANI-190). The mp4→mp4 sibling of `buildFfmpegArgs` (which encodes
+ * from a PNG frame pattern): the per-aspect master is the "source of truth for
+ * all encodes" and each profile is a scale + fps + codec/quality pass off it.
+ *
+ * Audio is RE-ENCODED to the profile's `audio` spec (bitrate/rate/channels) —
+ * not `-c:a copy` — since the 48 kHz master must land at e.g. social-feed's
+ * 128 kbps / 44.1 kHz. `audio: null` (or absent) → `-an`.
+ *
+ * GIF (`codec: 'gif'`) is intentionally NOT handled here — it needs a palettegen
+ * pass; `encodeMaster` defers it. Caption burn-in and `max_size_mb` two-pass are
+ * likewise out of scope (deferred with reasons).
+ *
+ * @param {object} profile - Delivery profile (resolution, fps, codec, crf, …).
+ * @param {string} inputPath - The source master MP4.
+ * @param {string} outputPath - Destination file.
+ * @returns {string[]} ffmpeg arguments
+ */
+export function buildTranscodeArgs(profile, inputPath, outputPath) {
+  if (!profile || !inputPath || !outputPath) {
+    throw new Error('buildTranscodeArgs requires (profile, inputPath, outputPath)');
+  }
+  if (profile.codec === 'gif') {
+    throw new Error('buildTranscodeArgs does not handle gif (needs palettegen) — defer email-gif');
+  }
+
+  const args = ['-y', '-i', inputPath];
+
+  // fps conversion + scale to the profile resolution (+ optional dithering),
+  // mirroring buildFfmpegArgs' filter chain but for a decoded video input.
+  const vf = [
+    `fps=${profile.fps}`,
+    ...(profile.dithering ? ['noise=c0s=3:c1s=3:c2s=3:allf=t'] : []),
+    `scale=${profile.resolution.w}:${profile.resolution.h}:flags=lanczos`,
+  ].join(',');
+  args.push('-vf', vf);
+
+  switch (profile.codec) {
+    case 'h264':
+      args.push('-c:v', 'libx264');
+      if (profile.pixel_format) args.push('-pix_fmt', profile.pixel_format);
+      if (profile.crf != null) args.push('-crf', String(profile.crf));
+      if (profile.preset) args.push('-preset', profile.preset);
+      args.push('-movflags', '+faststart');
+      break;
+    case 'prores':
+      args.push('-c:v', 'prores_ks', '-profile:v', '4444');
+      if (profile.pixel_format) args.push('-pix_fmt', profile.pixel_format);
+      break;
+    default:
+      throw new Error(`buildTranscodeArgs: unsupported codec "${profile.codec}"`);
+  }
+
+  // Audio: re-encode to the profile spec, or drop it.
+  const a = profile.audio;
+  if (a && a.codec) {
+    args.push('-c:a', a.codec);
+    if (a.bitrate_kbps != null) args.push('-b:a', `${a.bitrate_kbps}k`);
+    if (a.sample_rate != null) args.push('-ar', String(a.sample_rate));
+    if (a.channels != null) args.push('-ac', String(a.channels));
+  } else {
+    args.push('-an');
+  }
+
+  args.push(outputPath);
+  return args;
+}
+
 export const DELIVERY_PROFILE_SLUGS = [
   'web-hero', 'web-embed', 'social-feed', 'social-landscape',
   'story-reel', 'email-gif', 'presentation', 'master',

@@ -10,6 +10,7 @@ import {
   listDeliveryProfiles,
   getProfileForChannel,
   buildFfmpegArgs,
+  buildTranscodeArgs,
   DELIVERY_PROFILE_SLUGS,
 } from '../lib/delivery-profiles.js';
 
@@ -75,6 +76,50 @@ describe('getProfileForChannel', () => {
 
   it('returns null for unknown channel', () => {
     assert.equal(getProfileForChannel('fax-machine'), null);
+  });
+});
+
+describe('buildTranscodeArgs (mp4→mp4, ANI-190)', () => {
+  it('transcodes the master MP4 with scale + fps + h264 quality + re-encoded audio', () => {
+    const p = getDeliveryProfile('web-hero');
+    const args = buildTranscodeArgs(p, 'master.mp4', 'web-hero.mp4');
+    assert.deepEqual(args.slice(0, 3), ['-y', '-i', 'master.mp4'], 'input is the master mp4, not a frame pattern');
+    const vf = args[args.indexOf('-vf') + 1];
+    assert.match(vf, /fps=60/);
+    assert.match(vf, /scale=1920:1080:flags=lanczos/);
+    assert.match(vf, /noise=/, 'web-hero dithers');
+    assert.ok(args.includes('libx264') && args.includes('-crf') && args.includes('14'));
+    assert.ok(args.includes('-preset') && args.includes('slow'));
+    assert.ok(args.includes('-movflags') && args.includes('+faststart'));
+    // audio re-encoded to the profile spec (not copied)
+    assert.deepEqual([args.includes('-c:a'), args.includes('aac'), args.includes('192k'), args.includes('48000')], [true, true, true, true]);
+    assert.equal(args[args.length - 1], 'web-hero.mp4');
+  });
+
+  it('social-feed re-encodes audio to its own 44.1k/128k spec', () => {
+    const args = buildTranscodeArgs(getDeliveryProfile('social-feed'), 'm.mp4', 'sf.mp4');
+    const vf = args[args.indexOf('-vf') + 1];
+    assert.match(vf, /scale=1080:1080/);
+    assert.ok(args.includes('128k') && args.includes('44100'));
+  });
+
+  it('the prores master profile passes through prores_ks (no dithering)', () => {
+    const args = buildTranscodeArgs(getDeliveryProfile('master'), 'm.mp4', 'master.mov');
+    assert.ok(args.includes('prores_ks') && args.includes('-profile:v') && args.includes('4444'));
+    assert.ok(args.includes('yuva444p10le'));
+    assert.ok(!args.some(a => a.includes('noise')), 'master does not dither');
+  });
+
+  it('drops audio (-an) when the profile has no audio spec', () => {
+    const silent = { ...getDeliveryProfile('web-hero'), audio: null };
+    const args = buildTranscodeArgs(silent, 'm.mp4', 'out.mp4');
+    assert.ok(args.includes('-an'));
+    assert.ok(!args.includes('-c:a'));
+  });
+
+  it('refuses gif (needs palettegen) and bad input', () => {
+    assert.throws(() => buildTranscodeArgs(getDeliveryProfile('email-gif'), 'm.mp4', 'out.gif'), /gif/);
+    assert.throws(() => buildTranscodeArgs(null, 'm.mp4', 'out.mp4'), /requires/);
   });
 });
 

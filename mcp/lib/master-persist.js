@@ -26,6 +26,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { assembleVideoSequence } from './video-assembly.js';
 import { renderRemotionSequence } from './video.js';
 import { realizeAudioPolicy } from './master-audio.js';
+import { buildTranscodeArgs } from './delivery-profiles.js';
+
+/** Default ffmpeg runner for delivery transcodes (injectable in tests). */
+async function runFfmpeg(args) {
+  const { execFile } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  await promisify(execFile)('ffmpeg', args, { timeout: 600_000 });
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -134,7 +142,7 @@ export async function persistMaster({ master, verdict, gateByArtifact = [], proj
  * @param {function} [params.render=renderRemotionSequence] - injectable renderer (tests).
  * @returns {Promise<{ masters: Array, transcodes: Array, note: string }>}
  */
-export async function encodeMaster({ master, persistedArtifacts, projectRoot, tier, dryRun = false, render = renderRemotionSequence, brand, audioExec, audioRename }) {
+export async function encodeMaster({ master, persistedArtifacts, projectRoot, tier, dryRun = false, render = renderRemotionSequence, brand, audioExec, audioRename, transcodeExec }) {
   // [P1] render_routes is an ARRAY of { scene_id, render_target, ... };
   // assemble_video_sequence wants a scene_id→route MAP (routes[sceneId]).
   // Passing the array would miss every lookup and silently fall back to
@@ -197,34 +205,49 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
     });
   }
 
-  // [P2a] Per delivery profile: map to the matching-aspect master, record the
-  // resolved target settings + intended output, DEFER execution.
+  // Per delivery profile: transcode the matching-aspect master down to the
+  // profile's target (ANI-190 — "render once, deliver many"). Fail-soft per
+  // profile (one failure never aborts the rest). GIF / caption burn-in / max-size
+  // still defer (need a palettegen / subtitles / 2-pass path).
   const byRatio = new Map(masters.map(m => [m.ratio, m]));
   const deliveryDir = join('masters', tier, 'delivery');
+  const runTranscode = transcodeExec || runFfmpeg;
   const transcodes = [];
   for (const profile of master.delivery_profiles || []) {
     const aspect = aspectOf(profile.resolution);
     const source = byRatio.get(aspect) || byRatio.get(master.primary.ratio);
     const ext = profile.codec === 'gif' ? 'gif' : 'mp4';
-    transcodes.push({
+    const outputRel = join(deliveryDir, `${profile.slug}.${ext}`);
+    const rec = {
       profile: profile.slug,
       aspect,
       source_master: source?.output || null,
-      target: {
-        resolution: profile.resolution,
-        fps: profile.fps,
-        codec: profile.codec,
-        crf: profile.crf ?? null,
-        audio: profile.audio ?? null,
-      },
-      output: join(deliveryDir, `${profile.slug}.${ext}`),
-      deferred: true,
-    });
+      target: { resolution: profile.resolution, fps: profile.fps, codec: profile.codec, crf: profile.crf ?? null, audio: profile.audio ?? null },
+      output: outputRel,
+    };
+
+    // Deferred paths — need a builder/pass this runner doesn't cover yet.
+    if (profile.codec === 'gif') { transcodes.push({ ...rec, deferred: true, reason: 'gif needs a palettegen pass — deferred' }); continue; }
+    if (profile.captions?.mode === 'burn_in') { transcodes.push({ ...rec, deferred: true, reason: 'caption burn-in needs the sidecar + subtitles filter — deferred' }); continue; }
+    if (!source?.output) { transcodes.push({ ...rec, deferred: true, reason: 'no matching-aspect master to transcode from' }); continue; }
+
+    const args = buildTranscodeArgs(profile, join(projectRoot, source.output), join(projectRoot, outputRel));
+    if (dryRun) { transcodes.push({ ...rec, deferred: true, command: args }); continue; }
+    if (!source.encoded) { transcodes.push({ ...rec, deferred: true, reason: 'source master not encoded — nothing to transcode' }); continue; }
+
+    try {
+      await mkdir(join(projectRoot, deliveryDir), { recursive: true });
+      await runTranscode(args);
+      transcodes.push({ ...rec, deferred: false, encoded: true });
+    } catch (err) {
+      // Fail-soft: record the failure, keep going (one bad profile ≠ a dead encode).
+      transcodes.push({ ...rec, deferred: true, error: err.message });
+    }
   }
 
   return {
     masters,
     transcodes,
-    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes resolved but DEFERRED (no ffmpeg runner in this pipeline).',
+    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes executed off each aspect master (ANI-190), with gif/caption-burn-in/max-size still deferred.',
   };
 }

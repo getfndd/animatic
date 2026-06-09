@@ -197,6 +197,59 @@ describe('encodeMaster (ANI-185)', () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it('[ANI-190] transcodes each delivery profile off its matching-aspect master, fail-soft', async () => {
+    const master = await emittedT3();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      const transcodeCalls = [];
+      // Fail the FIRST transcode to prove fail-soft (one bad profile ≠ dead encode).
+      let n = 0;
+      const transcodeExec = async (args) => { transcodeCalls.push(args); if (++n === 1) throw new Error('boom'); };
+
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3',
+        dryRun: false, render: async () => {}, transcodeExec,
+      });
+
+      const byP = Object.fromEntries(enc.transcodes.map(t => [t.profile, t]));
+      // T3: web-hero + social-landscape are sidecar-caption h264 → transcoded;
+      // social-feed + story-reel are burn_in → deferred (need the subtitles pass).
+      assert.equal(byP['social-feed'].deferred, true);
+      assert.match(byP['social-feed'].reason, /burn-in/);
+      assert.equal(byP['story-reel'].deferred, true);
+      // Two h264 transcodes attempted; the first failed soft (recorded, not thrown).
+      assert.equal(transcodeCalls.length, 2, 'only the two non-burn-in profiles transcode');
+      const failed = enc.transcodes.filter(t => t.error);
+      const ok = enc.transcodes.filter(t => t.encoded === true);
+      assert.equal(failed.length, 1, 'the failing profile is recorded, not fatal');
+      assert.equal(ok.length, 1, 'the other profile still transcoded');
+      assert.match(failed[0].error, /boom/);
+      assert.ok(transcodeCalls[0].includes('libx264'), 'real transcode args (scale + h264)');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-190] dry-run plans each transcode (command) without spawning ffmpeg', async () => {
+    const master = await emittedT3();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      let spawned = false;
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3',
+        dryRun: true, transcodeExec: async () => { spawned = true; },
+      });
+      assert.equal(spawned, false, 'dry-run never spawns a transcode');
+      const planned = enc.transcodes.filter(t => Array.isArray(t.command));
+      assert.ok(planned.length >= 1, 'non-burn-in profiles carry the planned transcode command');
+      assert.ok(planned.every(t => t.deferred === true), 'dry-run leaves everything deferred');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 // ── renderMaster integration (persist/encode flags, fail-closed) ─────────────────

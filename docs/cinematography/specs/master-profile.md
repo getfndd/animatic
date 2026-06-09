@@ -93,10 +93,11 @@ close the loop to a one-call master:
   codec/CRF, audio re-encoded to the profile's bitrate/rate/channels) — "render once, deliver many" off
   the one per-aspect master, not four identical re-renders. The container is **codec-aware**: ProRes (the
   T4 `master` profile) writes `.mov` (ffmpeg rejects `prores_ks` in mp4); h264 writes `.mp4`. **Fail-soft
-  per profile** (one bad transcode is recorded, never aborts the rest). `max_size_mb` is **enforced as a
-  gate** — a single-pass CRF doesn't target a byte budget, so the output is stat'd and an over-cap result
-  is flagged `oversize` + deferred (never claimed as a clean `encoded` deliverable); 2-pass auto-correction
-  is a follow-up. **Caption burn-in (ANI-193)** — `burn_in` profiles (social-feed/story-reel) burn the
+  per profile** (one bad transcode is recorded, never aborts the rest). `max_size_mb` is **enforced + auto-
+  corrected** — the output is stat'd, and an over-cap **h264** deliverable re-encodes through a bounded
+  CRF-bump loop (ANI-196, +4/step, ≤3 attempts) until it fits; if it still can't fit it's flagged `oversize`
+  + deferred (never a clean `encoded`). GIF/ProRes (no CRF lever / uncapped) keep the plain gate.
+  **Caption burn-in (ANI-193)** — `burn_in` profiles (social-feed/story-reel) burn the
   ANI-188 VTT sidecar into the picture via ffmpeg's `subtitles` filter (after scale, so captions sit at
   delivery resolution); a profile with no sidecar (no authored `scene.captions`) stays deferred. Requires
   an ffmpeg built with **libass** — a one-shot capability probe (ANI-195) **cleanly defers** burn-in when

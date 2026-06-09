@@ -816,7 +816,7 @@ export function buildTools({
         type: 'object',
         properties: {
           project: { type: 'string', description: 'Project slug.' },
-          kind: { type: 'string', enum: ['brief', 'storyboard', 'manifest', 'render', 'scene', 'version', 'review'], description: 'Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, or `review`.' },
+          kind: { type: 'string', enum: ['brief', 'storyboard', 'manifest', 'render', 'scene', 'version', 'review', 'master'], description: 'Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, `review`, or `master`.' },
           path: { type: 'string', description: 'Relative path within the project.' },
           role: { type: 'string', description: 'Entrypoint role to update (e.g., `latest_render`, `approved_render`).' },
           scene_id: { type: 'string', description: 'Scene ID (for `scene` artifacts).' },
@@ -1709,6 +1709,9 @@ export function buildTools({
           tier: { type: 'string', enum: ['prototype', 'directed-html', 'video', 'hero-film', 'T1', 'T2', 'T3', 'T4'], description: 'Master profile name or tier.' },
           beats: { type: 'object', description: 'Optional beat data (from `analyze_beats`). Enables retime where the profile allows (T2 holds-only; T3/T4 full). Retime is duration-only; re-authoring is rejected.' },
           brand: { type: 'object', description: 'Optional brand package — informs the hero-frame gate.' },
+          persist: { type: 'boolean', description: 'Persist each emitted artifact ({manifest, sceneDefs, timelines}) under masters/<tier>/ and register it in project.json. Requires `project`.' },
+          encode: { type: 'boolean', description: 'Implies persist. AFTER the fail-closed gate passes, chain each emitted artifact through assemble_video_sequence → Remotion to produce one master MP4 per aspect. Requires `project`; skipped on a BLOCK. Delivery-profile transcodes are resolved but deferred.' },
+          dry_run_encode: { type: 'boolean', description: 'With `encode`, assemble render-props + resolve the encode plan but skip the Remotion spawn (CI/preview).' },
         },
         required: ['tier'],
       },

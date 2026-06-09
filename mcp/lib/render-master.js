@@ -21,7 +21,8 @@ import { syncSequenceToBeats } from './audio-sync.js';
 import { applyFinishPreset } from '../runtime.js';
 import { auditHeroFrames } from './hero-frame.js';
 import { compileAllScenes } from './compiler.js';
-import { loadProjectSource } from './projects.js';
+import { loadProjectSource, getProject, saveProjectArtifact } from './projects.js';
+import { persistMaster, encodeMaster } from './master-persist.js';
 import { loadPrimitivesCatalog, loadRecipes } from '../data/loader.js';
 
 const VERDICT_RANK = { PASS: 0, WARN: 1, BLOCK: 2 };
@@ -174,9 +175,13 @@ function getCatalogs() {
  * @param {object} [params.brand] - Brand package (informs the gate).
  * @param {function} [params.capture] - Injected still-capture (tests / metadata-only).
  * @param {object} [params.client] - Injected vision client (tests).
- * @returns {Promise<object>} { profile, tier, verdict, emitted, block_reason, gate_by_artifact, master, notes }
+ * @param {boolean} [params.persist] - Write each emitted artifact under masters/<tier>/ and register it. Requires `project`.
+ * @param {boolean} [params.encode] - Implies persist. Chain each emitted artifact to assemble_video_sequence → Remotion (one MP4 per aspect), AFTER the fail-closed gate. Requires `project`; skipped on BLOCK.
+ * @param {boolean} [params.dry_run_encode] - With `encode`, assemble props + resolve the plan but skip the Remotion spawn.
+ * @param {function} [params.encodeRender] - Injected renderer for encodeMaster (tests).
+ * @returns {Promise<object>} { profile, tier, verdict, emitted, block_reason, gate_by_artifact, master, persisted?, encode?, notes }
  */
-export async function renderMaster({ project, manifest, scenes, tier, beats, brand, capture, client } = {}) {
+export async function renderMaster({ project, manifest, scenes, tier, beats, brand, capture, client, persist, encode, dry_run_encode, encodeRender } = {}) {
   const profile = getMasterProfile(tier);
   if (!profile) {
     throw new Error(`Unknown master tier "${tier}". Use one of: prototype/directed-html/video/hero-film or T1–T4.`);
@@ -251,6 +256,46 @@ export async function renderMaster({ project, manifest, scenes, tier, beats, bra
     aspect_variants: artifacts.slice(1).map(a => ({ ratio: a.ratio, manifest: a.manifest, sceneDefs: a.sceneDefs, timelines: a.timelines })),
   };
 
+  // 7. Durable persistence + one-button encode (ANI-185, opt-in). Both require a
+  //    project to write under. Encode implies persist and is fail-closed: a
+  //    BLOCKed master is persisted (for inspection) but never encoded.
+  let persisted = null;
+  let encodeResult = null;
+  if (persist || encode) {
+    if (!project) {
+      throw new Error('render_master persist/encode requires a `project` to write artifacts under (inline manifest+scenes has nowhere to persist).');
+    }
+    const proj = await getProject({ project });
+    if (!proj) throw new Error(`Project "${project}" not found`);
+    const projectRoot = proj.project_root;
+
+    persisted = await persistMaster({ master, verdict, gateByArtifact: gate_by_artifact, projectRoot, tier: profile.tier });
+    await saveProjectArtifact({
+      project,
+      kind: 'master',
+      path: persisted.index,
+      role: profile.tier,
+      metadata: { tier: profile.tier, profile: profile.name, verdict, emitted, aspects: persisted.artifacts.map(a => a.ratio) },
+    });
+
+    if (encode) {
+      encodeResult = emitted
+        ? await encodeMaster({
+            master,
+            persistedArtifacts: persisted.artifacts,
+            projectRoot,
+            tier: profile.tier,
+            dryRun: dry_run_encode === true,
+            ...(encodeRender ? { render: encodeRender } : {}),
+          })
+        : { skipped: 'gate BLOCK — fail-closed, no encode', verdict };
+    }
+  }
+
+  const notes = [`Encode via assemble_video_sequence with each artifact's { manifest, sceneDefs, timelines }.`];
+  if (persisted) notes.push(`Persisted master to ${persisted.index}.`);
+  if (encodeResult?.note) notes.push(encodeResult.note);
+
   return {
     profile: profile.name,
     tier: profile.tier,
@@ -259,7 +304,9 @@ export async function renderMaster({ project, manifest, scenes, tier, beats, bra
     block_reason,
     gate_by_artifact,
     master: emitted ? master : { ...master, note: 'not emitted — gate BLOCK; plan returned for inspection only' },
+    persisted,
+    encode: encodeResult,
     retime_ops_allowed: RETIME_OPS,
-    notes: [`Encode via assemble_video_sequence with each artifact's { manifest, sceneDefs, timelines }.`],
+    notes,
   };
 }

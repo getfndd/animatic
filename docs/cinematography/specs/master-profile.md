@@ -47,6 +47,31 @@ which loads scene defs from disk and would drop the recomposed sceneDefs. A BLOC
 and the plan is returned for inspection only; the BLOCK reason distinguishes *missing evidence*
 ("needs rendered frames + a vision judge") from *below threshold* (a weak axis).
 
+## Durable persistence + one-button encode (opt-in, ANI-185)
+
+`render_master` emits in-memory artifacts; two opt-in flags (both requiring a `project` to write under)
+close the loop to a one-call master:
+
+- **`persist: true`** — writes each emitted artifact to disk under
+  `masters/<tier>/<id>/{manifest.json, scenes/*.json, timelines.json}` (`id` is `primary` or the
+  ratio token, e.g. `9x16`), plus a `masters/<tier>/master.json` index (profile, verdict, retime,
+  render routes, delivery slugs, gate roll-up, artifact path table). The master is then registered in
+  `project.json` (`masters[]` + `entrypoints.latest_master`). The persisted manifest carries the
+  master's **constrained** render routes, so reloading it from disk and re-resolving reproduces the
+  same routes — the artifact is a faithful, self-contained encode source.
+
+- **`encode: true`** (implies persist) — **after** the fail-closed gate passes, chains each emitted
+  artifact through `assemble_video_sequence` → Remotion to produce **one master MP4 per aspect** (the
+  literal "master = source of truth for all encodes"). The encode reads the **persisted**
+  `render-props.json` so the on-disk artifact and the MP4 it reproduces can't drift. A **BLOCK** is
+  persisted for inspection but **never encoded** (fail-closed). `dry_run_encode: true` assembles the
+  props + resolves the plan without spawning Remotion (CI/preview).
+
+  **Delivery-profile transcodes are resolved but DEFERRED.** Each `delivery_profile` is mapped to the
+  matching-aspect master with its target codec/resolution/fps/crf recorded, but the per-profile encode
+  is not run here — `buildFfmpegArgs` has no runner in this pipeline, and audio-aware per-profile
+  realization is **ANI-188**'s surface. This avoids writing four identical MP4s under four names.
+
 ## Ground truth — four tiers on `examples/product-demo`
 
 `render_master` run at each tier with a **metadata-only** capture (no Remotion toolchain / no

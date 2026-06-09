@@ -315,7 +315,10 @@ export function buildTools({
           },
           archetype: {
             type: 'string',
-            enum: ['brand-teaser', 'feature-reveal', 'onboarding-explainer', 'launch-reel', 'testimonial-cutdown', 'social-loop'],
+            // 6 main archetypes (sequence-archetypes.json) + 4 ai-demo archetypes
+            // (ai-demo-archetypes.json, ANI-187). Kept in sync with the catalogs by
+            // ai-demo-archetypes-shot-grammar.test.js (enum == union of both).
+            enum: ['brand-teaser', 'feature-reveal', 'onboarding-explainer', 'launch-reel', 'testimonial-cutdown', 'social-loop', 'prompt_to_answer', 'brief_to_board', 'query_to_report', 'upload_to_insight'],
             description: "Optional. When set, plan shot-grammar-first: assign scenes to this archetype's ordered shot roles and derive shot_grammar + camera from the shot role. Surfaces notes.shot_list + notes.shot_grammar_mode. Omit for the default metadata-led plan (behavior unchanged).",
           },
         },

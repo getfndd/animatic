@@ -44,6 +44,11 @@ export function loadSequenceArchetypes() {
   return loadJSON(resolve(CATALOG_DIR, 'sequence-archetypes.json'));
 }
 
+/** Load catalog/ai-demo-archetypes.json → array of the 4 ai-demo archetypes (ANI-187). */
+export function loadAiDemoArchetypes() {
+  return loadJSON(resolve(CATALOG_DIR, 'ai-demo-archetypes.json'));
+}
+
 /** Load catalog/primitives.json + catalog/compound/*.json → array + slug map */
 export function loadPrimitivesCatalog() {
   const arr = loadJSON(resolve(CATALOG_DIR, 'primitives.json'));

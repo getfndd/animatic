@@ -390,7 +390,11 @@
             "onboarding-explainer",
             "launch-reel",
             "testimonial-cutdown",
-            "social-loop"
+            "social-loop",
+            "prompt_to_answer",
+            "brief_to_board",
+            "query_to_report",
+            "upload_to_insight"
           ],
           "description": "Optional. When set, plan shot-grammar-first: assign scenes to this archetype's ordered shot roles and derive shot_grammar + camera from the shot role. Surfaces notes.shot_list + notes.shot_grammar_mode. Omit for the default metadata-led plan (behavior unchanged)."
         }

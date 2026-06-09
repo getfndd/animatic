@@ -11,7 +11,7 @@
  */
 
 import { validateManifest } from '../../src/remotion/lib.js';
-import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar, loadSequenceArchetypes } from '../data/loader.js';
+import { loadStylePacks, loadPersonalitiesCatalog, loadShotGrammar, loadSequenceArchetypes, loadAiDemoArchetypes } from '../data/loader.js';
 import { validateShotGrammar } from './shot-grammar.js';
 import { syncToBeats, matchEnergyToScenes } from './beats.js';
 
@@ -670,11 +670,15 @@ export function planSequence({ scenes, style, sequence_id, audio, beats, duratio
 
   // Shot-grammar-first (ANI-179): when an archetype is supplied, the planner
   // picks the shot list FIRST and motion serves the shot. Absent → unchanged.
+  // The 4 ai-demo archetypes (ANI-187) share the same shape and are resolved
+  // from the same lookup — sequence catalog first, then ai-demo (no slug
+  // collisions; sequence wins on any future overlap).
   let archetypeDef = null;
   if (archetype) {
-    archetypeDef = loadSequenceArchetypes().find(a => a.slug === archetype);
+    const allArchetypes = [...loadSequenceArchetypes(), ...loadAiDemoArchetypes()];
+    archetypeDef = allArchetypes.find(a => a.slug === archetype);
     if (!archetypeDef) {
-      const slugs = loadSequenceArchetypes().map(a => a.slug).join(', ');
+      const slugs = allArchetypes.map(a => a.slug).join(', ');
       throw new Error(`Unknown archetype "${archetype}". Valid: ${slugs}`);
     }
   }

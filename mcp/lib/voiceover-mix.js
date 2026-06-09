@@ -102,6 +102,7 @@ export async function prepareVoiceoverTrack(opts) {
     projectRoot,
     provider = defaultTtsProvider(),
     exec = runFfmpeg,
+    sample_rate,
   } = opts || {};
   if (!Array.isArray(clips) || clips.length === 0 || !projectRoot) {
     throw new Error('prepareVoiceoverTrack requires { clips: [...], projectRoot }');
@@ -143,6 +144,7 @@ export async function prepareVoiceoverTrack(opts) {
   const trackArgs = buildVoiceoverTrackArgs({
     clips: generated.map(c => ({ path: c.path, offset_ms: c.offset_ms })),
     outputPath: trackPath,
+    ...(sample_rate != null ? { sample_rate } : {}),
   });
   await exec(trackArgs);
 

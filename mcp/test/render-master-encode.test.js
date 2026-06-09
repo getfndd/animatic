@@ -163,6 +163,9 @@ describe('encodeMaster (ANI-185)', () => {
       assert.equal(byProfile['social-feed']?.aspect, '1:1');
       assert.equal(byProfile['story-reel']?.aspect, '9:16');
       assert.equal(byProfile['web-hero']?.aspect, '16:9');
+
+      // ANI-188: each encode record carries the realized audio plan for the tier.
+      assert.ok(enc.masters.every(m => m.audio?.policy === 'mix'), 'T3 masters carry the mix audio plan');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

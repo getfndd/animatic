@@ -120,6 +120,14 @@ describe('buildTranscodeArgs (mp4→mp4, ANI-190)', () => {
     assert.ok(!args.includes('-c:a'));
   });
 
+  it('honors an explicit crf override, else the profile default (ANI-196)', () => {
+    const p = getDeliveryProfile('web-hero'); // profile crf 14
+    const dflt = buildTranscodeArgs(p, 'm.mp4', 'o.mp4');
+    assert.equal(dflt[dflt.indexOf('-crf') + 1], '14');
+    const bumped = buildTranscodeArgs(p, 'm.mp4', 'o.mp4', { crf: 28 });
+    assert.equal(bumped[bumped.indexOf('-crf') + 1], '28');
+  });
+
   it('refuses gif (needs palettegen) and bad input', () => {
     assert.throws(() => buildTranscodeArgs(getDeliveryProfile('email-gif'), 'm.mp4', 'out.gif'), /gif/);
     assert.throws(() => buildTranscodeArgs(null, 'm.mp4', 'out.mp4'), /requires/);

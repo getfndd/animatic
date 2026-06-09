@@ -136,6 +136,8 @@ export function buildFfmpegArgs(profile, inputPattern, outputPath, opts = {}) {
  * @param {string} [opts.burnInSubtitles] - Path to a VTT/SRT sidecar to burn into
  *   the picture (ANI-193, for `captions.mode==='burn_in'` profiles). Rendered
  *   AFTER scale so captions sit at the delivery resolution.
+ * @param {number} [opts.crf] - h264 CRF override (ANI-196 size auto-correction);
+ *   higher = smaller. Falls back to `profile.crf`.
  * @returns {string[]} ffmpeg arguments
  */
 /**
@@ -174,13 +176,16 @@ export function buildTranscodeArgs(profile, inputPath, outputPath, opts = {}) {
   args.push('-vf', vf);
 
   switch (profile.codec) {
-    case 'h264':
+    case 'h264': {
       args.push('-c:v', 'libx264');
       if (profile.pixel_format) args.push('-pix_fmt', profile.pixel_format);
-      if (profile.crf != null) args.push('-crf', String(profile.crf));
+      // crf override (ANI-196 size auto-correction) wins over the profile default.
+      const crf = opts.crf != null ? opts.crf : profile.crf;
+      if (crf != null) args.push('-crf', String(crf));
       if (profile.preset) args.push('-preset', profile.preset);
       args.push('-movflags', '+faststart');
       break;
+    }
     case 'prores':
       args.push('-c:v', 'prores_ks', '-profile:v', '4444');
       if (profile.pixel_format) args.push('-pix_fmt', profile.pixel_format);

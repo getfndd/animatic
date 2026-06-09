@@ -124,16 +124,35 @@ export function buildFfmpegArgs(profile, inputPattern, outputPath, opts = {}) {
  * not `-c:a copy` — since the 48 kHz master must land at e.g. social-feed's
  * 128 kbps / 44.1 kHz. `audio: null` (or absent) → `-an`.
  *
- * GIF (`codec: 'gif'`) is intentionally NOT handled here — it needs a palettegen
- * pass; `encodeMaster` defers it. Caption burn-in and `max_size_mb` two-pass are
- * likewise out of scope (deferred with reasons).
+ * Caption burn-in is supported via `opts.burnInSubtitles` (ANI-193). GIF
+ * (`codec: 'gif'`) is intentionally NOT handled here — it needs a palettegen pass;
+ * `encodeMaster` defers it. `max_size_mb` 2-pass auto-correction is out of scope
+ * (encodeMaster gates on the result size instead).
  *
  * @param {object} profile - Delivery profile (resolution, fps, codec, crf, …).
  * @param {string} inputPath - The source master MP4.
  * @param {string} outputPath - Destination file.
+ * @param {object} [opts]
+ * @param {string} [opts.burnInSubtitles] - Path to a VTT/SRT sidecar to burn into
+ *   the picture (ANI-193, for `captions.mode==='burn_in'` profiles). Rendered
+ *   AFTER scale so captions sit at the delivery resolution.
  * @returns {string[]} ffmpeg arguments
  */
-export function buildTranscodeArgs(profile, inputPath, outputPath) {
+/**
+ * Escape a path for ffmpeg's `subtitles=` filter, UNQUOTED (the argv form — no
+ * surrounding single quotes, which are a shell construct). The filtergraph
+ * parser treats `\`, `:` and `'` specially — backslash-escape each (backslash
+ * first so we don't double-escape the others). Conservative and sufficient for
+ * project paths; exotic filtergraph metacharacters aren't in play.
+ *
+ * NOTE: the `subtitles` filter requires an ffmpeg built with libass; absent it,
+ * the burn-in transcode fails (caught fail-soft per profile by encodeMaster).
+ */
+export function escapeSubtitlesPath(p) {
+  return String(p).replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'");
+}
+
+export function buildTranscodeArgs(profile, inputPath, outputPath, opts = {}) {
   if (!profile || !inputPath || !outputPath) {
     throw new Error('buildTranscodeArgs requires (profile, inputPath, outputPath)');
   }
@@ -145,10 +164,12 @@ export function buildTranscodeArgs(profile, inputPath, outputPath) {
 
   // fps conversion + scale to the profile resolution (+ optional dithering),
   // mirroring buildFfmpegArgs' filter chain but for a decoded video input.
+  // Caption burn-in (if any) renders AFTER scale so it lands at delivery size.
   const vf = [
     `fps=${profile.fps}`,
     ...(profile.dithering ? ['noise=c0s=3:c1s=3:c2s=3:allf=t'] : []),
     `scale=${profile.resolution.w}:${profile.resolution.h}:flags=lanczos`,
+    ...(opts.burnInSubtitles ? [`subtitles=${escapeSubtitlesPath(opts.burnInSubtitles)}`] : []),
   ].join(',');
   args.push('-vf', vf);
 

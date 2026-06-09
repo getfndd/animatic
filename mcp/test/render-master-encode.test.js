@@ -62,6 +62,15 @@ async function emittedT4() {
   return r.master;
 }
 
+/** A passing T4 master whose scene carries authored captions (so the audio pass
+ *  writes a VTT sidecar the burn-in profiles can consume). */
+async function emittedT4Captioned() {
+  const captioned = { ...scene('sc_a'), captions: [{ text: 'Hello world', start_ms: 0, end_ms: 1500 }] };
+  const r = await renderMaster({ manifest: manifest(), scenes: [captioned], tier: 'T4', capture: markerCapture, client: strongClient });
+  assert.equal(r.emitted, true, 'fixture precondition: captioned T4 master emits');
+  return r.master;
+}
+
 function tmpProjectRoot() {
   return mkdtempSync(join(tmpdir(), 'ani185-'));
 }
@@ -222,9 +231,10 @@ describe('encodeMaster (ANI-185)', () => {
 
       const byP = Object.fromEntries(enc.transcodes.map(t => [t.profile, t]));
       // T3: web-hero + social-landscape are sidecar-caption h264 → transcoded;
-      // social-feed + story-reel are burn_in → deferred (need the subtitles pass).
+      // social-feed + story-reel are burn_in but this fixture has no authored
+      // captions → no sidecar → deferred (ANI-193).
       assert.equal(byP['social-feed'].deferred, true);
-      assert.match(byP['social-feed'].reason, /burn-in/);
+      assert.match(byP['social-feed'].reason, /no captions sidecar/);
       assert.equal(byP['story-reel'].deferred, true);
       // Two h264 transcodes attempted; the first failed soft (recorded, not thrown).
       assert.equal(transcodeCalls.length, 2, 'only the two non-burn-in profiles transcode');
@@ -285,6 +295,73 @@ describe('encodeMaster (ANI-185)', () => {
       assert.equal(tiny.max_size_mb, 0.001);
       assert.equal(tiny.size_mb, 0.5, 'reports the measured size');
       assert.match(tiny.reason, /max_size_mb|2-pass/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-193] burns the captions sidecar into burn_in profiles (social-feed / story-reel)', async () => {
+    const master = await emittedT4Captioned();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T4' });
+      const calls = [];
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T4',
+        dryRun: false, render: async () => {}, transcodeExec: async (args) => calls.push(args),
+      });
+      const byP = Object.fromEntries(enc.transcodes.map(t => [t.profile, t]));
+      // burn_in profiles now transcode WITH captions burned in (no longer deferred).
+      for (const slug of ['social-feed', 'story-reel']) {
+        assert.equal(byP[slug].deferred, false, `${slug} transcoded`);
+        assert.equal(byP[slug].captions_burned, true, `${slug} burned captions`);
+        const call = calls.find(c => c[c.length - 1].includes(`${slug}.mp4`));
+        assert.match(call[call.indexOf('-vf') + 1], /subtitles=/, `${slug} ffmpeg has the subtitles filter`);
+      }
+      // sidecar-caption profiles (web-hero) do NOT burn captions.
+      const webHero = calls.find(c => c[c.length - 1].includes('web-hero.mp4'));
+      assert.doesNotMatch(webHero[webHero.indexOf('-vf') + 1], /subtitles=/, 'web-hero keeps a sidecar, no burn-in');
+      assert.ok(!byP['web-hero'].captions_burned);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-193] dry-run PLANS the burn-in command for a captioned master (not deferred-as-no-sidecar)', async () => {
+    // Regression: the audio pass reports captions written:false in dry-run, but
+    // the sidecar still exists at a real encode — so dry-run must plan the burn-in
+    // command, keying on the sidecar's path, not `written`.
+    const master = await emittedT4Captioned();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T4' });
+      let spawned = false;
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T4',
+        dryRun: true, transcodeExec: async () => { spawned = true; },
+      });
+      assert.equal(spawned, false, 'dry-run never spawns');
+      const sf = enc.transcodes.find(t => t.profile === 'social-feed');
+      assert.ok(Array.isArray(sf.command), 'social-feed has a planned command, not a no-sidecar deferral');
+      assert.ok(!sf.reason, 'not deferred-with-reason');
+      assert.match(sf.command[sf.command.indexOf('-vf') + 1], /subtitles=/, 'planned command burns the sidecar');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-193] burn_in stays deferred when there is no captions sidecar', async () => {
+    const master = await emittedT4(); // scene has no authored captions → no sidecar
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T4' });
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T4',
+        dryRun: false, render: async () => {}, transcodeExec: async () => {},
+      });
+      const sf = enc.transcodes.find(t => t.profile === 'social-feed');
+      assert.equal(sf.deferred, true);
+      assert.match(sf.reason, /no captions sidecar/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

@@ -25,6 +25,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 import { assembleVideoSequence } from './video-assembly.js';
 import { renderRemotionSequence } from './video.js';
+import { realizeAudioPolicy } from './master-audio.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -133,7 +134,7 @@ export async function persistMaster({ master, verdict, gateByArtifact = [], proj
  * @param {function} [params.render=renderRemotionSequence] - injectable renderer (tests).
  * @returns {Promise<{ masters: Array, transcodes: Array, note: string }>}
  */
-export async function encodeMaster({ master, persistedArtifacts, projectRoot, tier, dryRun = false, render = renderRemotionSequence }) {
+export async function encodeMaster({ master, persistedArtifacts, projectRoot, tier, dryRun = false, render = renderRemotionSequence, brand, audioExec, audioRename }) {
   // [P1] render_routes is an ARRAY of { scene_id, render_target, ... };
   // assemble_video_sequence wants a scene_id→route MAP (routes[sceneId]).
   // Passing the array would miss every lookup and silently fall back to
@@ -170,6 +171,20 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
       encoded = true;
     }
 
+    // ANI-188: realize the tier's audio_policy on top of the encoded master
+    // (the Remotion-embedded bed is already in the MP4; this is the VO/duck +
+    // captions pass). Plans only when dry — the MP4 must exist to mux into.
+    const audio = await realizeAudioPolicy({
+      artifact: { manifest: a.manifest, sceneDefs: a.sceneDefs },
+      masterMp4Rel: outputRel,
+      projectRoot,
+      policy: master.audio_policy,
+      brand,
+      dryRun,
+      ...(audioExec ? { exec: audioExec } : {}),
+      ...(audioRename ? { rename: audioRename } : {}),
+    });
+
     masters.push({
       artifact: a.id,
       ratio: a.ratio,
@@ -178,6 +193,7 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
       render_targets: sceneRoutes,
       warnings,
       encoded,
+      audio,
     });
   }
 

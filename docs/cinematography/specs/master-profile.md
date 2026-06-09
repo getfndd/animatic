@@ -69,8 +69,35 @@ close the loop to a one-call master:
 
   **Delivery-profile transcodes are resolved but DEFERRED.** Each `delivery_profile` is mapped to the
   matching-aspect master with its target codec/resolution/fps/crf recorded, but the per-profile encode
-  is not run here — `buildFfmpegArgs` has no runner in this pipeline, and audio-aware per-profile
-  realization is **ANI-188**'s surface. This avoids writing four identical MP4s under four names.
+  is not run here — `buildFfmpegArgs` has no runner in this pipeline. This avoids writing four identical
+  MP4s under four names.
+
+## Audio realization (ANI-188)
+
+The profile's `audio_policy` is **realized at encode**, not just declared. The Remotion-embedded music bed
+(`manifest.audio`, ANI-106) is already in each aspect's `master.mp4`; `realizeAudioPolicy` runs the
+post-encode pass on top, composing the audio surfaces we already ship (`voiceover-mix.js` +
+`audio-mix.js`) — never a new ffmpeg graph:
+
+| policy | tier | realized at encode |
+| -- | -- | -- |
+| `muted` | T1 | no audio track |
+| `muted-autoplay` | T2 | the embedded bed stays, plays muted on autoplay; no post-mux |
+| `mix` | T3 | voiceover ducked under the bed (aac) + a **VTT captions sidecar**, at the 48 kHz master rate |
+| `full-mix` | T4 | same as T3 + **sonic cues** |
+
+- **Voiceover** is `planVoiceoverClips` → `prepareVoiceoverTrack` → `muxVoiceoverIntoRender` (ANI-129
+  ducking). The master mix is **48 kHz** (the archival rate); per-delivery-profile resampling rides the
+  deferred transcodes above.
+- **Captions on** = a VTT sidecar emitted from **authored `scene.captions`** (the existing `render_project`
+  path). A narrated master with no authored captions reports `captions: { written:false, reason }` so it
+  doesn't silently fail the a11y surface — narration-derived captions are a separate follow-up.
+- **Dry-run seam:** `dry_run_encode` resolves the full audio plan (sources, mux mode, sample rate, caption
+  cue count) with **no TTS and no ffmpeg**; synthesis + mux run only on a real encode. Plans/realizes only
+  for an **emitted** master.
+- **Sonic cues (T4) are RESOLVED but DEFERRED.** `buildDuckedMuxArgs` mixes only bed + voiceover; timed
+  cue placement (logo sting, transition whoosh) needs a new cue-mix builder + tests — a follow-up. The plan
+  lists the brand's available cues with `realized:false`.
 
 ## Ground truth — four tiers on `examples/product-demo`
 

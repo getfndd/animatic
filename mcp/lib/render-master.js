@@ -285,6 +285,7 @@ export async function renderMaster({ project, manifest, scenes, tier, beats, bra
             persistedArtifacts: persisted.artifacts,
             projectRoot,
             tier: profile.tier,
+            brand,
             dryRun: dry_run_encode === true,
             ...(encodeRender ? { render: encodeRender } : {}),
           })

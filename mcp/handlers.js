@@ -3523,15 +3523,18 @@ export async function handleAuditHeroFrames(args) {
 }
 
 export async function handleRenderMaster(args) {
-  const { project, manifest, scenes, tier, beats, brand } = args;
+  const { project, manifest, scenes, tier, beats, brand, persist, encode, dry_run_encode } = args;
   if (!tier) {
     return { content: [{ type: 'text', text: 'Invalid input: `tier` is required (prototype/directed-html/video/hero-film or T1–T4).' }], isError: true };
   }
   if (!project && !(manifest && scenes)) {
     return { content: [{ type: 'text', text: 'Invalid input: provide either `project`, or inline `manifest` + `scenes`.' }], isError: true };
   }
+  if ((persist || encode) && !project) {
+    return { content: [{ type: 'text', text: 'Invalid input: `persist`/`encode` require a `project` to write artifacts under.' }], isError: true };
+  }
   try {
-    const result = await renderMaster({ project, manifest, scenes, tier, beats, brand });
+    const result = await renderMaster({ project, manifest, scenes, tier, beats, brand, persist, encode, dry_run_encode });
     const m = result.master;
     const aspects = [m.primary.ratio, ...m.aspect_variants.map(v => v.ratio)].join(', ');
     const delivery = m.delivery_profiles.map(d => d.slug).join(', ') || '(none — live surface)';
@@ -3540,6 +3543,15 @@ export async function handleRenderMaster(args) {
     head += `Retime: ${m.retime.applied ? `applied (${(m.retime.adjustments || []).length} adjustments, ops ${m.retime.ops_allowed.join('/') || 'none'})` : `none (allowed: ${m.retime.ops_allowed.join('/') || 'none'})`}\n\n`;
     head += result.gate_by_artifact.map(g => `- gate ${g.ratio}: **${g.verdict}** (${g.evidence_summary.rendered}/${g.evidence_summary.scenes} rendered)`).join('\n') + '\n';
     if (result.block_reason) head += `\n⚠ ${result.block_reason}\n`;
+    if (result.persisted) head += `\nPersisted → \`${result.persisted.index}\` (${result.persisted.artifacts.length} artifact${result.persisted.artifacts.length === 1 ? '' : 's'}).\n`;
+    if (result.encode) {
+      if (result.encode.skipped) {
+        head += `Encode skipped: ${result.encode.skipped}\n`;
+      } else {
+        const enc = result.encode.masters.filter(x => x.encoded).length;
+        head += `Encode: ${result.encode.masters.length} master MP4 plan${result.encode.masters.length === 1 ? '' : 's'} (${enc} rendered${enc ? '' : ' — props only'}), ${result.encode.transcodes.length} deferred delivery transcode${result.encode.transcodes.length === 1 ? '' : 's'}.\n`;
+      }
+    }
     head += `\n_Encode via assemble_video_sequence with each artifact's { manifest, sceneDefs, timelines }._\n`;
     return { content: [{ type: 'text', text: head + '\n```json\n' + JSON.stringify(result, null, 2) + '\n```' }] };
   } catch (err) {

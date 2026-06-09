@@ -493,6 +493,30 @@ export async function saveProjectArtifact(options) {
       break;
     }
 
+    case 'master': {
+      // A render_master result persisted under masters/<tier>/. `role` (or
+      // metadata.tier) is the tier — one entry per tier, replaced on re-master.
+      projectData.masters = projectData.masters || [];
+      const tier = role || metadata.tier || null;
+      const masterEntry = {
+        ...(tier ? { tier } : {}),
+        path: artifactPath,
+        status: 'draft',
+        created_at: timestamp(),
+        ...metadata,
+      };
+      const existing = tier
+        ? projectData.masters.findIndex((m) => m.tier === tier)
+        : -1;
+      if (existing >= 0) {
+        projectData.masters[existing] = { ...projectData.masters[existing], ...masterEntry };
+      } else {
+        projectData.masters.push(masterEntry);
+      }
+      projectData.entrypoints.latest_master = artifactPath;
+      break;
+    }
+
     default:
       throw new Error(`Unknown artifact kind: ${kind}`);
   }

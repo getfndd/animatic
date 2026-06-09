@@ -1071,9 +1071,10 @@
             "render",
             "scene",
             "version",
-            "review"
+            "review",
+            "master"
           ],
-          "description": "Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, or `review`."
+          "description": "Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, `review`, or `master`."
         },
         "path": {
           "type": "string",
@@ -2378,6 +2379,18 @@
         "brand": {
           "type": "object",
           "description": "Optional brand package — informs the hero-frame gate."
+        },
+        "persist": {
+          "type": "boolean",
+          "description": "Persist each emitted artifact ({manifest, sceneDefs, timelines}) under masters/<tier>/ and register it in project.json. Requires `project`."
+        },
+        "encode": {
+          "type": "boolean",
+          "description": "Implies persist. AFTER the fail-closed gate passes, chain each emitted artifact through assemble_video_sequence → Remotion to produce one master MP4 per aspect. Requires `project`; skipped on a BLOCK. Delivery-profile transcodes are resolved but deferred."
+        },
+        "dry_run_encode": {
+          "type": "boolean",
+          "description": "With `encode`, assemble render-props + resolve the encode plan but skip the Remotion spawn (CI/preview)."
         }
       },
       "required": [

@@ -286,6 +286,9 @@ export async function generateVideo(prompt, options = {}) {
  * @param {object} [opts]
  * @param {string} [opts.cwd] - Working directory (defaults to process.cwd()).
  * @param {number} [opts.timeoutMs=600000] - Render timeout.
+ * @param {string} [opts.propsPath] - Encode from this EXISTING props file instead
+ *   of writing a fresh temp. Lets a persisted render-props.json be the encoded
+ *   source of truth (ANI-185) so the on-disk artifact and the MP4 can't drift.
  */
 export async function renderRemotionSequence(props, outputPath, opts = {}) {
   const { execFile } = await import('node:child_process');
@@ -295,11 +298,16 @@ export async function renderRemotionSequence(props, outputPath, opts = {}) {
   const path = await import('node:path');
   const execFileAsync = promisify(execFile);
 
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'animatic-render-'));
-  const propsPath = path.join(tmpDir, 'props.json');
+  // When a persisted props file is supplied, encode directly from it (no temp,
+  // no re-serialize). Otherwise write props to a temp file we own + clean up.
+  const usePersisted = Boolean(opts.propsPath);
+  const tmpDir = usePersisted ? null : fs.mkdtempSync(path.join(os.tmpdir(), 'animatic-render-'));
+  const propsPath = usePersisted ? opts.propsPath : path.join(tmpDir, 'props.json');
 
   try {
-    fs.writeFileSync(propsPath, JSON.stringify(props, null, 2));
+    if (!usePersisted) {
+      fs.writeFileSync(propsPath, JSON.stringify(props, null, 2));
+    }
     await execFileAsync('npx', [
       'remotion', 'render', 'Sequence',
       '--props', propsPath,
@@ -309,6 +317,6 @@ export async function renderRemotionSequence(props, outputPath, opts = {}) {
       timeout: opts.timeoutMs ?? 600_000,
     });
   } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 }

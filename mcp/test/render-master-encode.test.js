@@ -55,6 +55,13 @@ async function emittedT3() {
   return r.master;
 }
 
+/** A passing T4 master — includes the ProRes `master` delivery profile. */
+async function emittedT4() {
+  const r = await renderMaster({ manifest: manifest(), scenes: [scene('sc_a')], tier: 'T4', capture: markerCapture, client: strongClient });
+  assert.equal(r.emitted, true, 'fixture precondition: T4 master emits');
+  return r.master;
+}
+
 function tmpProjectRoot() {
   return mkdtempSync(join(tmpdir(), 'ani185-'));
 }
@@ -227,6 +234,57 @@ describe('encodeMaster (ANI-185)', () => {
       assert.equal(ok.length, 1, 'the other profile still transcoded');
       assert.match(failed[0].error, /boom/);
       assert.ok(transcodeCalls[0].includes('libx264'), 'real transcode args (scale + h264)');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-190] T4 ProRes master writes a .mov container (not .mp4)', async () => {
+    const master = await emittedT4();
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T4' });
+      const calls = [];
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T4',
+        dryRun: false, render: async () => {}, transcodeExec: async (args) => calls.push(args),
+      });
+      const byP = Object.fromEntries(enc.transcodes.map(t => [t.profile, t]));
+      // ProRes must land in .mov — ffmpeg rejects prores_ks in an mp4 container.
+      assert.match(byP['master'].output, /\.mov$/, 'prores master is .mov, not .mp4');
+      assert.equal(byP['master'].deferred, false);
+      assert.equal(byP['master'].encoded, true);
+      const proresCall = calls.find(c => c.join(' ').includes('prores_ks'));
+      assert.ok(proresCall, 'a prores transcode ran');
+      assert.match(proresCall[proresCall.length - 1], /\.mov$/, 'prores output path is the .mov file');
+      // h264 deliverables still land in .mp4
+      assert.match(byP['web-hero'].output, /\.mp4$/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-190] enforces max_size_mb: an over-cap transcode is flagged oversize, not a clean encode', async () => {
+    const master = await emittedT3();
+    // Swap in a tiny-cap profile so a 2 KB output blows the budget deterministically.
+    master.delivery_profiles = [{ slug: 'tiny', resolution: { w: 1920, h: 1080 }, fps: 30, codec: 'h264', crf: 20, preset: 'medium', pixel_format: 'yuv420p', max_size_mb: 0.001, audio: null, captions: { mode: 'sidecar' } }];
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      // The injected runner writes a 0.5 MB file at the output path (last arg) —
+      // comfortably over the 0.001 MB cap.
+      const transcodeExec = async (args) => { writeFileSync(args[args.length - 1], Buffer.alloc(512 * 1024)); };
+      const enc = await encodeMaster({
+        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3',
+        dryRun: false, render: async () => {}, transcodeExec,
+      });
+      const tiny = enc.transcodes.find(t => t.profile === 'tiny');
+      assert.equal(tiny.oversize, true, 'over-cap output is flagged oversize');
+      assert.equal(tiny.deferred, true, 'an over-cap file is NOT a clean deliverable');
+      assert.ok(!tiny.encoded, 'not marked a clean encode');
+      assert.equal(tiny.max_size_mb, 0.001);
+      assert.equal(tiny.size_mb, 0.5, 'reports the measured size');
+      assert.match(tiny.reason, /max_size_mb|2-pass/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

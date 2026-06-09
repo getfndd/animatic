@@ -13,15 +13,15 @@
  *   2. encodeMaster — the opt-in chain: hands each artifact to
  *      assemble_video_sequence → renderRemotionSequence to produce ONE master
  *      MP4 per aspect (the "source of truth for all encodes"). The master's audio
- *      is realized here per the tier's audio_policy (ANI-188/189). Delivery-profile
- *      transcodes are resolved into descriptors but DEFERRED — buildFfmpegArgs
- *      has no runner in this pipeline (the build-args/defer-execution pattern). The
- *      caller invokes encodeMaster only when the fail-closed gate passes (verdict
- *      !== BLOCK); we never encode a BLOCKed master.
+ *      is realized here per the tier's audio_policy (ANI-188/189), then each
+ *      delivery profile is transcoded off its matching-aspect master (ANI-190,
+ *      fail-soft per profile; max_size_mb enforced as a gate). GIF / caption
+ *      burn-in still defer. The caller invokes encodeMaster only when the
+ *      fail-closed gate passes (verdict !== BLOCK); we never encode a BLOCKed master.
  */
 
 import { join } from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, stat } from 'node:fs/promises';
 
 import { assembleVideoSequence } from './video-assembly.js';
 import { renderRemotionSequence } from './video.js';
@@ -216,7 +216,8 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
   for (const profile of master.delivery_profiles || []) {
     const aspect = aspectOf(profile.resolution);
     const source = byRatio.get(aspect) || byRatio.get(master.primary.ratio);
-    const ext = profile.codec === 'gif' ? 'gif' : 'mp4';
+    // Codec-aware container: ProRes must be .mov (ffmpeg rejects prores_ks in mp4).
+    const ext = profile.codec === 'gif' ? 'gif' : profile.codec === 'prores' ? 'mov' : 'mp4';
     const outputRel = join(deliveryDir, `${profile.slug}.${ext}`);
     const rec = {
       profile: profile.slug,
@@ -238,7 +239,18 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
     try {
       await mkdir(join(projectRoot, deliveryDir), { recursive: true });
       await runTranscode(args);
-      transcodes.push({ ...rec, deferred: false, encoded: true });
+
+      // Enforce max_size_mb as a GATE: a single-pass CRF transcode doesn't target
+      // a byte budget, so check the result and refuse to call an over-cap file a
+      // clean deliverable. (Auto-correcting via a 2-pass re-encode is a follow-up.)
+      const cap = profile.max_size_mb;
+      let sizeMb = null;
+      try { sizeMb = (await stat(join(projectRoot, outputRel))).size / (1024 * 1024); } catch { /* no file (e.g. injected exec in tests) — size unverifiable */ }
+      if (cap != null && sizeMb != null && sizeMb > cap) {
+        transcodes.push({ ...rec, deferred: true, oversize: true, size_mb: Math.round(sizeMb * 10) / 10, max_size_mb: cap, reason: `over max_size_mb (${Math.round(sizeMb * 10) / 10}MB > ${cap}MB) — single-pass CRF; 2-pass size targeting is a follow-up` });
+      } else {
+        transcodes.push({ ...rec, deferred: false, encoded: true, ...(sizeMb != null ? { size_mb: Math.round(sizeMb * 10) / 10 } : {}), ...(cap != null ? { max_size_mb: cap } : {}) });
+      }
     } catch (err) {
       // Fail-soft: record the failure, keep going (one bad profile ≠ a dead encode).
       transcodes.push({ ...rec, deferred: true, error: err.message });
@@ -248,6 +260,6 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
   return {
     masters,
     transcodes,
-    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes executed off each aspect master (ANI-190), with gif/caption-burn-in/max-size still deferred.',
+    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes executed off each aspect master (ANI-190, codec-aware container; max_size_mb enforced as a gate), with gif/caption-burn-in still deferred.',
   };
 }

@@ -16,9 +16,8 @@
  *   T1 muted          — no audio track.
  *   T2 muted-autoplay — keep the embedded bed; plays muted on autoplay; no mux.
  *   T3 mix            — duck VO under the bed (aac), captions sidecar, 48 kHz master.
- *   T4 full-mix       — VO + ducked bed, captions, 48 kHz. Sonic cues are RESOLVED
- *                       but DEFERRED — buildDuckedMuxArgs only mixes bed+VO, and a
- *                       timed cue-mix needs a new builder + tests (follow-up).
+ *   T4 full-mix       — VO + ducked bed, captions, 48 kHz, plus brand sonic cues
+ *                       placed on the timeline + mixed in (ANI-189, see sonic-cues.js).
  *
  * Dry-run seam: planning (planVoiceoverClips, caption collection, source resolution)
  * is pure and never calls TTS or ffmpeg; synthesis + mux happen only when realizing.

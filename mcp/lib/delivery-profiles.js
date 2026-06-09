@@ -124,9 +124,10 @@ export function buildFfmpegArgs(profile, inputPattern, outputPath, opts = {}) {
  * not `-c:a copy` — since the 48 kHz master must land at e.g. social-feed's
  * 128 kbps / 44.1 kHz. `audio: null` (or absent) → `-an`.
  *
- * GIF (`codec: 'gif'`) is intentionally NOT handled here — it needs a palettegen
- * pass; `encodeMaster` defers it. Caption burn-in and `max_size_mb` two-pass are
- * likewise out of scope (deferred with reasons).
+ * Caption burn-in is supported via `opts.burnInSubtitles` (ANI-193). GIF
+ * (`codec: 'gif'`) is intentionally NOT handled here — it needs a palettegen pass;
+ * `encodeMaster` defers it. `max_size_mb` 2-pass auto-correction is out of scope
+ * (encodeMaster gates on the result size instead).
  *
  * @param {object} profile - Delivery profile (resolution, fps, codec, crf, …).
  * @param {string} inputPath - The source master MP4.

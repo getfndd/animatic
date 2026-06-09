@@ -15,9 +15,10 @@
  *      MP4 per aspect (the "source of truth for all encodes"). The master's audio
  *      is realized here per the tier's audio_policy (ANI-188/189), then each
  *      delivery profile is transcoded off its matching-aspect master (ANI-190,
- *      fail-soft per profile; max_size_mb enforced as a gate). GIF / caption
- *      burn-in still defer. The caller invokes encodeMaster only when the
- *      fail-closed gate passes (verdict !== BLOCK); we never encode a BLOCKed master.
+ *      fail-soft per profile; max_size_mb enforced as a gate; burn_in profiles
+ *      burn the ANI-193 captions sidecar in). GIF still defers (palettegen). The
+ *      caller invokes encodeMaster only when the fail-closed gate passes
+ *      (verdict !== BLOCK); we never encode a BLOCKed master.
  */
 
 import { join } from 'node:path';
@@ -277,6 +278,6 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
   return {
     masters,
     transcodes,
-    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes executed off each aspect master (ANI-190, codec-aware container; max_size_mb enforced as a gate), with gif/caption-burn-in still deferred.',
+    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes executed off each aspect master (ANI-190, codec-aware container; max_size_mb gate; burn_in captions burned in, ANI-193), with gif still deferred.',
   };
 }

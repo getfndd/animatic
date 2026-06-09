@@ -116,9 +116,15 @@ post-encode pass on top, composing the audio surfaces we already ship (`voiceove
 - **Dry-run seam:** `dry_run_encode` resolves the full audio plan (sources, mux mode, sample rate, caption
   cue count) with **no TTS and no ffmpeg**; synthesis + mux run only on a real encode. Plans/realizes only
   for an **emitted** master.
-- **Sonic cues (T4) are RESOLVED but DEFERRED.** `buildDuckedMuxArgs` mixes only bed + voiceover; timed
-  cue placement (logo sting, transition whoosh) needs a new cue-mix builder + tests — a follow-up. The plan
-  lists the brand's available cues with `realized:false`.
+- **Sonic cues (T4, ANI-189).** `resolveSonicCues` reads `brand.audio.sonic_cues` and places each cue on
+  the timeline at a deterministic anchor — `logo_sting` at the logo/resolve scene start (last closing-
+  signalled scene, else the final scene), `transition_whoosh` at each transition boundary, `ui_click` at
+  each `interaction_truth.has_state_change` scene (labeled `scene_start_state_change` — scene-level, not
+  click-event timing). `buildSonicCueMixArgs` mixes them onto the master on top of the ducked bed+VO; the
+  base is padded to the **full picture duration** so a late cue (e.g. a logo sting in the final scene) is
+  never dropped when narration-only audio ends early. Unset cues are `not_configured` (the normal brand
+  state — most brands ship no `sonic_cues`), distinct from a configured-but-`missing_file` asset; both fail
+  soft. Per-event placement tied to motion timing is a future refinement.
 
 ## Ground truth — four tiers on `examples/product-demo`
 

@@ -16,9 +16,8 @@
  *   T1 muted          — no audio track.
  *   T2 muted-autoplay — keep the embedded bed; plays muted on autoplay; no mux.
  *   T3 mix            — duck VO under the bed (aac), captions sidecar, 48 kHz master.
- *   T4 full-mix       — VO + ducked bed, captions, 48 kHz. Sonic cues are RESOLVED
- *                       but DEFERRED — buildDuckedMuxArgs only mixes bed+VO, and a
- *                       timed cue-mix needs a new builder + tests (follow-up).
+ *   T4 full-mix       — VO + ducked bed, captions, 48 kHz, plus brand sonic cues
+ *                       placed on the timeline + mixed in (ANI-189, see sonic-cues.js).
  *
  * Dry-run seam: planning (planVoiceoverClips, caption collection, source resolution)
  * is pure and never calls TTS or ffmpeg; synthesis + mux happen only when realizing.
@@ -28,7 +27,8 @@ import { join, dirname } from 'node:path';
 import { writeFile, mkdir } from 'node:fs/promises';
 
 import { planVoiceoverClips, prepareVoiceoverTrack, muxVoiceoverIntoRender, renderHasEmbeddedAudio } from './voiceover-mix.js';
-import { buildCaptionsSidecar } from './captions.js';
+import { buildCaptionsSidecar, computeSceneTimeline } from './captions.js';
+import { resolveSonicCues, muxSonicCuesIntoRender } from './sonic-cues.js';
 
 /** The master mix sample rate — archival/source-of-truth; delivery profiles resample. */
 const MASTER_SAMPLE_RATE = 48000;
@@ -129,14 +129,34 @@ export async function realizeAudioPolicy({ artifact, masterMp4Rel, projectRoot, 
 
   const out = { ...base, sample_rate, voiceover, captions };
 
-  // T4 sonic cues — resolved but DEFERRED (no cue-mix builder in this pipeline yet).
+  // T4 sonic cues (ANI-189) — resolve brand cues, place them on the timeline, and
+  // mix them onto the master on top of the ducked bed+VO. The master carries audio
+  // when there is an embedded bed OR a voiceover was muxed in above.
   if (spec.sonic_cues) {
-    out.sonic_cues = {
-      available: Object.keys(brand?.sonic_cues || {}),
-      realized: false,
-      deferred: true,
-      note: 'sonic-cue mixing needs a timed cue-mix builder (buildDuckedMuxArgs only mixes bed+VO) — follow-up.',
-    };
+    const sonic = resolveSonicCues({ brand, manifest: artifact.manifest, sceneDefs: artifact.sceneDefs });
+    const hasBaseAudio = bedEmbedded || voClips.length > 0;
+    if (sonic.placed.length > 0 && !dryRun) {
+      const timeline = computeSceneTimeline(artifact.manifest);
+      const last = timeline[timeline.length - 1];
+      const videoDurationMs = last ? last.start_ms + last.duration_ms : 0;
+      await muxSonicCuesIntoRender({
+        videoPath: join(projectRoot, masterMp4Rel),
+        cues: sonic.placed,
+        videoDurationMs,
+        hasBaseAudio,
+        ...(exec ? { exec } : {}),
+        ...(rename ? { rename } : {}),
+      });
+      out.sonic_cues = { available: sonic.available, placed: sonic.placed, skipped: sonic.skipped, realized: true };
+    } else {
+      out.sonic_cues = {
+        available: sonic.available,
+        placed: sonic.placed,
+        skipped: sonic.skipped,
+        realized: false,
+        ...(sonic.placed.length === 0 ? { reason: 'no cues configured/resolved for this brand' } : {}),
+      };
+    }
   }
 
   return out;

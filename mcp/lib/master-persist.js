@@ -12,11 +12,11 @@
  *
  *   2. encodeMaster — the opt-in chain: hands each artifact to
  *      assemble_video_sequence → renderRemotionSequence to produce ONE master
- *      MP4 per aspect (the "source of truth for all encodes"). Delivery-profile
+ *      MP4 per aspect (the "source of truth for all encodes"). The master's audio
+ *      is realized here per the tier's audio_policy (ANI-188/189). Delivery-profile
  *      transcodes are resolved into descriptors but DEFERRED — buildFfmpegArgs
- *      has no runner in this pipeline (the build-args/defer-execution pattern),
- *      and audio-aware per-profile execution is ANI-188's surface. The caller
- *      invokes encodeMaster only when the fail-closed gate passes (verdict
+ *      has no runner in this pipeline (the build-args/defer-execution pattern). The
+ *      caller invokes encodeMaster only when the fail-closed gate passes (verdict
  *      !== BLOCK); we never encode a BLOCKed master.
  */
 
@@ -225,6 +225,6 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
   return {
     masters,
     transcodes,
-    note: 'One master MP4 per aspect; delivery-profile transcodes resolved but DEFERRED (no ffmpeg runner in this pipeline — audio-aware execution is ANI-188).',
+    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes resolved but DEFERRED (no ffmpeg runner in this pipeline).',
   };
 }

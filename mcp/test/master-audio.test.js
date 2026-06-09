@@ -79,12 +79,14 @@ describe('realizeAudioPolicy — mix/full-mix plans (dry)', () => {
     assert.match(a.captions.reason, /no authored scene\.captions/);
   });
 
-  it('full-mix (T4) resolves sonic cues but DEFERS the mix', async () => {
-    const brand = { sonic_cues: { logo_sting: 'a.wav', transition_whoosh: 'b.wav' } };
-    const a = await realizeAudioPolicy({ artifact: artifact(['sc_a'], { bed: true }), masterMp4Rel: REL, projectRoot: '/tmp/x', policy: 'full-mix', brand, dryRun: true });
-    assert.deepEqual(a.sonic_cues.available.sort(), ['logo_sting', 'transition_whoosh']);
+  it('full-mix (T4) with an unconfigured brand: cues not_configured, nothing realized (ANI-189)', async () => {
+    // No audio.sonic_cues block ⇒ every cue is not_configured (normal brand state,
+    // e.g. mercury) — distinct from a configured path whose file is missing.
+    const a = await realizeAudioPolicy({ artifact: artifact(['sc_a'], { bed: true }), masterMp4Rel: REL, projectRoot: '/tmp/x', policy: 'full-mix', brand: { brand_id: 'mercury' }, dryRun: true });
+    assert.deepEqual(a.sonic_cues.available, []);
+    assert.equal(a.sonic_cues.placed.length, 0);
+    assert.ok(a.sonic_cues.skipped.every(s => s.reason === 'not_configured'), 'unset cues are not_configured, not missing_file');
     assert.equal(a.sonic_cues.realized, false);
-    assert.equal(a.sonic_cues.deferred, true);
     assert.equal(a.sample_rate, 48000);
   });
 });

@@ -107,9 +107,9 @@ Returns a sequence manifest with chosen transitions and camera. Validate it with
 | `score_candidate_video` | Unified 6-dimension score card with per-scene subscores |
 | `revise_candidate_video` | 9 bounded manifest transforms (trim, swap, reorder, etc.) |
 | `compare_candidate_videos` | Rank 2-3 candidates with trade-off analysis |
-| `auto_revise_loop` | Score → revise → re-score → repeat until convergence. `frame_evidence:true` adds a stall-gated rendered hero-frame pass (ANI-180) that drives bounded fixes the JSON loop misses |
+| `auto_revise_loop` | Score → revise → re-score → repeat until convergence. `frame_evidence:true` adds a stall-gated rendered hero-frame pass (ANI-180) that drives bounded fixes the JSON loop misses. `allowed_ops` restricts both phases to a set of revision ops (ANI-186 — render_master passes RETIME_OPS to self-heal re-time-only) |
 | `generate_brief_stub` | Generate structured brief markdown from project context |
-| `render_master` | One Source, Four Masters — resolve+gate+compose a tier master (prototype/directed-html/video/hero-film); fail-closed hero-frame gate on each emitted artifact; renderable `{manifest,sceneDefs,timelines}` for assemble_video_sequence. Opt-in `persist` writes artifacts under `masters/<tier>/` + registers them; `encode` (implies persist) chains assemble→Remotion for one master MP4 per aspect after the gate passes (fail-closed; `dry_run_encode` plans without spawning) — ANI-185 |
+| `render_master` | One Source, Four Masters — resolve+gate+compose a tier master (prototype/directed-html/video/hero-film); fail-closed hero-frame gate on each emitted artifact; renderable `{manifest,sceneDefs,timelines}` for assemble_video_sequence. Opt-in `auto_revise` (ANI-186) runs a bounded RETIME_OPS-constrained frame-evidence pass on a marginal-with-evidence master then re-gates (adopts only a verdict improvement). Opt-in `persist` writes artifacts under `masters/<tier>/` + registers them; `encode` (implies persist) chains assemble→Remotion for one master MP4 per aspect after the gate passes (fail-closed; `dry_run_encode` plans without spawning) — ANI-185 |
 
 **Example — extract a structured brief from raw text:**
 ```json

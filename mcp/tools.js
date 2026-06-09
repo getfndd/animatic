@@ -1709,6 +1709,8 @@ export function buildTools({
           tier: { type: 'string', enum: ['prototype', 'directed-html', 'video', 'hero-film', 'T1', 'T2', 'T3', 'T4'], description: 'Master profile name or tier.' },
           beats: { type: 'object', description: 'Optional beat data (from `analyze_beats`). Enables retime where the profile allows (T2 holds-only; T3/T4 full). Retime is duration-only; re-authoring is rejected.' },
           brand: { type: 'object', description: 'Optional brand package — informs the hero-frame gate.' },
+          auto_revise: { type: 'boolean', description: 'Opt-in (off by default — cost-gated). On a marginal master WITH rendered evidence, run a bounded frame-evidence revise pass constrained to RETIME_OPS (re-time + re-finish only, never re-author), then re-gate; the revision is adopted only if the verdict improves. Skipped on a PASS or a missing-evidence BLOCK.' },
+          auto_revise_max_rounds: { type: 'number', description: 'Round cap for the `auto_revise` pass (default 2).' },
           persist: { type: 'boolean', description: 'Persist each emitted artifact ({manifest, sceneDefs, timelines}) under masters/<tier>/ and register it in project.json. Requires `project`.' },
           encode: { type: 'boolean', description: 'Implies persist. AFTER the fail-closed gate passes, chain each emitted artifact through assemble_video_sequence → Remotion to produce one master MP4 per aspect. Requires `project`; skipped on a BLOCK. Delivery-profile transcodes are resolved but deferred.' },
           dry_run_encode: { type: 'boolean', description: 'With `encode`, assemble render-props + resolve the encode plan but skip the Remotion spawn (CI/preview).' },

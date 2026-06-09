@@ -23,6 +23,7 @@ import { auditHeroFrames } from './hero-frame.js';
 import { compileAllScenes } from './compiler.js';
 import { loadProjectSource, getProject, saveProjectArtifact } from './projects.js';
 import { persistMaster, encodeMaster } from './master-persist.js';
+import { autoReviseLoop } from './scoring.js';
 import { loadPrimitivesCatalog, loadRecipes } from '../data/loader.js';
 
 const VERDICT_RANK = { PASS: 0, WARN: 1, BLOCK: 2 };
@@ -164,6 +165,57 @@ function getCatalogs() {
 }
 
 /**
+ * Compose → compile → gate a source into emitted artifacts at the tier. Pure of
+ * the orchestrator's concerns so it can run twice (once on the source, once on an
+ * auto-revised source, ANI-186) without duplicating the gate logic.
+ *
+ * @returns {Promise<{ composed, artifacts, gate_by_artifact, verdict, emitted, block_reason, missingEvidence }>}
+ */
+async function composeCompileGate({ srcManifest, srcScenes, profile, beats, personality, brand, capture, client, catalogs }) {
+  // Compose (pure).
+  const composed = composeMaster({ manifest: srcManifest, scenes: srcScenes, profile, beats, personality });
+
+  // Build the emitted artifacts and compile their timelines.
+  const artifacts = [
+    { id: 'primary', ratio: srcManifest.format?.aspect_ratio || '16:9', manifest: composed.primary.manifest, sceneDefs: composed.primary.sceneDefs },
+    ...composed.aspect_variants.map(v => ({ id: v.ratio, ratio: v.ratio, manifest: v.manifest, sceneDefs: v.sceneDefs })),
+  ];
+  for (const a of artifacts) {
+    const compiled = compileAllScenes(a.manifest, a.sceneDefs, catalogs, { personality });
+    a.sceneDefs = compiled.sceneDefs;   // compiled (generated layers)
+    a.timelines = compiled.timelines;
+  }
+
+  // Gate EACH emitted artifact at the tier (not the source), with timelines so
+  // the stills reflect what the sequence renderer ships.
+  const gate_by_artifact = [];
+  for (const a of artifacts) {
+    const gate = await auditHeroFrames({
+      manifest: a.manifest, scenes: a.sceneDefs, tier: profile.tier, brand,
+      timelines: a.timelines, capture, client,
+    });
+    gate_by_artifact.push({ artifact: a.id, ratio: a.ratio, verdict: gate.verdict, evidence_summary: gate.evidence_summary, findings: gate.findings, scenes: gate.scenes });
+  }
+
+  // Roll up + classify a BLOCK as missing-evidence vs below-threshold.
+  let verdict = 'PASS';
+  for (const g of gate_by_artifact) if (VERDICT_RANK[g.verdict] > VERDICT_RANK[verdict]) verdict = g.verdict;
+  const emitted = verdict !== 'BLOCK';
+  const missingEvidence = gate_by_artifact.some(g =>
+    (g.evidence_summary?.rendered ?? 0) === 0 ||
+    (g.scenes || []).some(s => (s.unverified || []).length > 0));
+
+  let block_reason = null;
+  if (verdict === 'BLOCK') {
+    block_reason = missingEvidence
+      ? 'unverified: needs rendered frames + a vision judge — set ANTHROPIC_API_KEY and run with the Remotion toolchain (this is a missing-evidence block, not a quality failure)'
+      : 'below_threshold: an emitted artifact scored under the tier hero-frame threshold (see gate_by_artifact for the weak axis)';
+  }
+
+  return { composed, artifacts, gate_by_artifact, verdict, emitted, block_reason, missingEvidence };
+}
+
+/**
  * Resolve + gate + compose a tier master.
  *
  * @param {object} params
@@ -175,13 +227,16 @@ function getCatalogs() {
  * @param {object} [params.brand] - Brand package (informs the gate).
  * @param {function} [params.capture] - Injected still-capture (tests / metadata-only).
  * @param {object} [params.client] - Injected vision client (tests).
+ * @param {boolean} [params.auto_revise] - Opt-in (ANI-186, off by default — cost-gated). On a marginal master WITH rendered evidence, run a bounded frame-evidence revise pass constrained to RETIME_OPS, then re-gate; adopt only if the verdict improves.
+ * @param {number} [params.auto_revise_max_rounds=2] - Round cap for the revise pass.
+ * @param {function} [params.reviseLoop] - Injected autoReviseLoop (tests).
  * @param {boolean} [params.persist] - Write each emitted artifact under masters/<tier>/ and register it. Requires `project`.
  * @param {boolean} [params.encode] - Implies persist. Chain each emitted artifact to assemble_video_sequence → Remotion (one MP4 per aspect), AFTER the fail-closed gate. Requires `project`; skipped on BLOCK.
  * @param {boolean} [params.dry_run_encode] - With `encode`, assemble props + resolve the plan but skip the Remotion spawn.
  * @param {function} [params.encodeRender] - Injected renderer for encodeMaster (tests).
- * @returns {Promise<object>} { profile, tier, verdict, emitted, block_reason, gate_by_artifact, master, persisted?, encode?, notes }
+ * @returns {Promise<object>} { profile, tier, verdict, emitted, block_reason, gate_by_artifact, master, auto_revise?, persisted?, encode?, notes }
  */
-export async function renderMaster({ project, manifest, scenes, tier, beats, brand, capture, client, persist, encode, dry_run_encode, encodeRender } = {}) {
+export async function renderMaster({ project, manifest, scenes, tier, beats, brand, capture, client, auto_revise = false, auto_revise_max_rounds = 2, reviseLoop = autoReviseLoop, persist, encode, dry_run_encode, encodeRender } = {}) {
   const profile = getMasterProfile(tier);
   if (!profile) {
     throw new Error(`Unknown master tier "${tier}". Use one of: prototype/directed-html/video/hero-film or T1–T4.`);
@@ -199,48 +254,61 @@ export async function renderMaster({ project, manifest, scenes, tier, beats, bra
     projectId = loaded.project.slug || project;
   }
   const personality = brand?.personality || srcManifest.personality;
-
-  // 2. Compose (pure).
-  const composed = composeMaster({ manifest: srcManifest, scenes: srcScenes, profile, beats, personality });
-
-  // 3. Build the emitted artifacts and compile their timelines.
   const catalogs = getCatalogs();
-  const artifacts = [
-    { id: 'primary', ratio: srcManifest.format?.aspect_ratio || '16:9', manifest: composed.primary.manifest, sceneDefs: composed.primary.sceneDefs },
-    ...composed.aspect_variants.map(v => ({ id: v.ratio, ratio: v.ratio, manifest: v.manifest, sceneDefs: v.sceneDefs })),
-  ];
-  for (const a of artifacts) {
-    const compiled = compileAllScenes(a.manifest, a.sceneDefs, catalogs, { personality });
-    a.sceneDefs = compiled.sceneDefs;   // compiled (generated layers)
-    a.timelines = compiled.timelines;
+
+  // 2–5. Compose → compile → gate the source.
+  let gated = await composeCompileGate({ srcManifest, srcScenes, profile, beats, personality, brand, capture, client, catalogs });
+
+  // 5b. Auto-revise preflight (ANI-186, opt-in). A marginal master WITH rendered
+  //     evidence runs a bounded frame-evidence revise pass constrained to
+  //     RETIME_OPS — re-time + re-finish only, never re-author — then re-gates.
+  //     Adopted only if the verdict doesn't regress. Skipped on a PASS (nothing
+  //     to fix) or a missing-evidence BLOCK (no frames to revise on).
+  let auto_revise_report = null;
+  if (auto_revise) {
+    if (gated.verdict === 'PASS') {
+      auto_revise_report = { ran: false, reason: 'gate already PASS — nothing to revise' };
+    } else if (gated.missingEvidence) {
+      auto_revise_report = { ran: false, reason: 'missing rendered evidence — auto_revise needs rendered frames to revise on' };
+    } else {
+      const sourceOrder = sceneOrder(srcManifest);
+      const scenesArray = Array.isArray(srcScenes) ? srcScenes : Object.values(srcScenes);
+      const loop = await reviseLoop({
+        manifest: srcManifest, scenes: scenesArray, brand,
+        frame_evidence: true, frame_tier: profile.tier, allowed_ops: RETIME_OPS,
+        max_rounds: auto_revise_max_rounds, capture, client,
+      });
+      // Belt-and-suspenders honesty assertion: RETIME_OPS can't reorder, but a
+      // master must never emit a re-authored scene set/order.
+      assertNoReauthor(sourceOrder, loop.manifest, 'auto_revise');
+
+      const reGated = await composeCompileGate({ srcManifest: loop.manifest, srcScenes: loop.scenes, profile, beats, personality, brand, capture, client, catalogs });
+      // Adopt only on a strict verdict improvement — an equal verdict means the
+      // retime didn't move the gate, so keep the original (don't churn the master).
+      const adopted = VERDICT_RANK[reGated.verdict] < VERDICT_RANK[gated.verdict];
+      auto_revise_report = {
+        ran: true,
+        before_verdict: gated.verdict,
+        after_verdict: reGated.verdict,
+        adopted,
+        total_revisions: loop.total_revisions,
+        ops_allowed: RETIME_OPS,
+        ops_filtered: loop.ops_filtered ?? 0,
+        frame_passes: loop.frame_passes ?? 0,
+        estimated_render_seconds: loop.estimated_render_seconds ?? 0,
+      };
+      if (adopted) {
+        gated = reGated;
+        srcManifest = loop.manifest;
+        srcScenes = loop.scenes;
+      }
+    }
   }
 
-  // 4. Gate EACH emitted artifact at the tier (not the source), with timelines so
-  //    the stills reflect what the sequence renderer ships.
-  const gate_by_artifact = [];
-  for (const a of artifacts) {
-    const gate = await auditHeroFrames({
-      manifest: a.manifest, scenes: a.sceneDefs, tier: profile.tier, brand,
-      timelines: a.timelines, capture, client,
-    });
-    gate_by_artifact.push({ artifact: a.id, ratio: a.ratio, verdict: gate.verdict, evidence_summary: gate.evidence_summary, findings: gate.findings, scenes: gate.scenes });
-  }
-
-  // 5. Roll up + explicit BLOCK reason.
-  let verdict = 'PASS';
-  for (const g of gate_by_artifact) if (VERDICT_RANK[g.verdict] > VERDICT_RANK[verdict]) verdict = g.verdict;
-  const emitted = verdict !== 'BLOCK';
-
-  let block_reason = null;
-  if (verdict === 'BLOCK') {
-    // Distinguish "no rendered/vision evidence" from "quality below threshold".
-    const anyUnverified = gate_by_artifact.some(g =>
-      (g.evidence_summary?.rendered ?? 0) === 0 ||
-      (g.scenes || []).some(s => (s.unverified || []).length > 0));
-    block_reason = anyUnverified
-      ? 'unverified: needs rendered frames + a vision judge — set ANTHROPIC_API_KEY and run with the Remotion toolchain (this is a missing-evidence block, not a quality failure)'
-      : 'below_threshold: an emitted artifact scored under the tier hero-frame threshold (see gate_by_artifact for the weak axis)';
-  }
+  const composed = gated.composed;
+  const artifacts = gated.artifacts;
+  const gate_by_artifact = gated.gate_by_artifact;
+  const { verdict, emitted, block_reason } = gated;
 
   // 6. Emit (in-memory renderable artifacts; hand to assemble_video_sequence to encode).
   const master = {
@@ -258,7 +326,8 @@ export async function renderMaster({ project, manifest, scenes, tier, beats, bra
 
   // 7. Durable persistence + one-button encode (ANI-185, opt-in). Both require a
   //    project to write under. Encode implies persist and is fail-closed: a
-  //    BLOCKed master is persisted (for inspection) but never encoded.
+  //    BLOCKed master is persisted (for inspection) but never encoded. Runs after
+  //    the auto-revise preflight, so it persists/encodes the adopted master.
   let persisted = null;
   let encodeResult = null;
   if (persist || encode) {
@@ -293,6 +362,11 @@ export async function renderMaster({ project, manifest, scenes, tier, beats, bra
   }
 
   const notes = [`Encode via assemble_video_sequence with each artifact's { manifest, sceneDefs, timelines }.`];
+  if (auto_revise_report?.ran) {
+    notes.push(`Auto-revise (frame-evidence, RETIME_OPS): ${auto_revise_report.before_verdict} → ${auto_revise_report.after_verdict}${auto_revise_report.adopted ? ' (adopted)' : ' (kept original — no improvement)'}; ~${auto_revise_report.estimated_render_seconds}s of stills across ${auto_revise_report.frame_passes} frame pass(es).`);
+  } else if (auto_revise_report) {
+    notes.push(`Auto-revise skipped: ${auto_revise_report.reason}.`);
+  }
   if (persisted) notes.push(`Persisted master to ${persisted.index}.`);
   if (encodeResult?.note) notes.push(encodeResult.note);
 
@@ -304,6 +378,7 @@ export async function renderMaster({ project, manifest, scenes, tier, beats, bra
     block_reason,
     gate_by_artifact,
     master: emitted ? master : { ...master, note: 'not emitted — gate BLOCK; plan returned for inspection only' },
+    auto_revise: auto_revise_report,
     persisted,
     encode: encodeResult,
     retime_ops_allowed: RETIME_OPS,

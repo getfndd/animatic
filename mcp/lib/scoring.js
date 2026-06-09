@@ -714,29 +714,46 @@ function computeDensity(manifest, scenes) {
  * sync loop — the frame-only fields (`source`, `frame_evidence`, `advisories`,
  * `frame_passes`, `estimated_render_seconds`) are added only when the flag is on.
  */
-export async function autoReviseLoop({ manifest, scenes, style, brand, audio_beats, max_rounds = 3, min_improvement = 0.01, frame_evidence = false, frame_tier = 'T3', capture, client }) {
+export async function autoReviseLoop({ manifest, scenes, style, brand, audio_beats, max_rounds = 3, min_improvement = 0.01, frame_evidence = false, frame_tier = 'T3', allowed_ops = null, capture, client }) {
   const currentManifest = JSON.parse(JSON.stringify(manifest));
   const currentScenes = JSON.parse(JSON.stringify(scenes));
   const initialCard = scoreCandidateVideo({ manifest: currentManifest, scenes: currentScenes, style, brand, audio_beats });
   const scoreBefore = initialCard.overall;
 
   // frame_evidence:false runs the original JSON-only loop verbatim, so its output
-  // is byte-identical to the pre-ANI-180 sync loop.
+  // is byte-identical to the pre-ANI-180 sync loop (when allowed_ops is unset).
   if (!frame_evidence) {
-    return jsonOnlyLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, scoreBefore });
+    return jsonOnlyLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, allowed_ops, scoreBefore });
   }
-  return frameAwareLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, frame_tier, capture, client, scoreBefore });
+  return frameAwareLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, frame_tier, allowed_ops, capture, client, scoreBefore });
+}
+
+/**
+ * Restrict a revision list to an allowed op set, returning the kept revisions and
+ * the ops that were filtered out. `allowed_ops == null` ⇒ no restriction (every
+ * op kept), preserving the pre-ANI-186 behavior exactly. render_master passes
+ * RETIME_OPS so a master self-heals re-time-only (the honesty contract).
+ */
+function restrictOps(revisions, allowed_ops) {
+  if (!allowed_ops) return { kept: revisions, filtered: [] };
+  const kept = [];
+  const filtered = [];
+  for (const r of revisions) (allowed_ops.includes(r.op) ? kept : filtered).push(r);
+  return { kept, filtered };
 }
 
 /** The original JSON/structural loop — unchanged output shape (no frame fields). */
-function jsonOnlyLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, scoreBefore }) {
+function jsonOnlyLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, allowed_ops, scoreBefore }) {
   let currentScore = scoreBefore;
   const rounds = [];
   let totalRevisions = 0;
+  let opsFiltered = 0;
 
   for (let round = 1; round <= max_rounds; round++) {
     const card = scoreCandidateVideo({ manifest: currentManifest, scenes: currentScenes, style, brand, audio_beats });
-    const targeted = card.recommended_revisions.filter(r => r.target || r.from_scene);
+    const restricted = restrictOps(card.recommended_revisions.filter(r => r.target || r.from_scene), allowed_ops);
+    opsFiltered += restricted.filtered.length;
+    const targeted = restricted.kept;
 
     if (targeted.length === 0) {
       rounds.push({ round, revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'no_revisions' });
@@ -782,6 +799,9 @@ function jsonOnlyLoop({ currentManifest, currentScenes, style, brand, audio_beat
     improvement: Math.round((currentScore - scoreBefore) * 1000) / 1000,
     rounds,
     total_revisions: totalRevisions,
+    // Only present when an op restriction was in force — keeps the default
+    // output byte-identical to the pre-ANI-186 loop.
+    ...(allowed_ops ? { ops_allowed: allowed_ops, ops_filtered: opsFiltered } : {}),
   };
 }
 
@@ -793,10 +813,11 @@ function jsonOnlyLoop({ currentManifest, currentScenes, style, brand, audio_beat
  * explicit `frameTriedSinceChange` state guard stops an unproductive pass from
  * re-rendering every iteration.
  */
-async function frameAwareLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, frame_tier, capture, client, scoreBefore }) {
+async function frameAwareLoop({ currentManifest, currentScenes, style, brand, audio_beats, max_rounds, min_improvement, frame_tier, allowed_ops, capture, client, scoreBefore }) {
   let currentScore = scoreBefore;
   const rounds = [];
   let totalRevisions = 0;
+  let opsFiltered = 0;
   const appliedOps = new Set();
   let frameTriedSinceChange = false;
   let framePasses = 0;
@@ -834,6 +855,7 @@ async function frameAwareLoop({ currentManifest, currentScenes, style, brand, au
     total_revisions: totalRevisions,
     frame_passes: framePasses,
     estimated_render_seconds: Math.round(estimatedRenderSeconds * 10) / 10,
+    ...(allowed_ops ? { ops_allowed: allowed_ops, ops_filtered: opsFiltered } : {}),
   });
 
   while (true) {
@@ -842,7 +864,9 @@ async function frameAwareLoop({ currentManifest, currentScenes, style, brand, au
     let stallReason = null; // 'converged' | 'no_targeted' | 'budget'
     if (jsonRounds < max_rounds) {
       const card = score(currentManifest, currentScenes);
-      const targeted = card.recommended_revisions.filter(r => r.target || r.from_scene);
+      const restricted = restrictOps(card.recommended_revisions.filter(r => r.target || r.from_scene), allowed_ops);
+      opsFiltered += restricted.filtered.length;
+      const targeted = restricted.kept;
       if (targeted.length === 0) {
         stalled = true; stallReason = 'no_targeted';
       } else {
@@ -876,7 +900,9 @@ async function frameAwareLoop({ currentManifest, currentScenes, style, brand, au
     framePasses++;
     estimatedRenderSeconds += fp.estimated_render_seconds;
 
-    const fbatch = fp.revisions.slice(0, 3);
+    const fpRestricted = restrictOps(fp.revisions, allowed_ops);
+    opsFiltered += fpRestricted.filtered.length;
+    const fbatch = fpRestricted.kept.slice(0, 3);
     if (fbatch.length === 0) {
       // Frame pass found no bounded transform (advisories only or nothing) → stop.
       const info = { round: roundLabel, source: 'frame', revisions: 0, score_before: currentScore, score_after: currentScore, delta: 0, stopped: 'no_revisions', frame_evidence: fp.frame_evidence };

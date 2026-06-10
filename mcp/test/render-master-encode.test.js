@@ -275,27 +275,61 @@ describe('encodeMaster (ANI-185)', () => {
     }
   });
 
-  it('[ANI-190] enforces max_size_mb: an over-cap transcode is flagged oversize, not a clean encode', async () => {
+  it('[ANI-196] max_size_mb: gives up cleanly (oversize+deferred) when CRF bumps cannot fit', async () => {
     const master = await emittedT3();
-    // Swap in a tiny-cap profile so a 2 KB output blows the budget deterministically.
     master.delivery_profiles = [{ slug: 'tiny', resolution: { w: 1920, h: 1080 }, fps: 30, codec: 'h264', crf: 20, preset: 'medium', pixel_format: 'yuv420p', max_size_mb: 0.001, audio: null, captions: { mode: 'sidecar' } }];
     const root = tmpProjectRoot();
     try {
       const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
-      // The injected runner writes a 0.5 MB file at the output path (last arg) —
-      // comfortably over the 0.001 MB cap.
+      // Always 0.5 MB regardless of CRF → the bump loop can't fit the 0.001 cap.
       const transcodeExec = async (args) => { writeFileSync(args[args.length - 1], Buffer.alloc(512 * 1024)); };
-      const enc = await encodeMaster({
-        master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3',
-        dryRun: false, render: async () => {}, transcodeExec,
-      });
+      const enc = await encodeMaster({ master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3', dryRun: false, render: async () => {}, transcodeExec });
       const tiny = enc.transcodes.find(t => t.profile === 'tiny');
-      assert.equal(tiny.oversize, true, 'over-cap output is flagged oversize');
-      assert.equal(tiny.deferred, true, 'an over-cap file is NOT a clean deliverable');
-      assert.ok(!tiny.encoded, 'not marked a clean encode');
-      assert.equal(tiny.max_size_mb, 0.001);
-      assert.equal(tiny.size_mb, 0.5, 'reports the measured size');
-      assert.match(tiny.reason, /max_size_mb|2-pass/);
+      assert.equal(tiny.oversize, true);
+      assert.equal(tiny.deferred, true);
+      assert.ok(!tiny.encoded, 'not a clean encode');
+      assert.equal(tiny.size_attempts, 3, 'exhausted the CRF-bump budget');
+      assert.match(tiny.reason, /CRF bump|cannot fit/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-196] max_size_mb: an over-cap h264 deliverable shrinks under the cap via CRF bumps', async () => {
+    const master = await emittedT3();
+    master.delivery_profiles = [{ slug: 'tight', resolution: { w: 1920, h: 1080 }, fps: 30, codec: 'h264', crf: 20, preset: 'medium', pixel_format: 'yuv420p', max_size_mb: 0.4, audio: null, captions: { mode: 'sidecar' } }];
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      // Size shrinks with CRF: 10/crf MB. crf20→0.5 (over), 24→0.417 (over), 28→0.357 (fits 0.4).
+      const transcodeExec = async (args) => {
+        const crf = Number(args[args.indexOf('-crf') + 1]);
+        writeFileSync(args[args.length - 1], Buffer.alloc(Math.round((10 / crf) * 1024 * 1024)));
+      };
+      const enc = await encodeMaster({ master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3', dryRun: false, render: async () => {}, transcodeExec });
+      const tight = enc.transcodes.find(t => t.profile === 'tight');
+      assert.equal(tight.encoded, true, 'fits after correction');
+      assert.equal(tight.deferred, false);
+      assert.equal(tight.size_corrected, true);
+      assert.equal(tight.size_attempts, 2, 'two CRF bumps to fit');
+      assert.equal(tight.crf_final, 28, 'final crf 20 → 24 → 28');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('[ANI-196] GIF over-cap is NOT CRF-corrected (no CRF lever) — stays oversize', async () => {
+    const master = await emittedT3();
+    master.delivery_profiles = [getDeliveryProfile('email-gif')]; // gif, cap 2 MB
+    const root = tmpProjectRoot();
+    try {
+      const persisted = await persistMaster({ master, verdict: 'PASS', projectRoot: root, tier: 'T3' });
+      // pass 1 (palettegen) and pass 2 (paletteuse → the .gif). Make the GIF 3 MB.
+      const transcodeExec = async (args) => { if (args[args.length - 1].endsWith('.gif')) writeFileSync(args[args.length - 1], Buffer.alloc(3 * 1024 * 1024)); };
+      const enc = await encodeMaster({ master, persistedArtifacts: persisted.artifacts, projectRoot: root, tier: 'T3', dryRun: false, render: async () => {}, transcodeExec });
+      const gif = enc.transcodes.find(t => t.profile === 'email-gif');
+      assert.equal(gif.oversize, true);
+      assert.ok(gif.size_attempts == null, 'no CRF-bump loop for GIF');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

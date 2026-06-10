@@ -30,6 +30,10 @@ import { renderRemotionSequence } from './video.js';
 import { realizeAudioPolicy } from './master-audio.js';
 import { buildTranscodeArgs, buildGifPaletteArgs, buildGifEncodeArgs } from './delivery-profiles.js';
 
+/** Bounded CRF-bump budget for max_size_mb auto-correction (ANI-196). */
+const SIZE_MAX_ATTEMPTS = 3;
+const SIZE_CRF_STEP = 4;
+
 /** Default ffmpeg runner for delivery transcodes (injectable in tests). */
 async function runFfmpeg(args) {
   const { execFile } = await import('node:child_process');
@@ -295,16 +299,27 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
       await mkdir(join(projectRoot, deliveryDir), { recursive: true });
       for (const pass of runList) await runTranscode(pass);
 
-      // Enforce max_size_mb as a GATE: a single-pass CRF (or a GIF) doesn't target
-      // a byte budget, so check the result and refuse to call an over-cap file a
-      // clean deliverable. (Auto-correcting size is a follow-up.)
+      // max_size_mb: stat the result; an over-cap h264 deliverable AUTO-CORRECTS
+      // via a bounded CRF-bump loop (ANI-196) — re-encode smaller until it fits.
+      // GIF (no CRF) / ProRes (uncapped) keep the plain gate (flag oversize).
       const cap = profile.max_size_mb;
-      let sizeMb = null;
-      try { sizeMb = (await stat(outAbs)).size / (1024 * 1024); } catch { /* no file (e.g. injected exec in tests) — size unverifiable */ }
+      const statMb = async () => { try { return (await stat(outAbs)).size / (1024 * 1024); } catch { return null; } };
+      let sizeMb = await statMb();
+      let sizeAttempts = 0;
+      let crf = profile.crf;
+      if (cap != null && sizeMb != null && sizeMb > cap && profile.codec === 'h264' && crf != null) {
+        while (sizeMb > cap && sizeAttempts < SIZE_MAX_ATTEMPTS) {
+          crf += SIZE_CRF_STEP;
+          sizeAttempts++;
+          await runTranscode(buildTranscodeArgs(profile, srcAbs, outAbs, { ...(burnIn ? { burnInSubtitles: burnIn } : {}), crf }));
+          sizeMb = await statMb();
+        }
+      }
+      const round1 = (n) => Math.round(n * 10) / 10;
       if (cap != null && sizeMb != null && sizeMb > cap) {
-        transcodes.push({ ...rec, deferred: true, oversize: true, size_mb: Math.round(sizeMb * 10) / 10, max_size_mb: cap, reason: `over max_size_mb (${Math.round(sizeMb * 10) / 10}MB > ${cap}MB) — single-pass; size targeting is a follow-up` });
+        transcodes.push({ ...rec, deferred: true, oversize: true, size_mb: round1(sizeMb), max_size_mb: cap, ...(sizeAttempts ? { size_attempts: sizeAttempts } : {}), reason: `over max_size_mb (${round1(sizeMb)}MB > ${cap}MB)${sizeAttempts ? ` after ${sizeAttempts} CRF bump(s)` : ''} — cannot fit with quality reduction alone` });
       } else {
-        transcodes.push({ ...rec, deferred: false, encoded: true, ...(burnIn ? { captions_burned: true } : {}), ...(sizeMb != null ? { size_mb: Math.round(sizeMb * 10) / 10 } : {}), ...(cap != null ? { max_size_mb: cap } : {}) });
+        transcodes.push({ ...rec, deferred: false, encoded: true, ...(burnIn ? { captions_burned: true } : {}), ...(sizeAttempts ? { size_corrected: true, crf_final: crf, size_attempts: sizeAttempts } : {}), ...(sizeMb != null ? { size_mb: round1(sizeMb) } : {}), ...(cap != null ? { max_size_mb: cap } : {}) });
       }
     } catch (err) {
       // Fail-soft: record the failure, keep going (one bad profile ≠ a dead encode).
@@ -315,6 +330,6 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
   return {
     masters,
     transcodes,
-    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes executed off each aspect master (ANI-190, codec-aware container; max_size_mb gate; burn_in captions burned in ANI-193/195; GIF 2-pass palettegen ANI-194). 2-pass size auto-correction remains a follow-up.',
+    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes executed off each aspect master (ANI-190, codec-aware container; max_size_mb gate with h264 CRF auto-correction ANI-196; burn_in captions burned in ANI-193/195; GIF 2-pass palettegen ANI-194).',
   };
 }

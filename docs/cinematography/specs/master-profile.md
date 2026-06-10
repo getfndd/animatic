@@ -99,9 +99,13 @@ close the loop to a one-call master:
   is a follow-up. **Caption burn-in (ANI-193)** — `burn_in` profiles (social-feed/story-reel) burn the
   ANI-188 VTT sidecar into the picture via ffmpeg's `subtitles` filter (after scale, so captions sit at
   delivery resolution); a profile with no sidecar (no authored `scene.captions`) stays deferred. Requires
-  an ffmpeg built with **libass** — absent it, the burn-in transcode fails soft with a libass hint.
-  Dry-run resolves the per-profile command without spawning ffmpeg. Still deferred: **GIF** (`email-gif` —
-  needs a palettegen pass), recorded with a reason.
+  an ffmpeg built with **libass** — a one-shot capability probe (ANI-195) **cleanly defers** burn-in when
+  the `subtitles` filter is absent (rather than a doomed transcode). **GIF (ANI-194)** — `email-gif` runs
+  the canonical 2-pass palettegen path (`buildGifPaletteArgs` → `buildGifEncodeArgs`, no audio), so every
+  delivery codec is now real. (No master tier *emits* `email-gif` in its delivery set yet — the capability
+  is ready for a tier or caller to opt in.) Dry-run resolves each per-profile command (both GIF passes)
+  without spawning ffmpeg. Remaining follow-up: 2-pass `max_size_mb` auto-correction (over-cap is gated, not
+  yet auto-shrunk).
 
 ## Audio realization (ANI-188)
 

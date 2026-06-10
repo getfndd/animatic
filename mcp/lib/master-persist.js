@@ -16,8 +16,9 @@
  *      is realized here per the tier's audio_policy (ANI-188/189), then each
  *      delivery profile is transcoded off its matching-aspect master (ANI-190,
  *      fail-soft per profile; max_size_mb enforced as a gate; burn_in profiles
- *      burn the ANI-193 captions sidecar in). GIF still defers (palettegen). The
- *      caller invokes encodeMaster only when the fail-closed gate passes
+ *      burn the ANI-193 captions sidecar in, gated on libass capability ANI-195;
+ *      GIF is a 2-pass palettegen ANI-194). The caller invokes encodeMaster only
+ *      when the fail-closed gate passes
  *      (verdict !== BLOCK); we never encode a BLOCKed master.
  */
 
@@ -27,13 +28,34 @@ import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { assembleVideoSequence } from './video-assembly.js';
 import { renderRemotionSequence } from './video.js';
 import { realizeAudioPolicy } from './master-audio.js';
-import { buildTranscodeArgs } from './delivery-profiles.js';
+import { buildTranscodeArgs, buildGifPaletteArgs, buildGifEncodeArgs } from './delivery-profiles.js';
 
 /** Default ffmpeg runner for delivery transcodes (injectable in tests). */
 async function runFfmpeg(args) {
   const { execFile } = await import('node:child_process');
   const { promisify } = await import('node:util');
   await promisify(execFile)('ffmpeg', args, { timeout: 600_000 });
+}
+
+/**
+ * Resolve whether ffmpeg can burn in subtitles (libass). Returns a memoized async
+ * getter: an injected `capabilities.subtitles` short-circuits the probe (tests);
+ * otherwise a one-shot `ffmpeg -filters` check, cached for the call (ANI-195).
+ */
+function makeSubtitlesCapability(capabilities) {
+  let cached = capabilities?.subtitles; // boolean (injected) or undefined
+  return async () => {
+    if (cached != null) return cached;
+    try {
+      const { execFile } = await import('node:child_process');
+      const { promisify } = await import('node:util');
+      const { stdout } = await promisify(execFile)('ffmpeg', ['-hide_banner', '-filters'], { timeout: 8_000 });
+      cached = /(^|\s)subtitles(\s|$)/m.test(stdout);
+    } catch {
+      cached = false;
+    }
+    return cached;
+  };
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -143,7 +165,7 @@ export async function persistMaster({ master, verdict, gateByArtifact = [], proj
  * @param {function} [params.render=renderRemotionSequence] - injectable renderer (tests).
  * @returns {Promise<{ masters: Array, transcodes: Array, note: string }>}
  */
-export async function encodeMaster({ master, persistedArtifacts, projectRoot, tier, dryRun = false, render = renderRemotionSequence, brand, audioExec, audioRename, transcodeExec }) {
+export async function encodeMaster({ master, persistedArtifacts, projectRoot, tier, dryRun = false, render = renderRemotionSequence, brand, audioExec, audioRename, transcodeExec, capabilities }) {
   // [P1] render_routes is an ARRAY of { scene_id, render_target, ... };
   // assemble_video_sequence wants a scene_id→route MAP (routes[sceneId]).
   // Passing the array would miss every lookup and silently fall back to
@@ -208,11 +230,12 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
 
   // Per delivery profile: transcode the matching-aspect master down to the
   // profile's target (ANI-190 — "render once, deliver many"). Fail-soft per
-  // profile (one failure never aborts the rest). GIF / caption burn-in / max-size
-  // still defer (need a palettegen / subtitles / 2-pass path).
+  // profile (one failure never aborts the rest). GIF is a 2-pass palettegen
+  // (ANI-194); caption burn-in needs libass (ANI-193/195); max_size_mb is gated.
   const byRatio = new Map(masters.map(m => [m.ratio, m]));
   const deliveryDir = join('masters', tier, 'delivery');
   const runTranscode = transcodeExec || runFfmpeg;
+  const hasSubtitles = makeSubtitlesCapability(capabilities);
   const transcodes = [];
   for (const profile of master.delivery_profiles || []) {
     const aspect = aspectOf(profile.resolution);
@@ -220,6 +243,8 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
     // Codec-aware container: ProRes must be .mov (ffmpeg rejects prores_ks in mp4).
     const ext = profile.codec === 'gif' ? 'gif' : profile.codec === 'prores' ? 'mov' : 'mp4';
     const outputRel = join(deliveryDir, `${profile.slug}.${ext}`);
+    const srcAbs = source?.output ? join(projectRoot, source.output) : null;
+    const outAbs = join(projectRoot, outputRel);
     const rec = {
       profile: profile.slug,
       aspect,
@@ -228,56 +253,68 @@ export async function encodeMaster({ master, persistedArtifacts, projectRoot, ti
       output: outputRel,
     };
 
-    // GIF still defers (needs a palettegen pass this runner doesn't cover).
-    if (profile.codec === 'gif') { transcodes.push({ ...rec, deferred: true, reason: 'gif needs a palettegen pass — deferred' }); continue; }
     if (!source?.output) { transcodes.push({ ...rec, deferred: true, reason: 'no matching-aspect master to transcode from' }); continue; }
 
-    // Caption burn-in (ANI-193): burn the matching-aspect master's captions
-    // sidecar (written by the audio pass, ANI-188) into the picture. No sidecar
-    // (no authored scene.captions) → keep deferred rather than ship blank burn-in.
+    // Build the run-list (one or more ffmpeg passes) for this profile.
+    let runList;        // Array<string[]> — passes to run in order
     let burnIn = null;
-    if (profile.captions?.mode === 'burn_in') {
-      // Key on the sidecar's EXISTENCE (`path`, set whenever the audio pass found
-      // caption cues), NOT `written` — in a dry-run the pass reports written:false
-      // but the sidecar still gets written at a real encode, so keying on `written`
-      // would wrongly defer the burn-in and skip planning its command.
-      const sidecar = source?.audio?.captions?.path || null;
-      if (!sidecar) { transcodes.push({ ...rec, deferred: true, reason: 'burn_in: no captions sidecar (no authored scene.captions)' }); continue; }
-      burnIn = join(projectRoot, sidecar);
+    if (profile.codec === 'gif') {
+      // 2-pass palettegen GIF (ANI-194). No audio (animated GIF can't carry it).
+      const paletteAbs = join(projectRoot, deliveryDir, `${profile.slug}.palette.png`);
+      runList = [
+        buildGifPaletteArgs(profile, srcAbs, paletteAbs),
+        buildGifEncodeArgs(profile, srcAbs, paletteAbs, outAbs),
+      ];
+    } else {
+      // Caption burn-in (ANI-193): burn the matching-aspect master's captions
+      // sidecar (written by the audio pass, ANI-188) into the picture. Key on the
+      // sidecar's EXISTENCE (`path`, set whenever the audio pass found cues), NOT
+      // `written` — written is false in a dry-run but the sidecar still exists at
+      // a real encode. No sidecar → defer rather than ship blank burn-in.
+      if (profile.captions?.mode === 'burn_in') {
+        const sidecar = source?.audio?.captions?.path || null;
+        if (!sidecar) { transcodes.push({ ...rec, deferred: true, reason: 'burn_in: no captions sidecar (no authored scene.captions)' }); continue; }
+        // libass gate (ANI-195): only at a real encode — defer cleanly when the
+        // subtitles filter is unavailable rather than attempting a doomed pass.
+        if (!dryRun && !(await hasSubtitles())) {
+          transcodes.push({ ...rec, deferred: true, reason: 'ffmpeg lacks libass (subtitles filter) — burn-in unavailable' });
+          continue;
+        }
+        burnIn = join(projectRoot, sidecar);
+      }
+      runList = [buildTranscodeArgs(profile, srcAbs, outAbs, burnIn ? { burnInSubtitles: burnIn } : {})];
     }
 
-    const args = buildTranscodeArgs(profile, join(projectRoot, source.output), join(projectRoot, outputRel), burnIn ? { burnInSubtitles: burnIn } : {});
-    if (dryRun) { transcodes.push({ ...rec, deferred: true, command: args }); continue; }
+    if (dryRun) {
+      transcodes.push({ ...rec, deferred: true, ...(runList.length > 1 ? { commands: runList } : { command: runList[0] }) });
+      continue;
+    }
     if (!source.encoded) { transcodes.push({ ...rec, deferred: true, reason: 'source master not encoded — nothing to transcode' }); continue; }
 
     try {
       await mkdir(join(projectRoot, deliveryDir), { recursive: true });
-      await runTranscode(args);
+      for (const pass of runList) await runTranscode(pass);
 
-      // Enforce max_size_mb as a GATE: a single-pass CRF transcode doesn't target
+      // Enforce max_size_mb as a GATE: a single-pass CRF (or a GIF) doesn't target
       // a byte budget, so check the result and refuse to call an over-cap file a
-      // clean deliverable. (Auto-correcting via a 2-pass re-encode is a follow-up.)
+      // clean deliverable. (Auto-correcting size is a follow-up.)
       const cap = profile.max_size_mb;
       let sizeMb = null;
-      try { sizeMb = (await stat(join(projectRoot, outputRel))).size / (1024 * 1024); } catch { /* no file (e.g. injected exec in tests) — size unverifiable */ }
+      try { sizeMb = (await stat(outAbs)).size / (1024 * 1024); } catch { /* no file (e.g. injected exec in tests) — size unverifiable */ }
       if (cap != null && sizeMb != null && sizeMb > cap) {
-        transcodes.push({ ...rec, deferred: true, oversize: true, size_mb: Math.round(sizeMb * 10) / 10, max_size_mb: cap, reason: `over max_size_mb (${Math.round(sizeMb * 10) / 10}MB > ${cap}MB) — single-pass CRF; 2-pass size targeting is a follow-up` });
+        transcodes.push({ ...rec, deferred: true, oversize: true, size_mb: Math.round(sizeMb * 10) / 10, max_size_mb: cap, reason: `over max_size_mb (${Math.round(sizeMb * 10) / 10}MB > ${cap}MB) — single-pass; size targeting is a follow-up` });
       } else {
         transcodes.push({ ...rec, deferred: false, encoded: true, ...(burnIn ? { captions_burned: true } : {}), ...(sizeMb != null ? { size_mb: Math.round(sizeMb * 10) / 10 } : {}), ...(cap != null ? { max_size_mb: cap } : {}) });
       }
     } catch (err) {
       // Fail-soft: record the failure, keep going (one bad profile ≠ a dead encode).
-      // A burn-in failure on a filtergraph/subtitles error almost always means the
-      // ffmpeg build lacks libass — say so rather than surfacing a cryptic parse error.
-      const libassHint = burnIn && /filterchain|subtitles|No such filter/i.test(err.message)
-        ? ' (caption burn-in needs an ffmpeg built with libass)' : '';
-      transcodes.push({ ...rec, deferred: true, error: err.message + libassHint });
+      transcodes.push({ ...rec, deferred: true, error: err.message });
     }
   }
 
   return {
     masters,
     transcodes,
-    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes executed off each aspect master (ANI-190, codec-aware container; max_size_mb gate; burn_in captions burned in, ANI-193), with gif still deferred.',
+    note: 'One master MP4 per aspect (audio realized per audio_policy, ANI-188/189); delivery-profile transcodes executed off each aspect master (ANI-190, codec-aware container; max_size_mb gate; burn_in captions burned in ANI-193/195; GIF 2-pass palettegen ANI-194). 2-pass size auto-correction remains a follow-up.',
   };
 }

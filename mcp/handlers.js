@@ -12,7 +12,7 @@
  * reflected here transparently. Zero logic change from the pre-extraction code.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { loadBenchmarks, readBreakdown, readReferenceDoc, listReferenceDocs } from './data/loader.js';
@@ -59,8 +59,8 @@ import { scoreCandidateVideo, autoReviseLoop, DEFAULT_WEIGHTS as SCORE_WEIGHTS }
 import { reviseCandidateVideo, REVISION_OPS } from './lib/revision.js';
 import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
-import { fetchNode as fetchFigmaNode, fetchFileTree, fetchComments } from './lib/figma/client.js';
-import { frameToScene } from './lib/figma/frame-to-scene.js';
+import { fetchNode as fetchFigmaNode, fetchFileTree, fetchComments, fetchImageFills, downloadBinary, sniffImage } from './lib/figma/client.js';
+import { frameToScene, collectImageFills } from './lib/figma/frame-to-scene.js';
 import { buildStoryboardExportPayload, renderStoryboardPanels } from './lib/figma/storyboard-export.js';
 import { auditVideoAccessibility } from './lib/video-a11y.js';
 import { verifyExportAgainstTree, mapCommentsToScenes } from './lib/figma/figma-roundtrip.js';
@@ -1143,10 +1143,21 @@ export async function handleImportFigmaComments(args) {
 }
 
 export async function handleFigmaFrameToScene(args) {
-  const { file_key, node_id, personality, duration_s } = args;
+  const { file_key, node_id, personality, duration_s, export_images, project } = args;
   try {
     const fetched = await fetchFigmaNode(file_key, node_id);
-    const result = frameToScene(fetched, { personality, duration_s });
+
+    let imageAssets;
+    let exportSummary;
+    if (export_images) {
+      ({ imageAssets, exportSummary } = await exportFigmaImageFills(fetched, { file_key, project }));
+    }
+
+    const result = frameToScene(fetched, { personality, duration_s, imageAssets });
+    if (exportSummary) {
+      result.report.exported_assets = exportSummary.exported;
+      if (exportSummary.skipped.length) result.report.skipped_assets = exportSummary.skipped;
+    }
     return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     return {
@@ -1154,6 +1165,70 @@ export async function handleFigmaFrameToScene(args) {
       isError: true,
     };
   }
+}
+
+/**
+ * Export the frame's image fills as real assets (ANI-175): resolve each
+ * `imageRef` to a download URL via the image-fill endpoint, download the raw
+ * fill bytes, sniff format + dims, optionally persist to the project's assets
+ * dir, and return the `imageAssets` map `frameToScene` embeds as data-URIs.
+ *
+ * @returns {Promise<{ imageAssets: object, exportSummary: { exported, skipped } }>}
+ */
+async function exportFigmaImageFills(fetched, { file_key, project }) {
+  // Collect per visible direct child at depth 0 — matches nodeToHtml's depth
+  // origin so nested fills aren't missed (and the frame root isn't double-counted).
+  const children = (fetched.document?.children || []).filter(c => c.visible !== false);
+  const fills = children.flatMap(c => collectImageFills(c, 0));
+
+  const imageAssets = {};
+  const exported = [];
+  const skipped = [];
+  if (fills.length === 0) return { imageAssets, exportSummary: { exported, skipped } };
+
+  const { images } = await fetchImageFills(file_key);
+
+  // Resolve the project's assets dir once (only when persisting to disk).
+  let assetsDir = null;
+  if (project) {
+    const proj = await getProject({ project });
+    if (!proj) throw new Error(`Project not found: ${project}`);
+    assetsDir = join(proj.project_root, 'brief/references/assets');
+    mkdirSync(assetsDir, { recursive: true });
+  }
+
+  // Download + sniff + (optionally) persist each UNIQUE imageRef once; reuse
+  // the resulting data-URI across every node that references the same fill.
+  const byRef = new Map();
+  for (const ref of new Set(fills.map(f => f.imageRef))) {
+    const url = images[ref];
+    if (!url) { skipped.push({ image_ref: ref, reason: 'no fill URL returned by Figma' }); continue; }
+    try {
+      const { buffer, bytes, contentType } = await downloadBinary(url);
+      const sniff = sniffImage(buffer, contentType);
+      if (!sniff.ok) { skipped.push({ image_ref: ref, reason: sniff.reason }); continue; }
+      const dataUri = `data:${sniff.mime};base64,${buffer.toString('base64')}`;
+      let assetPath = null;
+      if (assetsDir) {
+        const fileName = `figma_${ref.replace(/[^a-zA-Z0-9_-]/g, '-')}.${sniff.ext}`;
+        writeFileSync(join(assetsDir, fileName), buffer);
+        assetPath = `assets/${fileName}`;
+      }
+      const record = { dataUri, assetPath, width: sniff.width, height: sniff.height, bytes, mime: sniff.mime };
+      byRef.set(ref, record);
+      exported.push({ image_ref: ref, path: assetPath, bytes, mime: sniff.mime, width: sniff.width, height: sniff.height });
+    } catch (err) {
+      skipped.push({ image_ref: ref, reason: err.message });
+    }
+  }
+
+  // Map node id → its fill's data-URI record for the converter.
+  for (const { nodeId, imageRef } of fills) {
+    const record = byRef.get(imageRef);
+    if (record) imageAssets[nodeId] = record;
+  }
+
+  return { imageAssets, exportSummary: { exported, skipped } };
 }
 
 export function handleAnalyzeScene(args) {

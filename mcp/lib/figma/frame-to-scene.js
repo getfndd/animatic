@@ -79,6 +79,129 @@ function hasImageFill(node) {
   return (node.fills || []).some(f => f.visible !== false && f.type === 'IMAGE');
 }
 
+/**
+ * The first visible image fill paint on a node, normalized to the fields the
+ * exporter needs, or null. `scaleMode`/`imageTransform` drive the CSS the fill
+ * renders with (see `fillImgHtml`).
+ */
+export function imageFillPaint(node) {
+  const fill = (node.fills || []).find(f => f.visible !== false && f.type === 'IMAGE');
+  if (!fill) return null;
+  return {
+    imageRef: fill.imageRef || null,
+    scaleMode: fill.scaleMode || 'FILL',
+    imageTransform: fill.imageTransform || null,
+    rotation: fill.rotation || 0,
+    scalingFactor: fill.scalingFactor,
+  };
+}
+
+/**
+ * Collect `{ nodeId, imageRef }` for every visible image-fill node in a
+ * subtree, mirroring `nodeToHtml`'s visibility + depth-6 cutoff so we only
+ * gather fills that actually render. CALL PER DIRECT CHILD at depth 0 — that's
+ * the depth origin `nodeToHtml(child)` uses, so collecting from the frame root
+ * would be off by one and miss fills 6 levels into a child (ANI-175).
+ */
+export function collectImageFills(node, depth = 0) {
+  if (!node || node.visible === false || depth > 6) return [];
+  const out = [];
+  const paint = imageFillPaint(node);
+  if (paint?.imageRef) out.push({ nodeId: node.id, imageRef: paint.imageRef });
+  for (const child of node.children || []) out.push(...collectImageFills(child, depth + 1));
+  return out;
+}
+
+/**
+ * Translate a Figma CROP `imageTransform` into CSS for an inner `<img>`.
+ *
+ * Figma's `imageTransform` is a normalized 2×3 affine `[[a,b,tx],[c,d,ty]]`
+ * mapping container-space [0..1]² → the image sample point. To *render* the
+ * image we apply its inverse (image → container). The convention is
+ * reverse-engineered (Figma doesn't document it and its own SVG export is
+ * buggy here) — the rendered-pixel test pins the mechanism.
+ *
+ * Returns one of:
+ *  - { mode:'panzoom', widthPct, heightPct, leftPct, topPct } — pure pan/zoom
+ *    (no rotation/shear); exact, needs no pixel box, `object-fit:fill`.
+ *  - { mode:'matrix', css } — rotation/shear; needs the node box to conjugate
+ *    the normalized linear part into pixel space.
+ *  - null — non-invertible, a flip, or rotation/shear with no known box →
+ *    caller degrades to cover + advisory.
+ */
+export function cropFillCss(imageTransform, boxW, boxH) {
+  const m = imageTransform;
+  if (!Array.isArray(m) || m.length < 2 || !Array.isArray(m[0]) || !Array.isArray(m[1])) return null;
+  const [a, b, tx] = m[0];
+  const [c, d, ty] = m[1];
+  const det = a * d - b * c;
+  if (!Number.isFinite(det) || Math.abs(det) < 1e-9) return null;
+  // Affine inverse (image → container), normalized.
+  const A = d / det, B = -b / det, C = -c / det, D = a / det;
+  const Tx = -(A * tx + B * ty);
+  const Ty = -(C * tx + D * ty);
+
+  const diagonal = Math.abs(B) < 1e-6 && Math.abs(C) < 1e-6;
+  if (diagonal) {
+    if (A <= 0 || D <= 0) return null; // flips aren't a fill-crop DOF — degrade honestly
+    return {
+      mode: 'panzoom',
+      widthPct: round4(100 * A),
+      heightPct: round4(100 * D),
+      leftPct: round4(100 * Tx),
+      topPct: round4(100 * Ty),
+    };
+  }
+  // Rotation / shear: conjugate the linear part by S=diag(W,H) into pixel space.
+  if (!boxW || !boxH) return null;
+  const bpx = round4(B * boxH / boxW);
+  const cpx = round4(C * boxW / boxH);
+  // CSS matrix(a,b,c,d,e,f): x'=a·x+c·y+e, y'=b·x+d·y+f.
+  return { mode: 'matrix', css: `matrix(${round4(A)},${cpx},${bpx},${round4(D)},${round4(Tx * boxW)},${round4(Ty * boxH)})` };
+}
+
+const round4 = (n) => (Math.round(n * 1e4) / 1e4) || 0; // `|| 0` collapses -0 → 0
+
+/**
+ * Build the inner fill element for a node whose image fill was exported.
+ * Rendered as an absolutely-positioned `<img>` (not `background-image`) so a
+ * faithful CROP `transform` is possible. The caller places this BEHIND the
+ * node's real children (z-index:0 vs the children's z-index:1 wrapper) inside
+ * a `position:relative;overflow:hidden` node — no double-render (ANI-175).
+ *
+ * @param {object} node
+ * @param {{ dataUri: string, assetPath?: string }} asset
+ * @param {string[]} advisories - degradation messages are pushed here
+ */
+function fillImgHtml(node, asset, advisories = []) {
+  const paint = imageFillPaint(node) || {};
+  const mode = String(paint.scaleMode || 'FILL').toUpperCase();
+  const base = 'position:absolute;z-index:0';
+
+  if (mode === 'TILE') {
+    // A single <img> can't repeat — a tiled background is the faithful path.
+    return `<div data-image-fill-asset style="${base};inset:0;background-image:url(${asset.dataUri});background-repeat:repeat;background-position:top left"></div>`;
+  }
+
+  let style;
+  if (mode === 'CROP') {
+    const box = node.absoluteBoundingBox || {};
+    const crop = cropFillCss(paint.imageTransform, box.width, box.height);
+    if (!crop) {
+      advisories.push(`${node.id}: CROP imageTransform unsupported (flip/shear/rotation or unknown dims) — fell back to cover`);
+      style = `${base};inset:0;width:100%;height:100%;object-fit:cover`;
+    } else if (crop.mode === 'panzoom') {
+      style = `${base};left:${crop.leftPct}%;top:${crop.topPct}%;width:${crop.widthPct}%;height:${crop.heightPct}%;object-fit:fill`;
+    } else {
+      style = `${base};inset:0;width:100%;height:100%;object-fit:fill;transform-origin:0 0;transform:${crop.css}`;
+    }
+  } else {
+    const fit = mode === 'FIT' ? 'contain' : mode === 'STRETCH' ? 'fill' : 'cover';
+    style = `${base};inset:0;width:100%;height:100%;object-fit:${fit}`;
+  }
+  return `<img data-image-fill-asset alt="" src="${asset.dataUri}" style="${style}" />`;
+}
+
 /** Map a Figma TEXT node's style to inline CSS. */
 function textStyleToCss(node) {
   const s = node.style || {};
@@ -134,7 +257,7 @@ function esc(text) {
  *   - childless non-text nodes with a fill get explicit px dimensions from
  *     their bounding box, so they hold their shape inside flex parents
  */
-function nodeToHtml(node, depth = 0) {
+function nodeToHtml(node, depth = 0, ctx = {}) {
   if (node.visible === false) return '';
   if (depth > 6) return '';
 
@@ -146,6 +269,11 @@ function nodeToHtml(node, depth = 0) {
     return `<div style="${[...rootStyles, textStyleToCss(node)].join(';')}">${esc(node.characters)}</div>`;
   }
 
+  // An exported image fill (ANI-175): the node renders a real `<img>` behind
+  // its children. Otherwise an image fill stays the dark placeholder.
+  const fillAsset = hasImageFill(node) ? ctx.imageAssets?.[node.id] : null;
+  const renderFill = Boolean(fillAsset?.dataUri);
+
   const styles = [...rootStyles];
   const layout = autoLayoutToCss(node);
   if (layout) styles.push(layout);
@@ -153,7 +281,15 @@ function nodeToHtml(node, depth = 0) {
   if (bg && node.type !== 'TEXT') styles.push(`background:${bg}`);
   if (node.cornerRadius) styles.push(`border-radius:${Math.round(node.cornerRadius)}px`);
   if (hasImageFill(node)) {
-    styles.push('background:#222');
+    if (renderFill) {
+      // Clip the absolutely-positioned fill `<img>` and establish a containing
+      // block + stacking context. The depth-0 root is already `position:absolute`
+      // (its own containing block) — only nested nodes need `position:relative`.
+      if (depth > 0) styles.push('position:relative');
+      styles.push('overflow:hidden');
+    } else {
+      styles.push('background:#222');
+    }
   }
 
   const hasChildren = (node.children || []).some(c => c.visible !== false);
@@ -166,16 +302,27 @@ function nodeToHtml(node, depth = 0) {
   }
 
   const children = (node.children || [])
-    .map(child => nodeToHtml(child, depth + 1))
+    .map(child => nodeToHtml(child, depth + 1, ctx))
     .filter(Boolean)
     .join('');
+
+  // The fill paints at z-index:0; real children ride above in a z-index:1
+  // wrapper so positioned/transformed descendants can't slip behind the fill.
+  let inner = children;
+  if (renderFill) {
+    const fillEl = fillImgHtml(node, fillAsset, ctx.advisories);
+    inner = children
+      ? `${fillEl}<div style="position:relative;z-index:1">${children}</div>`
+      : fillEl;
+  }
 
   const attrs = [
     `data-figma-node="${esc(node.id)}"`,
     hasImageFill(node) ? 'data-image-fill="true"' : null,
+    renderFill && fillAsset.assetPath ? `data-asset-path="${esc(fillAsset.assetPath)}"` : null,
   ].filter(Boolean).join(' ');
 
-  return `<div ${attrs} style="${styles.join(';')}">${children}</div>`;
+  return `<div ${attrs} style="${styles.join(';')}">${inner}</div>`;
 }
 
 // ── Geometry → layout constraints ──────────────────────────────────────────
@@ -284,6 +431,9 @@ export function frameToScene(input, options = {}) {
   const components = [];
   const inferences = [];
   const palette = new Set();
+  // Exported image fills (ANI-175) + any CROP degradations collected while
+  // walking the tree. Empty/no-op when `options.imageAssets` is absent.
+  const ctx = { imageAssets: options.imageAssets || {}, advisories: [] };
 
   const frameBg = solidFill(frame);
   if (frameBg) palette.add(frameBg);
@@ -297,7 +447,7 @@ export function frameToScene(input, options = {}) {
     });
 
     const id = `${sem.role}_${slug(child.name, `layer_${i}`)}`;
-    const html = nodeToHtml(child);
+    const html = nodeToHtml(child, 0, ctx);
     if (!html) return;
 
     const color = solidFill(child);
@@ -380,9 +530,13 @@ export function frameToScene(input, options = {}) {
       components: inferences,
       auto_layout_frames: children.filter(c => c.layoutMode && c.layoutMode !== 'NONE').length,
       image_fills: children.filter(hasImageFill).length,
+      rendered_image_fills: Object.keys(ctx.imageAssets).length,
       palette: [...palette],
-      advisory: inferences.filter(i => i.confidence < 0.5).map(i =>
-        `${i.layer}: low-confidence inference (${i.confidence}) — review inferred_type/${i.inferred_type}`),
+      advisory: [
+        ...inferences.filter(i => i.confidence < 0.5).map(i =>
+          `${i.layer}: low-confidence inference (${i.confidence}) — review inferred_type/${i.inferred_type}`),
+        ...ctx.advisories,
+      ],
     },
   };
 }

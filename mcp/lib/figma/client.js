@@ -209,3 +209,116 @@ export async function fetchNode(fileKeyOrUrl, nodeId, opts = {}) {
   }
   return { file_key: fileKey, node_id: id, name: body.name || null, document: entry.document };
 }
+
+/**
+ * Fetch the file's image-fill download URLs (ANI-175). Returns the
+ * `imageRef → url` map from the "Get Image Fills" endpoint — the RAW fill
+ * paint per `node.fills[].imageRef`, NOT a render of any node's subtree (so
+ * a fill can back a node whose children still render on top, no duplication).
+ *
+ * The URLs are time-limited S3 links — download them immediately (see
+ * `downloadBinary`) and never persist the URL itself.
+ *
+ * @param {string} fileKeyOrUrl
+ * @param {object} [opts] - { fetchImpl, env }
+ * @returns {Promise<{ file_key: string, images: Record<string, string> }>}
+ */
+export async function fetchImageFills(fileKeyOrUrl, opts = {}) {
+  const fileKey = extractFileKey(fileKeyOrUrl);
+  if (!fileKey) throw new Error(`Cannot extract a Figma file key from "${fileKeyOrUrl}".`);
+  const body = await figmaGet(`/files/${encodeURIComponent(fileKey)}/images`, opts);
+  return { file_key: fileKey, images: body?.meta?.images || {} };
+}
+
+/**
+ * Download a binary asset from a (time-limited) URL. Deliberately NOT
+ * `figmaGet`: image-fill URLs are presigned S3 links — they must not carry the
+ * `X-Figma-Token` header and aren't under `api.figma.com`. Retries transient
+ * 429/5xx with the same backoff policy as the API client.
+ *
+ * @param {string} url
+ * @param {object} [opts] - { fetchImpl }
+ * @returns {Promise<{ buffer: Buffer, bytes: number, contentType: string|null }>}
+ */
+export async function downloadBinary(url, opts = {}) {
+  const doFetch = opts.fetchImpl ?? fetch;
+  let lastError = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await doFetch(url, { signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS) });
+      if (!res.ok) {
+        const err = new Error(`Asset download HTTP ${res.status} for ${String(url).slice(0, 120)}`);
+        if (res.status === 429 || res.status >= 500) {
+          lastError = err;
+          if (attempt < MAX_ATTEMPTS) { await sleep(BACKOFF_BASE_MS * 2 ** (attempt - 1)); continue; }
+        }
+        throw err;
+      }
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const contentType = res.headers?.get?.('content-type') ?? null;
+      return { buffer, bytes: buffer.length, contentType };
+    } catch (err) {
+      if (err.message?.startsWith('Asset download HTTP')) throw err;
+      lastError = err;
+      if (attempt < MAX_ATTEMPTS) { await sleep(BACKOFF_BASE_MS * 2 ** (attempt - 1)); continue; }
+    }
+  }
+  throw new Error(`Asset download failed after ${MAX_ATTEMPTS} attempts: ${lastError?.message || 'unknown error'}`);
+}
+
+/**
+ * Detect an image's format and intrinsic dimensions from its bytes (ANI-175).
+ * Figma image-fill URLs return the ORIGINAL uploaded asset — commonly JPEG,
+ * not PNG — so the extension/mime must come from the bytes, never a hardcoded
+ * `.png`. Dimensions are parsed for PNG (IHDR) and JPEG (SOFn markers), which
+ * cover effectively all real fills; GIF/WebP are recognized for the correct
+ * extension but may return null dims (→ CROP degrades, see frame-to-scene).
+ *
+ * @param {Buffer} buffer
+ * @param {string|null} [contentType] - download Content-Type, used only as a tiebreaker
+ * @returns {{ ok: true, ext: string, mime: string, width: number|null, height: number|null }
+ *           | { ok: false, reason: string }}
+ */
+export function sniffImage(buffer, contentType = null) {
+  const b = buffer;
+  if (!b || b.length < 12) return { ok: false, reason: 'not an image (too small)' };
+
+  // PNG: 89 50 4E 47 0D 0A 1A 0A, then IHDR with width/height at bytes 16-24.
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
+    return { ok: true, ext: 'png', mime: 'image/png', width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
+  }
+  // GIF: "GIF8" — logical screen descriptor (LE) at bytes 6-10.
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38) {
+    return { ok: true, ext: 'gif', mime: 'image/gif', width: b.readUInt16LE(6), height: b.readUInt16LE(8) };
+  }
+  // WebP: "RIFF"...."WEBP". Dims vary by VP8/VP8L/VP8X subchunk — leave null.
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+      b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) {
+    return { ok: true, ext: 'webp', mime: 'image/webp', width: null, height: null };
+  }
+  // JPEG: FF D8 ... walk segments to the SOFn marker for dimensions.
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    const dims = jpegDimensions(b);
+    return { ok: true, ext: 'jpg', mime: 'image/jpeg', width: dims?.width ?? null, height: dims?.height ?? null };
+  }
+  return { ok: false, reason: `unrecognized image format${contentType ? ` (content-type ${contentType})` : ''}` };
+}
+
+/** Walk JPEG segments to the first SOF marker and read frame height/width. */
+function jpegDimensions(b) {
+  let i = 2;
+  while (i < b.length - 8) {
+    if (b[i] !== 0xff) { i += 1; continue; }
+    const marker = b[i + 1];
+    // SOF0..SOF15 carry frame dims, excluding DHT(C4)/DAC(CC)/RSTn markers.
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      return { height: b.readUInt16BE(i + 5), width: b.readUInt16BE(i + 7) };
+    }
+    // Standalone markers (no length): RSTn (D0-D7), SOI(D8), EOI(D9), TEM(01).
+    if ((marker >= 0xd0 && marker <= 0xd9) || marker === 0x01) { i += 2; continue; }
+    const len = b.readUInt16BE(i + 2);
+    if (len < 2) return null;
+    i += 2 + len;
+  }
+  return null;
+}

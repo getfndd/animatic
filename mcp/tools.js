@@ -221,7 +221,7 @@ export function buildTools({
     {
       name: 'figma_frame_to_scene',
       description:
-        'Convert a Figma frame into an Animatic v3 semantic scene (ANI-114). Fetches the node tree via the Figma REST API (requires FIGMA_TOKEN in the server environment), maps direct children to semantic components with real HTML layers (auto-layout → flexbox, text typography preserved), infers component types/roles from layer names + structure with confidence scores, extracts a brand palette, and emits a conservative staggered-entrance choreography with a reactive camera. Returns { scene, report } — the report lists per-layer inferences and low-confidence advisories to review.',
+        'Convert a Figma frame into an Animatic v3 semantic scene (ANI-114). Fetches the node tree via the Figma REST API (requires FIGMA_TOKEN in the server environment), maps direct children to semantic components with real HTML layers (auto-layout → flexbox, text typography preserved), infers component types/roles from layer names + structure with confidence scores, extracts a brand palette, and emits a conservative staggered-entrance choreography with a reactive camera. Set export_images to download real image-fill bitmaps and embed them as data-URIs (ANI-175) — by default image fills stay dark placeholders. Returns { scene, report } — the report lists per-layer inferences, low-confidence advisories, and (when export_images) exported/skipped assets.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -240,6 +240,14 @@ export function buildTools({
           duration_s: {
             type: 'number',
             description: 'Scene duration in seconds. Default: 4.',
+          },
+          export_images: {
+            type: 'boolean',
+            description: 'Download image-fill bitmaps (raw fill paint) and embed them as data-URIs in the layer HTML, faithfully reproducing scaleMode (FILL/FIT/CROP/TILE) including pan/zoom crops. Default false — when off, image fills render as dark placeholders and the tool writes nothing.',
+          },
+          project: {
+            type: 'string',
+            description: 'Optional project slug or path. When set with export_images, exported bitmaps are also persisted (in their native format) to the project\'s brief/references/assets/ for provenance.',
           },
         },
         required: ['file_key', 'node_id'],

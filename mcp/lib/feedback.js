@@ -103,7 +103,10 @@ export async function recordRenderFeedback({ project, verdict, render, dimension
     if (n.verdict != null && !VERDICTS.includes(n.verdict)) {
       throw new Error(`dimension_notes.${dim}.verdict must be one of ${VERDICTS.join('/')}, got ${JSON.stringify(n.verdict)}.`);
     }
-    notes[dim] = n;
+    // A dimension note with no explicit verdict inherits the overall verdict —
+    // so the natural call `verdict:'down', dimension_notes:{clarity:'confusing'}`
+    // records clarity as a down-note (and actually counts in recalibration).
+    notes[dim] = { verdict: n.verdict ?? verdict, ...(n.note != null ? { note: n.note } : {}) };
   }
 
   const entry = {
@@ -198,9 +201,12 @@ export async function recalibrateScoringWeights({ minEvidence = DEFAULT_MIN_EVID
   for (const e of entries) {
     for (const [dim, n] of Object.entries(e.dimension_notes || {})) {
       if (!SCORE_DIMENSIONS.includes(dim)) continue;
-      if (n?.verdict === 'down') {
-        downEvidence[dim].push({ project: e.project, render_ref: e.render_ref, note: n.note || null, recorded_at: e.recorded_at });
-      } else if (n?.verdict === 'up') {
+      // A note's verdict falls back to the entry's overall verdict — covers
+      // bare-string notes and any legacy/seeded entry that omitted it.
+      const dv = n?.verdict ?? e.verdict;
+      if (dv === 'down') {
+        downEvidence[dim].push({ project: e.project, render_ref: e.render_ref, note: n?.note || null, recorded_at: e.recorded_at });
+      } else if (dv === 'up') {
         summary.up_notes_by_dimension[dim] = (summary.up_notes_by_dimension[dim] || 0) + 1;
       }
     }
@@ -227,26 +233,28 @@ export async function recalibrateScoringWeights({ minEvidence = DEFAULT_MIN_EVID
   const proposed = {};
   for (const dim of SCORE_DIMENSIONS) proposed[dim] = raw[dim] / sum;
 
-  const adjustments = SCORE_DIMENSIONS
-    .map(dim => {
-      const delta = proposed[dim] - current[dim];
-      const d = downEvidence[dim].length;
-      return {
-        dimension: dim,
-        from: round4(current[dim]),
-        to: round4(proposed[dim]),
-        delta: round4(delta),
-        down_notes: d,
-        reason: d > 0 ? 'up-weighted by down-notes' : 'renormalized to make room',
-        evidence: downEvidence[dim],
-      };
-    })
-    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  // Two distinct lists so the "every adjustment cites evidence" contract holds
+  // literally: `adjustments` are the down-note-driven up-weights (each with its
+  // citing entries); `renormalized` are the proportional reductions that absorb
+  // them (no evidence — they moved only to keep the weights summing to 1.0).
+  const adjustments = [];
+  const renormalized = [];
+  for (const dim of SCORE_DIMENSIONS) {
+    const delta = round4(proposed[dim] - current[dim]);
+    const row = { dimension: dim, from: round4(current[dim]), to: round4(proposed[dim]), delta };
+    if (downEvidence[dim].length > 0) {
+      adjustments.push({ ...row, down_notes: downEvidence[dim].length, evidence: downEvidence[dim] });
+    } else if (Math.abs(delta) > 1e-6) {
+      renormalized.push({ ...row, reason: 'reduced proportionally to make room' });
+    }
+  }
+  adjustments.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  renormalized.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-  summary.dimensions_moved = adjustments.filter(a => Math.abs(a.delta) > 1e-6).length;
+  summary.dimensions_moved = adjustments.length + renormalized.length;
 
   return {
-    proposal: { current_weights: current, proposed_weights: proposed, sample_size: totalDownNotes, adjustments },
+    proposal: { current_weights: current, proposed_weights: proposed, sample_size: totalDownNotes, adjustments, renormalized },
     summary,
   };
 }

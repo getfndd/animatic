@@ -57,6 +57,7 @@ describe('recordRenderFeedback (ANI-120)', () => {
       assert.equal(e.manifest_snapshot.sequence_id, 'seq_tmp');
       assert.equal(e.dimension_notes.clarity.verdict, 'down');
       assert.equal(e.dimension_notes.hook.note, 'weak open'); // bare-string note normalized
+      assert.equal(e.dimension_notes.hook.verdict, 'down');   // bare note inherits overall verdict (P1)
       // pointer registered in project.json
       const proj = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf-8'));
       assert.equal(proj.review.feedback, 'review/feedback.json');
@@ -146,13 +147,22 @@ describe('recalibrateScoringWeights (ANI-120)', () => {
     assert.deepEqual(clarity.evidence.map(e => e.project).sort(), ['p1', 'p2', 'p3']);
     assert.equal(clarity.evidence[0].note, 'confusing');
 
-    // an unflagged dimension drops (renormalization only) with no evidence
-    const brand = proposal.adjustments.find(a => a.dimension === 'brand_finish');
-    assert.ok(brand.delta < 0 && brand.evidence.length === 0);
+    // adjustments cite evidence by construction; renormalized reductions are separate (P2)
+    assert.ok(proposal.adjustments.every(a => a.evidence.length > 0), 'every adjustment must cite evidence');
+    const brand = proposal.renormalized.find(r => r.dimension === 'brand_finish');
+    assert.ok(brand && brand.delta < 0, 'unflagged dimension reduced via renormalization list');
 
     // clamp respected: clarity factor ≤ 1.4 → to ≤ from*1.4 before renorm; sanity upper bound
     assert.ok(clarity.to <= 0.2 * 1.4 + 1e-9);
     assert.equal(summary.down_notes_by_dimension.clarity, 3);
+  });
+
+  it('counts dimension notes that omit a verdict by inheriting the entry verdict (P1)', async () => {
+    const bare = (project) => ({ project, verdict: 'down', render_ref: { path: `${project}.mp4`, role: 'latest' }, recorded_at: '2026-06-17T00:00:00Z', dimension_notes: { clarity: { note: 'confusing' } } });
+    const { proposal, summary } = await recalibrateScoringWeights({ feedback: [bare('p1'), bare('p2'), bare('p3')] });
+    assert.ok(proposal, 'verdict-less notes on a down render should count');
+    assert.equal(summary.down_notes_by_dimension.clarity, 3);
+    assert.equal(proposal.adjustments.find(a => a.dimension === 'clarity').down_notes, 3);
   });
 
   it('fails closed with no proposal when evidence is thin (the {}-input repro)', async () => {

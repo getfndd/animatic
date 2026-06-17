@@ -2687,11 +2687,17 @@ function renderRecalibration(result) {
     return `${lines.join('\n')}\n\n${JSON.stringify(result, null, 2)}`;
   }
   lines.push(`\nProposed weight changes (${summary.dimensions_moved} dimension(s) moved, from ${proposal.sample_size} down-note(s)):`);
+  lines.push(`\nUp-weighted by human down-notes:`);
   for (const a of proposal.adjustments) {
-    const arrow = a.delta > 0 ? '↑' : a.delta < 0 ? '↓' : '→';
-    lines.push(`\n  ${arrow} ${a.dimension}: ${a.from} → ${a.to} (${a.delta >= 0 ? '+' : ''}${a.delta}) — ${a.reason}`);
+    lines.push(`\n  ↑ ${a.dimension}: ${a.from} → ${a.to} (+${a.delta}) — ${a.down_notes} down-note(s)`);
     for (const ev of a.evidence) {
       lines.push(`      • ${ev.project} [${ev.render_ref?.role || 'render'}]${ev.note ? `: "${ev.note}"` : ''} (${ev.recorded_at})`);
+    }
+  }
+  if (proposal.renormalized.length) {
+    lines.push(`\nReduced proportionally to make room (renormalization, no evidence):`);
+    for (const r of proposal.renormalized) {
+      lines.push(`  ↓ ${r.dimension}: ${r.from} → ${r.to} (${r.delta})`);
     }
   }
   lines.push('\nProposal only — apply by passing `proposed_weights` to score_candidate_video. Nothing was changed.');

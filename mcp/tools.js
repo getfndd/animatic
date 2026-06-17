@@ -877,7 +877,7 @@ export function buildTools({
           render: { type: 'string', description: 'Optional explicit render path (relative to project root). Defaults to the approved → latest → master render.' },
           dimension_notes: {
             type: 'object',
-            description: 'Optional per-dimension notes keyed by scoring dimension. Each value is { verdict?: "up"|"down", note?: string } (or a bare note string). Down-verdicts are what drive recalibration.',
+            description: 'Optional per-dimension notes keyed by scoring dimension. Each value is { verdict?: "up"|"down", note?: string } (or a bare note string). A note with no explicit verdict inherits the overall verdict — so a "down" render with a note on `clarity` counts clarity as a down-note. Down-notes are what drive recalibration.',
           },
         },
         required: ['project', 'verdict'],

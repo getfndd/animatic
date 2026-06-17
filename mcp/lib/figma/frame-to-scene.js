@@ -123,11 +123,16 @@ export function collectImageFills(node, depth = 0) {
  *
  * Returns one of:
  *  - { mode:'panzoom', widthPct, heightPct, leftPct, topPct } — pure pan/zoom
- *    (no rotation/shear); exact, needs no pixel box, `object-fit:fill`.
- *  - { mode:'matrix', css } — rotation/shear; needs the node box to conjugate
- *    the normalized linear part into pixel space.
- *  - null — non-invertible, a flip, or rotation/shear with no known box →
- *    caller degrades to cover + advisory.
+ *    (diagonal, positive scales); exact, needs no pixel box, `object-fit:fill`.
+ *  - { mode:'matrix', css } — a 90° multiple (or axis flip): the linear part is
+ *    diagonal or anti-diagonal. Needs the node box to conjugate the normalized
+ *    linear part into pixel space.
+ *  - null — non-invertible, OR genuine shear / non-90° rotation (the linear part
+ *    has both diagonal AND anti-diagonal components), OR a matrix case with no
+ *    known box. The caller degrades to cover + advisory. We deliberately refuse
+ *    shear/arbitrary rotation: those aren't a Figma image-fill DOF and the
+ *    matrix→CSS convention is reverse-engineered — better an honest cover than a
+ *    confidently-wrong crop.
  */
 export function cropFillCss(imageTransform, boxW, boxH) {
   const m = imageTransform;
@@ -141,9 +146,12 @@ export function cropFillCss(imageTransform, boxW, boxH) {
   const Tx = -(A * tx + B * ty);
   const Ty = -(C * tx + D * ty);
 
-  const diagonal = Math.abs(B) < 1e-6 && Math.abs(C) < 1e-6;
-  if (diagonal) {
-    if (A <= 0 || D <= 0) return null; // flips aren't a fill-crop DOF — degrade honestly
+  const diagonal = Math.abs(B) < 1e-6 && Math.abs(C) < 1e-6;       // 0° / 180° / flips
+  const antidiagonal = Math.abs(A) < 1e-6 && Math.abs(D) < 1e-6;   // 90° / 270°
+  // Both components present → a shear or a non-90° rotation → degrade honestly.
+  if (!diagonal && !antidiagonal) return null;
+
+  if (diagonal && A > 0 && D > 0) {
     return {
       mode: 'panzoom',
       widthPct: round4(100 * A),
@@ -152,7 +160,7 @@ export function cropFillCss(imageTransform, boxW, boxH) {
       topPct: round4(100 * Ty),
     };
   }
-  // Rotation / shear: conjugate the linear part by S=diag(W,H) into pixel space.
+  // 90° multiple / flip: conjugate the linear part by S=diag(W,H) into pixel space.
   if (!boxW || !boxH) return null;
   const bpx = round4(B * boxH / boxW);
   const cpx = round4(C * boxW / boxH);
@@ -186,9 +194,15 @@ function fillImgHtml(node, asset, advisories = []) {
   let style;
   if (mode === 'CROP') {
     const box = node.absoluteBoundingBox || {};
-    const crop = cropFillCss(paint.imageTransform, box.width, box.height);
+    const dimsKnown = Number.isFinite(asset.width) && Number.isFinite(asset.height);
+    // Honesty path: only claim a faithful crop when we have the full picture —
+    // the source's intrinsic dims (null for unparsed WebP/GIF) AND a supported
+    // transform (pan/zoom or a 90° multiple). Anything else degrades to cover
+    // with an advisory rather than a confidently-wrong crop.
+    const crop = dimsKnown ? cropFillCss(paint.imageTransform, box.width, box.height) : null;
     if (!crop) {
-      advisories.push(`${node.id}: CROP imageTransform unsupported (flip/shear/rotation or unknown dims) — fell back to cover`);
+      const why = dimsKnown ? 'unsupported transform (shear / non-90° rotation)' : 'unknown source dimensions';
+      advisories.push(`${node.id}: CROP fell back to cover — ${why}`);
       style = `${base};inset:0;width:100%;height:100%;object-fit:cover`;
     } else if (crop.mode === 'panzoom') {
       style = `${base};left:${crop.leftPct}%;top:${crop.topPct}%;width:${crop.widthPct}%;height:${crop.heightPct}%;object-fit:fill`;

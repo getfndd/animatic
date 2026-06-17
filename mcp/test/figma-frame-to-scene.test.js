@@ -382,13 +382,18 @@ describe('cropFillCss (ANI-175)', () => {
   it('right-half crop → 200% wide, full height, -100% left', () => {
     assert.deepEqual(cropFillCss([[0.5, 0, 0.5], [0, 1, 0]]), { mode: 'panzoom', widthPct: 200, heightPct: 100, leftPct: -100, topPct: 0 });
   });
-  it('shear with a known box → matrix mode', () => {
-    const r = cropFillCss([[1, 0.3, 0], [0.2, 1, 0]], 100, 100);
+  it('90° rotation (anti-diagonal) → matrix mode', () => {
+    const r = cropFillCss([[0, 1, 0], [-1, 0, 1]], 800, 600);
     assert.equal(r.mode, 'matrix');
     assert.match(r.css, /^matrix\(/);
   });
-  it('shear without dims → null (caller degrades to cover)', () => {
+  it('genuine shear → null even with a known box (not a fill DOF — degrade honestly)', () => {
+    assert.equal(cropFillCss([[1, 0.3, 0], [0.2, 1, 0]], 100, 100), null);
     assert.equal(cropFillCss([[1, 0.3, 0], [0.2, 1, 0]], null, null), null);
+  });
+  it('non-90° rotation (diagonal + anti-diagonal both present) → null', () => {
+    const t = Math.SQRT1_2; // 45°: [[c,-s],[s,c]]
+    assert.equal(cropFillCss([[t, -t, 0], [t, t, 0]], 100, 100), null);
   });
   it('non-invertible transform → null', () => {
     assert.equal(cropFillCss([[0, 0, 0], [0, 0, 0]]), null);
@@ -435,10 +440,15 @@ describe('frameToScene image-fill embedding (ANI-175)', () => {
     assert.match(pzLayer.content, /z-index:1">.*hi/); // caption above the fill
     assert.ok(!(pz.report.advisory || []).some(a => /unsupported/.test(a)));
 
-    // shear, no box → degrade to cover + advisory.
-    const sh = frameToScene(cropNode([[1, 0.3, 0], [0.2, 1, 0]], null), { imageAssets: { n1: asset } });
+    // shear → degrade to cover + advisory (even with dims + box known).
+    const sh = frameToScene(cropNode([[1, 0.3, 0], [0.2, 1, 0]], { width: 400, height: 300 }), { imageAssets: { n1: asset } });
     assert.match(sh.scene.layers[0].content, /object-fit:cover/);
-    assert.ok(sh.report.advisory.some(a => /CROP imageTransform unsupported/.test(a)));
+    assert.ok(sh.report.advisory.some(a => /CROP fell back to cover — unsupported transform/.test(a)));
+
+    // unknown source dimensions (e.g. unparsed WebP/GIF) → degrade + a distinct advisory.
+    const noDims = frameToScene(cropNode([[0.5, 0, 0.25], [0, 0.5, 0.25]], { width: 400, height: 300 }), { imageAssets: { n1: { dataUri: asset.dataUri, width: null, height: null } } });
+    assert.match(noDims.scene.layers[0].content, /object-fit:cover/);
+    assert.ok(noDims.report.advisory.some(a => /CROP fell back to cover — unknown source dimensions/.test(a)));
   });
 });
 

@@ -56,6 +56,8 @@ export const HANDLERS = {
   save_project_artifact: H.handleSaveProjectArtifact,
   render_project: H.handleRenderProject,
   review_project: H.handleReviewProject,
+  record_render_feedback: H.handleRecordRenderFeedback,
+  recalibrate_scoring_weights: H.handleRecalibrateScoringWeights,
   audit_video_accessibility: H.handleAuditVideoAccessibility,
   get_art_direction: H.handleGetArtDirection,
   list_art_directions: H.handleListArtDirections,

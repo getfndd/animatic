@@ -220,23 +220,41 @@ export async function recalibrateScoringWeights({ minEvidence = DEFAULT_MIN_EVID
     return { proposal: null, reason: `insufficient evidence: ${totalDownNotes} down-note(s), need ${minEvidence}`, summary };
   }
 
-  // Up-weight flagged dimensions, clamped, then renormalize to sum 1.0. The
-  // renormalization is the only thing that reduces unflagged dimensions.
   const current = { ...DEFAULT_WEIGHTS };
-  const raw = {};
-  for (const dim of SCORE_DIMENSIONS) {
-    const d = downEvidence[dim].length;
-    const factor = d > 0 ? 1 + Math.min(MOVE_CAP, NUDGE_K * (d / totalDownNotes)) : 1;
-    raw[dim] = current[dim] * factor;
-  }
-  const sum = Object.values(raw).reduce((s, v) => s + v, 0);
-  const proposed = {};
-  for (const dim of SCORE_DIMENSIONS) proposed[dim] = raw[dim] / sum;
+  const flagged = SCORE_DIMENSIONS.filter(d => downEvidence[d].length > 0);
+  const unflagged = SCORE_DIMENSIONS.filter(d => downEvidence[d].length === 0);
 
-  // Two distinct lists so the "every adjustment cites evidence" contract holds
-  // literally: `adjustments` are the down-note-driven up-weights (each with its
-  // citing entries); `renormalized` are the proportional reductions that absorb
-  // them (no evidence — they moved only to keep the weights summing to 1.0).
+  // Boost each flagged dimension (clamped to +MOVE_CAP).
+  const boosted = {};
+  for (const dim of flagged) {
+    boosted[dim] = current[dim] * (1 + Math.min(MOVE_CAP, NUDGE_K * (downEvidence[dim].length / totalDownNotes)));
+  }
+  const excess = flagged.reduce((s, d) => s + (boosted[d] - current[d]), 0);
+  const unflaggedSum = unflagged.reduce((s, d) => s + current[d], 0);
+
+  // Absorb the boost from the UNFLAGGED dimensions only, so a dimension humans
+  // flagged never *loses* net weight (the bug where a lightly-flagged dim could
+  // end up below its starting weight after a global renormalization). Fall back
+  // to proportional-over-all only when that's impossible (everything flagged, or
+  // the boost exceeds the unflagged pool) — a rare, transparently-noted case.
+  const proposed = {};
+  let absorbedFromUnflagged = unflagged.length > 0 && unflaggedSum - excess > 1e-9;
+  if (absorbedFromUnflagged) {
+    const scale = (unflaggedSum - excess) / unflaggedSum;
+    for (const dim of flagged) proposed[dim] = boosted[dim];
+    for (const dim of unflagged) proposed[dim] = current[dim] * scale;
+  } else {
+    // Proportional renormalization across all dimensions.
+    const raw = {};
+    for (const dim of SCORE_DIMENSIONS) raw[dim] = downEvidence[dim].length ? boosted[dim] : current[dim];
+    const sum = Object.values(raw).reduce((s, v) => s + v, 0);
+    for (const dim of SCORE_DIMENSIONS) proposed[dim] = raw[dim] / sum;
+  }
+
+  // `adjustments` are the down-note-driven changes — each cites its evidence;
+  // `renormalized` are the unflagged dimensions reduced to make room (no
+  // evidence — they moved only to keep the weights summing to 1.0). Arrows are
+  // rendered by the real delta sign, so the rare fallback can't mislabel.
   const adjustments = [];
   const renormalized = [];
   for (const dim of SCORE_DIMENSIONS) {

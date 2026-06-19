@@ -2687,9 +2687,12 @@ function renderRecalibration(result) {
     return `${lines.join('\n')}\n\n${JSON.stringify(result, null, 2)}`;
   }
   lines.push(`\nProposed weight changes (${summary.dimensions_moved} dimension(s) moved, from ${proposal.sample_size} down-note(s)):`);
-  lines.push(`\nUp-weighted by human down-notes:`);
+  lines.push(`\nDriven by human down-notes:`);
   for (const a of proposal.adjustments) {
-    lines.push(`\n  ↑ ${a.dimension}: ${a.from} → ${a.to} (+${a.delta}) — ${a.down_notes} down-note(s)`);
+    const arrow = a.delta > 1e-9 ? '↑' : a.delta < -1e-9 ? '↓' : '→';
+    const sign = a.delta >= 0 ? '+' : '';
+    const caveat = a.delta <= 1e-9 ? ' (net-reduced after renormalization — another dimension drew more down-notes)' : '';
+    lines.push(`\n  ${arrow} ${a.dimension}: ${a.from} → ${a.to} (${sign}${a.delta}) — ${a.down_notes} down-note(s)${caveat}`);
     for (const ev of a.evidence) {
       lines.push(`      • ${ev.project} [${ev.render_ref?.role || 'render'}]${ev.note ? `: "${ev.note}"` : ''} (${ev.recorded_at})`);
     }

@@ -165,6 +165,23 @@ describe('recalibrateScoringWeights (ANI-120)', () => {
     assert.equal(proposal.adjustments.find(a => a.dimension === 'clarity').down_notes, 3);
   });
 
+  it('a lightly-flagged dimension never net-decreases when another dimension dominates (P2 repro)', async () => {
+    const feedback = [
+      ...Array.from({ length: 100 }, (_, i) => fb(`c${i}`, 'clarity', 'confusing')),
+      fb('b0', 'brand_finish', 'off-brand'),
+    ];
+    const { proposal } = await recalibrateScoringWeights({ feedback });
+    const brand = proposal.adjustments.find(a => a.dimension === 'brand_finish');
+    // brand_finish was flagged once → it must be in adjustments, cite its entry,
+    // and NOT come out below its starting weight (the bug was a negative delta here).
+    assert.ok(brand, 'brand_finish should be an evidence-cited adjustment');
+    assert.equal(brand.evidence.length, 1);
+    assert.ok(brand.delta >= 0, `flagged dimension must not net-decrease, got ${brand.delta}`);
+    assert.ok(proposal.adjustments.every(a => a.delta >= 0), 'no flagged dimension net-decreases');
+    const sum = Object.values(proposal.proposed_weights).reduce((s, v) => s + v, 0);
+    assert.ok(Math.abs(sum - 1) < 1e-9);
+  });
+
   it('fails closed with no proposal when evidence is thin (the {}-input repro)', async () => {
     const empty = await recalibrateScoringWeights({ feedback: [] });
     assert.equal(empty.proposal, null);

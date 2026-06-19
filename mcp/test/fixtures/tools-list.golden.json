@@ -1182,6 +1182,52 @@
     }
   },
   {
+    "name": "record_render_feedback",
+    "description": "Record a human verdict on a rendered video (ANI-120). After someone watches a render, capture an overall up/down plus optional per-dimension notes (hook, narrative_arc, clarity, visual_hierarchy, motion_quality, brand_finish). Appends to the project's review/feedback.json with a full manifest snapshot + the render reference, so feedback is traceable to exactly what was judged. The conversational agent is the feedback surface — no UI. Pairs with recalibrate_scoring_weights.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "description": "Project slug or absolute path."
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "up",
+            "down"
+          ],
+          "description": "Overall verdict on the render."
+        },
+        "render": {
+          "type": "string",
+          "description": "Optional explicit render path (relative to project root). Defaults to the approved → latest → master render."
+        },
+        "dimension_notes": {
+          "type": "object",
+          "description": "Optional per-dimension notes keyed by scoring dimension. Each value is { verdict?: \"up\"|\"down\", note?: string } (or a bare note string). A note with no explicit verdict inherits the overall verdict — so a \"down\" render with a note on `clarity` counts clarity as a down-note. Down-notes are what drive recalibration."
+        }
+      },
+      "required": [
+        "project",
+        "verdict"
+      ]
+    }
+  },
+  {
+    "name": "recalibrate_scoring_weights",
+    "description": "Propose scoring-weight adjustments from accumulated render feedback across all projects (ANI-120). Explainable by construction: only human-named failure (down) notes move a weight, and every proposed adjustment cites the exact feedback entries that drove it. Returns a proposal (current vs proposed weights + a diff + evidence) — never mutates anything. Apply by passing the proposed weights to score_candidate_video. Fails closed with no proposal when evidence is thin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "minEvidence": {
+          "type": "number",
+          "description": "Minimum number of per-dimension down-notes before a proposal is made. Default 3."
+        }
+      }
+    }
+  },
+  {
     "name": "get_art_direction",
     "description": "Get an art direction definition by slug. Returns typography, palette, textures, lighting, logo behavior, background treatment, and compatibility metadata. Art direction is separate from personality: personality tells you how things move, art direction tells you why they feel premium.",
     "inputSchema": {

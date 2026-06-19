@@ -61,6 +61,8 @@ import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
 import { fetchNode as fetchFigmaNode, fetchFileTree, fetchComments, fetchImageFills, downloadBinary, sniffImage } from './lib/figma/client.js';
 import { frameToScene, collectImageFills } from './lib/figma/frame-to-scene.js';
+import { recordRenderFeedback, recalibrateScoringWeights } from './lib/feedback.js';
+import { track } from './lib/telemetry.js';
 import { buildStoryboardExportPayload, renderStoryboardPanels } from './lib/figma/storyboard-export.js';
 import { auditVideoAccessibility } from './lib/video-a11y.js';
 import { verifyExportAgainstTree, mapCommentsToScenes } from './lib/figma/figma-roundtrip.js';
@@ -2652,6 +2654,57 @@ export async function handleRenderProject(args) {
 export async function handleReviewProject(args) {
   const result = await reviewProject(args);
   return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+}
+
+export async function handleRecordRenderFeedback(args) {
+  try {
+    const result = await recordRenderFeedback(args);
+    // Opt-in aggregate telemetry (#28) — fire-and-forget, respects opt-out.
+    track('mcp.feedback', { verdict: args?.verdict });
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `record_render_feedback failed: ${err.message}` }], isError: true };
+  }
+}
+
+export async function handleRecalibrateScoringWeights(args) {
+  try {
+    const result = await recalibrateScoringWeights(args || {});
+    return { content: [{ type: 'text', text: renderRecalibration(result) }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `recalibrate_scoring_weights failed: ${err.message}` }], isError: true };
+  }
+}
+
+/** Render a recalibration result as readable text + the raw JSON proposal. */
+function renderRecalibration(result) {
+  const { proposal, reason, summary } = result;
+  const lines = [];
+  lines.push(`Feedback: ${summary.total_feedback} total (${summary.up} up, ${summary.down} down).`);
+  if (!proposal) {
+    lines.push(`\nNo weight proposal — ${reason}.`);
+    lines.push('Record more per-dimension down-notes, then re-run.');
+    return `${lines.join('\n')}\n\n${JSON.stringify(result, null, 2)}`;
+  }
+  lines.push(`\nProposed weight changes (${summary.dimensions_moved} dimension(s) moved, from ${proposal.sample_size} down-note(s)):`);
+  lines.push(`\nDriven by human down-notes:`);
+  for (const a of proposal.adjustments) {
+    const arrow = a.delta > 1e-9 ? '↑' : a.delta < -1e-9 ? '↓' : '→';
+    const sign = a.delta >= 0 ? '+' : '';
+    const caveat = a.delta <= 1e-9 ? ' (net-reduced after renormalization — another dimension drew more down-notes)' : '';
+    lines.push(`\n  ${arrow} ${a.dimension}: ${a.from} → ${a.to} (${sign}${a.delta}) — ${a.down_notes} down-note(s)${caveat}`);
+    for (const ev of a.evidence) {
+      lines.push(`      • ${ev.project} [${ev.render_ref?.role || 'render'}]${ev.note ? `: "${ev.note}"` : ''} (${ev.recorded_at})`);
+    }
+  }
+  if (proposal.renormalized.length) {
+    lines.push(`\nReduced proportionally to make room (renormalization, no evidence):`);
+    for (const r of proposal.renormalized) {
+      lines.push(`  ↓ ${r.dimension}: ${r.from} → ${r.to} (${r.delta})`);
+    }
+  }
+  lines.push('\nProposal only — apply by passing `proposed_weights` to score_candidate_video. Nothing was changed.');
+  return `${lines.join('\n')}\n\n${JSON.stringify(proposal, null, 2)}`;
 }
 
 export async function handleAuditVideoAccessibility(args) {

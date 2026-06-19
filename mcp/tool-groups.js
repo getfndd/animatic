@@ -146,6 +146,8 @@ export const TOOL_GROUPS = {
   get_project_context: { tier: TIER.PROJECT, edgeReady: false, note: 'read-fan-out over project tree (projects.js); Tier 2' },
   save_project_artifact: { tier: TIER.PROJECT, edgeReady: false, note: 'read-modify-write project.json (projects.js); Tier 2' },
   review_project: { tier: TIER.PROJECT, edgeReady: false, note: 'reads scenes, writes review/evaluation.json (projects.js + preflight.js); Tier 2' },
+  record_render_feedback: { tier: TIER.PROJECT, edgeReady: false, note: 'appends human feedback to the local project review/feedback.json with a manifest snapshot (feedback.js, ANI-120) — LOCAL only' },
+  recalibrate_scoring_weights: { tier: TIER.PROJECT, edgeReady: false, note: 'scans the local projects tree for accumulated feedback and proposes weight adjustments (feedback.js, ANI-120) — LOCAL only; proposal-only, never mutates' },
   create_brand_package: { tier: TIER.PROJECT, edgeReady: false, note: 'writeFileSync catalog/brands/{id}.json (brands.js); Tier 2 — storage-back the write path' },
   create_personality: { tier: TIER.PROJECT, edgeReady: false, note: 'in-memory customPersonalities Map, but the workflow DEPENDS on cross-call reuse (later calls reference the created personality). A stateless edge isolate drops it after the request → broken affordance. Needs session/storage backing before edge (line-113 review)' },
 

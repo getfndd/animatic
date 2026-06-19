@@ -28,7 +28,7 @@ import { auditVideoAccessibility } from './video-a11y.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const PROJECTS_ROOT = join(process.cwd(), 'projects');
+export const PROJECTS_ROOT = join(process.cwd(), 'projects');
 
 export const STATUS_PROJECT = ['draft', 'blocked', 'in_review', 'approved', 'archived'];
 export const STATUS_SCENE   = ['draft', 'compiled', 'reviewed', 'approved'];
@@ -67,7 +67,7 @@ function datePrefix() {
 }
 
 /** ISO timestamp. */
-function timestamp() {
+export function timestamp() {
   return new Date().toISOString();
 }
 
@@ -79,7 +79,7 @@ function aspectRatio(w, h) {
 }
 
 /** Read and parse a JSON file. Returns null on any error. */
-async function readJSON(filePath) {
+export async function readJSON(filePath) {
   try {
     const raw = await readFile(filePath, 'utf-8');
     return JSON.parse(raw);
@@ -98,7 +98,7 @@ async function readText(filePath) {
 }
 
 /** Write object as formatted JSON. */
-async function writeJSON(filePath, data) {
+export async function writeJSON(filePath, data) {
   await writeFile(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
@@ -176,6 +176,7 @@ export async function initProject(config) {
       evaluation: 'review/evaluation.json',
       critic: 'review/critic.json',
       notes: 'review/notes.md',
+      feedback: null,
     },
     tags: [],
     owners: [],
@@ -487,7 +488,11 @@ export async function saveProjectArtifact(options) {
     }
 
     case 'review': {
-      if (role && projectData.review[role] !== undefined) {
+      // Register any review role (evaluation/critic/notes/feedback/…). Older
+      // projects predating a role won't have the key yet, so set it directly
+      // rather than gating on prior existence (ANI-120).
+      if (role) {
+        projectData.review = projectData.review || {};
         projectData.review[role] = artifactPath;
       }
       break;

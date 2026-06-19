@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-86 tools across 11 categories. Run via MCP server (`mcp/index.js`).
+88 tools across 11 categories. Run via MCP server (`mcp/index.js`).
 
 ## Primitives & Reference (8)
 
@@ -211,7 +211,7 @@ Returns the manifest re-targeted to 9:16 with recomposed layouts. Valid ratios: 
 ```
 Returns tempo, beat timestamps, and an energy curve. Feed it to `sync_sequence_to_beats` to snap transitions onto beats — the payoff of a montage edit.
 
-## Project Management (10)
+## Project Management (12)
 
 | Tool | What |
 |------|------|
@@ -223,6 +223,8 @@ Returns tempo, beat timestamps, and an energy curve. Feed it to `sync_sequence_t
 | `verify_figma_export` | REST read-back: created Figma file vs payload contract (fail-closed) |
 | `import_figma_comments` | Designer comments → per-scene storyboard revision notes |
 | `review_project` | Generate project review |
+| `record_render_feedback` | Record a human up/down verdict (+ optional per-dimension notes) on a render → `review/feedback.json` with a manifest snapshot (ANI-120) |
+| `recalibrate_scoring_weights` | Propose scoring-weight adjustments from accumulated feedback across projects — explainable (cites driving entries), proposal-only, never mutates (ANI-120) |
 
 **Example — create a project:**
 ```json

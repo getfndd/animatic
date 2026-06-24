@@ -70,11 +70,18 @@ export function listBrands() {
 // ── Create ───────────────────────────────────────────────────────────────────
 
 /**
- * Create a new brand package and write it to catalog/brands/.
+ * Assemble a brand package object from a spec — pure, no disk writes.
+ *
+ * This is the dry-run / preview path: it validates the spec and builds the
+ * normalized brand object with defaults applied, but does NOT touch
+ * catalog/brands/. Extract/read tools (e.g. extract_brand_from_figma,
+ * extract_brand_from_url, ANI-119/ANI-177) must use this and surface the
+ * result for review; persistence is a separate, explicit step.
+ *
  * @param {object} spec - Brand specification
- * @returns {{ brand: object, path: string }} Created brand and file path
+ * @returns {{ brand: object }} Assembled brand (not persisted)
  */
-export function createBrandPackage(spec) {
+export function buildBrandPackage(spec) {
   if (!spec.brand_id || typeof spec.brand_id !== 'string') {
     throw new Error('brand_id is required and must be a string');
   }
@@ -205,6 +212,23 @@ export function createBrandPackage(spec) {
       donts: spec.guidelines.donts || [],
     };
   }
+
+  return { brand };
+}
+
+/**
+ * Create a new brand package and write it to catalog/brands/.
+ *
+ * Thin persisting wrapper over buildBrandPackage(): assembles the brand
+ * (same validation/defaults) then writes catalog/brands/{brand_id}.json.
+ * Behavior is unchanged for existing callers — same inputs, same
+ * { brand, path } return, same on-disk side effect.
+ *
+ * @param {object} spec - Brand specification
+ * @returns {{ brand: object, path: string }} Created brand and file path
+ */
+export function createBrandPackage(spec) {
+  const { brand } = buildBrandPackage(spec);
 
   // Write to disk
   const filePath = resolve(BRANDS_DIR, `${brand.brand_id}.json`);

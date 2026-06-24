@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import {
   loadBrand,
   listBrands,
+  buildBrandPackage,
   createBrandPackage,
   resolveBrandDefaults,
   validateBrandCompliance,
@@ -82,6 +83,48 @@ describe('listBrands', () => {
     const brands = listBrands();
     const schema = brands.find(b => b.brand_id === '_schema');
     assert.equal(schema, undefined);
+  });
+});
+
+// ── buildBrandPackage (dry-run / preview) ────────────────────────────────────
+
+describe('buildBrandPackage', () => {
+  const DRY_RUN_ID = 'test-brand-dry-run';
+  const dryRunFile = resolve(BRANDS_DIR, `${DRY_RUN_ID}.json`);
+
+  // Safety net: if a regression makes the pure builder write, clean it up so
+  // the assertion failure doesn't leave a stray catalog file behind.
+  after(() => {
+    if (existsSync(dryRunFile)) unlinkSync(dryRunFile);
+  });
+
+  it('assembles a brand WITHOUT writing to the catalog', () => {
+    assert.equal(existsSync(dryRunFile), false, 'precondition: file must not exist');
+
+    const result = buildBrandPackage({
+      brand_id: DRY_RUN_ID,
+      name: 'Dry Run Brand',
+      colors: { bg_primary: '#111111', text_primary: '#eeeeee', accent: '#22aa55' },
+    });
+
+    // Returns the assembled brand, but no path (it was never persisted)...
+    assert.equal(result.brand.brand_id, DRY_RUN_ID);
+    assert.equal(result.brand.colors.accent, '#22aa55');
+    assert.equal(result.path, undefined);
+    // ...and crucially, nothing was written to disk.
+    assert.equal(existsSync(dryRunFile), false, 'buildBrandPackage must not write to catalog/brands/');
+    assert.equal(loadBrand(DRY_RUN_ID), null);
+  });
+
+  it('applies the same validation as createBrandPackage', () => {
+    assert.throws(
+      () => buildBrandPackage({ brand_id: 'Not Valid', name: 'Test' }),
+      /kebab-case/
+    );
+    assert.throws(
+      () => buildBrandPackage({ name: 'Test' }),
+      /brand_id is required/
+    );
   });
 });
 

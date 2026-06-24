@@ -22,6 +22,8 @@ import {
   extractFileKey,
   figmaColorToHex,
   fetchNode,
+  fetchVariables,
+  fetchFileStyles,
   fetchImageFills,
   downloadBinary,
   sniffImage,
@@ -107,6 +109,100 @@ describe('figma client', () => {
 
     const denied = async () => ({ ok: false, status: 403, text: async () => 'nope' });
     await assert.rejects(() => fetchNode('KEY', '1:1', { fetchImpl: denied, env: ENV }), /Figma API 403/);
+  });
+
+  it('fetchVariables returns Enterprise variables on 200', async () => {
+    const calls = [];
+    const fetchImpl = async (url) => {
+      calls.push(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          meta: {
+            variables: { 'V:1': { name: 'color/brand/primary', resolvedType: 'COLOR' } },
+            variableCollections: { 'C:1': { name: 'Brand', modes: [{ modeId: '0:0', name: 'Light' }] } },
+          },
+        }),
+      };
+    };
+    const r = await fetchVariables('https://www.figma.com/design/VARKEY/x', { fetchImpl, env: ENV });
+    assert.match(calls[0], /\/files\/VARKEY\/variables\/local$/);
+    assert.equal(r.enterprise, true);
+    assert.equal(r.fallback, undefined);
+    assert.equal(r.variables['V:1'].name, 'color/brand/primary');
+    assert.ok(r.collections['C:1']);
+  });
+
+  it('fetchVariables degrades to the Styles fallback on 403 (non-Enterprise) without throwing', async () => {
+    const forbidden = async () => ({ ok: false, status: 403, text: async () => 'enterprise only' });
+    const r = await fetchVariables('VARKEY', { fetchImpl: forbidden, env: ENV });
+    assert.equal(r.enterprise, false);
+    assert.equal(r.fallback, 'styles');
+    assert.deepEqual(r.variables, {});
+    assert.deepEqual(r.collections, {});
+  });
+
+  it('fetchVariables propagates non-403 failures (404)', async () => {
+    const missing = async () => ({ ok: false, status: 404, text: async () => 'no file' });
+    await assert.rejects(() => fetchVariables('VARKEY', { fetchImpl: missing, env: ENV }), /Figma API 404/);
+  });
+
+  it('fetchFileStyles joins /styles → /nodes, keeps FILL only, and folds paint opacity into alpha', async () => {
+    const calls = [];
+    const fetchImpl = async (url) => {
+      calls.push(url);
+      if (url.includes('/styles')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            meta: {
+              styles: [
+                { key: 'k1', node_id: '2:1', name: 'Brand/Primary', style_type: 'FILL' },
+                { key: 'k2', node_id: '2:2', name: 'Heading', style_type: 'TEXT' }, // filtered out
+              ],
+            },
+          }),
+        };
+      }
+      if (url.includes('/nodes')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            nodes: {
+              '2:1': { document: { id: '2:1', fills: [{ type: 'SOLID', color: { r: 1, g: 0, b: 0, a: 1 }, opacity: 0.5 }] } },
+            },
+          }),
+        };
+      }
+      throw new Error(`unexpected url ${url}`);
+    };
+
+    const r = await fetchFileStyles('STYLEKEY', { fetchImpl, env: ENV });
+    assert.equal(r.styles.length, 1, 'TEXT style filtered out');
+    assert.equal(r.styles[0].name, 'Brand/Primary');
+    assert.equal(r.styles[0].color, '#ff000080', 'paint opacity 0.5 folds into alpha');
+    // Only the FILL style's node id is resolved.
+    const nodesCall = calls.find(u => u.includes('/nodes'));
+    assert.match(nodesCall, /ids=2%3A1$/);
+    assert.equal(nodesCall.includes('2%3A2'), false);
+  });
+
+  it('fetchFileStyles short-circuits (no /nodes call) when there are no FILL styles', async () => {
+    const calls = [];
+    const fetchImpl = async (url) => {
+      calls.push(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ meta: { styles: [{ key: 'k', node_id: '3:1', name: 'Body', style_type: 'TEXT' }] } }),
+      };
+    };
+    const r = await fetchFileStyles('STYLEKEY', { fetchImpl, env: ENV });
+    assert.deepEqual(r.styles, []);
+    assert.equal(calls.some(u => u.includes('/nodes')), false, 'must not call /nodes with no FILL styles');
   });
 });
 

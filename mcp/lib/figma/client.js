@@ -90,20 +90,32 @@ export function getFigmaToken(env = process.env) {
   return token;
 }
 
-/** Map a non-OK Figma response to an actionable error. */
+/**
+ * Map a non-OK Figma response to an actionable error. The HTTP status is
+ * attached as `err.status` so callers can branch on it (e.g. fetchVariables
+ * treats 403 as "not Enterprise" and falls back to the Styles API) without
+ * brittle message matching.
+ */
 function figmaHttpError(status, detail, token) {
+  let err;
   switch (status) {
     case 401:
-      return new Error(`Figma API 401: token ${redactToken(token)} is invalid or expired.`);
+      err = new Error(`Figma API 401: token ${redactToken(token)} is invalid or expired.`);
+      break;
     case 403:
-      return new Error('Figma API 403: token lacks access to this file (check file sharing / token scopes).');
+      err = new Error('Figma API 403: token lacks access to this file (check file sharing / token scopes).');
+      break;
     case 404:
-      return new Error('Figma API 404: file or node not found — check the file key and node id.');
+      err = new Error('Figma API 404: file or node not found — check the file key and node id.');
+      break;
     case 429:
-      return new Error('Figma API 429: rate limited.');
+      err = new Error('Figma API 429: rate limited.');
+      break;
     default:
-      return new Error(`Figma API HTTP ${status}: ${String(detail).slice(0, 300)}`);
+      err = new Error(`Figma API HTTP ${status}: ${String(detail).slice(0, 300)}`);
   }
+  err.status = status;
+  return err;
 }
 
 /**
@@ -228,6 +240,85 @@ export async function fetchImageFills(fileKeyOrUrl, opts = {}) {
   if (!fileKey) throw new Error(`Cannot extract a Figma file key from "${fileKeyOrUrl}".`);
   const body = await figmaGet(`/files/${encodeURIComponent(fileKey)}/images`, opts);
   return { file_key: fileKey, images: body?.meta?.images || {} };
+}
+
+/**
+ * Fetch a file's local variables (ANI-119). The Variables REST API is
+ * Enterprise-only, so a 403 is an expected, non-fatal signal: it is mapped to
+ * `{ enterprise: false, fallback: 'styles' }` so the caller degrades to the
+ * Styles API (all plans) instead of erroring. Other failures (401/404/429/5xx)
+ * propagate from `figmaGet` unchanged.
+ *
+ * @param {string} fileKeyOrUrl
+ * @param {object} [opts] - { fetchImpl, env }
+ * @returns {Promise<{ file_key: string, enterprise: boolean, variables: object,
+ *                      collections: object, fallback?: 'styles' }>}
+ */
+export async function fetchVariables(fileKeyOrUrl, opts = {}) {
+  const fileKey = extractFileKey(fileKeyOrUrl);
+  if (!fileKey) throw new Error(`Cannot extract a Figma file key from "${fileKeyOrUrl}".`);
+
+  try {
+    const body = await figmaGet(`/files/${encodeURIComponent(fileKey)}/variables/local`, opts);
+    const meta = body?.meta;
+    if (!meta) throw new Error(`Figma returned no variables for file ${fileKey}.`);
+    return {
+      file_key: fileKey,
+      enterprise: true,
+      variables: meta.variables || {},
+      collections: meta.variableCollections || {},
+    };
+  } catch (err) {
+    // 403 = plan without the Variables API (or token missing the scope).
+    // Degrade to Styles rather than failing the extraction.
+    if (err.status === 403) {
+      return { file_key: fileKey, enterprise: false, variables: {}, collections: {}, fallback: 'styles' };
+    }
+    throw err;
+  }
+}
+
+/**
+ * Fetch a file's published FILL color styles (ANI-119, all plans). Two-call
+ * join: the `/styles` list endpoint returns style *metadata* only (no color),
+ * so each FILL style's `node_id` is resolved through `/nodes` to read the
+ * actual `fills[].color`. Effective alpha folds the paint-level `opacity` into
+ * the color's own alpha.
+ *
+ * @param {string} fileKeyOrUrl
+ * @param {object} [opts] - { fetchImpl, env }
+ * @returns {Promise<{ file_key: string, styles: Array<{ key: string|null,
+ *                      node_id: string, name: string|null, color: string|null }> }>}
+ */
+export async function fetchFileStyles(fileKeyOrUrl, opts = {}) {
+  const fileKey = extractFileKey(fileKeyOrUrl);
+  if (!fileKey) throw new Error(`Cannot extract a Figma file key from "${fileKeyOrUrl}".`);
+
+  // 1. List published styles, keep only FILL (color) styles.
+  const stylesBody = await figmaGet(`/files/${encodeURIComponent(fileKey)}/styles`, opts);
+  const fillStyles = (stylesBody?.meta?.styles || []).filter(
+    s => s.style_type === 'FILL' && s.node_id,
+  );
+  if (fillStyles.length === 0) return { file_key: fileKey, styles: [] };
+
+  // 2. Resolve each style's actual fill color via its backing node.
+  const ids = fillStyles.map(s => s.node_id);
+  const nodesBody = await figmaGet(
+    `/files/${encodeURIComponent(fileKey)}/nodes?ids=${encodeURIComponent(ids.join(','))}`,
+    opts,
+  );
+  const nodes = nodesBody?.nodes || {};
+
+  const styles = fillStyles.map(s => {
+    const doc = nodes[s.node_id]?.document;
+    const fill = (doc?.fills || []).find(f => f.type === 'SOLID' && f.visible !== false);
+    const c = fill?.color;
+    const color = c
+      ? figmaColorToHex({ r: c.r, g: c.g, b: c.b, a: (c.a ?? 1) * (fill.opacity ?? 1) })
+      : null;
+    return { key: s.key ?? null, node_id: s.node_id, name: s.name ?? null, color };
+  });
+  return { file_key: fileKey, styles };
 }
 
 /**

@@ -532,7 +532,7 @@ export function validateScene(scene) {
     }
 
     // Interactions
-    const validKinds = ['focus', 'type_text', 'replace_text', 'open_menu', 'select_item', 'insert_items', 'fan_stack', 'settle', 'pulse_focus'];
+    const validKinds = ['enter', 'focus', 'type_text', 'replace_text', 'open_menu', 'select_item', 'insert_items', 'fan_stack', 'settle', 'pulse_focus'];
     const interactionIds = new Set();
 
     if (sem.interactions && Array.isArray(sem.interactions)) {

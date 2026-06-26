@@ -6,11 +6,33 @@
 
 ## Overview
 
-The Interaction DSL defines 9 named interaction kinds that describe *what happens* to semantic components during a scene. Each kind compiles to v2 motion group effects — the same timing model (cues, stagger, effects) powers both layers.
+The Interaction DSL defines 10 named interaction kinds that describe *what happens* to semantic components during a scene. Each kind compiles to v2 motion group effects — the same timing model (cues, stagger, effects) powers both layers.
 
 Interactions live inside `semantic.interactions[]` in a v3 scene. See [semantic-scene-format.md](semantic-scene-format.md) for the full schema.
 
 ## Interaction Kinds
+
+### `enter`
+
+Entrance of a component into the scene. The default lifecycle interaction emitted
+by importers (e.g. `figma_frame_to_scene`). It carries no `params` and resolves to
+the default entrance primitive (`as-fadeInUp`) during compilation — opacity +
+translateY tracks — so it animates without an explicit `interactionToGroup` case.
+
+| Field | Value |
+|-------|-------|
+| **Target Types** | any |
+| **Default Duration** | primitive default (~400ms) |
+| **Compiles To** | default entrance primitive (`as-fadeInUp`): opacity + translateY |
+
+```json
+{
+  "id": "int_enter_hero",
+  "target": "cmp_hero",
+  "kind": "enter",
+  "timing": { "at_ms": 0 }
+}
+```
 
 ### `focus`
 
@@ -230,6 +252,7 @@ Rhythmic scale oscillation to draw attention. Repeats `count` times.
 
 | Kind | Target Types | Default Duration | Compiles To |
 |------|-------------|-----------------|-------------|
+| `enter` | any | ~400ms | default entrance primitive (`as-fadeInUp`): opacity + translateY |
 | `focus` | any | 300ms | opacity/scale pulse, sibling dim |
 | `type_text` | input_field, prompt_card | 50ms/char | text_chars effect + caret opacity |
 | `replace_text` | input_field, prompt_card | 400ms | crossfade/slide text transition |

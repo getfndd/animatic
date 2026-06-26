@@ -226,7 +226,7 @@ const STATE_MACHINES = new Map([
 // ── Valid kinds (for validation) ─────────────────────────────────────────────
 
 const VALID_KINDS = new Set([
-  'focus', 'type_text', 'replace_text', 'open_menu', 'select_item',
+  'enter', 'focus', 'type_text', 'replace_text', 'open_menu', 'select_item',
   'insert_items', 'fan_stack', 'settle', 'pulse_focus',
 ]);
 

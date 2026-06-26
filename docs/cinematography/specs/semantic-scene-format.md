@@ -126,6 +126,7 @@ v1/v2 scenes without a `semantic` block continue to render via existing paths.
         "kind": {
           "type": "string",
           "enum": [
+            "enter",
             "focus",
             "type_text",
             "replace_text",
@@ -263,7 +264,7 @@ v1/v2 scenes without a `semantic` block continue to render via existing paths.
 |-------|------|----------|---------|-------------|
 | `id` | string | Yes | — | `int_*` pattern. Unique within scene. |
 | `target` | string | Yes | — | Must reference a component `id`. |
-| `kind` | enum | Yes | — | One of 9 interaction kinds. |
+| `kind` | enum | Yes | — | One of 10 interaction kinds. |
 | `params` | object | No | — | Kind-specific (text, speed, index, items, etc.) |
 | `timing` | object | No | — | `{delay: {after, offset_ms}, at, at_ms}` |
 | `on_complete` | `{emit}` | No | — | Cue emission. |

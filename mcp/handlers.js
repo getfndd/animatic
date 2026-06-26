@@ -61,6 +61,7 @@ import { compareCandidateVideos, SCORE_DIMENSIONS } from './lib/comparison.js';
 import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.js';
 import { fetchNode as fetchFigmaNode, fetchFileTree, fetchComments, fetchImageFills, downloadBinary, sniffImage } from './lib/figma/client.js';
 import { frameToScene, collectImageFills } from './lib/figma/frame-to-scene.js';
+import { lottieToScene } from './lib/lottie/to-scene.js';
 import { recordRenderFeedback, recalibrateScoringWeights } from './lib/feedback.js';
 import { track } from './lib/telemetry.js';
 import { buildStoryboardExportPayload, renderStoryboardPanels } from './lib/figma/storyboard-export.js';
@@ -1164,6 +1165,20 @@ export async function handleFigmaFrameToScene(args) {
   } catch (err) {
     return {
       content: [{ type: 'text', text: `figma_frame_to_scene failed: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+export async function handleLottieToScene(args) {
+  const { lottie, personality, duration_s, source_name } = args;
+  try {
+    if (lottie == null) throw new Error('`lottie` is required — pass the raw Lottie .json content (string or object).');
+    const result = lottieToScene(lottie, { personality, duration_s, source_name });
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `lottie_to_scene failed: ${err.message}` }],
       isError: true,
     };
   }

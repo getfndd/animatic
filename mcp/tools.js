@@ -254,6 +254,33 @@ export function buildTools({
       },
     },
     {
+      name: 'lottie_to_scene',
+      description:
+        'Convert a raw Lottie animation (Bodymovin/lottie-web .json) into an Animatic v3 semantic scene (ANI-199). Parses the JSON without rendering — maps each visual layer (shape/text/image/precomp) to a semantic component with a placeholder HTML layer, infers descriptive types/roles from layer names + structure, extracts a brand palette from fill/stroke/gradient/solid/text colours, and emits a conservative staggered-entrance (`enter`) choreography with a reactive camera. Lottie\'s own motion is NOT translated — Animatic re-animates via the personality (vector fidelity is out of scope for v0). Accepts inline JSON content (string or object); `.lottie` ZIP containers are rejected with guidance. Returns { scene, report } — the report lists per-layer inferences, the palette, and advisories.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          lottie: {
+            type: ['string', 'object'],
+            description: 'Raw Lottie animation .json content — a JSON string or an already-parsed object. Not a file path; not a .lottie ZIP.',
+          },
+          personality: {
+            type: 'string',
+            description: 'Optional personality to pin on the scene (affects downstream compile choices).',
+          },
+          duration_s: {
+            type: 'number',
+            description: 'Scene duration in seconds. Defaults to the Lottie\'s own duration (clamped 0.5–30), else 4.',
+          },
+          source_name: {
+            type: 'string',
+            description: 'Optional name for provenance when the Lottie has no top-level `nm`.',
+          },
+        },
+        required: ['lottie'],
+      },
+    },
+    {
       name: 'export_storyboard_to_figma',
       description:
         'Build the storyboard→Figma export payload for a project (ANI-113): one panel still per scene (rendered via Remotion at 960x540 into storyboards/figma-export/), scene metadata (title, duration, camera, transition, voiceover), a grid layout_plan, and the frame-naming contract (sb_<scene_id>) plus figma_instructions. Animatic does NOT write into Figma — the agent drives the Figma MCP server (use_figma / generate_figma_design) from this payload to create the file, then verify_figma_export runs the REST read-back. LOCAL only (spawns Remotion).',

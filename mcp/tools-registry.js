@@ -28,6 +28,7 @@ export const HANDLERS = {
   validate_choreography: H.handleValidateChoreography,
   analyze_scene: H.handleAnalyzeScene,
   figma_frame_to_scene: H.handleFigmaFrameToScene,
+  lottie_to_scene: H.handleLottieToScene,
   export_storyboard_to_figma: H.handleExportStoryboardToFigma,
   verify_figma_export: H.handleVerifyFigmaExport,
   import_figma_comments: H.handleImportFigmaComments,

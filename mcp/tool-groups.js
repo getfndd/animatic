@@ -86,6 +86,7 @@ export const TOOL_GROUPS = {
   validate_choreography: { tier: TIER.TRANSFORM, edgeReady: true },
   analyze_scene: { tier: TIER.TRANSFORM, edgeReady: true },
   figma_frame_to_scene: { tier: TIER.TRANSFORM, edgeReady: false, note: 'reads the user-local FIGMA_TOKEN env (BYOK, ANI-114) and makes outbound Figma API calls; export_images also downloads fill bitmaps and writes them to the local project (ANI-175) — LOCAL only; a hosted variant would need per-account token storage' },
+  lottie_to_scene: { tier: TIER.TRANSFORM, edgeReady: true, note: 'pure transform over inline Lottie JSON (ANI-199) — no FS, network, or Chromium; .json only (no .lottie ZIP). Edge-safe' },
   export_storyboard_to_figma: { tier: TIER.RENDER, edgeReady: false, note: 'reads project state + spawns Remotion stills for panel PNGs (ANI-113) — LOCAL only' },
   verify_figma_export: { tier: TIER.TRANSFORM, edgeReady: false, note: 'reads the user-local FIGMA_TOKEN env (BYOK, ANI-113) — LOCAL only, same constraint as figma_frame_to_scene' },
   import_figma_comments: { tier: TIER.TRANSFORM, edgeReady: false, note: 'reads the user-local FIGMA_TOKEN env (BYOK, ANI-113) — LOCAL only, same constraint as figma_frame_to_scene' },

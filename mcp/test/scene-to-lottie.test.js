@@ -160,6 +160,58 @@ describe('integration — real compiler camera output → Lottie', () => {
   });
 });
 
+describe('regressions — review findings', () => {
+  it('P1: poster scene must include compiler-generated layers (capture the COMPILED scene)', () => {
+    // A component with no layer_ref → compileSemantic auto-generates a layer.
+    const scene = {
+      scene_id: 'sc_mixed', duration_s: 3, fps: 60,
+      layers: [{ id: 'existing', type: 'html', content: 'x' }],
+      semantic: {
+        components: [
+          { id: 'cmp_existing', type: 'ui_card', role: 'supporting', layer_ref: 'existing' },
+          { id: 'cmp_gen', type: 'ui_card', role: 'supporting' }, // no layer_ref
+        ],
+        interactions: [
+          { id: 'int_enter_existing', target: 'cmp_existing', kind: 'enter', timing: { at_ms: 0 } },
+          { id: 'int_enter_gen', target: 'cmp_gen', kind: 'enter', timing: { at_ms: 0 } },
+        ],
+        camera_behavior: { mode: 'reactive' },
+      },
+    };
+    const compiled = structuredClone(scene);
+    const timeline = compileMotion(compiled, { recipes: loadRecipes(), primitives: loadPrimitivesCatalog() });
+
+    // The compiler generated a layer for cmp_gen; the ORIGINAL scene never had it.
+    assert.ok(compiled.layers.some(l => l.id === 'cmp_gen'), 'compiler generated a layer');
+    assert.ok(!scene.layers.some(l => l.id === 'cmp_gen'), 'original scene lacks it (the bug)');
+
+    // Neutralising the COMPILED scene preserves the generated layer → poster shows it.
+    const { scene: posterScene } = neutralizeCameraForPoster(compiled, timeline);
+    assert.ok(posterScene.layers.some(l => l.id === 'cmp_gen'), 'poster scene must include the generated layer');
+    assert.ok(timeline.tracks.layers.cmp_gen, 'and the timeline tracks it');
+  });
+
+  it('P2: exports at the scene fps, not a hardcoded 60', () => {
+    const scene = {
+      scene_id: 'sc_30', duration_s: 3, fps: 30,
+      layers: [{ id: 'l1', type: 'html', content: 'x' }],
+      motion: { camera: { move: 'push_in' } },
+    };
+    const timeline = compileMotion(structuredClone(scene), { recipes: loadRecipes(), primitives: loadPrimitivesCatalog() });
+    assert.equal(timeline.fps, 30);
+    assert.equal(timeline.duration_frames, 90); // 3s × 30fps
+
+    const fps = timeline?.fps || scene.fps || 60;
+    const l = buildCameraLottie({
+      cameraTrack: cameraTrackFromTimeline(timeline), poster: POSTER,
+      width: 1920, height: 1080, fps, durationFrames: timeline.duration_frames,
+    });
+    // Under the bug (fr:60, op:90) this 3s clip would play in 1.5s at 2× speed.
+    assert.equal(l.fr, 30);
+    assert.equal(l.op, 90);
+  });
+});
+
 describe('handleSceneToLottie — input validation (no render)', () => {
   it('errors when scene is missing', async () => {
     const res = await handleSceneToLottie({});

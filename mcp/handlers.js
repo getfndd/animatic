@@ -62,6 +62,8 @@ import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.
 import { fetchNode as fetchFigmaNode, fetchFileTree, fetchComments, fetchImageFills, downloadBinary, sniffImage } from './lib/figma/client.js';
 import { frameToScene, collectImageFills } from './lib/figma/frame-to-scene.js';
 import { lottieToScene } from './lib/lottie/to-scene.js';
+import { buildCameraLottie, cameraTrackFromTimeline, neutralizeCameraForPoster } from './lib/lottie/from-timeline.js';
+import { openHeroCaptureSession } from './lib/hero-frame-capture.js';
 import { recordRenderFeedback, recalibrateScoringWeights } from './lib/feedback.js';
 import { track } from './lib/telemetry.js';
 import { buildStoryboardExportPayload, renderStoryboardPanels } from './lib/figma/storyboard-export.js';
@@ -1179,6 +1181,73 @@ export async function handleLottieToScene(args) {
   } catch (err) {
     return {
       content: [{ type: 'text', text: `lottie_to_scene failed: ${err.message}` }],
+      isError: true,
+    };
+  }
+}
+
+export async function handleSceneToLottie(args) {
+  const { scene, at = 0.6, name } = args;
+  const WIDTH = 1920;
+  const HEIGHT = 1080;
+  try {
+    if (!scene || !Array.isArray(scene.layers) || scene.layers.length === 0) {
+      throw new Error('`scene` is required and must have at least one layer.');
+    }
+
+    // Compile to a frame-addressed timeline (clone — compileSemantic mutates).
+    // Reactive compound scenes have no static tracks → poster-only fallback.
+    const reactive = isReactiveScene(scene);
+    const catalogs = { recipes: recipesCatalog, primitives: primitivesCatalog };
+    const timeline = compileMotion(structuredClone(scene), catalogs, {
+      personality: scene.personality,
+      ...(reactive ? { mode: 'reactive' } : {}),
+    });
+    const cameraTrack = cameraTrackFromTimeline(timeline);
+    const isReactive = timeline?.mode === 'reactive';
+
+    // Poster capture needs Chromium/Remotion (TIER.RENDER) — degrade cleanly
+    // when the toolchain can't launch rather than throwing into a crash.
+    const session = await openHeroCaptureSession({ scale: 1 });
+    if (!session || session.unavailable) {
+      return {
+        content: [{ type: 'text', text: `scene_to_lottie: render toolchain unavailable${session?.reason ? ` (${session.reason})` : ''} — cannot capture the poster image.` }],
+        isError: true,
+      };
+    }
+
+    // Capture the poster with the camera NEUTRALISED, so camera motion lives
+    // only in the Lottie (not double-applied via baked-in pixels).
+    const { scene: posterScene, timeline: posterTimeline } = neutralizeCameraForPoster(scene, timeline);
+    let shot;
+    try {
+      shot = await session.capture(posterScene, at, posterTimeline ? { timeline: posterTimeline } : {});
+    } finally {
+      await session.close();
+    }
+    if (!shot || shot.error || !shot.data) {
+      throw new Error(`poster capture failed: ${shot?.error || 'no frame returned'}`);
+    }
+
+    const durationFrames = timeline?.duration_frames || timeline?.durationFrames || Math.round((scene.duration_s || 4) * 60);
+    const lottie = buildCameraLottie({
+      cameraTrack,
+      poster: { dataUri: `data:image/png;base64,${shot.data}`, width: WIDTH, height: HEIGHT },
+      width: WIDTH, height: HEIGHT, fps: 60, durationFrames,
+      name: name || scene.scene_id,
+    });
+
+    const report = {
+      camera_mode: isReactive
+        ? 'poster-only (reactive scene — per-layer motion unavailable)'
+        : (cameraTrack ? `animated (${Object.keys(cameraTrack).join(', ')})` : 'poster-only (no camera move)'),
+      width: WIDTH, height: HEIGHT, fps: 60, duration_frames: durationFrames,
+      note: 'v0: internal per-layer motion is baked into the poster, not re-animated. Camera motion only.',
+    };
+    return { content: [{ type: 'text', text: JSON.stringify({ lottie, report }, null, 2) }] };
+  } catch (err) {
+    return {
+      content: [{ type: 'text', text: `scene_to_lottie failed: ${err.message}` }],
       isError: true,
     };
   }

@@ -281,6 +281,29 @@ export function buildTools({
       },
     },
     {
+      name: 'scene_to_lottie',
+      description:
+        'Export an Animatic v3 scene as a lightweight Lottie animation (ANI-200). v0 captures one still poster of the scene (camera neutralised) and animates it with the scene\'s CAMERA track only — push-in/pull-out → scale, pan/drift → position (cubic-bezier easings → Lottie tangents). Internal per-layer motion is baked into the poster, not re-animated (vector/per-layer fidelity is out of scope for v0). Reactive compound scenes degrade to a poster-only fallback. Needs the local Remotion/Chromium toolchain to capture the poster (LOCAL only). Returns { lottie, report } — `lottie` is a self-contained animation with an embedded poster image; `report` states the camera mode and dimensions.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          scene: {
+            type: 'object',
+            description: 'An Animatic v3 scene object (with layers + optional motion/semantic/camera). Required.',
+          },
+          at: {
+            type: 'number',
+            description: 'Normalised time (0–1) at which to capture the poster — pick a frame where entrances have settled. Default 0.6.',
+          },
+          name: {
+            type: 'string',
+            description: 'Optional name for the Lottie composition. Defaults to the scene_id.',
+          },
+        },
+        required: ['scene'],
+      },
+    },
+    {
       name: 'export_storyboard_to_figma',
       description:
         'Build the storyboard→Figma export payload for a project (ANI-113): one panel still per scene (rendered via Remotion at 960x540 into storyboards/figma-export/), scene metadata (title, duration, camera, transition, voiceover), a grid layout_plan, and the frame-naming contract (sb_<scene_id>) plus figma_instructions. Animatic does NOT write into Figma — the agent drives the Figma MCP server (use_figma / generate_figma_design) from this payload to create the file, then verify_figma_export runs the REST read-back. LOCAL only (spawns Remotion).',

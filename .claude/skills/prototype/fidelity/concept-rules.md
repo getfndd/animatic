@@ -1,153 +1,166 @@
+---
+name: concept-rules
+fidelity: concept
+scope: portable
+version: 1
+---
+
 # Concept Fidelity Rules
 
-**Purpose:** Styled exploration that uses ITO design system tokens but allows creative freedom with component patterns. Good for testing visual direction before full production commitment.
+Visual direction testing. Token discipline enforced. Component design flexible.
 
-## Design System Integration
+At **concept fidelity**, you may invent new components and layouts. You may **not** break the token system. Every prototype must be fully grounded in the palette resolved for *this* project.
 
-### Colors
-Use ITO semantic tokens:
-```css
-/* Backgrounds */
-background: var(--surface-primary);
-background: var(--surface-secondary);
-background: var(--surface-tertiary);
+## The organizing principle
 
-/* Text */
-color: var(--text-primary);
-color: var(--text-secondary);
-color: var(--text-tertiary);
+**Conform to the palette that is defined. Do not bring one.**
 
-/* Borders */
-border-color: var(--border-default);
-border-color: var(--border-subtle);
+These rules constrain how colour is used; they never say which colours exist. That is the project's call, and it is resolved in this order:
 
-/* Status */
-background: var(--status-success-bg);
-color: var(--status-success);
-background: var(--status-error-bg);
-color: var(--status-error);
+1. The project adapter's `semantic_tokens` (`_adapters/{project}.md`)
+2. Inferred from the project — an existing tokens file, Tailwind theme, or CSS custom properties already in the repo
+3. The achromatic placeholders in `templates/_tokens.css`
+
+If you reached step 2 or 3, say so on the page with `.palette-notice`. Inference can pick up a stale or half-migrated palette, and a silent pickup is indistinguishable from a deliberate choice.
+
+A project whose defined palette is *neutrals only* is conforming, not unfinished — restraint is a definition like any other. But that has to come from the project's definition, not from the prototype skill's defaults.
+
+Organizing word: **atelier × laboratory × studio** — crafted, instrumented, working space.
+
+## Palette rules
+
+**USE** (via semantic tokens, not raw scale):
+
+```
+--surface, --surface-2, --surface-raised
+--ink, --ink-soft, --ink-quiet, --ink-faint, --ink-ghost
+--rule, --rule-strong
 ```
 
-**Allowed:** Any token from the ITO design system
-**Not required:** Exact preset component usage
+**USE sparingly** (status only, never as accents):
 
-### Typography
-- Use design system font (Satoshi)
-- Follow the type scale: 12px, 14px, 16px, 18px, 20px, 24px, 30px, 36px
-- Use proper font weights: 400, 500, 700
-- Follow line-height guidelines
+```
+--success-600, --error-600, --warning-600
+```
 
-### Spacing
-Use design system spacing scale:
-- `4px`, `8px`, `12px`, `16px`, `20px`, `24px`, `32px`, `40px`, `48px`, `64px`
+**BANNED**:
 
-### Border Radius
-Use design system radius tokens:
-- `var(--radius)` - default (8px)
-- `calc(var(--radius) - 2px)` - medium (6px)
-- `calc(var(--radius) - 4px)` - small (4px)
+- No colour from outside the project's resolved palette — including a palette borrowed from a sibling product, a previous client, or this skill's own placeholders
+- No raw hex codes in component styles (all colors must resolve through tokens)
+- No Tailwind color utility classes (`text-blue-500`, `bg-emerald-100`, etc.)
+- No custom gradients
+- No colored shadows
+- No neon / saturated accents
 
-## Component Flexibility
+## Typography rules
 
-### Allowed
-- Custom button styles using design tokens
-- Experimental card layouts
-- Creative form patterns
-- Novel navigation approaches
-- Custom interactive patterns
+**Fonts**: whatever the project's resolved palette defines, held in `--font-sans` / `--font-mono` / `--font-display`. Reference the variables, never a family name — that is what makes a swap a one-line change instead of a find-and-replace.
 
-### Required
-- Consistent use of tokens (don't mix custom colors)
-- Proper contrast ratios (WCAG AA minimum)
-- Logical spacing rhythm
-- Readable typography
+If the palette resolved to placeholders, that is a system stack. Do not reach for a webfont to make an unadapted prototype look finished; declare the gap with `.palette-notice` instead.
 
-## Interactive States
+**Role-based scale** (use tokens, not raw numbers):
 
-Include interactive states:
-- Hover states (opacity, background change)
-- Focus states (ring or outline)
-- Active/pressed states
-- Disabled states (where applicable)
+| Role | Token basis | When to use |
+|---|---|---|
+| Display | `--type-display-*` | Hero headlines only, one per page |
+| H1 | `--type-h1-*` | Page-level titles |
+| H2 | `--type-h2-*` | Section headings |
+| Body | `--type-body-*` | Default paragraph |
+| Body lg | `--type-body-lg-*` | Answer text, synthesis body |
+| Meta | `--type-meta-*` | Mono uppercase labels, kickers, badges |
+| Meta sm | `--type-meta-sm-*` | Very small labels |
+| Mono data | `--type-mono-data-*` | Numbers, timestamps, IDs, technical values |
 
-Example hover pattern:
-```css
-.button:hover {
-  opacity: 0.9;
+**Typographic laws**:
+
+- Every numeric data point (count, %, currency, timestamp, duration, ID, hash) uses `--font-mono`
+- Every label or kicker above a heading uses `--font-mono`, uppercase
+- Hero headlines use `text-wrap: balance`
+- Body paragraphs use `text-wrap: pretty`
+- Never ALL CAPS except in mono micro-labels
+- Never mix sans weights heavier than necessary — prefer 400 → 500 → 700 progression
+
+## Motion rules
+
+Three tiers only. Durations from tokens.
+
+| Tier | Enter | Exit | When |
+|---|---|---|---|
+| 1 (feedback) | `--dur-tier1` (140ms) | same | Hover, press, focus |
+| 2 (structural) | `--dur-tier2-in` (200ms) | `--dur-tier2-out` (160ms) | Modals, page transitions, content swaps |
+| 3 (spatial) | `--dur-tier3-in` (250ms) | `--dur-tier3-out` (200ms) | Drawers, slide-ins, large panels |
+
+**Easing laws**:
+
+- `--ease-out` for arrivals
+- `--ease-in` for departures
+- **Never** `ease-in-out` — it's decorative, not intentional
+- Never bouncy / elastic
+- Never longer than 300ms for any transition
+- Always respect `prefers-reduced-motion`
+
+## Spacing rules
+
+Use the 8-based rhythm via tokens: `--space-1` (4px) through `--space-24` (96px). Never arbitrary values. Never odd numbers outside the 4-based sequence.
+
+## Radius rules
+
+Only three values:
+
+- `--radius-sm` (2px) — pills, chips, small tags
+- `--radius-md` (6px) — cards, panels, inputs
+- `--radius-full` — buttons, dots, organic shapes
+
+No `rounded-xl`, no `rounded-2xl`, no custom radii.
+
+## Dark mode rules
+
+**Every prototype must work in both light and dark mode.**
+
+Implementation: use semantic tokens (`--surface`, `--ink`, etc.), never raw `--ink-*` scale values in components. The `@media (prefers-color-scheme: dark)` block in tokens.css swaps the semantic tokens automatically.
+
+When reviewing a prototype, open it, then toggle your OS to dark mode and verify it still reads correctly. Both states are required; "will do dark mode later" is not acceptable at concept fidelity.
+
+## Component freedom vs token discipline
+
+At **concept** fidelity:
+
+- ✅ You may invent new components (cards, panels, citation widgets, gesture studies)
+- ✅ You may arrange them in any layout that serves the idea
+- ✅ You may try multiple variations of the same component
+- ❌ You may not use raw hex or Tailwind color classes
+- ❌ You may not add brand colors
+- ❌ You may not add a typeface the project's palette does not define
+
+At **spec** fidelity, stricter rules apply — components must be production presets. That's a future concern.
+
+## Metadata requirement
+
+Every generated prototype must have a `meta.json` in its folder listing:
+
+```json
+{
+  "id": "2026-04-11-{project}-gesture-number",
+  "name": "Gesture study: the number",
+  "description": "Mono-data as the visual heartbeat of the portal",
+  "fidelity": "concept",
+  "chrome": "none",
+  "tokens_used": [
+    "--font-mono", "--ink", "--ink-quiet", "--type-mono-data-*"
+  ],
+  "dark_mode_tested": true,
+  "reduced_motion_tested": true,
+  "created_at": "2026-04-11T..."
 }
-/* or */
-.card:hover {
-  border-color: var(--border-strong);
-}
 ```
 
-## Example
+## Validation checklist (run before sharing)
 
-```html
-<div class="rounded-lg border p-6 max-w-md">
-  <h2 class="text-xl font-semibold mb-4">Create Account</h2>
-
-  <div class="space-y-4">
-    <!-- Custom input style using tokens -->
-    <div>
-      <label class="text-sm font-medium mb-1.5 block">Email</label>
-      <input
-        type="email"
-        placeholder="you@example.com"
-        class="w-full px-4 py-2.5 rounded-md border bg-surface-primary text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20"
-      />
-    </div>
-
-    <!-- Creative password input with toggle -->
-    <div>
-      <label class="text-sm font-medium mb-1.5 block">Password</label>
-      <div class="relative">
-        <input
-          type="password"
-          placeholder="********"
-          class="w-full px-4 py-2.5 pr-10 rounded-md border bg-surface-primary"
-        />
-        <button class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary">
-          <!-- Eye icon -->
-        </button>
-      </div>
-    </div>
-
-    <!-- Primary action using tokens but custom style -->
-    <button class="w-full py-2.5 px-4 rounded-md bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity">
-      Create Account
-    </button>
-
-    <!-- Secondary option -->
-    <p class="text-sm text-center text-text-secondary">
-      Already have an account?
-      <a href="#" class="text-text-primary underline hover:no-underline">Sign in</a>
-    </p>
-  </div>
-</div>
-```
-
-## DO
-
-- Use all design system color tokens
-- Follow spacing and typography scales
-- Add hover and focus states
-- Experiment with component layouts
-- Try different visual approaches
-- Use Tailwind utility classes
-- Make it visually polished
-
-## DO NOT
-
-- Use hardcoded colors outside the token system
-- Ignore contrast requirements
-- Mix design system tokens with arbitrary values
-- Skip interactive states
-
-## Purpose of Concept
-
-Concept fidelity is for:
-1. Exploring visual direction with real design tokens
-2. Testing component variations before formalizing presets
-3. Getting stakeholder feedback on look and feel
-4. Validating that design system tokens work for the use case
+- [ ] Opens cleanly in a browser (no console errors, no 404s on fonts)
+- [ ] Works in light mode
+- [ ] Works in dark mode (toggle OS setting)
+- [ ] `prefers-reduced-motion: reduce` doesn't break layout
+- [ ] No raw hex codes in the CSS (all tokens)
+- [ ] No brand colors
+- [ ] Typography roles match the scale above
+- [ ] `meta.json` exists and lists tokens used

@@ -1,12 +1,13 @@
 ---
 name: prototype
 memory: project
-description: Generate design-system-aware HTML prototypes with consistent fidelity and chrome options. Invoke with /prototype "what to build" to create cataloged prototypes that respect the ITO design system.
+effort: high
+description: Generate design-system-aware HTML prototypes with consistent fidelity and chrome options. Invoke with /prototype "what to build" to create cataloged prototypes that respect the project's design system.
 ---
 
 # /prototype - Design-System-Aware Prototyping
 
-Generate HTML prototypes that automatically use ITO design system tokens, presets, and patterns.
+Generate HTML prototypes grounded in whatever design system the project declares — its tokens, presets, and patterns. The skill supplies discipline, not a design system.
 
 ---
 
@@ -45,29 +46,77 @@ Extract from the command:
 - Number of options (default: 1)
 - Name (auto-generate from description if not provided)
 
-### 2. Load Fidelity Rules
+### 2. Resolve the Palette
+
+**Before generating anything.** This skill enforces conformance to a defined
+palette; it does not supply one. Resolve in order and stop at the first hit:
+
+| # | Source | How |
+|---|--------|-----|
+| 1 | Project adapter | `semantic_tokens` in `.claude/skills/_adapters/{project}.md` |
+| 2 | Inferred from the repo | An existing tokens file, Tailwind theme, or `:root` custom properties |
+| 3 | Placeholders | The achromatic ramp in `templates/_tokens.css` |
+
+**If you resolved at resolution step 2 or 3, the prototype must say so on the page**, as
+the first element inside `<body>`:
+
+```html
+<p class="palette-notice">
+  Palette inferred from tailwind.config.ts — not declared in the project
+  adapter. Verify before review.
+</p>
+```
+
+Inference is convenient and it is the step that can quietly go wrong: a repo
+part-way through a migration has two palettes, and picking the older one looks
+identical to picking deliberately. The notice is what makes that reviewable.
+Never omit it to make a prototype look finished — looking unfinished is the
+correct output when the palette is not defined.
+
+Record the resolution step and source in `meta.json` alongside the tokens used.
+
+### 3. Load Fidelity Rules
 
 Read the appropriate rules file:
-- `sketch`: Load `.claude/skills/prototype/fidelity/sketch-rules.md`
-- `concept`: Load `.claude/skills/prototype/fidelity/concept-rules.md`
-- `spec`: Load `.claude/skills/prototype/fidelity/spec-rules.md`
+- `sketch`: Load `${CLAUDE_SKILL_DIR}/fidelity/sketch-rules.md`
+- `concept`: Load `${CLAUDE_SKILL_DIR}/fidelity/concept-rules.md`
+- `spec`: Load `${CLAUDE_SKILL_DIR}/fidelity/spec-rules.md`
 
 **Critical:** Follow the rules exactly. They define what colors, typography, components, and interactivity are allowed.
 
-### 3. Load Chrome Template
+### 4. Load Chrome Template
 
 Read the appropriate template:
-- `none`: `.claude/skills/prototype/templates/chrome-none.html`
-- `minimal`: `.claude/skills/prototype/templates/chrome-minimal.html`
-- `sidebar`: `.claude/skills/prototype/templates/chrome-sidebar.html`
-- `full`: `.claude/skills/prototype/templates/chrome-full.html`
+- `none`: `${CLAUDE_SKILL_DIR}/templates/chrome-none.html`
+- `minimal`: `${CLAUDE_SKILL_DIR}/templates/chrome-minimal.html`
+- `sidebar`: `${CLAUDE_SKILL_DIR}/templates/chrome-sidebar.html`
+- `full`: `${CLAUDE_SKILL_DIR}/templates/chrome-full.html`
 
-If the prototype is being emitted to satisfy a `flavor: "library-driven"` compound primitive (see `catalog/compound/lib-*.json`), additionally read:
-- `.claude/skills/prototype/templates/library-driven-primitive.md` — capture-contract recipe for GSAP / Framer Motion prototypes. Failing to follow this produces blank captures or non-deterministic playback.
+### 5. Query Design System Context (spec fidelity only)
 
-### 4. Query Design System Context (spec fidelity only)
+At `spec` fidelity a prototype claims to be production-accurate, so it must be
+grounded in the project's real design system rather than in inference.
 
-For `spec` fidelity, you MUST query the ITO Design System MCP:
+**The default platform is Preset AI** — the agentic design-system platform, and
+the source of the tool surface below. Query it unless the project's adapter
+declares a different `design_system_mcp`.
+
+The distinction that matters, because getting it backwards is what caused the
+last defect here:
+
+| | Portable? | |
+|---|---|---|
+| **Preset AI** | yes | The *platform*. A tool, like naming Figma or Linear — it serves whatever design system a project has. |
+| A design system | **no** | A *project fact*. One client's system is not another's, and an earlier version of this file named one as *the* system. |
+
+So: name the platform, never the system. Preset AI answers for whichever design
+system the project has registered with it.
+
+**If Preset AI is not connected and the adapter declares no alternative, `spec`
+fidelity is unavailable.** Say so and offer `concept` instead. Do not improvise
+presets and call the result production-accurate — an invented preset presented
+as validated is worse than an honest concept prototype, because it is wrong in
+the one direction the fidelity level exists to prevent.
 
 ```
 # Get appropriate presets for components
@@ -84,16 +133,20 @@ get_preset_code({ presetName: "primary-action" })
 validate_component_props({ component: "button", props: {...} })
 ```
 
-### 5. Generate Prototype(s)
+### 6. Generate Prototype(s)
 
 Generate HTML that:
 1. Uses the chrome template structure
 2. Follows fidelity rules exactly
 3. Replaces `{{TITLE}}` with prototype name
 4. Replaces `{{CONTENT}}` with the generated UI
-5. If options > 1, create variations exploring different approaches
+5. Replaces `{{PROJECT}}` with the project's own name — the wordmark slot in
+   the generic chromes. Take it from the adapter; if there is no adapter, use
+   the repository name rather than inventing one, and never fill it with the
+   name of whoever authored the skill.
+6. If options > 1, create variations exploring different approaches
 
-### 6. Save to Catalog
+### 7. Save to Catalog
 
 Save files to `prototypes/`:
 
@@ -107,7 +160,7 @@ prototypes/
     └── meta.json                    # Metadata
 ```
 
-### 7. Return Summary
+### 8. Return Summary
 
 Report:
 - Files created and their paths
@@ -224,7 +277,7 @@ Creates:
 /prototype "checkout form with payment details" --fidelity spec --chrome minimal
 ```
 
-Creates validated production-ready HTML using exact ITO design system presets.
+Creates validated production-ready HTML using the project's own design-system presets.
 
 ### Quick Sketch
 
@@ -241,7 +294,7 @@ Creates wireframe-style layouts for quick exploration.
 ### DO
 - Follow fidelity rules exactly
 - Use the chrome template structure
-- Query ITO MCP for spec fidelity
+- Query Preset AI (or the adapter's `design_system_mcp`) for spec fidelity
 - Save to the catalog with metadata
 - Include all required files (HTML + meta.json)
 - Update manifest.json with new entry
@@ -259,11 +312,11 @@ Creates wireframe-style layouts for quick exploration.
 
 ### "Prototype doesn't match design system"
 - Check fidelity level (maybe you want `spec` instead of `concept`)
-- At `spec` level, verify ITO MCP queries are being made
+- At `spec` level, verify design-system MCP queries are being made, and refuse spec fidelity when no design-system MCP is reachable
 
 ### "Chrome looks wrong"
 - Verify the chrome template file exists
-- Check that `{{TITLE}}` and `{{CONTENT}}` are being replaced
+- Check that `{{TITLE}}`, `{{CONTENT}}`, and `{{PROJECT}}` are being replaced
 
 ### "Can't find prototype"
 - Check `prototypes/manifest.json` for the entry

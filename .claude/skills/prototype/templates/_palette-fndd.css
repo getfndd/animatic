@@ -1,0 +1,50 @@
+/* ════════════════════════════════════════════════════════════════════════
+ * fndd studio — concrete palette
+ * ════════════════════════════════════════════════════════════════════════
+ *
+ * Load *after* `_tokens.css`, which defines the contract and placeholder
+ * values. This file supplies one organisation's actual brand.
+ *
+ * It exists to demonstrate the intended shape of an override as much as to
+ * serve the studio: a project palette redefines the ramp, the paper, and
+ * the fonts, and inherits everything else — spacing rhythm, motion tiers,
+ * radii, type scale — unchanged. Nothing here redefines a component.
+ *
+ *   <link rel="stylesheet" href="./_tokens.css">
+ *   <link rel="stylesheet" href="./_palette-fndd.css">
+ *
+ * Only the studio's own marketing chromes link this. A generic prototype
+ * links `_tokens.css` alone and resolves its palette from the project (see
+ * that file's header for the resolution order).
+ *
+ * The canonical copy of these values lives at
+ * `prototypes/studio-portal/tokens.css`, which is a project artifact
+ * rather than a portable one.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Ink scale (warm "oatmeal" OKLCH — hue 106-107) ──────────────── */
+  --ink-50:  oklch(98.8% 0.003 106.5);
+  --ink-100: oklch(96.6% 0.005 106.5);
+  --ink-200: oklch(93.0% 0.007 106.5);
+  --ink-300: oklch(88.0% 0.011 106.6);
+  --ink-400: oklch(73.7% 0.021 106.9);
+  --ink-500: oklch(58.0% 0.031 107.3);
+  --ink-600: oklch(46.6% 0.025 107.3);
+  --ink-700: oklch(39.4% 0.023 107.4);
+  --ink-800: oklch(28.6% 0.016 107.4);
+  --ink-900: oklch(22.8% 0.013 107.4);
+  --ink-950: oklch(15.3% 0.006 107.1);
+
+  /* ── Paper (warm white / cream) ──────────────────────────────────── */
+  --paper-white: oklch(99.0% 0.002 106.5);
+  --paper-cream: oklch(97.0% 0.005 106.5);
+
+  /* ── Fonts ───────────────────────────────────────────────────────────
+   * Satoshi is licensed to the studio. A project adopting this file as a
+   * template must substitute its own — this is exactly the line that must
+   * not travel in a portable core. */
+  --font-sans: 'Satoshi', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: var(--font-sans);
+}

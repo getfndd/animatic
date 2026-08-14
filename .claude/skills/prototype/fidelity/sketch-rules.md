@@ -1,98 +1,56 @@
+---
+name: sketch-rules
+fidelity: sketch
+scope: portable
+---
+
 # Sketch Fidelity Rules
 
-**Purpose:** Rapid layout exploration with zero design system dependency. Focus on structure, hierarchy, and content placement.
+**Purpose:** Rapid wireframing to explore layout and structure. No design
+system — just grey boxes and system fonts.
 
-## Visual Constraints
+Sketch is the one fidelity that deliberately ignores the project's palette.
+That is not a licence to invent one: it means greyscale, so the output reads as
+structure rather than as a proposal about colour. Raw hex is acceptable *here
+and only here*, because there is no token system in play to route through.
 
-### Colors
-Use ONLY these grayscale values:
-- `#f5f5f5` - Light background, containers
-- `#e0e0e0` - Borders, dividers
-- `#9e9e9e` - Secondary text, icons
-- `#616161` - Primary text
-- `#424242` - Headings, emphasis
-- `#212121` - High contrast elements
+## Colors
+Only grayscale:
+- `#fafafa` — lightest background
+- `#f0f0f0` — card/section background
+- `#e0e0e0` — borders, dividers
+- `#9e9e9e` — secondary text
+- `#616161` — primary text
+- `#424242` — headings
+- `#212121` — emphasis
 
-**Never use:** Brand colors, status colors, gradients, shadows
+## Typography
+- System fonts only: `-apple-system, system-ui, sans-serif`
+- Monospace: `ui-monospace, SFMono-Regular, monospace`
+- Sizes: 12px, 14px, 16px, 20px, 24px
+- Weights: 400, 500, 700
 
-### Typography
-- Font family: `system-ui, -apple-system, sans-serif` (no custom fonts)
-- Sizes: 12px, 14px, 16px, 20px, 24px, 32px only
-- Weights: 400 (regular), 600 (semibold) only
-- Line height: 1.5 for body, 1.2 for headings
+## Spacing
+- 8px grid: 8, 16, 24, 32, 48, 64
 
-### Spacing
-Use 8px grid only:
-- `8px`, `16px`, `24px`, `32px`, `48px`, `64px`
-- No odd spacing values
+## Components
+- Rectangles with 1px #e0e0e0 borders
+- No rounded corners larger than 4px
+- No shadows
+- No gradients
+- No icons — use text labels
 
-### Components
-Represent components as simple boxes:
-- Buttons: Bordered rectangle with label
-- Inputs: Bordered rectangle with placeholder
-- Cards: Bordered rectangle with content
-- Images: Gray rectangle with "x" or icon placeholder
-- Icons: 16px or 24px gray squares
+## Interactive States
+- None required at sketch level
 
-### Interactive States
-- **No hover states**
-- **No focus states**
-- **No animations**
-- Use dashed borders for "clickable" indication if needed
-
-## Structure Rules
-
-### Layout
-- Use CSS Grid or Flexbox
-- Clear visual hierarchy through size and position
-- Generous whitespace
-- Left-aligned text (no justified)
-
-### Content
-- Use real labels where known
-- Use "Lorem ipsum" or "[Content]" for unknown text
-- Use realistic data lengths
-- Show edge cases (empty states, long text)
-
-## Example
-
-```html
-<div style="border: 1px solid #e0e0e0; padding: 24px; max-width: 400px;">
-  <div style="font-size: 20px; font-weight: 600; color: #424242; margin-bottom: 16px;">
-    Form Title
-  </div>
-
-  <!-- Input placeholder -->
-  <div style="border: 1px solid #e0e0e0; padding: 12px 16px; margin-bottom: 16px; color: #9e9e9e;">
-    Email address
-  </div>
-
-  <!-- Input placeholder -->
-  <div style="border: 1px solid #e0e0e0; padding: 12px 16px; margin-bottom: 24px; color: #9e9e9e;">
-    Password
-  </div>
-
-  <!-- Button placeholder -->
-  <div style="border: 1px solid #424242; padding: 12px 24px; text-align: center; color: #424242; font-weight: 600;">
-    Sign In
-  </div>
-</div>
-```
+## DO
+- Focus on layout and hierarchy
+- Use placeholder text that matches real content length
+- Show all major sections and content areas
+- Use boxes for images/media
 
 ## DO NOT
-
-- Use any design system tokens
-- Use brand colors
-- Add shadows or gradients
-- Include hover/focus states
+- Use any brand colors
+- Add hover/focus states
 - Use custom fonts
-- Add icons (use placeholders)
-- Make it "look nice" - focus on structure
-
-## Purpose of Sketch
-
-Sketch fidelity is for:
-1. Exploring layout options quickly
-2. Validating information architecture
-3. Testing content hierarchy
-4. Discussing structure before committing to design
+- Add any decoration

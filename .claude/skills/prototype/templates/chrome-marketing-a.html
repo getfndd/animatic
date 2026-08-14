@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}} · fndd</title>
+<meta name="description" content="{{DESCRIPTION}}">
+
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="./_tokens.css">
+<!-- Studio brand. A generic prototype links _tokens.css alone and resolves
+     its palette from the project; see that file for the resolution order. -->
+<link rel="stylesheet" href="./_palette-fndd.css">
+
+<style>
+/* ════════════════════════════════════════════════════════════════════
+ * chrome-marketing-A — Full-width section backgrounds, contained content
+ *
+ * Containment strategy A:
+ *   - Section <section> spans full viewport (bg-color can vary)
+ *   - Section INNER content clamped to max-w-wide (1024px)
+ *   - Pill nav floats above, also max-w-wide wrapper
+ *   - Footer follows same full-width-bg + contained-inner pattern
+ *
+ * Closest to: Weftly marketing (apps/marketing HomeFounderOS)
+ * Feels: Open, airy, room for large hero images to breathe
+ * ════════════════════════════════════════════════════════════════════ */
+
+.mkt-a-main { padding-top: var(--nav-offset); }
+
+.mkt-a-section {
+  width: 100%;
+  padding: var(--space-20) 0;
+  border-top: 1px solid var(--rule);
+}
+.mkt-a-section.first { border-top: none; padding-top: var(--space-16); }
+.mkt-a-section.alt { background: var(--surface-2); }
+
+.mkt-a-section-inner {
+  max-width: var(--max-w-wide);
+  margin: 0 auto;
+  padding: 0 var(--pad);
+}
+
+.mkt-a-ftr {
+  width: 100%;
+  border-top: 1px solid var(--rule);
+  padding: var(--space-16) 0 var(--space-8);
+}
+.mkt-a-ftr-inner {
+  max-width: var(--max-w-wide);
+  margin: 0 auto;
+  padding: 0 var(--pad);
+}
+.mkt-a-ftr-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-10);
+  padding-bottom: var(--space-10);
+  flex-wrap: wrap;
+}
+.mkt-a-ftr-brand-block .brand-mark {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+.mkt-a-ftr-brand-block .tagline {
+  font-size: 14px;
+  color: var(--ink-quiet);
+  max-width: 32ch;
+}
+.mkt-a-ftr-links {
+  display: flex;
+  gap: var(--space-12);
+}
+.mkt-a-ftr-col h4 {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-3);
+}
+.mkt-a-ftr-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.mkt-a-ftr-col a {
+  font-size: 14px;
+  color: var(--ink-quiet);
+  transition: color var(--dur-tier1) var(--ease-out);
+}
+.mkt-a-ftr-col a:hover { color: var(--ink); }
+
+.mkt-a-ftr-bottom {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .mkt-a-section-inner, .mkt-a-ftr-inner { padding: 0 var(--pad-sm); }
+  .mkt-a-ftr-top { flex-direction: column; gap: var(--space-8); }
+  .mkt-a-ftr-links { gap: var(--space-8); flex-wrap: wrap; }
+}
+
+/* ── Variant label (distinguishes A/B/C for review) ──────────────── */
+.variant-label {
+  position: fixed;
+  bottom: var(--space-4);
+  left: var(--space-6);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-ghost);
+  z-index: 100;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+}
+</style>
+</head>
+<body>
+
+<aside class="variant-label">variant A — full-width bg · contained content</aside>
+
+<header class="proto-header">
+  <div class="proto-header-inner">
+    <nav class="pill-nav">
+      <a href="/" class="pill-brand">fndd</a>
+      <div class="pill-links">
+        <a href="#studio" class="pill-link active">Studio</a>
+        <a href="#products" class="pill-link">Products</a>
+        <a href="#thesis" class="pill-link">Thesis</a>
+        <a href="#contact" class="pill-link">Contact</a>
+      </div>
+      <a href="/studio" class="pill-cta">Enter studio →</a>
+    </nav>
+  </div>
+</header>
+
+<main class="mkt-a-main">
+  {{CONTENT}}
+</main>
+
+<footer class="mkt-a-ftr">
+  <div class="mkt-a-ftr-inner">
+    <div class="mkt-a-ftr-top">
+      <div class="mkt-a-ftr-brand-block">
+        <div class="brand-mark">fndd</div>
+        <p class="tagline">For ideas in progress.</p>
+      </div>
+      <div class="mkt-a-ftr-links">
+        <div class="mkt-a-ftr-col">
+          <h4>Products</h4>
+          <ul>
+            <li><a href="https://weftlyai.com">Weftly</a></li>
+            <li><a href="https://presetai.dev">Preset AI</a></li>
+          </ul>
+        </div>
+        <div class="mkt-a-ftr-col">
+          <h4>Studio</h4>
+          <ul>
+            <li><a href="#thesis">Thesis</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div class="mkt-a-ftr-col">
+          <h4>Contact</h4>
+          <ul>
+            <li><a href="mailto:james@getfndd.com">james@getfndd.com</a></li>
+            <li><a href="mailto:micah@getfndd.com">micah@getfndd.com</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="mkt-a-ftr-bottom">
+      <span>© fndd, LLC · 2026</span>
+      <span class="mono">prototype · {{DATE}}</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

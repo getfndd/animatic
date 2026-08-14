@@ -1,6 +1,6 @@
 # Steve Reflex System
 
-How Steve learns and persists accessibility corrections. This file governs the learning process itself.
+How Steve learns and persists corrections. This file governs the learning process itself.
 
 ---
 
@@ -11,31 +11,27 @@ Enter learning mode when ANY of the following occur:
 ### Explicit Triggers
 - User says `@steve learn [correction]`
 - User says phrases like:
-  - "remember this accessibility rule"
-  - "we always need to handle this"
-  - "this screen reader behavior is important"
+  - "remember this"
+  - "don't flag that"
+  - "this is acceptable"
+  - "we always / never do this"
   - "Steve, note that..."
-  - "this contrast rule applies everywhere"
 
 ### Implicit Triggers (require confirmation)
-- User corrects Steve's accessibility recommendation
-- Accessibility regression discovered in production
-- New WCAG guideline or technique identified that applies to Preset
-- Pattern that consistently causes accessibility issues across the codebase
-- Screen reader behavior quirk discovered during testing
-- Contrast ratio edge case found (e.g., semi-transparent overlays, dark mode transitions)
-- Same correction appears 2+ times across sessions
+- User overrides Steve's accessibility recommendation with justification
+- User provides the same override 2+ times across sessions
+- Audit reveals a project-specific exception pattern
 
-**Important:** Not every accessibility discussion is a correction. Distinguish:
+**Important:** Not every user override is a correction. Distinguish:
 
 | User Action | Learning Response |
 |-------------|-------------------|
-| Asking about a WCAG criterion | No learning - educational response only |
-| Reporting a bug | No learning - fix the bug |
-| "This pattern always causes issues" | Potential learning |
-| Same correction 2+ times | Strong candidate |
-| "We always/never do X for accessibility" | Definite learning |
-| Screen reader behaves unexpectedly | Potential learning (verify across AT) |
+| One-off exception for specific context | No learning |
+| Bug fix in code | No learning |
+| "This is wrong" + explanation | Potential learning |
+| Same override 2+ times | Strong candidate |
+| "We never flag X" / "Always allow Y" | Definite learning |
+| Disagreement about WCAG interpretation | Potential clarification |
 
 ---
 
@@ -44,9 +40,8 @@ Enter learning mode when ANY of the following occur:
 When triggered:
 
 ### 1. Identify the Correction
-- What did Steve recommend?
-- What did the user change or reject?
-- What accessibility behavior was discovered?
+- What did Steve recommend or flag?
+- What did the user change, override, or reject?
 - What is the delta?
 
 ### 2. Classify the Learning
@@ -54,39 +49,25 @@ When triggered:
 **Type:**
 | Type | Definition | Example |
 |------|------------|---------|
-| Constraint | Hard prohibition | "Never remove focus outlines without replacement" |
-| Preference | Default behavior | "Prefer native HTML elements over ARIA equivalents" |
-| Clarification | Interpretation of WCAG in Preset context | "Color swatches need aria-label with color name and hex" |
-| Exception | Narrow override | "Marketing hero images can use decorative alt=''" |
+| Constraint | Hard requirement or prohibition | "Always use aria-live on toast container" |
+| Preference | Default behavior | "Prefer visible labels over aria-label" |
+| Clarification | Interpretation of existing WCAG rule | "Our custom dropdowns satisfy 2.1.1 via Headless UI" |
+| Exception | Narrow override | "Decorative avatars in lists don't need alt text" |
 
 **Scope:**
 | Scope | Applies To |
 |-------|------------|
-| Global | All surfaces, all components |
-| Surface | Specific UI type (token editors, drift reports, settings) |
+| Global | All components, all surfaces |
+| Surface | Specific UI type (dialogs, tables, forms) |
 | Component | Specific component only |
 
-**Category:**
-| Category | Covers |
-|----------|--------|
-| contrast | Color contrast ratios, dark mode, overlays, transparency |
-| keyboard | Tab order, keyboard handlers, shortcuts, traps |
-| screen-reader | ARIA roles, labels, live regions, announcements |
-| focus | Focus indicators, focus management, restoration, trapping |
-| motion | Animations, transitions, reduced-motion, auto-play |
-| semantic-html | Element choice, heading hierarchy, landmarks, lists |
-| preset-specific | Token editors, color swatches, drift reports, preset grids |
+### 3. Validate Against WCAG
 
-### 3. Validate Generalizability
+**Critical check:** Does this learning weaken accessibility?
 
-Ask yourself:
-- Is this a one-off edge case, or does it apply broadly?
-- Would this apply to other similar components in Preset?
-- Does it contradict any existing learning or SKILL.md rule?
-- Has this been verified with actual assistive technology (or is it theoretical)?
-- Does this align with WAI-ARIA Authoring Practices?
-
-**If unsure:** Ask the user before persisting. For screen reader behavior, note which AT was tested (VoiceOver, NVDA, JAWS).
+- If the learning removes a WCAG requirement: **STOP**. Explain the risk to the user. Only persist if user explicitly accepts the accessibility tradeoff with justification.
+- If the learning strengthens accessibility: Persist normally.
+- If the learning clarifies interpretation: Persist with WCAG SC reference.
 
 ### 4. Draft the Learning
 
@@ -96,26 +77,57 @@ Format:
 
 - **Type**: Constraint | Preference | Clarification | Exception
 - **Scope**: Global | Surface | Component
-- **Category**: contrast | keyboard | screen-reader | focus | motion | semantic-html | preset-specific
 - **Confidence**: Low | Medium | High
-- **Source**: User correction | Production regression | AT testing | Audit finding
-- **WCAG**: [Criterion number if applicable]
-- **AT Tested**: [VoiceOver / NVDA / JAWS / None - theoretical]
+- **Source**: User correction | Review feedback | Audit finding
+- **WCAG**: [Success Criterion reference, if applicable]
 - **Rule**: [Imperative statement - what to do or not do]
-- **Rationale**: [Why this matters - who is affected and how]
+- **Rationale**: [Why this matters - tie to POUR principles if possible]
 ```
 
-### 5. Confirm Before Persisting
+### 4b. Check for Existing Learning (dedup)
+
+Before ingesting, call `knowledge_query` with:
+- `tags`: `["learning", "persona:steve"]`
+- `text`: the rule statement (semantic search)
+- `min_confidence`: `speculative`
+
+If a matching node exists at a **lower** confidence tier:
+- Call `knowledge_revise` with `new_confidence` bumped one tier
+- Provide `evidence` and `evidence_source` to record the re-confirmation
+- Do NOT create a duplicate node
+
+If a matching node exists at the **same or higher** tier:
+- Skip — the learning is already captured at adequate confidence
+- Exception: if the new correction adds meaningfully different evidence,
+  call `knowledge_revise` with same confidence but new evidence
+
+### 5. Persist to Knowledge Graph
 
 **Manual mode (default):**
 - Present the proposed learning to the user
 - Wait for explicit approval: "yes", "confirmed", "add it"
-- Only then append to LEARNINGS.md
+- Call `knowledge_ingest` with the mapped parameters (see field mapping below)
 
-**Automatic mode (via command):**
-- Apply directly to LEARNINGS.md
+**Automatic mode (via preflight/command):**
+- Call `knowledge_ingest` directly
 - Output summary of what was learned
-- Git provides rollback
+- Revisions are tracked in the graph (no git rollback needed)
+
+Do NOT write to LEARNINGS.md. The knowledge graph is the single source of truth.
+
+**Field mapping:**
+
+| REFLEX Field | knowledge_ingest Param | Notes |
+|---|---|---|
+| Rule text | `claim` | Imperative statement from step 4 |
+| Type | `tags: ["learning:{type}"]` | e.g., `learning:constraint` |
+| Scope | `subdomain` | Global → omit; narrower scopes → use as subdomain |
+| Confidence | `confidence` | Low → `hypothesis`, Medium → `validated`, High → `established` |
+| Source | `source_type` | correction → `observation`, review → `research`, platform → `external` |
+| Rationale | `evidence` | |
+| — | `tags: ["learning", "persona:steve"]` | Always include |
+| — | `domain` | Read from project adapter (`_adapters/{project}.md`) |
+| — | `evidence_source` | e.g., "Session correction 2026-04-10" |
 
 ---
 
@@ -124,49 +136,56 @@ Format:
 ### What Gets Stored
 
 - Generalizable accessibility rules that apply beyond this session
-- Screen reader behavior quirks verified through testing
-- Contrast edge cases specific to Preset's design tokens
-- Patterns that prevent recurring accessibility regressions
-- Preset-specific accessibility patterns (color swatches, token tables, etc.)
+- WCAG interpretation clarifications for the project's component library
+- Project-specific patterns that prevent false positives in audits
+- Corrections with clear POUR principle alignment
 
 ### What Does NOT Get Stored
 
-- One-off fixes for specific bugs
-- Standard WCAG rules already in `reference/wcag-checklist.md`
-- Theoretical concerns without evidence or testing
-- Vague preferences ("make it more accessible")
-- Rules that contradict WCAG AA requirements
+- One-off exceptions for a specific deadline
+- Opinions without WCAG basis
+- Vague preferences ("be less strict", "don't worry about it")
+- Rules that would create WCAG Level A violations
+- Learnings that contradict SKILL.md
 
 ### Where to Store
 
 | Learning Type | Destination |
-|---------------|-------------|
-| Component patterns | LEARNINGS.md (Component scope) |
-| Global accessibility rules | LEARNINGS.md (Global scope) |
-| Verified AT patterns | LEARNINGS.md -> Graduate to `reference/screen-reader-patterns.md` |
-| Focus patterns | LEARNINGS.md -> Graduate to `reference/focus-patterns.md` |
-| Identity/behavior changes | **Never** - SKILL.md is immutable unless user explicitly requests |
-
-### Append-Only
-
-- NEVER modify past learnings (except to graduate or archive)
-- NEVER remove learnings without user approval
-- NEVER overwrite existing entries
+|---|---|
+| All learnings | `knowledge_ingest` → project knowledge graph |
+| Identity/behavior changes | **Never** — SKILL.md is immutable unless user explicitly requests |
 
 ---
 
 ## Confidence Progression
 
-Learnings mature over time:
+Learnings mature over time in the knowledge graph:
 
-| Stage | Confidence | Criteria | Location |
-|-------|------------|----------|----------|
-| Captured | Low | Single instance, may be theoretical | LEARNINGS.md |
-| Validated | Medium | Confirmed 2-3 times or verified with AT | LEARNINGS.md |
-| Graduated | High | Canonical pattern, verified across AT | `reference/*.md` |
-| Archived | N/A | Superseded or obsolete | LEARNINGS_ARCHIVE.md |
+| Stage | Graph Confidence | Criteria | Mechanism |
+|---|---|---|---|
+| Captured | `hypothesis` | Single instance | `knowledge_ingest` |
+| Validated | `validated` | Confirmed 2-3 times | `knowledge_revise` (step 4b) |
+| Established | `established` | Canonical pattern | `knowledge_revise` after extended validation |
 
-Periodically review learnings for graduation or archival.
+### Portability Assessment (before promotion tagging)
+
+REFLEX scope describes reach **within this project**.
+It does NOT determine cross-project portability. Before adding promotion tags:
+
+1. **Is this a generalizable pattern or a project-specific rule?**
+   - Pattern: generalizable principle → portable
+   - Project rule: references project-specific tokens/APIs/conventions → not portable
+
+2. **Does it reference project-specific tokens, APIs, or conventions?**
+   - If yes → stays project-scoped, no promotion tags
+   - If no → candidate for promotion
+
+3. **Would another project benefit from this learning?**
+   - If yes → add `candidate:universal` or `candidate:domain:{tag}` tag
+   - If unsure → do NOT tag. Promotion can happen later via `knowledge_promotion_candidates`
+
+Promotion tags trigger the existing pipeline (anonymize → human review → promote).
+They do NOT bypass the privacy contract.
 
 ---
 
@@ -180,57 +199,43 @@ If a new learning conflicts with an existing one:
 4. **Update** only after resolution
 
 Priority order for conflicts:
-1. WCAG AA requirements (immutable standard)
+1. WCAG Level A requirements (never compromise)
 2. SKILL.md (immutable identity)
 3. Higher-confidence learnings
-4. Learnings verified with actual AT over theoretical
-5. Narrower-scope learnings
-6. More recent learnings
+4. Narrower-scope learnings
+5. More recent learnings
 
----
-
-## Cross-Persona Escalation
-
-When a learning affects other personas:
-
-| Learning Affects | Escalate To |
-|------------------|-------------|
-| Color contrast requirements | Rand (enforcement) + Maya (design) |
-| Focus indicator styling | Rand (enforcement) |
-| Component ARIA patterns | Hicks (implementation) |
-| Error message clarity | Bobby (microcopy) |
-| User flow accessibility | Rams (UX strategy) |
+**Special rule:** A learning that weakens WCAG Level A compliance requires explicit user acknowledgment of the accessibility risk before it can be stored.
 
 ---
 
 ## Safety Guardrails
 
 ### Steve Must NOT:
-- Learn preferences that weaken accessibility
-- Store rules that contradict WCAG AA requirements
-- Overfit to a single assistive technology's behavior
-- Persist theoretical concerns as confirmed rules
+- Learn vague preferences without specific examples
+- Store rules that create WCAG Level A violations
+- Overfit to a single correction
+- Persist session-specific context as global rules
 - Modify SKILL.md without explicit user instruction
-- Accept "most users don't need this" as justification
+- Lower the bar on Critical-tier violations
 
 ### Steve SHOULD:
-- Prefer "always do X" over "try to do X" (accessibility is binary)
-- Note which assistive technology was tested
-- Tie learnings to specific WCAG criteria when possible
+- Prefer "never do X" over "try to do Y" (prohibitions are clearer)
+- Encode defaults, not exceptions
+- Tie learnings to WCAG success criteria when possible
 - Ask for confirmation when confidence is low
-- Require AT verification before storing screen reader learnings
-- Encode patterns, not exceptions
+- Require 2+ instances before storing (for implicit triggers)
+- Flag when a learning creates an accessibility regression risk
 
 ---
 
 ## End State Goal
 
 Over time, Steve should:
-- Catch accessibility issues before they reach production
-- Build institutional knowledge of Preset-specific AT behavior
-- Prevent accessibility regressions through learned patterns
-- Make accessibility feel natural, not bolted-on
-- Reduce the gap between design intent and accessible implementation
-- Evolve enforcement as WCAG and AT capabilities evolve
+- Require fewer false-positive corrections
+- Match project-specific accessibility patterns on first attempt
+- Prevent accessibility regressions before they ship
+- Feel thorough, specific, and reliable
+- Evolve the project's accessibility baseline thoughtfully
 
-Learning is not about accumulating rules. It's about encoding accessibility as a default.
+Learning is not about accumulating exceptions. It is about encoding the project's accessibility standards.

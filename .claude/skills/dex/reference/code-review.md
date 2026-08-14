@@ -188,3 +188,96 @@ These are typically safe:
 | Hotfix | Security | Security, minimal change |
 | Dependency update | Security | Known vulnerabilities, breaking changes |
 | Documentation | Light | Accuracy, completeness |
+
+---
+
+## Commit Gate Templates
+
+Moved out of SKILL.md — the brief and checklist that `@dex commit` produces
+at step 8. Load when actually running the gate.
+
+**Key Constraints is adapter-driven.** The list below is a shape, not a
+ruleset: read the real constraints from `_adapters/{project}.md` (component
+paths, token rules, banned primitives) and substitute them. The only entry
+that is studio-wide rather than per-project is the AI-presentation rule,
+which comes from the studio's AI-Assumed philosophy.
+
+### Codex Review Brief
+
+```
+## Codex Review Brief
+
+### Changed Files
+[List every changed file with a one-line summary of what changed]
+
+### What to Check
+[For each file, list the specific things Codex should verify:]
+- Design system compliance (semantic tokens, no hardcoded hex, primitives not Catalyst)
+- Pattern consistency (does it follow existing codebase patterns or reinvent something?)
+- Type safety (explicit types, nullable handling, no implicit any)
+- Edge cases (error/loading/empty states, null checks)
+- Logic correctness (does the code actually do what it claims?)
+- Performance (unnecessary re-renders, missing memoization, N+1 queries)
+
+### Context for Codex
+[Provide a brief summary of the feature/fix being committed so Codex understands intent]
+
+### Key Constraints
+[Read these from `_adapters/{project}.md` — the list below is the shape, not
+the rules. A brief that states another project's conventions is worse than one
+that states none, because the reviewer will apply them.]
+- Components: [the project's component path, and any library it must not use]
+- Colors: [the project's token rule — e.g. semantic tokens only, no hardcoded hex]
+- Shared primitives: [the project's rule for buttons, inputs, and similar]
+- Queries: check whether existing hooks or queries already cover this
+- AI features: no sparkles, gradients, or "AI-powered" labels
+  (studio-wide, from the AI-Assumed philosophy — not per-project)
+
+---
+⏸️ **Paused.** Review these files in Codex, then come back and tell me:
+- ✅ "good" — proceed to commit
+- 🔧 "issues" — tell me what Codex found and I'll fix before committing
+```
+
+**Rules for this gate:**
+- This gate is MANDATORY. Never skip it, even if all other checks pass.
+- Do NOT auto-proceed. Wait for explicit user confirmation.
+- If the user reports issues from Codex, fix them and re-run from step 2 (full review cycle).
+- If the user says "good" or "approved" or similar, proceed to commit.
+
+### Pre-Commit Check output
+
+**Output format:**
+```
+## Pre-Commit Check
+
+### Code Review
+- [ ] Patterns: [status]
+- [ ] Types: [status]
+- [ ] Security: [status]
+
+### Documentation
+- [ ] Internal docs: [status]
+- [ ] User-facing docs: [status]
+- [ ] Release notes: [status or N/A if not user-facing]
+
+### Risk Assessment
+- [ ] Risk level: [NONE / LOW / ELEVATED / HIGH]
+- [ ] Areas requiring focused testing: [list or "none"]
+
+### Linear
+- [ ] Issue linked: [status]
+- [ ] Status accurate: [status]
+- [ ] Post-commit status check: [pending]
+
+### Security
+- [ ] No secrets: [status]
+- [ ] No vulnerabilities: [status]
+
+### Codex Review Gate
+- [ ] Review brief presented: [pending]
+- [ ] User confirmed: [awaiting response]
+
+## Decision: [PROCEED / BLOCKED / AWAITING CODEX REVIEW]
+[Reason if blocked]
+```

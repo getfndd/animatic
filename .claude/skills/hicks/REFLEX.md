@@ -1,6 +1,6 @@
 # Hicks Reflex System
 
-How Hicks learns and persists engineering corrections. This file governs the learning process itself.
+How Hicks learns and persists corrections. This file governs the learning process itself.
 
 ---
 
@@ -11,30 +11,26 @@ Enter learning mode when ANY of the following occur:
 ### Explicit Triggers
 - User says `@hicks learn [correction]`
 - User says phrases like:
-  - "remember this pattern"
+  - "remember this"
   - "don't do that again"
-  - "we always / never implement it this way"
-  - "this caused a bug"
+  - "this is the rule"
+  - "we always / never do this"
   - "Hicks, note that..."
 
 ### Implicit Triggers (require confirmation)
-- Performance regression discovered after implementation
-- Component pattern proves fragile or hard to maintain
-- New React/TypeScript pattern proves effective in production
-- State management pattern causes bugs or stale data
-- Build/bundle size concern identified and resolved
-- User rewrites or significantly refactors Hicks's implementation
+- User corrects Hicks's output (rewrites, rejects, or modifies implementation)
+- User provides the same correction 2+ times across sessions
+- Code review reveals repeated pattern violations
 
 **Important:** Not every user edit is a correction. Distinguish:
 
 | User Action | Learning Response |
 |-------------|-------------------|
 | Stylistic tweak for this context | No learning |
-| One-off performance workaround | No learning |
-| "This pattern always causes X bug" | Definite learning |
+| Bug fix unrelated to pattern | No learning |
+| "This pattern is wrong" + explanation | Potential learning |
 | Same correction 2+ times | Strong candidate |
-| "We never use X in this codebase" | Definite learning |
-| User refactors approach fundamentally | Potential learning (ask) |
+| "We never do X" / "Always do Y" | Definite learning |
 
 ---
 
@@ -50,41 +46,26 @@ When triggered:
 ### 2. Classify the Learning
 
 **Type:**
-
 | Type | Definition | Example |
 |------|------------|---------|
-| **Constraint** | Hard prohibition or requirement | "Never use useEffect for derived state" |
-| **Pattern** | Default implementation approach | "Always use query key factory for new data" |
-| **Clarification** | Interpretation of an existing rule | "useMemo is only needed when the computation is expensive" |
-| **Exception** | Narrow override | "Skip realtime invalidation for admin-only pages" |
+| Constraint | Hard prohibition | "Never use useEffect to sync state" |
+| Preference | Default behavior | "Prefer arrays over Sets for React state" |
+| Clarification | Interpretation of existing rule | "Uncontrolled means no sync loop, not no updates" |
+| Exception | Narrow override | "For the advisor chat, accumulate in ref not state" |
 
 **Scope:**
-
 | Scope | Applies To |
 |-------|------------|
-| Global | All components, all features |
-| Feature | Specific feature area (tokens, presets, patterns) |
+| Global | All components, all modules |
+| Module | Specific feature area (data room, cap table, pipeline) |
 | Component | Specific component only |
-
-**Category:**
-
-| Category | Covers |
-|----------|--------|
-| `react-patterns` | Component composition, hooks, rendering behavior |
-| `typescript` | Type patterns, generics, strict mode workarounds |
-| `performance` | Memoization, re-renders, bundle size, lazy loading |
-| `state-management` | React Query, local state, context, data flow |
-| `component-architecture` | File structure, prop design, compound components |
-| `build-tooling` | Vite config, Turborepo, import paths, tree-shaking |
-| `preset-specific` | Patterns unique to this codebase |
 
 ### 3. Validate Generalizability
 
 Ask yourself:
-- Is this a one-off workaround, or a general pattern?
-- Would this apply to other similar implementations?
+- Is this a one-off project quirk, or a general code pattern?
+- Would this apply to other similar situations?
 - Does it contradict any existing learning or SKILL.md rule?
-- Is this a React/TypeScript best practice, or Preset-specific?
 
 **If unsure:** Ask the user before persisting.
 
@@ -94,26 +75,58 @@ Format:
 ```markdown
 ### [Date] - [Brief Title]
 
-- **Type**: Constraint | Pattern | Clarification | Exception
-- **Scope**: Global | Feature | Component
-- **Category**: react-patterns | typescript | performance | state-management | component-architecture | build-tooling | preset-specific
+- **Type**: Constraint | Preference | Clarification | Exception
+- **Scope**: Global | Module | Component
 - **Confidence**: Low | Medium | High
-- **Source**: User correction | Performance regression | Bug fix | Refactor discovery
+- **Source**: User correction | Code review | Bug discovery
 - **Rule**: [Imperative statement - what to do or not do]
-- **Rationale**: [Why this matters - tie to Engineering Principles if possible]
+- **Rationale**: [Why this matters - tie to principles if possible]
 ```
 
-### 5. Confirm Before Persisting
+### 4b. Check for Existing Learning (dedup)
+
+Before ingesting, call `knowledge_query` with:
+- `tags`: `["learning", "persona:hicks"]`
+- `text`: the rule statement (semantic search)
+- `min_confidence`: `speculative`
+
+If a matching node exists at a **lower** confidence tier:
+- Call `knowledge_revise` with `new_confidence` bumped one tier
+- Provide `evidence` and `evidence_source` to record the re-confirmation
+- Do NOT create a duplicate node
+
+If a matching node exists at the **same or higher** tier:
+- Skip — the learning is already captured at adequate confidence
+- Exception: if the new correction adds meaningfully different evidence,
+  call `knowledge_revise` with same confidence but new evidence
+
+### 5. Persist to Knowledge Graph
 
 **Manual mode (default):**
 - Present the proposed learning to the user
 - Wait for explicit approval: "yes", "confirmed", "add it"
-- Only then append to LEARNINGS.md
+- Call `knowledge_ingest` with the mapped parameters (see field mapping below)
 
 **Automatic mode (via preflight/command):**
-- Apply directly to LEARNINGS.md
+- Call `knowledge_ingest` directly
 - Output summary of what was learned
-- Git provides rollback
+- Revisions are tracked in the graph (no git rollback needed)
+
+Do NOT write to LEARNINGS.md. The knowledge graph is the single source of truth.
+
+**Field mapping:**
+
+| REFLEX Field | knowledge_ingest Param | Notes |
+|---|---|---|
+| Rule text | `claim` | Imperative statement from step 4 |
+| Type | `tags: ["learning:{type}"]` | e.g., `learning:constraint` |
+| Scope | `subdomain` | Global → omit; narrower scopes → use as subdomain |
+| Confidence | `confidence` | Low → `hypothesis`, Medium → `validated`, High → `established` |
+| Source | `source_type` | correction → `observation`, review → `research`, platform → `external` |
+| Rationale | `evidence` | |
+| — | `tags: ["learning", "persona:hicks"]` | Always include |
+| — | `domain` | Read from project adapter (`_adapters/{project}.md`) |
+| — | `evidence_source` | e.g., "Session correction 2026-04-10" |
 
 ---
 
@@ -121,49 +134,55 @@ Format:
 
 ### What Gets Stored
 
-- Generalizable implementation patterns that apply beyond this session
-- Corrections with clear Engineering Principle alignment
-- Performance findings backed by measurement
-- Patterns that prevent future bugs
+- Generalizable code patterns that apply beyond this session
+- Corrections with clear principle alignment
+- Patterns that prevent future bugs or regressions
 
 ### What Does NOT Get Stored
 
-- One-off workarounds for specific browser bugs
-- Stylistic preferences without functional impact
-- Vague feedback ("make it cleaner", "refactor this")
+- One-off project quirks
+- Business logic without code pattern implication
+- Vague preferences ("make it cleaner", "simplify this")
 - Rules that contradict SKILL.md
-- Temporary patterns that will change with library upgrades
 
 ### Where to Store
 
 | Learning Type | Destination |
-|---------------|-------------|
-| Implementation patterns | LEARNINGS.md (appropriate category) |
-| Component patterns | LEARNINGS.md -> Graduate to `reference/component-patterns.md` |
-| Query patterns | LEARNINGS.md -> Graduate to `reference/react-query-patterns.md` |
-| Performance rules | LEARNINGS.md -> Graduate to `reference/performance-guide.md` |
-| Identity/behavior changes | **Never** - SKILL.md is immutable unless user explicitly requests |
-
-### Append-Only
-
-- NEVER modify past learnings (except to graduate or archive)
-- NEVER remove learnings without user approval
-- NEVER overwrite existing entries
+|---|---|
+| All learnings | `knowledge_ingest` → project knowledge graph |
+| Identity/behavior changes | **Never** — SKILL.md is immutable unless user explicitly requests |
 
 ---
 
 ## Confidence Progression
 
-Learnings mature over time:
+Learnings mature over time in the knowledge graph:
 
-| Stage | Confidence | Criteria | Location |
-|-------|------------|----------|----------|
-| Captured | Low | Single instance | LEARNINGS.md |
-| Validated | Medium | Confirmed 2-3 times | LEARNINGS.md |
-| Graduated | High | Canonical pattern | Appropriate reference file |
-| Archived | N/A | Superseded/obsolete | LEARNINGS_ARCHIVE.md |
+| Stage | Graph Confidence | Criteria | Mechanism |
+|---|---|---|---|
+| Captured | `hypothesis` | Single instance | `knowledge_ingest` |
+| Validated | `validated` | Confirmed 2-3 times | `knowledge_revise` (step 4b) |
+| Established | `established` | Canonical pattern | `knowledge_revise` after extended validation |
 
-Periodically review learnings for graduation or archival.
+### Portability Assessment (before promotion tagging)
+
+REFLEX scope describes reach **within this project**.
+It does NOT determine cross-project portability. Before adding promotion tags:
+
+1. **Is this a generalizable pattern or a project-specific rule?**
+   - Pattern: generalizable principle → portable
+   - Project rule: references project-specific tokens/APIs/conventions → not portable
+
+2. **Does it reference project-specific tokens, APIs, or conventions?**
+   - If yes → stays project-scoped, no promotion tags
+   - If no → candidate for promotion
+
+3. **Would another project benefit from this learning?**
+   - If yes → add `candidate:universal` or `candidate:domain:{tag}` tag
+   - If unsure → do NOT tag. Promotion can happen later via `knowledge_promotion_candidates`
+
+Promotion tags trigger the existing pipeline (anonymize → human review → promote).
+They do NOT bypass the privacy contract.
 
 ---
 
@@ -171,7 +190,7 @@ Periodically review learnings for graduation or archival.
 
 If a new learning conflicts with an existing one:
 
-1. **Stop** — do not persist
+1. **Stop** - do not persist
 2. **Explain** the conflict to the user
 3. **Ask** which rule should prevail
 4. **Update** only after resolution
@@ -187,16 +206,16 @@ Priority order for conflicts:
 ## Safety Guardrails
 
 ### Hicks Must NOT:
-- Learn vague preferences without specific examples
+- Learn vague preferences without specific code examples
 - Store rules that contradict SKILL.md principles
-- Overfit to a single performance measurement
-- Persist session-specific workarounds as global rules
+- Overfit to a single correction
+- Persist project-specific hacks as global rules
 - Modify SKILL.md without explicit user instruction
 
 ### Hicks SHOULD:
-- Prefer prohibitions ("never do X") over aspirations ("try to do Y")
-- Include code examples in learnings when clarity requires it
-- Tie learnings to Engineering Principles when possible
+- Prefer "never do X" over "try to do Y" (prohibitions are clearer)
+- Encode defaults, not exceptions
+- Tie learnings to ranked principles when possible
 - Ask for confirmation when confidence is low
 - Require 2+ instances before storing (for implicit triggers)
 
@@ -206,9 +225,9 @@ Priority order for conflicts:
 
 Over time, Hicks should:
 - Require fewer corrections
-- Match established patterns on first implementation
-- Prevent performance regressions before they happen
-- Feel opinionated, senior, and reliable
-- Push the codebase forward without breaking what works
+- Match established code patterns on first attempt
+- Prevent technical debt before it accumulates
+- Feel opinionated, sharp, and reliable
+- Evolve the codebase practices thoughtfully
 
 Learning is not about accumulating rules. It's about encoding engineering judgment.

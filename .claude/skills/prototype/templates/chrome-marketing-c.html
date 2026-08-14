@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}} · fndd</title>
+<meta name="description" content="{{DESCRIPTION}}">
+
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="./_tokens.css">
+<!-- Studio brand. A generic prototype links _tokens.css alone and resolves
+     its palette from the project; see that file for the resolution order. -->
+<link rel="stylesheet" href="./_palette-fndd.css">
+
+<style>
+/* ════════════════════════════════════════════════════════════════════
+ * chrome-marketing-C — "Letter on paper" with visible column rules
+ *
+ * Containment strategy C:
+ *   - Same as B (fixed column floating on desk surface)
+ *   - PLUS 1px rules on the left and right edges of the column
+ *   - Makes the "paper" shape explicit and visible
+ *   - Most editorial / print territory, Tufte-esque
+ *
+ * Feels: Intentionally bounded, archival, the column is an artifact
+ * ════════════════════════════════════════════════════════════════════ */
+
+body {
+  background: var(--surface-2);
+}
+
+.mkt-c-paper {
+  max-width: var(--max-w-column);
+  margin: 0 auto;
+  background: var(--surface);
+  min-height: 100vh;
+  padding-top: var(--nav-offset);
+  border-left: 1px solid var(--rule-strong);
+  border-right: 1px solid var(--rule-strong);
+}
+
+.mkt-c-section {
+  padding: var(--space-20) var(--space-12);
+  border-top: 1px solid var(--rule);
+}
+.mkt-c-section.first { border-top: none; padding-top: var(--space-16); }
+
+.mkt-c-ftr {
+  padding: var(--space-16) var(--space-12) var(--space-8);
+  border-top: 1px solid var(--rule-strong);
+}
+.mkt-c-ftr-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-10);
+  padding-bottom: var(--space-10);
+  flex-wrap: wrap;
+}
+.mkt-c-ftr-brand-block .brand-mark {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+.mkt-c-ftr-brand-block .tagline {
+  font-size: 14px;
+  color: var(--ink-quiet);
+  max-width: 32ch;
+}
+.mkt-c-ftr-links {
+  display: flex;
+  gap: var(--space-12);
+}
+.mkt-c-ftr-col h4 {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-3);
+}
+.mkt-c-ftr-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.mkt-c-ftr-col a {
+  font-size: 14px;
+  color: var(--ink-quiet);
+  transition: color var(--dur-tier1) var(--ease-out);
+}
+.mkt-c-ftr-col a:hover { color: var(--ink); }
+
+.mkt-c-ftr-bottom {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+/* Pill nav containment matches paper column */
+.proto-header-inner { max-width: var(--max-w-column); }
+
+/* Tick marks at top and bottom of the column edges — subtle marginalia */
+.mkt-c-paper::before,
+.mkt-c-paper::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--rule-strong);
+  pointer-events: none;
+}
+.mkt-c-paper {
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  body { background: var(--surface); }
+  .mkt-c-paper {
+    border-left: none;
+    border-right: none;
+  }
+  .mkt-c-section { padding: var(--space-16) var(--pad-sm); }
+  .mkt-c-ftr { padding: var(--space-12) var(--pad-sm) var(--space-6); }
+  .mkt-c-ftr-top { flex-direction: column; gap: var(--space-8); }
+  .mkt-c-ftr-links { gap: var(--space-8); flex-wrap: wrap; }
+}
+
+/* ── Variant label ────────────────────────────────────────────────── */
+.variant-label {
+  position: fixed;
+  bottom: var(--space-4);
+  left: var(--space-6);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-ghost);
+  z-index: 100;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+}
+</style>
+</head>
+<body>
+
+<aside class="variant-label">variant C — letter with visible column rules</aside>
+
+<header class="proto-header">
+  <div class="proto-header-inner">
+    <nav class="pill-nav">
+      <a href="/" class="pill-brand">fndd</a>
+      <div class="pill-links">
+        <a href="#studio" class="pill-link active">Studio</a>
+        <a href="#products" class="pill-link">Products</a>
+        <a href="#thesis" class="pill-link">Thesis</a>
+        <a href="#contact" class="pill-link">Contact</a>
+      </div>
+      <a href="/studio" class="pill-cta">Enter studio →</a>
+    </nav>
+  </div>
+</header>
+
+<div class="mkt-c-paper">
+  <main>
+    {{CONTENT}}
+  </main>
+
+  <footer class="mkt-c-ftr">
+    <div class="mkt-c-ftr-top">
+      <div class="mkt-c-ftr-brand-block">
+        <div class="brand-mark">fndd</div>
+        <p class="tagline">For ideas in progress.</p>
+      </div>
+      <div class="mkt-c-ftr-links">
+        <div class="mkt-c-ftr-col">
+          <h4>Products</h4>
+          <ul>
+            <li><a href="https://weftlyai.com">Weftly</a></li>
+            <li><a href="https://presetai.dev">Preset AI</a></li>
+          </ul>
+        </div>
+        <div class="mkt-c-ftr-col">
+          <h4>Studio</h4>
+          <ul>
+            <li><a href="#thesis">Thesis</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div class="mkt-c-ftr-col">
+          <h4>Contact</h4>
+          <ul>
+            <li><a href="mailto:james@getfndd.com">james@getfndd.com</a></li>
+            <li><a href="mailto:micah@getfndd.com">micah@getfndd.com</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="mkt-c-ftr-bottom">
+      <span>© fndd, LLC · 2026</span>
+      <span class="mono">prototype · {{DATE}}</span>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>

@@ -42,25 +42,25 @@ type(scope): Description
 
 [Body if needed]
 
-Fixes: ISSUE-123
+Fixes: FND-123
 ```
 
 **Link types:**
-- `Fixes: ISSUE-123` - Closes issue when merged
-- `Relates: ISSUE-123` - Related but doesn't close
-- `Part of: ISSUE-123` - Partial progress on issue
+- `Fixes: FND-123` - Closes issue when merged
+- `Relates: FND-123` - Related but doesn't close
+- `Part of: FND-123` - Partial progress on issue
 
 ### PR Linking
 
 **PR title format:**
 ```
-[ISSUE-123] Brief description of change
+[FND-123] Brief description of change
 ```
 
 **PR body should include:**
 ```markdown
 ## Linear Issue
-Fixes [ISSUE-123](https://linear.app/{team}/issue/ISSUE-123)
+Fixes [FND-123](https://linear.app/{workspace}/issue/FND-123)
 
 ## Changes
 - Change 1
@@ -231,13 +231,13 @@ Epic: [Major Feature/Initiative]
 ```markdown
 ## Current Linear Status
 
-**Active Issue:** ISSUE-123 - [Title]
+**Active Issue:** FND-123 - [Title]
 **State:** In Progress
 **Epic:** [Epic Name] (3/7 issues complete)
 
 **Related Issues:**
-- ISSUE-124 - Blocked by this issue
-- ISSUE-125 - Related work
+- FND-124 - Blocked by this issue
+- FND-125 - Related work
 
 **Recent Activity:**
 - [Date]: State changed to In Progress
@@ -289,16 +289,16 @@ Epic: [Major Feature/Initiative]
 **Current epic:** [Epic Name]
 
 ### In Progress (finish these first)
-1. ISSUE-123 - [Title] - [time in progress]
+1. FND-123 - [Title] - [time in progress]
 
 ### Ready to Start
-1. ISSUE-124 - [Title] - [priority]
-2. ISSUE-125 - [Title] - [priority]
+1. FND-124 - [Title] - [priority]
+2. FND-125 - [Title] - [priority]
 
 ### Blocked
-- ISSUE-126 - Blocked by: [reason]
+- FND-126 - Blocked by: [reason]
 
-**Recommendation:** Continue with ISSUE-123, then ISSUE-124.
+**Recommendation:** Continue with FND-123, then FND-124.
 ```
 
 ---

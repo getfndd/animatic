@@ -494,14 +494,30 @@ class CinematicDarkEngine {
   }
 
   /**
+   * Re-fire a phase's entrance callback.
+   *
+   * transitionTo() returns early when the target is already the current phase,
+   * so any path that resets animations without changing phase has to re-trigger
+   * the callback itself — otherwise the phase is left stripped of its entrance
+   * state with nothing to restore it.
+   * @param {number} phase — phase index whose enter callback to re-fire
+   */
+  firePhaseCallback(phase) {
+    const callback = this.phaseCallbacks[phase];
+    if (callback) callback(this);
+  }
+
+  /**
    * Jump directly to a specific phase. Resets all animations, transitions, and resumes scheduling.
+   * Jumping to the phase already showing re-runs its entrance animation.
    * @param {number} phase — target phase index
    */
   jumpTo(phase) {
     clearTimeout(this.phaseTimer);
     this.resetAllAnimations();
     this.stopProgressAnimation();
-    this.transitionTo(phase);
+    if (phase !== this.currentPhase) this.transitionTo(phase);
+    else this.firePhaseCallback(phase);
     if (this.playing) this.scheduleNext();
   }
 
@@ -511,6 +527,7 @@ class CinematicDarkEngine {
     this.stopProgressAnimation();
     this.resetAllAnimations();
     if (this.currentPhase !== 0) this.transitionTo(0);
+    else this.firePhaseCallback(0);
     if (this.playing) this.scheduleNext();
   }
 

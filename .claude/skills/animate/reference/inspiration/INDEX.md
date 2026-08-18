@@ -31,7 +31,7 @@ Collected motion design references organized by pattern type. Each file links to
 | `2d93764cc6f62e90fddf91a91920d737.gif` | Kinetic type — scale cascade | Large bold text ("ALICIA KEYS") at three scales, cascading with scroll-like parallax motion. | cinematic-dark |
 | `ba9b8dd56d89017a806d6ba853ffe80e.gif` | Editorial layout — image + floating text | Centered image with floating text fragments ("the", "them") — editorial composition with motion. | editorial |
 | `fee1b45083b5cdde6675576040a638c2.gif` | Logo animation — pixel assembly | "pixel" logotype with pixels assembling/disassembling into the letterforms. Materialization effect. | cinematic-dark |
-| `Kinetic typography experiment @theleze.html` | Kinetic type — full experiment | Saved webpage: interactive kinetic typography experiment by @theleze. | editorial |
+| _(removed — see [notes](../../../../../docs/references/kinetic-typography-theleze.md))_ | Kinetic type — full experiment | Interactive kinetic typography experiment by @theleze. The saved page was 516 KB of third-party URLs and is not a portable skill reference; the note records what is known of the source. | editorial |
 
 ## Product / UI Motion
 

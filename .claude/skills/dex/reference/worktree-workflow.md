@@ -60,7 +60,7 @@ Task(subagent_type: "general-purpose", isolation: "worktree", prompt: "Review th
 |------|---------|
 | `~/.claude-worktrees/{project}/` | Structured worktrees (via `@dex worktree create`) |
 | `.claude/worktrees/` | Quick worktrees (via `claude -w`) |
-| `~/projects/{project}/` | Main checkout (human or lead agent) |
+| `~/Desktop/fnddTech/{project}/` | Main checkout (human or lead agent) |
 
 ## Create Workflow
 
@@ -76,7 +76,7 @@ git worktree add ~/.claude-worktrees/{project}/[name] -b feature/[name] main
 cd ~/.claude-worktrees/{project}/[name] && npm install
 
 # 4. Copy local env (if needed)
-cp ~/projects/{project}/.env.local ~/.claude-worktrees/{project}/[name]/.env.local
+cp ~/Desktop/fnddTech/{project}/.env.local ~/.claude-worktrees/{project}/[name]/.env.local
 ```
 
 ## Remove Workflow
@@ -88,10 +88,10 @@ git status
 git log origin/main..HEAD --oneline
 
 # 2. Remove worktree
-git -C ~/projects/{project} worktree remove ~/.claude-worktrees/{project}/[name]
+git -C ~/Desktop/fnddTech/{project} worktree remove ~/.claude-worktrees/{project}/[name]
 
 # 3. Delete branch if merged
-git -C ~/projects/{project} branch -d feature/[name]
+git -C ~/Desktop/fnddTech/{project} branch -d feature/[name]
 ```
 
 ## Health Check Workflow
@@ -167,11 +167,124 @@ receive.fsckObjects = true
 When creating worktrees, document which directories each agent owns:
 
 ```
-@dex worktree create ISSUE-101-meetings
+@dex worktree create FND-1274-meetings
   → owns: src/components/meetings/*, supabase/functions/seed-demo-content/*
 
-@dex worktree create ISSUE-102-email
+@dex worktree create FND-1275-email
   → owns: src/components/email/*, supabase/functions/email-composer/*
 ```
 
 Shared files (`package.json`, route files, shared utilities) are owned by the main checkout. Agents must not modify shared files without human coordination.
+
+---
+
+## Command Surface
+
+Moved out of SKILL.md — these are command definitions plus their report
+templates, which only matter while running one. The workflow reasoning above
+is what you need to decide *whether* to use a worktree; this is the mechanics.
+
+### `@dex worktree create [name]`
+
+Create a new worktree for a Claude Code agent.
+
+**Process:**
+1. Validate name follows convention (e.g., `FND-1274-demo-enrichment`)
+2. Create worktree at `~/.claude-worktrees/{project}/[name]`
+3. Create branch `feature/[name]` from `main` (or specified base)
+4. Run `npm install` in the worktree
+5. Report the worktree path for agent use
+
+**Usage:**
+```
+@dex worktree create FND-1274-demo-enrichment
+@dex worktree create FND-1275-email-composer --base feature/FND-1274
+```
+
+**Safety checks:**
+- Verify main is up to date before branching
+- Verify no existing worktree with the same name
+
+### `@dex worktree list`
+
+List all active worktrees with status.
+
+**Output:**
+```
+## Active Worktrees
+
+| Worktree | Branch | Last Commit | Unpushed | Status |
+|----------|--------|-------------|----------|--------|
+| main checkout | feature/FND-1274-... | 6590ce2 (2h ago) | 0 | clean |
+| FND-1275-email | feature/FND-1275-... | a1b2c3d (30m ago) | 2 | modified |
+```
+
+### `@dex worktree remove [name]`
+
+Remove a worktree and optionally its branch.
+
+**Process:**
+1. Check for uncommitted changes (warn and block if found)
+2. Check for unpushed commits (warn and block if found)
+3. Run `git worktree remove [path]`
+4. Delete local branch if merged to main
+5. Report cleanup result
+
+### `@dex worktree health`
+
+Check health of all worktrees and the shared object store.
+
+**Checks:**
+- Stale `.lock` files from crashed processes
+- Orphan worktrees (directory deleted but metadata remains)
+- Worktrees with unpushed commits at risk
+- Object store integrity (`git fsck --no-dangling`)
+- `gc.auto` is set to 0 (safety config)
+
+### `@dex worktree cleanup`
+
+Clean up orphan worktrees and stale branches.
+
+**Process:**
+1. Run `git worktree prune`
+2. Identify branches with no active worktree and no remote tracking
+3. Report candidates for deletion (require confirmation)
+
+### `@dex worktree gc`
+
+Run garbage collection safely.
+
+**Process:**
+1. Verify NO active Claude Code agents in any worktree
+2. Verify no git processes running (`ps aux | grep git`)
+3. Run `git gc --aggressive`
+4. Run `git fsck --no-dangling`
+5. Report results
+
+**Hard block:** Refuses to run if any agent processes detected.
+
+### `@dex prune`
+
+Clean up stale branches, merged remotes, and orphan worktrees in one pass.
+
+**Process:**
+1. `git remote prune origin` — remove stale remote-tracking branches
+2. `git branch --merged main | grep -v main` — identify merged local branches
+3. `git worktree prune` — clean orphan worktree metadata
+4. Report what was cleaned, ask for confirmation before deleting local branches
+
+**Output:**
+```
+## Prune Report
+
+### Remote Branches Pruned
+- origin/feature/FND-1234-old-feature (deleted on remote)
+
+### Local Branches (merged to main)
+- feature/FND-1234-old-feature — Delete? [requires confirmation]
+
+### Worktree Metadata
+- Pruned 0 orphan entries
+
+Total cleaned: X items
+```

@@ -113,9 +113,57 @@ body { font-kerning: normal; }
 
 Check what features your font supports at [Wakamai Fondue](https://wakamaifondue.com/).
 
+## Optical sizing: type changes shape with size
+
+Type is not one design scaled up and down. The same letterforms need
+different spacing at different sizes, and a single fixed value is wrong
+somewhere.
+
+**Tracking (letter-spacing) is size-specific.** Large display text wants
+*negative* tracking — letters read as drifting apart as they grow. Small
+text wants slightly *positive* tracking for legibility. A single
+`letter-spacing` applied across a scale is a bug, not a system.
+
+Tighten headings; leave body near `0`.
+
+**Leading (line-height) tracks size inversely.** Tight on large headings,
+looser on body copy. Increase it for scripts with tall ascenders and
+descenders; tighten it for dense, information-heavy UI.
+
+**Build hierarchy from weight + size + leading as a set,** not size alone.
+Weight adds presence without consuming more space — often the right move
+when vertical space is the constraint.
+
+```css
+:root { font: 100%/1.5 system-ui, sans-serif; }  /* body: comfortable leading */
+
+.display {
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1.05;        /* tight leading for large text */
+  letter-spacing: -0.02em;  /* negative tracking as it grows */
+  font-optical-sizing: auto;
+}
+```
+
+**Respect the user's text-size setting.** Scale layout *with* the text —
+spacing in `rem`/`em`, not fixed `px` — so a larger font enlarges the
+layout instead of breaking it.
+
+**Default to the platform's system font** before reaching for a custom
+face. It already ships optical sizing, tracking tables and legibility
+tuning that a web font usually does not. Override with a reason, not by
+habit.
+
+*(Adapted from Apple's* The Details of UI Typography, *WWDC 2020, via
+`_knowledge/mobile-native/reference/fluid-feel.md`.)*
+
 ## Typography System Architecture
 
 Name tokens semantically (`--text-body`, `--text-heading`), not by value (`--font-size-16`). Include font stacks, size scale, weights, line-heights, and letter-spacing in your token system.
+
+Because tracking and leading are size-specific, a token set that carries a
+single `--letter-spacing` cannot express the system above. Pair each step
+of the size scale with its own tracking and leading values.
 
 ## Accessibility Considerations
 

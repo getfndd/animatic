@@ -564,13 +564,29 @@ class MontageEngine {
   }
 
   /**
+   * Re-fire a phase's entrance callback.
+   *
+   * transitionTo() returns early when the target is already the current phase,
+   * so any path that resets animations without changing phase has to re-trigger
+   * the callback itself — otherwise the phase is left stripped of its entrance
+   * state with nothing to restore it.
+   * @param {number} phase — phase index whose enter callback to re-fire
+   */
+  firePhaseCallback(phase) {
+    const callback = this.phaseCallbacks[phase];
+    if (callback) callback(this);
+  }
+
+  /**
    * Jump directly to a specific phase.
+   * Jumping to the phase already showing re-runs its entrance animation.
    * @param {number} phase — target phase index
    */
   jumpTo(phase) {
     clearTimeout(this.phaseTimer);
     this.resetAllAnimations();
-    this.transitionTo(phase);
+    if (phase !== this.currentPhase) this.transitionTo(phase);
+    else this.firePhaseCallback(phase);
     if (this.playing) this.scheduleNext();
   }
 
@@ -578,10 +594,10 @@ class MontageEngine {
   restart() {
     clearTimeout(this.phaseTimer);
     this.resetAllAnimations();
+    // transitionTo() already fires the callback when the phase changes; firing
+    // it here too would double-schedule phase 0's entrance timers.
     if (this.currentPhase !== 0) this.transitionTo(0);
-    // Re-trigger phase 0 callback on restart
-    const callback = this.phaseCallbacks[0];
-    if (callback) callback(this);
+    else this.firePhaseCallback(0);
     if (this.playing) this.scheduleNext();
   }
 

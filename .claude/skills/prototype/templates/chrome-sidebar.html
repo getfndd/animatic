@@ -3,137 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{TITLE}}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <title>{{TITLE}} — prototype</title>
+<!-- No webfont. The palette and type stack resolve from the project;
+     see _tokens.css for the resolution order. A project that wants a
+     specific face declares it in its adapter. -->
+  <link rel="stylesheet" href="./_tokens.css">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
   <style>
-    :root {
-      /* ITO Light mode tokens */
-      --surface-primary: 0 0% 100%;
-      --surface-secondary: 0 0% 98%;
-      --surface-tertiary: 0 0% 96%;
-      --surface-inverse: 0 0% 9%;
-      --text-primary: 0 0% 9%;
-      --text-secondary: 0 0% 45%;
-      --text-tertiary: 0 0% 64%;
-      --text-inverse: 0 0% 98%;
-      --border-default: 0 0% 90%;
-      --border-subtle: 0 0% 94%;
-      --border-strong: 0 0% 80%;
-      --status-success: 142 71% 45%;
-      --status-success-bg: 142 76% 94%;
-      --status-error: 0 84% 60%;
-      --status-error-bg: 0 86% 97%;
-      --status-warning: 38 92% 50%;
-      --status-warning-bg: 48 96% 95%;
-      --radius: 0.5rem;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--surface); color: var(--ink-soft); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+    h1, h2, h3, h4, h5, h6 { color: var(--ink); }
+    .mono { font-family: var(--font-mono); font-weight: 400; font-feature-settings: "tnum" 1; }
+    .mono-uc { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+    .mono-num { font-family: var(--font-mono); font-weight: 300; letter-spacing: -0.01em; font-feature-settings: "tnum" 1, "ss01" 1; }
 
-    .dark {
-      --surface-primary: 0 0% 9%;
-      --surface-secondary: 0 0% 13%;
-      --surface-tertiary: 0 0% 17%;
-      --surface-inverse: 0 0% 98%;
-      --text-primary: 0 0% 98%;
-      --text-secondary: 0 0% 65%;
-      --text-tertiary: 0 0% 50%;
-      --text-inverse: 0 0% 9%;
-      --border-default: 0 0% 20%;
-      --border-subtle: 0 0% 15%;
-      --border-strong: 0 0% 30%;
-    }
-
-    * { border-color: hsl(var(--border-default)); }
-    body {
-      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
-      background-color: hsl(var(--surface-primary));
-      color: hsl(var(--text-primary));
-      -webkit-font-smoothing: antialiased;
-    }
+    .shell { display: flex; min-height: 100vh; }
+    .sidebar { width: 240px; flex-shrink: 0; height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column; padding: 20px 16px; background: var(--surface-2); border-right: 1px solid var(--rule); }
+    .sidebar-brand { display: flex; align-items: baseline; gap: 6px; padding: 0 12px 24px; font-weight: 700; font-size: 16px; letter-spacing: -0.02em; color: var(--ink); }
+    .sidebar-brand .slash { color: var(--ink-faint); font-weight: 400; }
+    .sidebar-brand .sub { color: var(--ink-quiet); font-weight: 500; }
+    .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 2px; font-size: 13px; color: var(--ink-soft); cursor: pointer; transition: background 140ms var(--ease-out); }
+    .sidebar-item:hover { background: var(--ink-100); color: var(--ink); }
+    .sidebar-item.active { background: var(--ink-100); color: var(--ink); font-weight: 500; }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   </style>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            'surface-primary': 'hsl(var(--surface-primary))',
-            'surface-secondary': 'hsl(var(--surface-secondary))',
-            'surface-tertiary': 'hsl(var(--surface-tertiary))',
-            'surface-inverse': 'hsl(var(--surface-inverse))',
-            'text-primary': 'hsl(var(--text-primary))',
-            'text-secondary': 'hsl(var(--text-secondary))',
-            'text-tertiary': 'hsl(var(--text-tertiary))',
-            'text-inverse': 'hsl(var(--text-inverse))',
-            'border-default': 'hsl(var(--border-default))',
-            'border-subtle': 'hsl(var(--border-subtle))',
-            'border-strong': 'hsl(var(--border-strong))',
-            'status-success': 'hsl(var(--status-success))',
-            'status-success-bg': 'hsl(var(--status-success-bg))',
-            'status-error': 'hsl(var(--status-error))',
-            'status-error-bg': 'hsl(var(--status-error-bg))',
-            'status-warning': 'hsl(var(--status-warning))',
-            'status-warning-bg': 'hsl(var(--status-warning-bg))',
-          },
-          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
-        },
-      },
-    }
-  </script>
 </head>
-<body class="min-h-screen">
-  <div class="flex h-screen overflow-hidden">
-    <!-- Sidebar -->
-    <aside class="w-60 h-screen border-r flex flex-col bg-surface-primary shrink-0">
-      <!-- Logo Header -->
-      <div class="h-14 flex items-center px-6 border-b">
-        <div class="flex items-center gap-2">
-          <div class="w-6 h-6 rounded bg-surface-inverse"></div>
-          <span class="font-semibold">App Name</span>
-        </div>
-      </div>
-
-      <!-- Navigation -->
-      <nav class="flex-1 overflow-y-auto py-4 px-3">
-        <!-- Section Label -->
-        <div class="text-[11px] font-medium text-text-tertiary px-3 mb-2">Navigation</div>
-
-        <!-- Nav Items -->
-        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-surface-tertiary font-medium">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-          Home
-        </a>
-        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-          Items
-        </a>
-        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          Settings
-        </a>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">{{PROJECT}}</div>
+      <nav style="display: flex; flex-direction: column; gap: 2px;">
+        <a class="sidebar-item active" href="#"><i class="ph ph-magnifying-glass" style="font-size: 16px; color: var(--ink-faint);"></i> Search</a>
+        <a class="sidebar-item" href="#"><i class="ph ph-clock-counter-clockwise" style="font-size: 16px; color: var(--ink-faint);"></i> Recent</a>
+        <a class="sidebar-item" href="#"><i class="ph ph-users-three" style="font-size: 16px; color: var(--ink-faint);"></i> Team shared</a>
       </nav>
-
-      <!-- Footer -->
-      <div class="border-t p-3">
-        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-surface-secondary text-text-secondary hover:text-text-primary">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-          Sign out
-        </a>
-      </div>
+      <div style="flex: 1;"></div>
+      <a class="sidebar-item" href="#"><i class="ph ph-gear-six" style="font-size: 16px; color: var(--ink-faint);"></i> Settings</a>
     </aside>
-
-    <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-      <!-- Top Bar -->
-      <header class="h-14 border-b flex items-center px-6 shrink-0">
-        <h1 class="text-lg font-semibold">{{TITLE}}</h1>
+    <div class="main">
+      <header style="display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; height: 64px; flex-shrink: 0;">
+        <span style="font-size: 13px; color: var(--ink-quiet);">{{TITLE}}</span>
       </header>
-
-      <!-- Page Content -->
-      <main class="flex-1 overflow-auto p-6">
-        <!-- CONTENT START -->
-        {{CONTENT}}
-        <!-- CONTENT END -->
+      <main style="flex: 1; padding: 0 40px 96px;">
+        <div style="max-width: 760px; margin: 0 auto;">
+          {{CONTENT}}
+        </div>
       </main>
     </div>
   </div>

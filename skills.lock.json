@@ -1,0 +1,242 @@
+{
+  "lockVersion": 1,
+  "source": {
+    "package": "@fndd/team-mcp",
+    "version": "0.1.0"
+  },
+  "harnesses": {
+    "claude": {
+      "animate": {
+        "installedAt": "2026-08-18T11:54:03.991Z",
+        "files": {
+          "SAUL.md": "sha256:9046f6498f39b7ee52c404983fc81442cd50fabf22cdd412a3df9e5cd9ae6d5f",
+          "SKILL.md": "sha256:debba2e3060148a43fae6790d99618176e448b0da0656f1e1f1c5075776b8489",
+          "personalities/cinematic/PERSONALITY.md": "sha256:0b5c0217fe1054f3bd81a04c8dd2f2991a4af8e8f307a4ab9bd8a66dbde6dda5",
+          "personalities/cinematic/engine.js": "sha256:e5851a9ca3fef4b8154d923de210a709b53dd62a9600f1ed5accaa2874fd4712",
+          "personalities/cinematic/modes/dark.css": "sha256:24a389e6d2eef709508a10657fb409b11069981ff0566b6d99f97656323f08c7",
+          "personalities/cinematic/motion.css": "sha256:b8617bfe4ffe07068babfd31f944976357c8de2c5b6135f86a330a8d9300d50d",
+          "personalities/cinematic/reference.html": "sha256:46f1168e9825009369a776c2830cba6a073199730ecb928f61295e44b3caf9d3",
+          "personalities/editorial/PERSONALITY.md": "sha256:4e092593f0f8b9298fcca20deace8c47282b274b4d82ed128392a64296783384",
+          "personalities/editorial/engine.js": "sha256:8b8cc51d53d8a8ddd46124c83971b574379588dd46eb11e9160d0690caeae2d1",
+          "personalities/editorial/motion.css": "sha256:28abd24e208cd28a0bd3b90a4ce127407f46ba9b234d9b107bb3c35f4b9bd177",
+          "personalities/editorial/reference.html": "sha256:f2a1ecc24d7f876706a53a0e67706bc598d364748c93dca9802776152721d55b",
+          "personalities/montage/PERSONALITY.md": "sha256:6126fa3824b72a7c1cc99697464c86720422411101d3143e3d7a02b955386bba",
+          "personalities/montage/engine.js": "sha256:e594a6da7fbaa0205f677683485fe98f4a0576e63a45aa89bc28277401303b9d",
+          "personalities/montage/motion.css": "sha256:a43157f37e9c1510df80e79e596496a124848eb07d777bee915ec4920f480fe5",
+          "personalities/montage/reference.html": "sha256:b9cbcda75082d2493db42605552f5ecbc15fff1dedd41cd3e86887cc30c52760",
+          "personalities/neutral-light/PERSONALITY.md": "sha256:2a1b371877bba5510ec48685988ebf6f761b7b995a41e0943d5db763007997b5",
+          "personalities/neutral-light/engine.js": "sha256:d0f28f9742908e4890a8425c35030472b3f89d1e3ca0413542b2ed5062fb9976",
+          "personalities/neutral-light/motion.css": "sha256:26d54359f1f6b1ce4be1031025b5d25be90fd1576f7a2f6f70c0c9ab5647f788",
+          "personalities/neutral-light/reference.html": "sha256:5d34450f825bc4c4071f4694c527c04b1a1af92745aa349d3697ce8c2bbe4c4e",
+          "primitives/tutorial/README.md": "sha256:f73d5a64d6cc9c999fea339c7055d54b1015d1395bd9dfc6806417c3a05a2eec",
+          "primitives/tutorial/tutorial-primitives.js": "sha256:6e9215c0cba503b6421dcfd3a1871037f4f2c3eacaab3ac58454c53b8453f249",
+          "primitives/tutorial/tutorial.css": "sha256:5ada27631debcf626e6d7c239e3ecc25e56ca6ad4d7be0621ec75358d9bd0faa",
+          "reference/SCHEMA.md": "sha256:8d0b1d9c222a579a244c09f90ca7d7e7911768759fccbe9c2800845984843722",
+          "reference/ambient-generative-techniques.md": "sha256:efeeaa702f62877ca6a7a119e0ae24df30d9165dff531b9be7373ee7e050a9c9",
+          "reference/animation-principles.md": "sha256:ad4f8cb191785674c4832a7be2c7a33e83bd79a8dbd0d31f0eeb44b9285b76e6",
+          "reference/breakdowns/3d-card-cascade.md": "sha256:5ff40a396dbd24c479ce7d58cc422f6371a2ac3eff8e534153ba15f7d32202a6",
+          "reference/breakdowns/INDEX.md": "sha256:85c18669a7e04484f7b3f427d996cd3487222d48de8053c735b1afd2abfb61bb",
+          "reference/breakdowns/arc-wave-cascade.md": "sha256:0c2526fc1f7baf178dd375de663669168a5138501656b811f38717a1f73aa48f",
+          "reference/breakdowns/card-conveyor-depth-rail.md": "sha256:2ce7cd03271d793121bbbd5364125791e9f33fcf2116df4a9b898cdb88666514",
+          "reference/breakdowns/concentric-depth-pulse.md": "sha256:184c19cbd4e86be0012b63c62da8423f59c14ad7d512189b79b54df492dfe425",
+          "reference/breakdowns/dot-grid-ripple.md": "sha256:9faa04eb6656707b4fd0dc11866a405fe14c0a40390fa87108422988021d3337",
+          "reference/breakdowns/flow-field-vortex.md": "sha256:0661f3deec968dee557a1b7eac75c2ecdeccb3901d9727fa11f3ae49f378c8e4",
+          "reference/breakdowns/grainy-organic-blob.md": "sha256:a85d454b87cc9f4dfee3266d317daf2856ea8a28963c3fdead0c36bf2496b608",
+          "reference/breakdowns/icon-document-morph.md": "sha256:61c8686eeaf2244c83b4d92c7164c04f0b754488b823bc2cf06b066f73efc91b",
+          "reference/breakdowns/kinetic-bars-scatter.md": "sha256:7b6332a2fa5ffef2dfca59880adfaf4c8880db5c3bd62b677041009e28c7e913",
+          "reference/breakdowns/kinetic-type-scale-cascade.md": "sha256:dac49e73220697996f2bad592e3767f4bc256bf0520a91adb72c8eed39f57778",
+          "reference/breakdowns/linear-homepage.md": "sha256:e8b8351567098ac379d49247cf37b6e86c39ccb519e5c800ee60d2bd04e60dba",
+          "reference/breakdowns/linear-onboarding-wizard.md": "sha256:a7cabd5fbd9c34291ea668646ca635bae368da920cec75de5ca6365da0536207",
+          "reference/breakdowns/liquid-metaball-merge.md": "sha256:2f647efbc19241a7ec821ac280123abfea63a197ba2278d09dce432b4fd6f9c3",
+          "reference/breakdowns/mercury-insights-sizzle.md": "sha256:dd2188cbd54651f169640601cd43020ad1e2b84b32c32d3dee63a92631907c81",
+          "reference/breakdowns/nl-dot-grid-breathing.md": "sha256:29e16439ba7606dcfd36406461a07851caf64a496c6c4db1247284b3ccb7ef2b",
+          "reference/breakdowns/notion-onboarding-flow.md": "sha256:23c3688786ba897aa5626787aeec6b45cb0a1e416b01d7207115196d316b54bf",
+          "reference/breakdowns/nume-ai-chat-dashboard.md": "sha256:6f56f0c48dc46c37c5c5733e01aaeadf0b47305e1aa7c54635f8d0251b36efda",
+          "reference/breakdowns/sparse-dot-breathing.md": "sha256:d2a8736ed11755e684cc25cf1bb6c9f57a422d0caccbc11f97f3bc086752031a",
+          "reference/breakdowns/text-image-reveal.md": "sha256:a62cb006406768f8f0067477ff78bc51fb0f2c50134dfad526b55785c5dcbf3d",
+          "reference/breakdowns/vercel-onboarding-flow.md": "sha256:59a732cd856688c2f1457847f34bfdcd3fc6e9c6e2efa141bd150eb58e1fe927",
+          "reference/camera-rig.md": "sha256:95c048ce99ac03072c18322ea10cc4865771d1c2c4f7793299f0684a57940813",
+          "reference/cinematic-techniques-research.md": "sha256:3ed625cf1dc89021b57064786276fc354351d1fb9700a3dd14a7a0dc166099dd",
+          "reference/figma-conventions.md": "sha256:6fbfd5735c86c6bbf92bc1396084a9181d1f77d065804fbf70b6f9a25c2ad1ac",
+          "reference/figma-mcp-research.md": "sha256:ff80df844921fb87742c174d0e128854aa709c8c60fd1d9c252366302d7b240d",
+          "reference/industry-references.md": "sha256:fa899572524f6044ea3e53c1fca149dbad13bc4a8a70300a624b8726c144557e",
+          "reference/mixed-media-composition.md": "sha256:b69ed9a2eb4994c2ccd892d2096d02646af85b3acbf86341f75ec3ebc0201d25",
+          "reference/personality-research.md": "sha256:6634610376d5902a5e5a5e246f5b1ecf138265aa72b5ca0277ab6675402754ea",
+          "reference/primitives/REGISTRY.md": "sha256:e55c3d54a364aa578d8d54869b6b377c9c82616e7b7c8585e208b88fbbca908a",
+          "reference/primitives/sources/animate-style.md": "sha256:0e7357e815d1a5040a318a8bbf4fa8fddc73af000424ad9b8259816d080c144b",
+          "reference/primitives/sources/breakdowns.md": "sha256:400861315425b3691eeed13e43b0190f741346ae707e35b002bdaeb59a2b64ee",
+          "reference/primitives/sources/engine-builtins.md": "sha256:a646d2395a35b5e33137b62082cdb5bf0b5867e6e1153bf90e6b2e23524891ff",
+          "reference/spring-physics.md": "sha256:4653b9541b23b877ed1936cbd53f7a43b093928890ba96daca7709f3476ef26b",
+          "reference/svg-illustration-techniques.md": "sha256:9de2b5e763a9c3c60100fff4cc07042528907962c0178fac8cfa6a8d636ff568"
+        }
+      },
+      "bobby": {
+        "installedAt": "2026-08-18T11:54:03.995Z",
+        "files": {
+          "REFLEX.md": "sha256:9fa9638c5fe5fe062435dd9a9e28a2c6b9ac966cddbe813e29a813909b96827b",
+          "SKILL.md": "sha256:7f2ba39765ca79c262769bd3e87d0e5c13ad937e24f44f3a7f9d8a2b883666eb",
+          "reference/content-patterns.md": "sha256:9466c7bc05f8bcb6991ff0575f70c66d4fadc67a44a1d67718271b020b6bbd45",
+          "reference/report-formats.md": "sha256:88769b70fbdc126c8f53ce89702f9494b81091a180543743af43c2aa58dd9dd7",
+          "reference/terminology.md": "sha256:26d390e9ada25b8550ab9b66caf251bb82db09abd0af68bdd86e80090e2d5538",
+          "reference/voice-and-tone.md": "sha256:a6a4f7489817acbc5c1edd60b976e3e60aafd7977eaa86647a886b69faf4f5fe"
+        }
+      },
+      "brief": {
+        "installedAt": "2026-08-18T11:54:01.760Z",
+        "files": {
+          "SKILL.md": "sha256:26c163a647a1ff948ab991887492a5ada31bf57aad80f8cb5ac6514093fddd0a"
+        }
+      },
+      "dex": {
+        "installedAt": "2026-08-18T11:54:03.999Z",
+        "files": {
+          "REFLEX.md": "sha256:8a5c3eae6fdf36647d78ee43f911c2901f08e245672f0b8b75ab908612bfd14d",
+          "SKILL.md": "sha256:dbbb2fa9a9ce3ca46891c6697835069ccd4c313f06fde529dfbd064a3b6e5f9f",
+          "reference/backlog-commands.md": "sha256:61ea97ecf28b8b70818cff5f7af2329a3d265c33c98dcf38b69d580adda2018b",
+          "reference/backlog-management.md": "sha256:cf9daf92a06ed4c0c7f077ce632df28dfea6aaf952dd7c73ce8cfc53d3e62cfd",
+          "reference/changelog-analysis.md": "sha256:4f979ce85f68b160fb2f8e5c258be412798c3a818360e9a86932be77dc6f2b84",
+          "reference/code-review.md": "sha256:3f955efed71b68f50e998c48b925fe40e15fd39efecba0078d8ff50d8544ad80",
+          "reference/effort-tracking.md": "sha256:faf0432e16deeb4b1e8b54ee39633507826e5013bdbedc322ba06af4b01e485a",
+          "reference/hooks.md": "sha256:9839fcb29ee5fd4dc386ec2080a4ad588a24b63ddc8a15c04e75a6622ecb442e",
+          "reference/linear-workflow.md": "sha256:03f42663fead9b8153dc092815e6f32d3a546d5c2cdca6fd618253f27941ec37",
+          "reference/model-tiering.md": "sha256:ddbddf7e21c80c8f70aa428e89ade18f1389120c9f428dd0323bba74edebc68d",
+          "reference/release-and-risk.md": "sha256:5fb003fd769b71a90d04d8b691397b76d9c46b6d55c3909828141c47621906af",
+          "reference/retro.md": "sha256:37e75affe96d8f7d5b7da4a132f4bec81c9dcab7c7680df039eb54c1e3efcae9",
+          "reference/security-handoff.md": "sha256:0db1d5890cf22535eb17854be9a7c4d83ca8aed16596d0ec4b84a083786a9f15",
+          "reference/skills-2.0.md": "sha256:ca364fe7a4e74e501b80cc53c55574f3fcfc7cf1d5300e437769fd8d56a635dc",
+          "reference/worktree-workflow.md": "sha256:9b740a232ee28662d313ff599bc4aa55d3fe5a64e5bfb6262bf2a77e8ba8cbec"
+        }
+      },
+      "direct": {
+        "installedAt": "2026-08-18T11:54:01.761Z",
+        "files": {
+          "SKILL.md": "sha256:f988789f86bf4ae73dbfc517d57c1a09b83e98a170b093b945b4f495c6856360"
+        }
+      },
+      "hicks": {
+        "installedAt": "2026-08-18T11:54:04.001Z",
+        "files": {
+          "REFLEX.md": "sha256:de5614890fe719487be4d5c3804de0e402992222cbbd5346be863eb9386ce733",
+          "SKILL.md": "sha256:905d190d1297d9665ac5b141a670e1a41c7d15427d9681ccba2690f9179eabdc",
+          "reference/accessibility.md": "sha256:6a000945bd00b1819dcc4d270d1d081ae6686ebfa0ca79ab49b2986e94320eae",
+          "reference/component-architecture.md": "sha256:078e3de667d086de469f7acc75aee38bff528524bd7036e24732b1c8f987cd4f",
+          "reference/error-handling.md": "sha256:59496f10111774af57732aa19aa5042325298ca9ca7c7b7454836d36ce4b5f38",
+          "reference/forms-and-async.md": "sha256:a62d764551ed49e84591df3a4b60f213d07c91345c1fced713e62de5752c1dc7",
+          "reference/hook-patterns.md": "sha256:2de6898eb133e75f8551a983cf393b583ec0e1edf2cd85e3343f6deb6ffb7047",
+          "reference/performance-patterns.md": "sha256:3b8a7469a866e1d968283268a455c7452d3e40565f3a5c8f594b5f2c6565eea7",
+          "reference/rendering.md": "sha256:fb2e8a161d2d0042c704e309815bf24c5b46c4749addb185fd0079a107d9328a",
+          "reference/report-formats.md": "sha256:130907596ac13767703e156d17f0274393007ffbd5138f3f39834a2a124ca976",
+          "reference/state-management.md": "sha256:7d807a342326cecad78fdcb7635e65fa1d6da867f7ca74a92dab9806573e0e6f",
+          "reference/testing.md": "sha256:eb6a5b6a4482839c0127973c43014ba9e0d75ceb5123e3fe37025c14fde5d9a7",
+          "reference/typescript-patterns.md": "sha256:43da8d0cb0b49249a04738ac841d201e491fbd31282434929d23bc54c0449621",
+          "reference/web-vitals.md": "sha256:f62d59a2dcc87814f1ed0aa1f42890f13259f6b1effce6bd92e3bbf6502b11a2"
+        }
+      },
+      "maya": {
+        "installedAt": "2026-08-18T11:54:04.003Z",
+        "files": {
+          "REFLEX.md": "sha256:94caf58153512fbe34d88d94320d3eeb95ca43ddbc64a57aea63f4d981d810bd",
+          "SKILL.md": "sha256:feb7b25d3028d4a87edac1711f7e41fda6f89576fb70b4e0a83468dd8ad447ff",
+          "reference/color-and-contrast.md": "sha256:be502ad08270cd60cabb6769a6e1ed517ecaeeb7d40f6e610f1802689ee78ddc",
+          "reference/modifier-commands.md": "sha256:8e9ce22b5d39d8d2996f9821e214d0f0e678126f25023978b3f9277317f541a1",
+          "reference/motion-design.md": "sha256:925a3c7ea9e69642517cee8c99dae0e8c4b1eebf3ca3cdaa262b609076f36225",
+          "reference/report-formats.md": "sha256:eec5fe662dde37302a1de82c98ab71152fa44632e3b726dbb63451f596112f94",
+          "reference/spatial-design.md": "sha256:10c743ee8245fc1be9e8af2b79dd08b0dae19fcde33d46c9730c000d7e13b7cd",
+          "reference/typography.md": "sha256:af65532fb6d1ed9b292f852123b7b3bbcd58160e656c3742591d67e97b14e84f",
+          "reference/z-index.md": "sha256:3cb9f11b3f0697fa612bbe5bbba1892e8323f16af1f762bc65ff68d1f90a1dba"
+        }
+      },
+      "ogilvy": {
+        "installedAt": "2026-08-18T11:54:04.005Z",
+        "files": {
+          "REFLEX.md": "sha256:c543ede53aa6e17fc7411171c98064f610d6ea7817da6b129cfdaf37d1f7a9f6",
+          "SKILL.md": "sha256:ee556adfc307f24264d7fa5e1aea0409ae183ff955a548b299fa8afdbb9b7c3a",
+          "reference/competitive-analysis.md": "sha256:2cd68bc5a7367b79a164daf553f2b85ee8469029fec0fd7664c662d038205059",
+          "reference/copy-hierarchy.md": "sha256:27c6cea88c2a9bc59245e97569c06a0d9848e660bc5710c8d61ed2181b1b5e05",
+          "reference/feature-announcements.md": "sha256:5583e3c38ecab7e7fdde6fab5aec5ff56c80a73f77fd321b60350b350d23d0f6",
+          "reference/funnel-analysis.md": "sha256:5aa3ab32884562656db979d397b6fdfba5a0726d83aa505abc89954f59952578",
+          "reference/headline-formulas.md": "sha256:2e1bf34884eb12a6c8889416997867e389babec7e80b34144933b30d5c9dc46b",
+          "reference/positioning.md": "sha256:0b79aa2433ae2f69947763a9a25560e374b731074030ef685b9f60eca172f800",
+          "reference/proof-patterns.md": "sha256:96ae37315f80d29d00c7ad3a291c6d365cca90b44a40536bc53d885434498b59",
+          "reference/voice-and-tone.md": "sha256:a38c0b889728abe9146292db28904b830389c07e0ad38fe97c9c2130a0fc77a4"
+        }
+      },
+      "prototype": {
+        "installedAt": "2026-08-18T11:54:04.008Z",
+        "files": {
+          "SKILL.md": "sha256:9808f95f706ff0603794f938ef94e2a2d49512c324158a4356548f9a5d40d750",
+          "examples/concept-example.html": "sha256:4c4ce9c5032d2ebe9b60930353bd3b2bacbb9eb1eb7e623fa07fc24918c6b2fd",
+          "examples/sketch-example.html": "sha256:6f6bec5ab6b35e0d4153adef747ef43e1f69b2d0bc4320a1ed88a8e1f78478b1",
+          "examples/spec-example.html": "sha256:55aea6f58c77a2a25257289194ec5cfbc7bb99c02330bf1a4ad6e39ff31ba9fc",
+          "fidelity/concept-rules.md": "sha256:5906bbb9a8aec1c167959554b404b749ded5e111cddcdc986eb8c4d90198d396",
+          "fidelity/sketch-rules.md": "sha256:43b100df0140a09f5fa8b36b3a634316b0ebab5f59df3c316e3c2fd7972ce1d7",
+          "fidelity/spec-rules.md": "sha256:28e348988f9ff4293933bca0b6eb089a697d2d1a3f3065721a33180f1452afb4",
+          "templates/_tokens.css": "sha256:e18baa1ae5910881ebd3273b8b002a0883143f79cf8cbe4e35ace99acc5a4e14",
+          "templates/chrome-full.html": "sha256:f78dcdff4b9f443d4756096f630817e3a2d67c91c8084cdb4172d7840378d7a2",
+          "templates/chrome-marketing-a.html": "sha256:d4e40acd0a044754a259241aaa4767a5bb9b89987a1868e46cc3fb53f194c612",
+          "templates/chrome-marketing-b.html": "sha256:c774ef03805b7b8cb88daf61b37932b00e57c20b855099f4a2332a4ca00c4c68",
+          "templates/chrome-marketing-c.html": "sha256:fb3c6e3562066d94be9050e8cceb67415c999961fc2b74a605572cf98b66ee25",
+          "templates/chrome-minimal.html": "sha256:e7e87f3e76f36e44afbada8869dedd7b4f06b28ac0ff5c176ae310e12ea7c8ed",
+          "templates/chrome-none.html": "sha256:7ccb6537e8c4cae87d0e63b78a6d2adad10eae4af697ce323853771304160a43",
+          "templates/chrome-sidebar.html": "sha256:98fe84514a3a5534f92ce441af10013ac34f1f2b0f362919597a402e244cea3a",
+          "templates/flow-index.html": "sha256:2b4897bac211aed8a07b027077e0e2806d3063781a2167c0af7fa60972926cb9",
+          "templates/signoff-footer.html": "sha256:94d96b20265bb7a091b9e6263b87a683adfdf2ff8a7d48497484929e098c1470"
+        }
+      },
+      "rams": {
+        "installedAt": "2026-08-18T11:54:04.013Z",
+        "files": {
+          "REFLEX.md": "sha256:75835ae45f8bcdb38a55830beaabe4a66175a51de2fae52e8ddd3bc4a1441c6a",
+          "SKILL.md": "sha256:9f3e5cbab57dbe0b4c7d7df279eee41705c3f166d68eb0c7510e114e6f5aac32",
+          "reference/interaction-design.md": "sha256:997d5e66ae54fcf8e59a0fcf0a2db49982ffe7b9b6cc091bcf64a3b3e0828ed7",
+          "reference/prd-structure.md": "sha256:a98c9a2e115da3784f61673625d4c495dc7c6ac0c09d1e6f86102adf6dbcda7d",
+          "reference/responsive-design.md": "sha256:5add44195a42cf7fa82aecadaad79b8875446b930e06d087d73f3722533fd95a",
+          "reference/ux-writing.md": "sha256:0cd5e958d92be6e2331cb199d6ed5d98597aa20ec4922d4c3df56e7753cfc00c"
+        }
+      },
+      "rand": {
+        "installedAt": "2026-08-18T11:54:04.015Z",
+        "files": {
+          "REFLEX.md": "sha256:4654cf8ed90854f9d423c5c3db27ebe7f581282ac54f0a0c52bb05b4a4e757f5",
+          "SKILL.md": "sha256:c174e657980cbd1579e3f0563c61fe6e8ecf2d73b93baa128bb03edc16f1f72f",
+          "reference/violation-catalog.md": "sha256:8834ae17239c2c125fa81cbb7d1cd987f9f742693ad05cbf18b0208312953c1b"
+        }
+      },
+      "review": {
+        "installedAt": "2026-08-18T11:54:01.764Z",
+        "files": {
+          "SKILL.md": "sha256:b60de33291840fb1f9149de4642c76c34857a10e2177105108365213ac0ef144"
+        }
+      },
+      "sizzle": {
+        "installedAt": "2026-08-18T11:54:01.764Z",
+        "files": {
+          "SKILL.md": "sha256:e2a300bf74d5a97d6e7a784a05a96ce11faa49e2dcd57221cb322d4f5f889117"
+        }
+      },
+      "steve": {
+        "installedAt": "2026-08-18T11:54:04.019Z",
+        "files": {
+          "REFLEX.md": "sha256:05deb44b1e7bd533686a40c0c119b76dc79d1b3b8b99acc54f5b9c610bb8865e",
+          "SKILL.md": "sha256:002e39017f7b4ca8a2bb418bcb5e7ca9a36198c1f3c7130f23482eb2c7fd16cc",
+          "reference/color-and-contrast.md": "sha256:b88083e7ebc9a25214421f53c7d2f2a804588f55d70301d4ef95751b2524bd9c",
+          "reference/forms.md": "sha256:e9bc365f28d6dc400bb4ddc811c9e22ae8ac928971f4aee6f7fb9be2f0a90741",
+          "reference/keyboard-and-focus.md": "sha256:ce8e6b6d0336b8d7a92b0cadaf92f77fee46510d5e102c73a87f1f802cc13ea3",
+          "reference/motion-and-preferences.md": "sha256:1ed9f7c0462fd798b99ee024ca9b4ad1f15a30fb697f66f8758a845aa8e73f26",
+          "reference/overlays.md": "sha256:3bb8aa05be02a6158fddad41f9c680fcf7aa9a90215a1360ee006baabd82d3cc",
+          "reference/screen-readers.md": "sha256:4eec311e64f30b795aee54621804b1226d0d25e108d9499621d3c041eb369f7b",
+          "reference/tables-and-loading.md": "sha256:0277ba4efa8049ffacacc2e9607f14686c6a0aebe8eff36a15ac727be3acd07f",
+          "reference/touch-and-cognitive.md": "sha256:9d757e10899aa8780125ac284df4948def3f54cba9a593b5e386f154a3c3f86e",
+          "reference/wcag-checklist.md": "sha256:c452c6bd237f05f635164cc014188d901a230c6e9797175101e30b799f9c30fc"
+        }
+      },
+      "storyboard": {
+        "installedAt": "2026-08-18T11:54:04.020Z",
+        "files": {
+          "SKILL.md": "sha256:e444562f99eb9cc65f55019788b0db9d5d9144fde9901b0fdd215700614eaf71"
+        }
+      }
+    },
+    "codex": {}
+  }
+}

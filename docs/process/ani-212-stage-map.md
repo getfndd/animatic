@@ -11,10 +11,11 @@ adopts this draft's override record shape verbatim. Section 4 designs the render
 stage check to share that exact chokepoint and record, one admission call, not two.
 
 **Round 2 (this revision):** Codex rejected round 1 (`7c1ee49`) at P1. James triaged
-every finding; this revision fixes the 10 accepted items, states the rationale for the
-1 rejected item, and, for the 1 on-hold item (approval authenticity), makes the
-non-discretionary fixes now and sketches two options without picking. Superseded text
-is deleted, not annotated. Round cap: 3, this is round 2.
+every finding; this revision fixes the 10 accepted items and states the rationale for
+the 1 rejected item. The 1 on-hold item (approval authenticity) started as a two-option
+sketch and was then decided by James (option b, elicitation with an attested fallback,
+Section 4a) within this same round; the sketch is replaced by that design, not kept
+alongside it. Superseded text is deleted, not annotated. Round cap: 3, this is round 2.
 
 ## 1. Inventory on origin/main
 
@@ -151,8 +152,10 @@ one. Test in Section 5.
 
 `grandfathered_project_ids` is new this round (Section 3a); it is captured once, at
 rollout, from the 3 real projects inventoried in 1e of round 1, and is not grown for new
-projects afterward. Per-project state (`project.json.stages`) is unchanged from round 1:
-`not_started` -> `complete` -> `approved`, keyed by the stages above.
+projects afterward. Per-project state (`project.json.stages`) is unchanged in shape from
+round 1: `not_started` -> `complete` -> `approved`, keyed by the stages above. An
+approved gated stage's record now also carries `approval_channel: 'elicitation' |
+'attested'` (Section 4a) and, for `storyboard` specifically, `approved_digest` (4b).
 
 ## 3. Decision (recorded 2026-09-11): strict for new, grandfathered for existing
 
@@ -191,7 +194,7 @@ boundary only (1e), never inside `getProject`/`getProjectContext`.
 
 ## 4. Tool contracts
 
-### `approve_stage({ project, stage, note, actor, policy? })`
+### `approve_stage({ project, stage, note?, actor?, policy? })`
 
 **Fix (P1, accepted): the target stage must already be `complete`.** Round 1's error
 list checked only the stage's *predecessors*, never the stage's own current status, so
@@ -201,48 +204,100 @@ list checked only the stage's *predecessors*, never the stage's own current stat
 "Cannot approve \"<stage>\": current status is \"<status>\", must be \"complete\" first"
 ```
 
-**Fix (on hold, do-now per James): no unauthenticated identity claim.** MCP dispatch
-passes caller-supplied arguments straight to handlers (`tools-registry.js:187`); nothing
-authenticates `actor`, and nothing distinguishes a human from an agent calling this tool.
-Round 1 claimed "human approval, not self-approval" as a guarantee. It is not one. The
-only honest guarantee: **the caller attested that a human approved.** Every mention of
-"human approval" in this document (Section 6 included) means attestation, not a verified
-fact. `'human (unspecified)'` (round 1's fallback when no name was given) is deleted; a
-caller with no name to attest simply cannot call this successfully -- `actor` has no
-default, ever.
+**Decided 2026-09-11 (James, option b): elicitation primary, attested fallback.** MCP
+dispatch passes caller-supplied arguments straight to handlers (`tools-registry.js:187`);
+nothing authenticates a plain `actor` string, and nothing distinguishes a human from an
+agent calling this tool with one. Round 1/2's `actor` argument proved only that *some*
+caller typed a name, never that a human approved. **Fix, verified against the installed
+SDK** (`@modelcontextprotocol/sdk@1.30.0`, resolved from `package.json`'s `^1.27.1`
+range; fetched and inspected the published `1.30.0` tarball directly, since this repo has
+no committed lockfile to read a resolved version from). Citations below are into the SDK
+package itself (`node_modules/@modelcontextprotocol/sdk/dist/cjs/...` once installed),
+not animatic's own source, unlike every other citation in this document: the `Server`
+class exposes `elicitInput(params, options?): Promise<ElicitResult>`
+(`server/index.d.ts:158`) and `getClientCapabilities(): ClientCapabilities | undefined`
+(`server/index.d.ts:121`), whose `elicitation` field (`types.js`'s
+`ClientCapabilitiesSchema`, `:449-471`) is present only if the connected client declared
+it at `initialize` -- the real check, not a guess. Animatic doesn't call either today
+(grepped `mcp/`: no hits).
 
 ```jsonc
-// input (actor required, no default; policy default 'human', only value implemented)
-{ "project": "string", "stage": "string", "note": "string, required",
-  "actor": "string, required - the caller's attestation of who approved, never defaulted",
+// input: no actor/note when elicitation is used (rejected if supplied, see errors);
+// required (as round 2) only on the attested fallback
+{ "project": "string", "stage": "string",
+  "note": "string, required on attested fallback, rejected if elicitation runs",
+  "actor": "string, required on attested fallback, rejected if elicitation runs",
   "policy": "string, optional, default 'human'" }
 
-// errors
+// return (not thrown -- a human decision, not an error):
+{ "approved": true, "approval_channel": "elicitation" | "attested", ...stage record }
+{ "approved": false, "approval_channel": "elicitation", "outcome": "declined" | "cancelled" | "timeout" }
+
+// errors (still thrown -- programming/validation failures, not human decisions)
 "Project not found: <id>"
 "Unknown stage: <stage>. Valid stages: brief, storyboard, ..."
 "Stage \"<stage>\" is not gated (approval: false) - nothing to approve"
 "Cannot approve \"<stage>\": current status is \"<status>\", must be \"complete\" first"
 "Cannot approve \"<stage>\": predecessor \"<dep>\" is not complete"
-"actor is required for approve_stage" // no anonymous, no default
-"note is required for approve_stage"
+"actor/note are not accepted when elicitation is available; the response is collected via the client"
+"actor is required for approve_stage" // attested fallback only, no anonymous, no default
+"note is required for approve_stage" // attested fallback only
 "Unknown approval_policy \"<policy>\": only \"human\" is implemented"
 ```
 
-### 4a. Approval authenticity: two options, not decided
+**Mechanism.** `approve_stage` checks `getClientCapabilities()?.elicitation` first.
+**Present:** if the call also carried `actor`/`note`, reject outright (picked over
+silently ignoring them -- an honest caller has no reason to pre-supply the human's
+answer, so a rejected call is the safer failure than a discarded one). Otherwise call
+`elicitInput` with a form requesting exactly what the record needs, never accepting it
+from the agent:
 
-Both fixes above ship regardless of which option James picks later. What's undecided is
-how much further to go:
+```jsonc
+{ message: "Approve the storyboard for <project>? <panel-coverage summary>",
+  requestedSchema: { type: 'object',
+    properties: {
+      decision: { type: 'string', enum: ['approve', 'decline'], title: 'Decision' },
+      approver_name: { type: 'string', title: 'Your name' },
+      note: { type: 'string', title: 'Note (optional)' } },
+    required: ['decision', 'approver_name'] },
+  options: { timeout: 900000 } } // 15 min -- generous, a human may be mid-review
+```
 
-- **(a) Attested-only.** `/direct` ends its turn and waits (Section 6, unchanged
-  mechanism); the record states `attestation: true` and nothing stronger. Ships today,
-  zero new infrastructure, the honest version of what round 1 already built.
-- **(b) Client-side confirmation via MCP elicitation.** The server asks the connected
-  MCP client to collect the confirmation directly from the human through the client's
-  own UI, not through the calling agent's tool-call arguments -- the agent in the loop
-  cannot answer on the human's behalf because the round-trip happens between server and
-  client, bypassing the agent. Falls back to (a) when the connected client doesn't
-  support elicitation (not every MCP client does; this needs verifying per client, not
-  assumed). More real, more infrastructure, not designed further here.
+`actor`/the approval decision/`note` come only from `content.approver_name`/
+`content.decision`/`content.note` on `action === 'accept'`. **Absent:** falls back to the
+round 1/2 attested contract unchanged (`actor`/`note` required, `/direct` ends its turn
+and waits, Section 6).
+
+### 4a. Approval authenticity: what the elicitation channel guarantees, and what it doesn't
+
+**Every elicitation outcome means not-approved, with no fallback to attested inside the
+same call (P1, accepted):** `ElicitResult.action` is `'accept' | 'decline' | 'cancel'`
+(SDK's `types.js:1848-1863`); a request exceeding `options.timeout` rejects with
+`McpError` `RequestTimeout` (SDK's `shared/protocol.d.ts:73-77`) rather than resolving.
+All three non-accept outcomes, plus the timeout, return `{ approved: false, outcome }` and stop --
+they do not retry as attested. Falling back only on missing *capability*, never on a
+human's actual decline, is the whole point: a decline that silently became an attested
+"approval" would make the channel worse than useless.
+
+**What this proves:** the decision and the name attached to it came through the MCP
+client's own protocol round-trip, not through the calling agent's tool-call arguments --
+the agent that wants to fabricate an approval cannot put the words in its own request and
+have them accepted.
+
+**What this does not prove, stated plainly (P1, known residual):** it does not prove a
+human looked at a screen. Claude Code's own `Elicitation` hook can intercept the request
+before any dialog is shown and answer it with `hookSpecificOutput: { hookEventName:
+'Elicitation', elicitationResponse: '<value>' }` (corrected field name -- not `provide`/
+`response` as first described; verified against Claude Code's hooks reference and hooks
+guide). Hooks are configured in `.claude/settings.json` / `~/.claude/settings.json` /
+`.claude/settings.local.json`, not in a tool call's arguments, so forging an approval
+this way requires editing a settings file rather than typing a string into one request --
+a materially higher bar than the attested channel's, but not an unreachable one for an
+agent that can already edit files in the repo it's working in. The elicitation channel's
+honest guarantee is **"a client-side actor answered through the protocol,"** not
+**"a human answered."** `approval_channel: 'elicitation'` in the record reflects exactly
+that distinction, and nothing reading it (Section 2's per-stage record, any warning or
+render admission that surfaces approval state) may present it as stronger.
 
 ### 4b. Cold-restart determinism (P1, accepted)
 
@@ -380,6 +435,12 @@ cleanly rather than duplicating.
 | Warning on every enumerated surface | Call each tool in 1d's table against a grandfathered project. | Every one carries `stage_warning`; none silently omit it. |
 | Approve `not_started` rejected | `approve_stage` on a stage with no artifact saved yet. | Throws "must be complete first," not "predecessor not complete." |
 | No default actor | `approve_stage`/override call with no `actor`. | Throws; `'human (unspecified)'` does not appear anywhere in the codebase or the record. |
+| Elicitation accept | Mock client declares `elicitation`, form response `{ decision: 'approve', approver_name: 'James', note: '...' }`. | `{ approved: true, approval_channel: 'elicitation' }`; `stages.storyboard.approved_by === 'James'`, sourced from `content`, not from any call argument. |
+| Elicitation decline | Same mock client, `action: 'decline'` (or `content.decision: 'decline'`). | `{ approved: false, outcome: 'declined' }`; stage stays `'complete'`; no attested fallback attempted in the same call. |
+| Elicitation cancel | Mock client returns `action: 'cancel'`. | `{ approved: false, outcome: 'cancelled' }`; same no-fallback guarantee. |
+| Elicitation timeout | Mock client never responds; `options.timeout` elapses. | `elicitInput` rejects `McpError RequestTimeout`; `approve_stage` returns `{ approved: false, outcome: 'timeout' }`, not a thrown error to the caller, and not attested. |
+| Capability absent, fallback | Mock client with no `elicitation` in its declared capabilities. | Falls back to the attested contract; `actor`/`note` required as call arguments; `approval_channel: 'attested'` recorded. |
+| Argument-supplied approval ignored/rejected | `approve_stage({ project, stage, actor: 'James', note: '...' })` against a client that DID declare elicitation. | Throws "actor/note are not accepted when elicitation is available," before any `elicitInput` call is made -- the supplied values are never used for anything, not even logged as an attempt. |
 | Storyboard re-save invalidates approval | Approve `storyboard`, then `save_project_artifact(kind: 'storyboard', ...)` with different content. | `stages.storyboard.status` downgrades to `'complete'` in that same write; an identical re-save leaves it `'approved'`. |
 | Cold-restart digest mismatch | Approve `storyboard`, edit `concept/storyboard.json` directly on disk (bypassing `saveProjectArtifact`), then reload via Step 1. | Digest check fails; treated as `'complete'`, not `'approved'` -- `/direct` re-pauses at Step 2.5 rather than trusting stale approval. |
 | Admission before side effect, render_project | `render_project(..., mark_as_latest: false)` on an ungated project. | Refused before any MP4 is written to disk (assert the file never exists), not merely unregistered. |
@@ -405,13 +466,18 @@ finding from round 1.
   entrypoint (`kind: 'brief'`) and the structured `story_brief` itself
   (`kind: 'brief', role: 'structured'`), plus stamping `project.json.active_run` with
   this run's parameters (4b).
-- **Step 2.5 (Storyboard):** mechanism unchanged from round 1 -- compose, save, then
-  (default `policy: 'human'`) surface the summary and **end the turn**, resuming on the
-  human's next message or a fresh invocation that finds `stages.storyboard.status`
-  already `'approved'` and its digest still matching (4b). Every "approve" in this step
-  now means **attest**, per 4a: the language changes, the pause/resume mechanics do not.
-  No default actor (Section 4); the agent must have an actual name/handle to attest
-  with, or it cannot call `approve_stage` and must ask for one.
+- **Step 2.5 (Storyboard):** compose, save, then call
+  `approve_stage({ project, stage: 'storyboard' })` with no `actor`/`note` (4a). If the
+  client declared the elicitation capability, this call blocks the tool call itself
+  (the client shows its own dialog; the turn does not need to end) until the human
+  answers, declines, cancels, or 15 minutes pass. A `declined`/`cancelled`/`timeout`
+  result means not approved: report it to the user and offer the existing revision path,
+  never retry as attested inside the same step. If the capability is absent, fall back
+  to round 1/2's mechanism unchanged: surface the summary, **end the turn**, and on the
+  human's next message call `approve_stage({ ..., actor, note, policy: 'human' })`
+  (`actor`/`note` required here, never defaulted). A fresh invocation that finds
+  `stages.storyboard.status` already `'approved'` with a matching digest (4b) skips this
+  step entirely, regardless of which channel produced that approval.
 - **Step 3 (Plan Beats):** each of the three beat plans is saved as `kind: 'beats'` (once
   ANI-220 lands, 1b) right after this step, not deferred to Step 8 -- same principle as
   the brief fix, save where it's produced.

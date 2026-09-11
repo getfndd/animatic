@@ -230,37 +230,106 @@ per-scene `scenes`, `evidence_summary`, and uses `verdict` per-finding, not
 PASS and join `block_reason`, exactly as round 1 designed. Slice 1 registers
 `delivery_promise`; slice 2 adds `registerGate('slideshow_risk', ...)`.
 
-## 4. Override policy (decided by James, 2026-09-11)
+## 4. Override policy (decided by James, 2026-09-11; shape aligned to ANI-212)
 
 Content gates can be overridden **only with a recorded reason.** "Never" was
 rejected: it produces shadow bypasses once a real exception shows up.
-Requirements, all four enforced together:
 
-- **Explicit.** A dedicated `override` parameter on `render_project` and
-  `render_master`. No unrelated flag acts as an override:
-  `skip_preflight: true` alone never overrides a content gate (tested, §8).
-- **Attributable.** `override = { gate: 'delivery_promise'|'slideshow_risk'|'all', reason: string, actor: string }`.
-  `reason` and `actor` are both required (non-empty) when `override` is
-  present; `overridden_at` is stamped server-side (never caller-supplied, so
-  it can't be forged).
-- **Visible.** The override record is written into: (a) `persistMaster`'s
-  `index.json` (new `output_gates`/`override` fields, alongside the existing
-  `gate_by_artifact`); (b) a new small sidecar next to a plain
-  `render_project` output, `<output>.meta.json`, written whenever any gate
-  ran, carrying `{ verdict, gates, override }`; (c) the existing opt-out
-  telemetry, `track('mcp.gate_override', { gate, actor, verdict, project })`
-  (`telemetry.js:93`, same mechanism already used for
-  `record_render_feedback`, `handlers.js`'s `track('mcp.feedback', ...)`).
-  A reviewer looking at either artifact can see a gate was overridden, by
-  whom, and why, without cross-referencing a separate log.
+**Shape: adopt ANI-212's record exactly, not a parallel one.** ANI-212's
+stage-map draft (`~/.claude-worktrees/animatic/ani-212-stage-map`, commit
+`7c1ee49`, `docs/process/ani-212-stage-map.md` §4) already designed a
+generic override record for the same explicit/attributable/visible
+requirement, persisted at `project.json.overrides[]` via a shared
+`recordOverride(project, { type, gate, tool, reason, actor, detail })`
+helper. Its fields: `type` (discriminator), `at` (server-stamped timestamp),
+`actor`, `tool`, `reason`, `gate`, `detail`. This plan uses that shape
+verbatim, not the `GateOverride = { gate_id, reason, actor, overridden_at }`
+this document proposed in an earlier draft, so stage gates and content gates
+share one record and one helper as the coordinator asked:
 
-**Shared shape for ANI-212.** ANI-212 (stage gates) needs the same
-explicit/attributable/visible contract, and `/direct`'s human-storyboard-
-approval stop will too. Proposing one shared record type, `GateOverride =
-{ gate_id, reason, actor, overridden_at }`, defined once in
-`mcp/lib/output-gates.js` and imported by whatever ANI-212 builds, rather
-than each issue inventing its own shape. This is the natural shared piece;
-the rest of ANI-212's stage-gate machinery is out of scope here.
+```jsonc
+// content-gate override, using ANI-212's exact fields, project.json.overrides[]
+{
+  "type": "content_gate",                 // ANI-212 uses "stage_prerequisite"; this is the sibling discriminator
+  "at": "2026-09-11T12:30:00Z",           // server-stamped, never caller-supplied
+  "actor": "James Schuyler",              // required, same rule as approve_stage's actor
+  "tool": "render_master",                // or "render_project"
+  "reason": "known slideshow-risk gap on this cut, ships next week",
+  "gate": "slideshow_risk",               // "delivery_promise" | "slideshow_risk" | "all"
+  "detail": {                             // gate-specific context, same field ANI-212 already reserves for this
+    "artifact_id": "9:16",
+    "overridden_findings": ["static_layer_ratio: 0.67 (band: revise)"]
+  }
+}
+```
+
+Requirements, all four enforced together, matching ANI-212's own wording:
+
+- **Explicit.** A dedicated `override` parameter (carrying `reason`/`actor`,
+  `type`/`gate`/`tool`/`detail` filled in by the gate code, not the caller)
+  on `render_project` and `render_master`. No unrelated flag acts as an
+  override: `skip_preflight: true` alone never overrides a content gate
+  (tested, §8), exactly as ANI-212 requires `skip_preflight` never implies a
+  stage-prerequisite override and vice versa.
+- **Attributable.** `reason` and `actor` are both required (non-empty) when
+  `override` is present; `at` is stamped server-side.
+- **Visible.** `recordOverride(proj, {...})` appends to
+  `project.json.overrides[]` (persisted, array, never overwritten) AND the
+  same record is echoed into the calling tool's own return payload, not
+  written to disk silently. **This is always possible for the sites that
+  matter:** the choke point (`renderRemotionSequence`, §1) is reached only
+  from `render_project` (which always resolves a `proj` via `getProject`,
+  erroring if none, `projects.js:679-682`) or from `render_master`'s
+  `encode`/`persist` path (which already requires `project`,
+  `render-master.js:333-335`). Every case where bytes are actually about to
+  be produced therefore has a `project.json` to record into; there is no
+  inline-without-a-project case that reaches the choke point, so no separate
+  sidecar file is needed (this plan's earlier draft proposed one; dropped).
+
+**Where `recordOverride` is called from, for the content-gate side:**
+`render_master`'s persist/encode path calls it right alongside the existing
+`saveProjectArtifact({kind:'master', ...})` registration
+(`render-master.js:342`-equivalent), so the master's entrypoint update and
+its override record land together; `render_project` calls it right after the
+choke point admits a BLOCK-with-override, before `saveProjectArtifact({kind:'render',...})`
+registers the output. Both depend on ANI-212's `writeJSONAtomic` +
+in-process mutex around `project.json` writes (ANI-212 §4) landing first, or
+slice 1 needs the same minimal safe-write itself, flagged as a sequencing
+dependency (§12).
+
+**Shared module, not one issue's file importing the other's.** ANI-212
+proposes `recordOverride`/`checkStagePrerequisites` in `mcp/lib/stage-map.js`.
+Rather than `output-gates.js` importing from `stage-map.js` (or vice versa,
+either of which makes one issue depend on the other's file), propose
+extracting `recordOverride` and the record shape into their own small shared
+module, e.g. `mcp/lib/gate-overrides.js`, that both `stage-map.js` and
+`output-gates.js` import. Whichever of ANI-210/ANI-211 or ANI-212 lands
+second does the extraction; noted as an open question for both (§12).
+
+**The attribution limit, and how this plan handles it (per ANI-212's own
+open question 5, "actor provenance beyond a free-text name"):** `actor` is
+asserted by whoever calls the tool, never proven; there is no auth-identity
+concept on this stdio-only MCP surface (confirmed: `mcp/index.js` uses
+`StdioServerTransport` with no session/client id threaded into any handler,
+grep for `sessionId`/`clientInfo`/`requestId` across `mcp/index.js` and
+`mcp/handlers.js` returns nothing). When an agent calls `override` on a
+human's behalf, mid-conversation, `actor` records what the agent typed as
+the human's name, exactly the same trust level ANI-212 already accepts for
+`approve_stage`'s `actor`. **Proposed addition to the shared shape, not a
+second record:** an optional `invoking_session` field, filled in by the
+server itself (never caller-supplied, same rule as `at`), holding whatever
+this runtime can actually observe about the call: a UUID generated once at
+MCP server boot (`mcp/index.js`, module-scope) and reused for every tool
+call in that process's lifetime, plus `process.pid`. This distinguishes two
+different claims that the current single `actor` field conflates: `actor`
+is *who the agent says authorized this* (an assertion, unverifiable here);
+`invoking_session` is *which running server process actually made the call*
+(observed by the runtime, not asserted, but still not proof of the human's
+identity, only proof of which process/session produced the record, useful
+for correlating multiple overrides back to one conversation or catching a
+session that overrides gates suspiciously often). This is a real gap, not a
+fix for it. Proposed as an optional field on ANI-212's shared shape so both
+issues gain it together rather than diverging.
 
 ## 5. Every render entry point, corrected
 
@@ -371,20 +440,22 @@ a suggestion) must close:
 
 ### Slice 1, ANI-210: choke point + seam + delivery-promise + override
 
-**Files:** `mcp/lib/output-gates.js` (new, registry, `normalizeGateInput`,
-`GateOverride` shape, rollup); `mcp/lib/delivery-promise.js` (new,
+**Files:** `mcp/lib/gate-overrides.js` (new, shared with ANI-212, §4:
+`recordOverride`, the record shape); `mcp/lib/output-gates.js` (new,
+registry, `normalizeGateInput`, rollup); `mcp/lib/delivery-promise.js` (new,
 `checkDeliveryPromise`, §6-§7 logic); `mcp/lib/video.js`
-(`renderRemotionSequence` gains the admission check plus override handling,
-the actual enforcement point, §1); `mcp/lib/render-master.js`
+(`renderRemotionSequence` gains the admission check, structural override
+validation, the actual enforcement point, §1); `mcp/lib/render-master.js`
 (`composeCompileGate` runs gates early/advisory via `normalizeGateInput`;
 `renderMaster` gains `story_brief`, `storyboard`, `override` params, threads
-`override` down through `encodeMaster` to `renderRemotionSequence`);
-`mcp/lib/master-persist.js` (`persistMaster`'s index gains `output_gates` +
-`override`); `mcp/lib/projects.js` (`renderProject` gains `override` param,
-threads it to `renderRemotionSequence`, writes the `<output>.meta.json`
-sidecar, reads `story_brief`/`storyboard` per §7); `mcp/handlers.js` +
-`mcp/tools.js` (schema/handler changes in §7.4, not optional); `mcp/lib/telemetry.js`
-consumer call for the override event.
+`override` down through `encodeMaster` to `renderRemotionSequence`, calls
+`recordOverride` alongside its existing `saveProjectArtifact({kind:'master'})`
+registration, §4); `mcp/lib/projects.js` (`renderProject` gains `override`
+param, threads it to `renderRemotionSequence`, calls `recordOverride` before
+its own `saveProjectArtifact({kind:'render'})` registration, reads
+`story_brief`/`storyboard` per §7); `mcp/handlers.js` + `mcp/tools.js`
+(schema/handler changes in §7.4, not optional, plus echoing the override
+record in each tool's return payload).
 
 **Test plan (every item the coordinator asked for):**
 - Polaris-shaped BLOCK / faithful PASS / missing-input WARN (round 1's
@@ -399,13 +470,19 @@ consumer call for the override event.
   right `panel_id` → correct binding, no false BLOCK/PASS. A second test
   with the SAME reorder but no `panel_id` on any scene → positional
   fallback WARN with `binding_confidence: 'positional_fallback'`.
-- `skip_preflight: true` with a genuinely BLOCK-worthy manifest → the
-  advisory preflight check is skipped, but `render_project` still fails at
-  the choke point with a content-gate error, not a successful render.
-- Override, recorded: `render_project({..., override: {gate:'delivery_promise', reason:'known gap, ships next week', actor:'james@…'}})`
-  on a BLOCK-worthy manifest → render proceeds, and the resulting
-  `<output>.meta.json` / `persistMaster` index contains the override
-  `{gate, reason, actor, overridden_at}`.
+- `skip_preflight: true`, no `override` param, with a genuinely BLOCK-worthy
+  manifest → the advisory preflight check is skipped, but `render_project`
+  still fails at the choke point with a content-gate error, not a
+  successful render. Proves `skip_preflight` is not an implicit override.
+- Override, recorded and visible: `render_project({..., override: {reason:'known gap, ships next week', actor:'James Schuyler'}})`
+  on a BLOCK-worthy manifest, where the gate/tool/detail fields are filled
+  in by the gate code itself, not the caller. Render proceeds;
+  `project.json.overrides[]` gains a `{type:'content_gate', at, actor, tool:'render_project', reason, gate:'delivery_promise', detail}`
+  entry (ANI-212's exact field names), and the SAME record is present in the
+  tool call's own return payload, not only on disk.
+- Override missing actor: `override: {reason: '...'}` with no `actor` →
+  throws, matching ANI-212's `approve_stage`/`save_project_artifact` rule
+  that an override is never anonymous.
 - Aspect variants: a source that passes slideshow-risk at 16:9 but whose 9:16
   variant's clamped duration tips a scene into the static-layer band →
   `gate_by_artifact`-equivalent per-artifact result catches it; a single
@@ -523,7 +600,17 @@ standalone tool registration.
 4. Calibration (§9.2) needs real additional sample generation time before
    slice 2's band edges can be trusted, how many more `generateVideo`
    samples is enough, and who reviews the resulting corpus?
-5. `.meta.json` sidecars for plain `render_project` output are a new
-   artifact type this plan introduces (§4), confirm the naming convention
-   and that nothing downstream (cleanup scripts, `.gitignore` patterns)
-   needs to be told about it.
+5. `mcp/lib/gate-overrides.js` (§4) needs to exist before either ANI-210/211
+   or ANI-212 can call `recordOverride`. Whichever lands second should do
+   the extraction from ANI-212's proposed `stage-map.js` location; flagging
+   so neither side assumes the other did it.
+6. `invoking_session` (§4) is a new optional field this plan proposes adding
+   to ANI-212's shared override shape. It only proves which server process
+   made a call, not who the human actually is. Confirm that's worth adding
+   now (before either issue ships) rather than as a later migration to an
+   already-written `overrides[]` array.
+7. This plan's override recording depends on ANI-212's `writeJSONAtomic` +
+   in-process mutex around `project.json` writes (ANI-212 §4) landing
+   first, or slice 1 duplicating a minimal version of the same fix. Confirm
+   the sequencing: does ANI-212 land before ANI-210/211's slice 1, or does
+   slice 1 need its own copy of the atomic-write fix?

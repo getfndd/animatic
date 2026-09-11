@@ -102,6 +102,47 @@ export async function writeJSON(filePath, data) {
   await writeFile(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
+// ── Per-file write serialization (ANI-220 round 2) ──────────────────────────
+//
+// Every read-modify-write of project.json (saveProjectArtifact, initProject)
+// reads the whole file, mutates an in-memory snapshot, then rewrites the
+// whole file, with nothing serializing those steps against each other.
+// Node's single-threaded event loop still lets two such sequences for the
+// SAME file interleave across their `await`s — e.g. three beat-plan saves
+// fired as parallel tool calls, or a beat-plan save racing a storyboard
+// save — so the second writer's read can already be stale by the time it
+// writes back, silently reverting or dropping the first writer's change.
+// That's the exact class of bug ANI-220 exists for, via a second door.
+//
+// This queues same-key callers so at most one read-modify-write for a given
+// file is ever in flight *within this process*. It is NOT cross-process or
+// cross-host locking — a second MCP server process (or a second machine)
+// writing the same project.json is not covered, and needs real file
+// locking or atomic tmp-and-rename, which is a separate, larger piece of
+// work. ANI-212's stage-map design should import `withFileLock` from here
+// rather than re-inventing a second per-file queue.
+const fileLocks = new Map();
+
+/**
+ * Run `fn` only after every previously-queued call for the same `key` (in
+ * practice, a resolved file path) has settled on this process, so calls
+ * sharing a key never have their read-modify-write sequences interleave.
+ *
+ * @template T
+ * @param {string} key - Typically a resolved file path.
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
+export function withFileLock(key, fn) {
+  const previous = fileLocks.get(key) || Promise.resolve();
+  const settled = previous.then(fn, fn);
+  // Store a version that never rejects, so one failed call doesn't wedge
+  // every later call queued behind it — the caller of THIS call still sees
+  // `settled`'s real outcome via the returned promise.
+  fileLocks.set(key, settled.catch(() => {}));
+  return settled;
+}
+
 /** Strip a leading YYYY-MM-DD- prefix from a directory name to get the slug. */
 function stripDatePrefix(dirName) {
   return dirName.replace(/^\d{4}-\d{2}-\d{2}-/, '');
@@ -184,7 +225,7 @@ export async function initProject(config) {
     metadata: {},
   };
 
-  await writeJSON(projectFile, projectData);
+  await withFileLock(projectFile, () => writeJSON(projectFile, projectData));
 
   return {
     project_id: slug,
@@ -444,8 +485,25 @@ export async function saveProjectArtifact(options) {
   const { project_root } = proj;
   const projectFile = join(project_root, 'project.json');
 
-  // Remove project_root from the data we'll write back
-  const { project_root: _root, ...projectData } = proj;
+  return withFileLock(projectFile, () => saveProjectArtifactLocked({
+    projectId, projectFile, project_root, kind, role, artifactPath, scene_id, version_id, metadata,
+  }));
+}
+
+/**
+ * The actual read-modify-write for saveProjectArtifact, run exclusively
+ * per `projectFile` via withFileLock() above. Re-reads project.json fresh
+ * rather than reusing the caller's earlier `getProject` snapshot, because
+ * another queued save may have already written a newer file since that
+ * read — writing back the older snapshot is exactly the lost-update race
+ * (a beat-plan save reverting a concurrent storyboard save, or vice versa)
+ * this lock exists to close.
+ */
+async function saveProjectArtifactLocked({ projectId, projectFile, project_root, kind, role, artifactPath, scene_id, version_id, metadata }) {
+  const projectData = await readJSON(projectFile);
+  if (!projectData) {
+    throw new Error(`Project not found: ${projectId}`);
+  }
 
   // Update timestamp
   projectData.updated_at = timestamp();
@@ -525,13 +583,19 @@ export async function saveProjectArtifact(options) {
       // a duplicate instead of replacing (Codex review on 58582d6). `role`
       // and `metadata.strategy` are both accepted as the source of truth,
       // but if both are given they must agree — silently preferring one
-      // over the other is how a caller's actual intent gets lost.
-      if (metadata.strategy && role && metadata.strategy !== role) {
+      // over the other is how a caller's actual intent gets lost. Both are
+      // trimmed before any of that: a whitespace-only value (" ") is
+      // truthy but not a real strategy, and an untrimmed one would key the
+      // lookup on a value the caller never actually intended to store
+      // (Codex round 2).
+      const trimmedRole = typeof role === 'string' ? role.trim() : role;
+      const trimmedMetadataStrategy = typeof metadata.strategy === 'string' ? metadata.strategy.trim() : metadata.strategy;
+      if (trimmedMetadataStrategy && trimmedRole && trimmedMetadataStrategy !== trimmedRole) {
         throw new Error(
           `save_project_artifact: beat_plan role ("${role}") and metadata.strategy ("${metadata.strategy}") disagree — pass only one, or make them match.`
         );
       }
-      const strategy = role || metadata.strategy || null;
+      const strategy = trimmedRole || trimmedMetadataStrategy || null;
       if (!strategy) {
         throw new Error(
           'save_project_artifact: beat_plan requires a strategy — pass `role` (e.g. "dramatic", "energy", "prestige") or `metadata.strategy`.'

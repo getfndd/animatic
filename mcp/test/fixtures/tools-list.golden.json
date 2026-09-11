@@ -1053,10 +1053,11 @@
               "storyboard",
               "scenes",
               "manifest",
-              "review"
+              "review",
+              "beat_plans"
             ]
           },
-          "description": "Which context sections to include — any of `brief`, `storyboard`, `scenes`, `manifest`, `review`. Defaults to all."
+          "description": "Which context sections to include — any of `brief`, `storyboard`, `scenes`, `manifest`, `review`, `beat_plans`. Defaults to all."
         }
       },
       "required": [
@@ -1084,9 +1085,10 @@
             "scene",
             "version",
             "review",
-            "master"
+            "master",
+            "beat_plan"
           ],
-          "description": "Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, `review`, or `master`."
+          "description": "Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, `review`, `master`, or `beat_plan`. `beat_plan` is keyed by strategy (via `role`) and never touches `entrypoints.storyboard` (ANI-220)."
         },
         "path": {
           "type": "string",
@@ -1094,7 +1096,7 @@
         },
         "role": {
           "type": "string",
-          "description": "Entrypoint role to update (e.g., `latest_render`, `approved_render`)."
+          "description": "Entrypoint role to update (e.g., `latest_render`, `approved_render`), or the strategy for `beat_plan` artifacts (e.g., `dramatic`, `energy`, `prestige`)."
         },
         "scene_id": {
           "type": "string",

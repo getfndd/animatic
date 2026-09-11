@@ -37,7 +37,7 @@ Execute these steps in order. At each step, call the appropriate MCP tool and us
 
 Call `get_project_context` with the project slug:
 ```
-include: ['brief', 'storyboard', 'scenes', 'manifest', 'review']
+include: ['brief', 'storyboard', 'scenes', 'manifest', 'review', 'beat_plans']
 ```
 If the project has a brand, call `get_brand_package` to load it.
 
@@ -129,7 +129,7 @@ If `--save` is active, call `save_project_artifact` for each:
 |----------|------|------|
 | Story brief | `brief` | `brief/story-brief.json` |
 | Storyboard | `storyboard` | `concept/storyboard.json` |
-| Beat plans | `storyboard` | `concept/beat-plan-{strategy}.json` |
+| Beat plans | `beat_plan` (one call per strategy, `role: <strategy>`) | `concept/beat-plan-{strategy}.json` |
 | Winning manifest | `manifest` | `motion/manifests/directed-{timestamp}.json` |
 | Score card | `review` | `review/score-card.json` |
 | Comparison | `review` | `review/comparison.json` |

@@ -809,8 +809,8 @@ export function buildTools({
           project: { type: 'string', description: 'Project slug or path.' },
           include: {
             type: 'array',
-            items: { type: 'string', enum: ['brief', 'storyboard', 'scenes', 'manifest', 'review'] },
-            description: 'Which context sections to include — any of `brief`, `storyboard`, `scenes`, `manifest`, `review`. Defaults to all.',
+            items: { type: 'string', enum: ['brief', 'storyboard', 'scenes', 'manifest', 'review', 'beat_plans'] },
+            description: 'Which context sections to include — any of `brief`, `storyboard`, `scenes`, `manifest`, `review`, `beat_plans`. Defaults to all.',
           },
         },
         required: ['project'],
@@ -824,9 +824,9 @@ export function buildTools({
         type: 'object',
         properties: {
           project: { type: 'string', description: 'Project slug.' },
-          kind: { type: 'string', enum: ['brief', 'storyboard', 'manifest', 'render', 'scene', 'version', 'review', 'master'], description: 'Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, `review`, or `master`.' },
+          kind: { type: 'string', enum: ['brief', 'storyboard', 'manifest', 'render', 'scene', 'version', 'review', 'master', 'beat_plan'], description: 'Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, `review`, `master`, or `beat_plan`. `beat_plan` is keyed by strategy (via `role`) and never touches `entrypoints.storyboard` (ANI-220).' },
           path: { type: 'string', description: 'Relative path within the project.' },
-          role: { type: 'string', description: 'Entrypoint role to update (e.g., `latest_render`, `approved_render`).' },
+          role: { type: 'string', description: 'Entrypoint role to update (e.g., `latest_render`, `approved_render`), or the strategy for `beat_plan` artifacts (e.g., `dramatic`, `energy`, `prestige`).' },
           scene_id: { type: 'string', description: 'Scene ID (for `scene` artifacts).' },
           version_id: { type: 'string', description: 'Version ID (for `version` artifacts).' },
           metadata: { type: 'object', description: 'Additional metadata to store on the artifact.' },

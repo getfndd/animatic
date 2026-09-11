@@ -30,6 +30,7 @@ const PROJECTS_ROOT = join(process.cwd(), 'projects');
 const TEST_SLUG = '__test_project__';
 const TEST_SLUG_2 = '__test_project_2__';
 const TEST_SLUG_REVIEW = '__test_project_review__';
+const TEST_SLUG_BEATPLAN = '__test_project_beatplan__';
 let testProjectRoot;
 let testProjectRoot2;
 
@@ -46,7 +47,7 @@ after(() => {
 
 function cleanup() {
   // Remove test project directories
-  for (const slug of [TEST_SLUG, TEST_SLUG_2, TEST_SLUG_REVIEW]) {
+  for (const slug of [TEST_SLUG, TEST_SLUG_2, TEST_SLUG_REVIEW, TEST_SLUG_BEATPLAN]) {
     const entries = existsSync(PROJECTS_ROOT)
       ? readdirSync(PROJECTS_ROOT)
       : [];
@@ -403,6 +404,124 @@ describe('saveProjectArtifact', () => {
       }),
       { message: /not found/ }
     );
+  });
+});
+
+// ── saveProjectArtifact — beat plans must not clobber the storyboard pointer ──
+//
+// ANI-220 regression: `/direct` Step 8 used to register storyboard AND all
+// three beat plans under kind: 'storyboard'. Since saveProjectArtifact's
+// storyboard case is a scalar overwrite of entrypoints.storyboard, whichever
+// beat plan saved last replaced the storyboard pointer (verified live in
+// projects/2026-03-25-fintech-sizzle/project.json). Beat plans get their own
+// `beat_plan` kind, keyed by strategy, that never touches entrypoints.
+
+describe('saveProjectArtifact — beat_plan kind (ANI-220)', () => {
+  it('storyboard pointer survives saving three beat plans under their own kind', async () => {
+    cleanup();
+    await initProject({
+      title: 'Beat Plan Isolation Test',
+      slug: TEST_SLUG_BEATPLAN,
+      date_prefix: false,
+    });
+
+    const storyboardResult = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'storyboard',
+      path: 'concept/storyboard.json',
+    });
+    assert.equal(storyboardResult.entrypoints.storyboard, 'concept/storyboard.json');
+
+    for (const strategy of ['dramatic', 'energy', 'prestige']) {
+      const result = await saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: strategy,
+        path: `concept/beat-plan-${strategy}.json`,
+      });
+
+      // The storyboard pointer must be untouched by every beat-plan save.
+      assert.equal(
+        result.entrypoints.storyboard,
+        'concept/storyboard.json',
+        `storyboard entrypoint clobbered after saving beat plan "${strategy}"`
+      );
+    }
+
+    const final = await getProject({ project: TEST_SLUG_BEATPLAN });
+    assert.equal(final.entrypoints.storyboard, 'concept/storyboard.json');
+
+    // All three beat plans are retrievable under their own key, each with
+    // its own strategy-scoped path (not a single scalar overwritten 3x).
+    assert.equal(final.beat_plans.length, 3);
+    const byStrategy = Object.fromEntries(final.beat_plans.map(bp => [bp.strategy, bp.path]));
+    assert.equal(byStrategy.dramatic, 'concept/beat-plan-dramatic.json');
+    assert.equal(byStrategy.energy, 'concept/beat-plan-energy.json');
+    assert.equal(byStrategy.prestige, 'concept/beat-plan-prestige.json');
+  });
+
+  it('re-saving a beat plan for the same strategy replaces that entry, not the whole array', async () => {
+    cleanup();
+    await initProject({
+      title: 'Beat Plan Replace Test',
+      slug: TEST_SLUG_BEATPLAN,
+      date_prefix: false,
+    });
+
+    await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic.json',
+    });
+    await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'energy',
+      path: 'concept/beat-plan-energy.json',
+    });
+    const result = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic-v2.json',
+    });
+
+    assert.equal(result.beat_plans.length, 2, 're-saving the same strategy must replace, not append');
+    const byStrategy = Object.fromEntries(result.beat_plans.map(bp => [bp.strategy, bp.path]));
+    assert.equal(byStrategy.dramatic, 'concept/beat-plan-dramatic-v2.json');
+    assert.equal(byStrategy.energy, 'concept/beat-plan-energy.json');
+  });
+
+  it('getProjectContext({ include: ["beat_plans"] }) returns all saved beat plans with data', async () => {
+    cleanup();
+    const init = await initProject({
+      title: 'Beat Plan Context Test',
+      slug: TEST_SLUG_BEATPLAN,
+      date_prefix: false,
+    });
+    const root = init.project_root;
+
+    for (const strategy of ['dramatic', 'energy']) {
+      const path = `concept/beat-plan-${strategy}.json`;
+      writeFileSync(join(root, path), JSON.stringify({ strategy, beats: [] }, null, 2));
+      await saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: strategy,
+        path,
+      });
+    }
+
+    const context = await getProjectContext({
+      project: TEST_SLUG_BEATPLAN,
+      include: ['beat_plans'],
+    });
+
+    assert.equal(context.beat_plans.length, 2);
+    const byStrategy = Object.fromEntries(context.beat_plans.map(bp => [bp.strategy, bp]));
+    assert.equal(byStrategy.dramatic.data.strategy, 'dramatic');
+    assert.equal(byStrategy.energy.data.strategy, 'energy');
   });
 });
 

@@ -172,6 +172,7 @@ export async function initProject(config) {
     },
     scenes: [],
     versions: [],
+    beat_plans: [],
     review: {
       evaluation: 'review/evaluation.json',
       critic: 'review/critic.json',
@@ -366,6 +367,19 @@ export async function getProjectContext(options) {
         result.scenes = scenes;
         break;
       }
+      case 'beat_plans': {
+        // Per-strategy beat plans (ANI-220) — not an entrypoint; multiple
+        // candidates can coexist, unlike the single storyboard pointer.
+        const beatPlans = [];
+        for (const bpEntry of proj.beat_plans || []) {
+          const bpData = bpEntry.path
+            ? await readJSON(join(project_root, bpEntry.path))
+            : null;
+          beatPlans.push({ ...bpEntry, data: bpData });
+        }
+        result.beat_plans = beatPlans;
+        break;
+      }
       case 'manifest': {
         const manifestPath = proj.entrypoints?.root_manifest;
         result.manifest = manifestPath
@@ -494,6 +508,32 @@ export async function saveProjectArtifact(options) {
       if (role) {
         projectData.review = projectData.review || {};
         projectData.review[role] = artifactPath;
+      }
+      break;
+    }
+
+    case 'beat_plan': {
+      // Per-strategy beat plan (ANI-220). Beat plans are one of several
+      // candidates generated alongside a storyboard, not a replacement for
+      // it — they must never touch entrypoints.storyboard. Keyed by
+      // `role` (the strategy, e.g. "dramatic"/"energy"/"prestige") the same
+      // way `master` is keyed by tier: one entry per strategy, replaced on
+      // re-save rather than appended.
+      projectData.beat_plans = projectData.beat_plans || [];
+      const strategy = role || metadata.strategy || null;
+      const beatPlanEntry = {
+        ...(strategy ? { strategy } : {}),
+        path: artifactPath,
+        created_at: timestamp(),
+        ...metadata,
+      };
+      const existingBeatPlan = strategy
+        ? projectData.beat_plans.findIndex((bp) => bp.strategy === strategy)
+        : -1;
+      if (existingBeatPlan >= 0) {
+        projectData.beat_plans[existingBeatPlan] = { ...projectData.beat_plans[existingBeatPlan], ...beatPlanEntry };
+      } else {
+        projectData.beat_plans.push(beatPlanEntry);
       }
       break;
     }

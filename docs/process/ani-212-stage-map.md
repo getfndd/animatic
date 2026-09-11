@@ -6,11 +6,19 @@ Design draft only, no product code. Written against `origin/main` at `863478d` (
 mechanism description in ANI-212/ANI-209 is the only input taken from that project.
 Parent: ANI-209 (clean-room reimplementation of OpenMontage's stage-gate mechanism, MIT
 license preserved). Sibling: ANI-210 (shared gate hook for `render_master` + preflight,
-not designed here, only where this stage check sits relative to it). Prior art: ANI-151
-(`compose_storyboard`, shipped, the storyboard producer this issue gates) and
-`docs/cinematography/design-pipeline-audit.md`, whose target-pipeline table already
-lists `2.5 human review, approval, gate before any HTML`, the strongest existing
-precedent for where an approval belongs.
+not designed here, only where this stage check sits relative to it, and its own override
+plan is being revised in parallel against the same rule as Section 4's generic override
+shape). Prior art: ANI-151 (`compose_storyboard`, shipped, the storyboard producer this
+issue gates) and `docs/cinematography/design-pipeline-audit.md`, whose target-pipeline
+table already lists `2.5 human review, approval, gate before any HTML`, the strongest
+existing precedent for where an approval belongs.
+
+**Update 2026-09-11:** James made the three open decisions below (strict/grandfathered,
+approval default, override shape). Sections 3, 4, 6, and 7 are revised accordingly.
+Sequencing note: ANI-220 (beat plans saved under `kind: storyboard`, clobbering the
+pointer, see 1b) is being fixed first as a data-integrity bug, landing before ANI-212.
+This draft assumes ANI-220 has already given beat plans their own `kind`/entrypoint by
+the time this work starts, and designs the `beats` stage accordingly.
 
 ## 1. Inventory on origin/main
 
@@ -87,8 +95,13 @@ and `concept/storyboard.json` does not exist on disk in that project at all, onl
 three beat-plan files do. The real storyboard save was clobbered (or never landed) and
 nothing noticed because nothing reads `entrypoints.storyboard` for anything but display
 today. **Stage completion cannot be inferred from `entrypoints.storyboard` alone.**
-Section 2 tracks completion in a separate `stages` block for this reason, and Section 3
-proposes giving beat plans their own `kind` so they stop colliding.
+Section 2 tracks completion in a separate `stages` block for this reason. This exact
+collision is ANI-220's data-integrity fix (beat plans get their own `kind`), which is
+being landed first, as a prerequisite to this issue rather than something this issue
+also has to fix. Section 2's `beats` stage assumes that kind already exists. It stays a
+worked example here regardless: `fintech-sizzle` is also this doc's canonical case for
+the grandfather warning in Section 3a, since its `entrypoints.storyboard` is present but
+unreliable, exactly the "unknown, not missing" case that warning has to distinguish.
 
 ### 1c. Every current read of project status
 
@@ -145,7 +158,7 @@ inferred from `entrypoints.*`, precisely because of the overwrite bug in 1b). Th
  "stages": [
  { "key": "brief", "requires": [], "produces_kind": "brief", "approval": false },
  { "key": "storyboard", "requires": ["brief"], "produces_kind": "storyboard","approval": true },
- { "key": "beats", "requires": ["storyboard"], "produces_kind": "beats", "approval": false, "persisted": false, "note": "no durable artifact today; see 1b/3. Not gated until produces_kind lands." },
+ { "key": "beats", "requires": ["storyboard"], "produces_kind": "beats", "approval": false, "note": "produces_kind assumes ANI-220 lands first (beat plans get a dedicated kind, no longer collide with storyboard's entrypoint, see 1b)" },
  { "key": "scenes", "requires": ["storyboard"], "produces_kind": "scene", "approval": false },
  { "key": "manifest", "requires": ["storyboard"], "produces_kind": "manifest", "approval": false },
  { "key": "render", "requires": ["manifest"], "produces_kind": ["render", "master"], "approval": true, "approval_role": "approved" },
@@ -161,7 +174,8 @@ inferred from `entrypoints.*`, precisely because of the overwrite bug in 1b). Th
  "stage_map_version": 1, // absent/null == legacy project, see Section 3
  "stages": {
  "brief": { "status": "complete", "completed_at": "2026-09-11T12:00:00Z" },
- "storyboard": { "status": "approved", "completed_at": "...", "approved_at": "...", "approved_note": "panels cover all 4 features" },
+ "storyboard": { "status": "approved", "completed_at": "...", "approved_at": "...",
+ "approved_note": "panels cover all 4 features", "approved_by": "James Schuyler", "approval_policy": "human" },
  "scenes": { "status": "complete", "completed_at": "..." },
  "manifest": { "status": "not_started" }, "render": { "status": "not_started" }, "review": { "status": "not_started" }
  }
@@ -181,13 +195,13 @@ absent on old projects, nobody back-filled it). `catalog/stage-map.json`'s own
 `stage_map_version` lets the map shape itself evolve later without a second versioning
 scheme.
 
-## 3. Decision for James: strict vs. grandfathered
+## 3. Decision (recorded 2026-09-11): strict for new, grandfathered for existing
 
-The issue's own proposed decision: *"storyboard is a strict prerequisite for new
-projects; projects without a stage map are grandfathered."* Concretely, on 3 real
-projects and 5 fixture examples:
+James decided **Option A**, with one addition: grandfathering must not be silent (3a).
+Options B/C are kept below as the record of what was considered and rejected, unchanged
+from the original draft.
 
-**Option A - Strict for new, grandfathered for existing (the issue's proposal).**
+**Option A - Strict for new, grandfathered for existing (decided).**
 `saveProjectArtifact`/`approveStage` check `project.stage_map_version`. Present → enforce.
 Absent (all 3 current `projects/`, since none will have the field before this ships) →
 skip enforcement entirely, stage checks are a no-op. `initProject` stamps
@@ -219,25 +233,83 @@ created via a new `--strict-stages` flag on `init_project`. Weakest: invites "ju
 set the flag" as the workaround to the discipline problem this issue exists to fix, and
 adds a third piece of per-project state. Not recommended.
 
-**Recommendation: Option A.** Matches the issue's own acceptance criterion verbatim,
-costs nothing against the 3 real projects and 5 fixtures inventoried above, and skips a
-migration script whose correctness (Option B's "does the file exist on disk" backfill
-logic) would itself need review, the exact kind of informal inference this issue exists
-to stop. Tradeoff: `fintech-sizzle` keeps its clobbered entrypoint until someone touches
-it by hand, acceptable for one already-shipped demo, not for the steady state going
-forward.
+**Why A over B/C:** matches the issue's own acceptance criterion verbatim, costs nothing
+against the 3 real projects and 5 fixtures inventoried above, and skips a migration
+script whose correctness (Option B's "does the file exist on disk" backfill logic) would
+itself need review, the exact kind of informal inference this issue exists to stop.
+Tradeoff, addressed by 3a rather than accepted silently: `fintech-sizzle` keeps its
+clobbered entrypoint until someone touches it by hand, which is fine only as long as
+that state stays visible.
+
+### 3a. Grandfather warning - the debt stays visible, never blocking
+
+A grandfathered project (no `stage_map_version`) must never be gated, but every read
+surface that already loads the project state surfaces a structured, non-blocking warning
+naming it grandfathered and listing what's missing or unverifiable. New helper,
+`getStageWarning(proj)` (proposed `mcp/lib/stage-map.js`, alongside
+`checkStagePrerequisites`):
+
+```jsonc
+// returned by getStageWarning; null for any project with stage_map_version set
+{
+ "type": "stage_map_grandfathered",
+ "project": "fintech-sizzle",
+ "message": "Project predates the stage map (no stage_map_version) - prerequisites are not enforced.",
+ "stages": {
+ "brief": "inferred_complete", "storyboard": "unknown", "beats": "unknown",
+ "scenes": "inferred_complete", "manifest": "inferred_complete",
+ "render": "inferred_complete", "review": "inferred_missing"
+ },
+ "detected_at": "2026-09-11T12:00:00Z"
+}
+```
+
+Per-stage values are best-effort, explicitly labeled as inference, never authoritative:
+`inferred_complete` / `inferred_missing` come from existing signals (`entrypoints.*` set
++ file exists on disk; `scenes.length > 0`; `masters.length > 0`). `unknown` is used when
+the signal itself is untrustworthy, not merely absent, which is exactly
+`fintech-sizzle`'s case: `entrypoints.storyboard` is set but points at a beat-plan file
+(1b), so the checker cannot call it complete OR missing, it has to say so. This is the
+worked example the test in Section 5 uses.
+
+**Where it surfaces** (never a return-value change that could break an existing caller,
+always an added field):
+- `getProject` (`projects.js:253`) - adds `stage_warning` to the returned object.
+- `getProjectContext` (`projects.js:331`) - adds `result.stage_warning` alongside
+ `result.project`, so `/direct` Step 1 sees it on every run without a new call.
+- `reviewProject` (`projects.js:545`) - adds `stage_warning` into the `evaluationOutput`
+ object that's already written to `review/evaluation.json` (`:636`), so the warning is
+ durably logged as part of the review record, not just returned once.
+- `renderProject` (`projects.js:668`) / `renderMaster` (`render-master.js:239`) - adds
+ `stage_warning` to the return payload, surfaced to whoever is watching the render
+ (human or agent), never written into the render artifact itself.
+
+**Guarantee:** `getStageWarning` never throws and never affects control flow, it's a pure
+read appended to an existing successful result. `checkStagePrerequisites` (Section 4)
+short-circuits to "no gate" for a grandfathered project *before* `getStageWarning` would
+even be relevant to that call, so the warning and the enforcement skip are two separate
+codepaths that can't contradict each other by construction.
 
 ## 4. Tool contracts
 
-### `approve_stage({ project, stage, note, actor? })`
+### `approve_stage({ project, stage, note, actor, policy? })`
+
+**Decided 2026-09-11: human approval is the default, not self-approval.** `policy`
+defaults to `'human'`; any other value is rejected for now ("policy not implemented" -
+see Section 6 for how `/direct` actually stops and waits rather than calling this tool
+itself). `actor` is now required, not optional, matching "attributable" for every
+approval, not only overrides (Section 4's override shape below applies the same rule).
 
 ```jsonc
 // input
 { "project": "string (slug or path)", "stage": "string (one of catalog/stage-map.json stages[].key)",
- "note": "string, required", "actor": "string, optional - who/what approved (human name or 'auto:/direct')" }
+ "note": "string, required", "actor": "string, required - who/what approved, e.g. a human name, or 'auto:/direct' once an unattended policy ships",
+ "policy": "string, optional, default 'human' - the approval_policy that authorized this call" }
 
 // output (mirrors saveProjectArtifact's return shape: updated project.json)
-{ "...projectData": "...", "stages": { "storyboard": { "status": "approved", "approved_at": "...", "approved_note": "...", "approved_by": "..." } } }
+{ "...projectData": "...", "stages": { "storyboard": {
+ "status": "approved", "approved_at": "...", "approved_note": "...",
+ "approved_by": "...", "approval_policy": "human" } } }
 
 // errors (thrown Error, uncaught by the handler, same convention as
 // handleSaveProjectArtifact at handlers.js:2644-2647, not handleRecordRenderFeedback's
@@ -247,13 +319,19 @@ forward.
 "Stage \"<stage>\" is not gated (approval: false) - nothing to approve"
 "Cannot approve \"<stage>\": predecessor \"<dep>\" is not complete"
 "note is required for approve_stage" // no silent approval
+"actor is required for approve_stage" // no anonymous approval either
+"Unknown approval_policy \"<policy>\": only \"human\" is implemented" // fail closed, not silently accepted
 ```
 
-Approval is explicit and recorded, but **not restricted to a human caller** - there's no
-human-authentication concept in this stdio-only tool surface (Tier 2, `tool-groups.js:143-150`),
-and `/direct` runs autonomously. `actor: 'auto:/direct'` self-identifies an autonomous
-approval; it's still explicit, timestamped, and visible in `project.json`. The discipline
-the issue asks for is "never silent," not "always human." See Section 7, item 1.
+The provenance record (`approved_by`, `approval_policy`, `approved_at`, `approved_note`)
+is the "policy name, who/what invoked it, when, and the reason" James asked to design
+now even though only `'human'` ships first: it's already a complete record shape, an
+unattended policy added later is a new accepted `policy` value plus its own invocation
+path, not a schema change. `actor`'s source is deliberately left to the caller (there's
+no auth-identity concept in this stdio-only surface, Tier 2, `tool-groups.js:143-150`):
+the `/direct` agent should pass whatever name/handle the human gave in conversation, or
+a fixed literal like `'human (unspecified)'` if none was given, rather than leaving the
+field empty. See Section 6 for the exact pause/resume mechanics.
 
 ### `save_project_artifact` refusal shape
 
@@ -267,8 +345,14 @@ if (!gate.ok) {
  throw new Error(
  `save_project_artifact refused: kind "${kind}" requires stage "${gate.missing_stage}" ` +
  `to be ${gate.needs_approval ? 'approved' : 'complete'} first (currently "${gate.actual_status}"). ` +
- `Pass override_reason to bypass and record why.`
+ `Pass override_reason (and actor) to bypass and record why.`
  );
+}
+if (options.override_reason) {
+ if (!options.actor) throw new Error('actor is required when passing override_reason');
+ await recordOverride(proj, { type: 'stage_prerequisite', gate: gate.missing_stage,
+ tool: 'save_project_artifact', reason: options.override_reason, actor: options.actor,
+ detail: { kind, missing_stage: gate.missing_stage } });
 }
 ```
 
@@ -280,24 +364,46 @@ prerequisite"). `review`'s direct `writeJSON` to `review/evaluation.json`
 the gate is silently absent on that one path: a second call site for the same
 predicate, which needs to be one shared function, not logic inlined twice.
 
-### `override_reason` schema
+### Override record - generic shape, shared with ANI-210
+
+**Decided 2026-09-11:** overrides must be explicit, attributable, and visible, for
+ANI-212's stage gates and ANI-210's content gates alike ("never overridable" was
+rejected - it breeds shadow bypasses). This is a shared contract, not a stage-map-only
+one, so the shape below is designed generic enough for ANI-210 to reuse without ANI-212
+designing ANI-210's actual gates.
+
+- **Explicit:** `override_reason` is its own dedicated parameter on every gated call
+ (`save_project_artifact`, `approve_stage`, and whatever ANI-210's `render_master`/
+ preflight hook ends up naming its equivalent). It is never inferred from another flag
+ (e.g. `skip_preflight` does not imply an override, and an override does not imply
+ `skip_preflight`) - two different bypasses, two different named parameters, always.
+- **Attributable:** `actor` (required, same rule as `approve_stage` above), `at`
+ (timestamp), `tool` (which call), and `reason` (the `override_reason` text, non-empty).
+- **Visible:** recorded in `project.json.overrides[]` (persisted, never overwritten,
+ array-appended so history survives multiple bypasses) *and* echoed into the calling
+ tool's own return payload/log, not only written to disk silently - the caller sees the
+ override record in the same response that tells them the artifact saved.
 
 ```jsonc
-// passed alongside existing save_project_artifact / new approve_stage args
-{ "override_reason": "string, required when bypassing a gate, min length enforced (non-empty, non-whitespace)" }
-
-// recorded in project.json, never silent, alongside the artifact it unblocked:
-"overrides": [
- { "at": "2026-09-11T12:30:00Z", "tool": "save_project_artifact", "kind": "manifest",
+// generic override record - one entry per bypass, project.json.overrides[]
+{
+ "type": "stage_prerequisite", // discriminator; ANI-210 content gates would use e.g. "content_gate"
+ "at": "2026-09-11T12:30:00Z",
+ "actor": "James Schuyler", // required, same source rule as approve_stage's actor
+ "tool": "save_project_artifact",
  "reason": "storyboard skipped intentionally for a 5-second logo-only bumper, no scenes to design",
- "stage_blocked": "storyboard" }
-]
+ "gate": "storyboard", // the specific prerequisite/check bypassed, generic name
+ "detail": { "kind": "manifest", "missing_stage": "storyboard" } // type-specific context
+}
 ```
 
-Appended to a `project.json.overrides` array (never overwritten, unlike `entrypoints.*`)
-so a project's override history survives multiple bypasses. `checkStagePrerequisites`
-still runs and still reports what was missing - the override doesn't suppress the
-computation, only the throw.
+`checkStagePrerequisites` still runs and still computes what was missing even when
+`override_reason` is present, the override doesn't suppress the computation, only the
+throw, so `gate`/`detail` are always populated from a real check, never guessed. A
+shared `recordOverride(project, { type, gate, tool, reason, actor, detail })` helper
+(proposed alongside `checkStagePrerequisites` in `mcp/lib/stage-map.js`) is what both
+ANI-212 and ANI-210 should call, so the two efforts don't independently invent slightly
+different override shapes that then need reconciling later.
 
 ### Atomic `project.json` writes
 
@@ -329,11 +435,16 @@ by grep).
 | Case | Setup | Expected |
 |---|---|---|
 | Skipped predecessor | New project, `stage_map_version` set, no storyboard saved. Call `save_project_artifact(kind: 'manifest', ...)`. | Throws, names `storyboard` as the missing stage, names its status (`not_started`). |
-| Unknown/forged stage key | `approve_stage({ project, stage: 'storyboad', note: '...' })` (typo) or a stage key not in `catalog/stage-map.json`. | Throws `Unknown stage`, does not silently no-op, does not fall through to approving something else. |
-| Override recorded | `save_project_artifact(kind: 'manifest', override_reason: '...')` on a project with no storyboard. | Succeeds, `project.json.overrides` gains an entry with `stage_blocked: 'storyboard'`, the artifact saves normally otherwise. |
+| Unknown/forged stage key | `approve_stage({ project, stage: 'storyboad', note: '...', actor: '...' })` (typo) or a stage key not in `catalog/stage-map.json`. | Throws `Unknown stage`, does not silently no-op, does not fall through to approving something else. |
+| Override recorded, generic shape | `save_project_artifact(kind: 'manifest', override_reason: '...', actor: 'James Schuyler')` on a project with no storyboard. | Succeeds, `project.json.overrides` gains a `{ type: 'stage_prerequisite', gate: 'storyboard', actor, reason, at, tool, detail }` entry, and that same record is echoed in the call's return payload, not only written to disk. |
+| Override missing actor | `save_project_artifact(kind: 'manifest', override_reason: '...')` with no `actor`. | Throws `actor is required when passing override_reason` - explicit never means anonymous. |
 | Legacy project behavior | Project with no `stage_map_version` key (all 3 current `projects/*`). Call `save_project_artifact(kind: 'manifest', ...)` with no storyboard. | Succeeds unchanged (Option A grandfathering) - this is the regression test that protects `fintech-sizzle`/`polaris-observability`/`aria-cloud-console` from breaking. |
+| Grandfather warning surfaces, never blocks | `get_project({ project: 'fintech-sizzle' })` against its real `origin/main` state (storyboard entrypoint pointing at a beat-plan file, 1b). | Succeeds; `stage_warning.type === 'stage_map_grandfathered'`, `stage_warning.stages.storyboard === 'unknown'` (not `'missing'`); a follow-up `save_project_artifact(kind: 'manifest', ...)` on the same project still succeeds with no override needed. |
+| Grandfather warning absent for enforced projects | `get_project` on a project with `stage_map_version` set. | `stage_warning === null`. |
 | Concurrent write | Two near-simultaneous `saveProjectArtifact` calls against the same `project_root` (e.g. `kind: 'scene'` twice for different `scene_id`s) without the in-process mutex. | Demonstrates the lost-update race (one scene entry missing) - this test should exist to justify shipping the mutex, then re-run green once it's added. |
 | Approval required, not given | `render` stage has `approval: true`. Save a `render` artifact, then try to save a `review` artifact (which `requires: ["render"]`) before calling `approve_stage('render', ...)`. | Throws - `complete` is not `approved`; `review` needs the approved status, not just artifact-saved. |
+| Approval provenance recorded | `approve_stage({ project, stage: 'storyboard', note: '...', actor: 'James Schuyler' })` (default `policy: 'human'`). | `stages.storyboard` gains `approved_by: 'James Schuyler'`, `approval_policy: 'human'`, `approved_at`, `approved_note` - all four present, none inferred. |
+| Non-human policy rejected | `approve_stage({ ..., policy: 'auto' })` (no such policy shipped yet). | Throws `Unknown approval_policy "auto": only "human" is implemented` - the parameter surface exists without silently permitting an unbuilt bypass. |
 | `checkStagePrerequisites` shared between call sites | Unit test importing the helper directly, called once from `saveProjectArtifact`'s switch and once from `reviewProject`'s direct-write path. | Same predicate, same result, for the same project/kind pair - regression guard against the two-call-sites drifting apart (1b-style bug, prevented this time). |
 
 ## 6. Skill changes
@@ -342,50 +453,69 @@ by grep).
 (`compose_storyboard`, `save_project_artifact`, `plan_story_beats`, `render_project`,
 `render_master` - confirmed by grepping every `SKILL.md` under `.claude/skills/`).
 
+**Decided 2026-09-11: `/direct` stops for human storyboard approval by default.**
+Self-approval collapses the pipeline's one real design checkpoint (the audit doc's row
+2.5, "human review, approval, gate before any HTML"), so it is not what ships. New
+`/direct` parameter: `--approval-policy` (default `human`; any other value errors for
+now, per Section 4's `approve_stage` contract - the surface exists, nothing unattended
+ships yet).
+
 - **Step 2.5 (`:54-67`)** currently ends: *"The loop continues either way - this is the
- design checkpoint, not a hard gate."* That sentence becomes false once `storyboard` is
- `approval: true`. Replace with a call to `approve_stage({ project, stage: 'storyboard',
- note: <panel coverage summary already being surfaced to the user per :65>, actor:
- 'auto:/direct' })` immediately after the storyboard is saved, using the
- panel-count/content-type/empty-composition summary the step already computes as the
- `note`. This is also where Step 8's save-table bug (1b) gets fixed: split `Storyboard`
- and `Beat plans` onto distinct `kind`s (`storyboard` vs. a new `beats` kind, once
- Section 7 item 2 gives it one) so beat-plan saves stop overwriting the storyboard
- entrypoint.
+ design checkpoint, not a hard gate."* Replaced with an explicit pause:
+ 1. Compose + save the storyboard as today (`compose_storyboard` then
+ `save_project_artifact(kind: 'storyboard', ...)`), plus a `beats` kind for each of
+ the three per-strategy beat plans once Section 2's assumption (ANI-220 landed) holds
+ - `Storyboard`/`Beat plans` are no longer the same `kind`, so this step stops
+ overwriting the storyboard entrypoint.
+ 2. **If `approval_policy === 'human'` (default):** surface the panel-count/
+ content-type/empty-composition summary this step already computes, the path to
+ `concept/storyboard.json`, and an explicit question - "Approve this storyboard to
+ continue, or revise?" - then **end the turn**. Step 3 (`plan_story_beats`) is not
+ called in this response. This is the pause; the storyboard sits at `stages.storyboard.status: 'complete'`,
+ not yet `'approved'`, so a `manifest`/`scene` save attempted from here would still be
+ refused (Section 4).
+ 3. **Resume:** when the user approves (same conversation, next message, or a fresh
+ `/direct <project>` invocation later), the agent calls
+ `approve_stage({ project, stage: 'storyboard', note: <the user's stated reason, or
+ the panel-coverage summary if they gave none>, actor: <the human's name/handle from
+ context, or 'human (unspecified)'>, policy: 'human' })`, then continues at Step 3 in
+ that same response. **Cold-restart resume:** a fresh `/direct <project>` invocation's
+ Step 1 (`get_project_context`) already loads `stages.storyboard.status` - if it's
+ already `'approved'`, Step 2.5 skips straight to Step 3 instead of recomposing a
+ storyboard that's already signed off.
+ 4. **Revision path:** if the user asks for changes instead, the agent revises
+ (re-runs `compose_storyboard`/`save_project_artifact`, which resets
+ `stages.storyboard.status` back to `'complete'`, requiring approval again) and
+ returns to point 2.
+ 5. **If `approval_policy` is anything else:** `approve_stage` rejects it today
+ (Section 4), so Step 2.5 surfaces that error rather than silently falling back to
+ either behavior - no policy value is treated as an implicit "skip the human."
 - **Step 8 (`:124-138`)** currently saves `brief`, `storyboard`, beat plans, `manifest`,
- and `review` all in one undifferentiated batch at the end of the run. Once
- `manifest`/`scene` saves require `storyboard` to be `approved`, the storyboard save +
- approval from Step 2.5 must have already happened by the time Step 8 runs, or Step 8's
- manifest save fails against a storyboard that was only ever composed in-memory.
+ and `review` all in one undifferentiated batch at the end of the run. By the time Step
+ 8 runs, storyboard approval already happened at Step 2.5 (the pipeline cannot reach
+ Step 3 otherwise), so Step 8 only needs the `kind` split from point 1 above; it no
+ longer needs to also carry the approval call.
 - No other `SKILL.md` (`storyboard`, `sizzle`, `brief`, `animate`, etc.) calls
- `save_project_artifact` or any gated tool directly, so none need a matching change - 
+ `save_project_artifact` or any gated tool directly, so none need a matching change -
  worth a second grep pass once the real implementation lands, since a new skill could be
  added between now and then.
 
 ## 7. Open questions
 
-1. **Human vs. agent approval.** `approve_stage` as designed accepts any caller,
- including `/direct`'s autonomous loop self-approving its own storyboard. That satisfies
- "never silent" but not "a human looked at it," which is what
- `docs/cinematography/design-pipeline-audit.md`'s target-pipeline row 2.5 ("human review,
- approval, gate before any HTML") actually means. Is a self-approved
- `actor: 'auto:/direct'` acceptable for the MVP, or should autonomous runs stop and
- surface the storyboard for a real human turn first? Product decision, not an inventory
- finding.
-2. **Does `beats` get a real `produces_kind`, or stay ungated?** Section 2 marks it
- `persisted: false`. Fixing the storyboard/beat-plan `kind` collision (1b) argues for
- giving it one, but there are x3 beat plans per `/direct` run and "beats is complete" is
- ambiguous with only one of three saved. Recommend: don't gate `beats` in v1 (the
- acceptance criteria never mention it as a gate), fix the `kind` collision as a
- correctness bug independent of gating. Related: should `manifest` also require
- `scenes`? Not proposed here, `plan_sequence` runs before all scenes necessarily exist
- per-file in a `/direct` run, so gating on it would likely break candidate generation.
-3. **`review` requiring `render` to be `approved`, not just `complete`.** Section 2 wires
+Resolved by James's 2026-09-11 decisions (Sections 3a, 4, 6) and removed from this list:
+human-vs-agent approval default, and the `beats` `produces_kind` question (now assumed
+solved upstream by ANI-220, see the intro's sequencing note and 1b).
+
+1. **Should `manifest` also require `scenes`?** Not proposed here - `plan_sequence` runs
+ before all scenes necessarily exist per-file in a `/direct` run, and gating it would
+ likely break the existing candidate-generation flow. Flagging so the decision is
+ explicit rather than assumed, same reasoning as before, just renumbered.
+2. **`review` requiring `render` to be `approved`, not just `complete`.** Section 2 wires
  it that way by extension of `render`'s `approval: true`, but `reviewProject` only ever
  reads the manifest + scenes, never the rendered output - nothing in current code needs
  a completed render to run a review. That's a new constraint this issue would introduce,
  not one implied by existing behavior; confirm it's intended and not scope creep.
-4. **Where the ANI-210 gate hook and this stage check compose.** `render_master`'s
+3. **Where the ANI-210 gate hook and this stage check compose.** `render_master`'s
  insertion point is `render-master.js:249-255`, right after `loadProjectSource(project)`
  resolves and before any compose/compile/gate work runs (`:260` onward) - cheapest
  possible failure. `render_project`'s equivalent point is `projects.js:679-682`, after
@@ -393,8 +523,19 @@ by grep).
  the same early checkpoint in these two functions, it should run first (a stage-prereq
  failure is cheaper and more fundamental than a quality verdict), and the two checks
  should stay separate functions - "is project state consistent" vs. "does this render
- pass quality gates" are different questions. ANI-210 itself is out of scope here.
-5. **`stage_map_version` bump semantics.** If `catalog/stage-map.json` changes later (a
+ pass quality gates" are different questions. ANI-210 itself is out of scope here; the
+ override record shape in Section 4 is designed to be shared, the gate logic is not.
+4. **`stage_map_version` bump semantics.** If `catalog/stage-map.json` changes later (a
  stage added/removed/reordered), what happens to projects mid-flight under the old
  version? Not designed here; Section 2's versioning field only solves "detect legacy
  projects with no map at all," not "detect projects on map v1 once v2 ships."
+5. **`actor` provenance beyond a free-text name.** Section 4 requires `actor` on every
+ approval and override but has no identity system to draw it from (stdio-only, no auth).
+ Good enough for a first cut, but a free-text field can't be verified later ("did James
+ actually say this, or did the agent guess a name"); worth deciding whether that's
+ acceptable long-term or needs a real identity source once one exists in this surface.
+6. **`unattended` policy design.** Section 4/6 reserve the `policy` parameter and reject
+ every value but `'human'`, deliberately not designing an unattended path now. When one
+ is needed, it should specify at minimum: what triggers it (an explicit
+ `--approval-policy` on the `/direct` invocation, never a default), what `actor` records
+ for a fully autonomous run, and whether it's scoped per-project or per-invocation.

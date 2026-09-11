@@ -326,7 +326,7 @@ export async function loadProjectSource(projectId, opts = {}) {
  *
  * @param {object} options
  * @param {string} options.project - Slug or path.
- * @param {string[]} options.include - Keys to include: brief, storyboard, scenes, manifest, review.
+ * @param {string[]} options.include - Keys to include: brief, storyboard, scenes, manifest, review, beat_plans. Omitted or empty returns none of these sections (just `project`).
  * @returns {Promise<object|null>}
  */
 export async function getProjectContext(options) {
@@ -417,8 +417,8 @@ export async function getProjectContext(options) {
  *
  * @param {object} options
  * @param {string} options.project - Slug or path.
- * @param {string} options.kind - Artifact kind: brief, storyboard, manifest, render, scene, version, review.
- * @param {string} [options.role] - Sub-role (e.g. "evaluation", "critic", "notes" for review kind).
+ * @param {string} options.kind - Artifact kind: brief, storyboard, manifest, render, scene, version, review, master, beat_plan.
+ * @param {string} [options.role] - Sub-role (e.g. "evaluation", "critic", "notes" for review kind; the tier for `master`; the strategy for `beat_plan` — required for `beat_plan`, may alternatively be given as `metadata.strategy`).
  * @param {string} options.path - Relative path from project root.
  * @param {string} [options.scene_id] - Scene identifier (for scene kind).
  * @param {string} [options.version_id] - Version identifier (for version kind).
@@ -519,17 +519,35 @@ export async function saveProjectArtifact(options) {
       // `role` (the strategy, e.g. "dramatic"/"energy"/"prestige") the same
       // way `master` is keyed by tier: one entry per strategy, replaced on
       // re-save rather than appended.
-      projectData.beat_plans = projectData.beat_plans || [];
+      //
+      // A strategy is mandatory: without one, the findIndex lookup below
+      // can never match an existing entry, so every "re-save" would append
+      // a duplicate instead of replacing (Codex review on 58582d6). `role`
+      // and `metadata.strategy` are both accepted as the source of truth,
+      // but if both are given they must agree — silently preferring one
+      // over the other is how a caller's actual intent gets lost.
+      if (metadata.strategy && role && metadata.strategy !== role) {
+        throw new Error(
+          `save_project_artifact: beat_plan role ("${role}") and metadata.strategy ("${metadata.strategy}") disagree — pass only one, or make them match.`
+        );
+      }
       const strategy = role || metadata.strategy || null;
+      if (!strategy) {
+        throw new Error(
+          'save_project_artifact: beat_plan requires a strategy — pass `role` (e.g. "dramatic", "energy", "prestige") or `metadata.strategy`.'
+        );
+      }
+      projectData.beat_plans = projectData.beat_plans || [];
+      // Canonical identity fields (strategy/path/created_at) are spread
+      // AFTER metadata so a caller-supplied metadata.path or
+      // metadata.created_at can never silently overwrite them.
       const beatPlanEntry = {
-        ...(strategy ? { strategy } : {}),
+        ...metadata,
+        strategy,
         path: artifactPath,
         created_at: timestamp(),
-        ...metadata,
       };
-      const existingBeatPlan = strategy
-        ? projectData.beat_plans.findIndex((bp) => bp.strategy === strategy)
-        : -1;
+      const existingBeatPlan = projectData.beat_plans.findIndex((bp) => bp.strategy === strategy);
       if (existingBeatPlan >= 0) {
         projectData.beat_plans[existingBeatPlan] = { ...projectData.beat_plans[existingBeatPlan], ...beatPlanEntry };
       } else {

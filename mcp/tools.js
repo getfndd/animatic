@@ -802,7 +802,7 @@ export function buildTools({
     {
       name: 'get_project_context',
       description:
-        'Get the minimum useful working context for a project. Returns brief, storyboard, scenes, manifest, and/or review content.',
+        'Get the minimum useful working context for a project. Returns brief, storyboard, scenes, manifest, review, and/or beat_plans content.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -810,7 +810,7 @@ export function buildTools({
           include: {
             type: 'array',
             items: { type: 'string', enum: ['brief', 'storyboard', 'scenes', 'manifest', 'review', 'beat_plans'] },
-            description: 'Which context sections to include — any of `brief`, `storyboard`, `scenes`, `manifest`, `review`, `beat_plans`. Defaults to all.',
+            description: 'Which context sections to include — any of `brief`, `storyboard`, `scenes`, `manifest`, `review`, `beat_plans`. Omitted or empty returns none of these sections (just the project record).',
           },
         },
         required: ['project'],
@@ -826,7 +826,7 @@ export function buildTools({
           project: { type: 'string', description: 'Project slug.' },
           kind: { type: 'string', enum: ['brief', 'storyboard', 'manifest', 'render', 'scene', 'version', 'review', 'master', 'beat_plan'], description: 'Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, `review`, `master`, or `beat_plan`. `beat_plan` is keyed by strategy (via `role`) and never touches `entrypoints.storyboard` (ANI-220).' },
           path: { type: 'string', description: 'Relative path within the project.' },
-          role: { type: 'string', description: 'Entrypoint role to update (e.g., `latest_render`, `approved_render`), or the strategy for `beat_plan` artifacts (e.g., `dramatic`, `energy`, `prestige`).' },
+          role: { type: 'string', description: 'Entrypoint role to update (e.g., `latest_render`, `approved_render`), the tier for `master` artifacts, or the strategy for `beat_plan` artifacts (e.g., `dramatic`, `energy`, `prestige`) — REQUIRED for `beat_plan` (or pass `metadata.strategy` instead; the two must agree if both are given).' },
           scene_id: { type: 'string', description: 'Scene ID (for `scene` artifacts).' },
           version_id: { type: 'string', description: 'Version ID (for `version` artifacts).' },
           metadata: { type: 'object', description: 'Additional metadata to store on the artifact.' },

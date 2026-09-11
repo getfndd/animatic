@@ -21,6 +21,7 @@ import {
   saveProjectArtifact,
   reviewProject,
   renderProject,
+  writeJSON,
   STATUS_PROJECT,
   STATUS_SCENE,
   STATUS_VERSION,
@@ -522,6 +523,218 @@ describe('saveProjectArtifact — beat_plan kind (ANI-220)', () => {
     const byStrategy = Object.fromEntries(context.beat_plans.map(bp => [bp.strategy, bp]));
     assert.equal(byStrategy.dramatic.data.strategy, 'dramatic');
     assert.equal(byStrategy.energy.data.strategy, 'energy');
+  });
+});
+
+// ── Codex review follow-up (58582d6) ─────────────────────────────────────────
+//
+// A `beat_plan` with no strategy was silently appended (and duplicated on
+// every re-save, since the lookup that would replace it needs a strategy to
+// match on); `metadata` was spread after the canonical `strategy`/`path`/
+// `created_at` fields, so a caller-supplied metadata.strategy could silently
+// overwrite `role`'s strategy and land the entry under the wrong key.
+
+// Derive the set of artifact kinds straight from saveProjectArtifact's own
+// `switch (kind)` in mcp/lib/projects.js — not a hand-typed list here — so
+// "no kind can clobber entrypoints.storyboard" stays a property of the
+// switch statement itself, not a snapshot of it that can silently drift.
+function deriveArtifactKinds() {
+  const src = readFileSync(join(process.cwd(), 'mcp/lib/projects.js'), 'utf-8');
+  const start = src.indexOf('export async function saveProjectArtifact');
+  const end = src.indexOf('export async function reviewProject');
+  assert.ok(start >= 0 && end > start, 'could not locate saveProjectArtifact in mcp/lib/projects.js');
+  const switchBody = src.slice(start, end);
+  const kinds = [...switchBody.matchAll(/case '([a-z_]+)':/g)].map(m => m[1]);
+  assert.ok(kinds.includes('beat_plan'), 'sanity check: beat_plan case not found — regex or slice is wrong');
+  return [...new Set(kinds)];
+}
+
+// Extra args each kind needs to save without throwing, beyond project/kind/path.
+// beat_plan now requires a strategy (this review's own fix); every other kind
+// tolerates being called with just a path.
+const EXTRA_ARGS_BY_KIND = {
+  beat_plan: { role: 'dramatic' },
+};
+
+describe('saveProjectArtifact — no non-storyboard kind can touch entrypoints.storyboard (Codex 58582d6)', () => {
+  const kinds = deriveArtifactKinds().filter(k => k !== 'storyboard');
+
+  it('derived at least brief/render/scene/version/review/master/beat_plan (guards against an empty/broken derivation)', () => {
+    for (const expected of ['brief', 'render', 'scene', 'version', 'review', 'master', 'beat_plan']) {
+      assert.ok(kinds.includes(expected), `deriveArtifactKinds() missing "${expected}" — regex drifted from the switch`);
+    }
+  });
+
+  for (const kind of kinds) {
+    it(`kind: '${kind}' leaves entrypoints.storyboard untouched`, async () => {
+      cleanup();
+      await initProject({
+        title: `Kind Isolation Test — ${kind}`,
+        slug: TEST_SLUG_BEATPLAN,
+        date_prefix: false,
+      });
+      await saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'storyboard',
+        path: 'concept/storyboard.json',
+      });
+
+      const result = await saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind,
+        path: `test-artifact-${kind}.json`,
+        ...(EXTRA_ARGS_BY_KIND[kind] || {}),
+      });
+
+      assert.equal(
+        result.entrypoints.storyboard,
+        'concept/storyboard.json',
+        `kind "${kind}" clobbered the storyboard entrypoint`
+      );
+    });
+  }
+});
+
+describe('saveProjectArtifact — beat_plan strategy integrity (Codex 58582d6)', () => {
+  it('rejects a missing strategy (no role, no metadata.strategy)', async () => {
+    cleanup();
+    await initProject({ title: 'No Strategy', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        path: 'concept/beat-plan-dramatic.json',
+      }),
+      { message: /beat_plan requires a strategy/ }
+    );
+  });
+
+  it('rejects an empty-string strategy', async () => {
+    cleanup();
+    await initProject({ title: 'Empty Strategy', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: '',
+        path: 'concept/beat-plan-dramatic.json',
+      }),
+      { message: /beat_plan requires a strategy/ }
+    );
+  });
+
+  it('rejects a re-save with a missing strategy rather than appending a duplicate', async () => {
+    cleanup();
+    await initProject({ title: 'No Strategy Resave', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+    await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic.json',
+    });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        path: 'concept/beat-plan-dramatic-v2.json',
+      }),
+      { message: /beat_plan requires a strategy/ }
+    );
+
+    const project = await getProject({ project: TEST_SLUG_BEATPLAN });
+    assert.equal(project.beat_plans.length, 1, 'the rejected save must not have appended anything');
+  });
+
+  it('rejects role/metadata.strategy disagreement instead of silently picking one', async () => {
+    cleanup();
+    await initProject({ title: 'Strategy Conflict', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: 'dramatic',
+        path: 'concept/beat-plan-dramatic.json',
+        metadata: { strategy: 'energy' },
+      }),
+      { message: /disagree/ }
+    );
+  });
+
+  it('accepts metadata.strategy alone (no role) as the strategy', async () => {
+    cleanup();
+    await initProject({ title: 'Metadata Strategy Only', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    const result = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      path: 'concept/beat-plan-energy.json',
+      metadata: { strategy: 'energy' },
+    });
+
+    assert.equal(result.beat_plans.length, 1);
+    assert.equal(result.beat_plans[0].strategy, 'energy');
+  });
+
+  it('canonical path/created_at win over conflicting metadata fields of the same name', async () => {
+    cleanup();
+    await initProject({ title: 'Metadata Identity Guard', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    const result = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic.json',
+      metadata: { path: 'concept/attacker-controlled.json', created_at: 'not-a-real-date', note: 'kept' },
+    });
+
+    assert.equal(result.beat_plans[0].path, 'concept/beat-plan-dramatic.json');
+    assert.notEqual(result.beat_plans[0].created_at, 'not-a-real-date');
+    assert.equal(result.beat_plans[0].note, 'kept', 'non-identity metadata fields still pass through');
+  });
+});
+
+describe('getProjectContext — beat_plans edge cases (Codex 58582d6)', () => {
+  it('returns [] for a legacy project.json with no beat_plans key at all', async () => {
+    cleanup();
+    const init = await initProject({ title: 'Legacy Project', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+    const { project_root: root } = init;
+
+    // Simulate a pre-ANI-220 project.json written before `beat_plans` existed.
+    const legacy = await getProject({ project: TEST_SLUG_BEATPLAN });
+    delete legacy.beat_plans;
+    const { project_root: _root, ...legacyData } = legacy;
+    await writeJSON(join(root, 'project.json'), legacyData);
+
+    const context = await getProjectContext({
+      project: TEST_SLUG_BEATPLAN,
+      include: ['beat_plans'],
+    });
+
+    assert.deepEqual(context.beat_plans, []);
+  });
+
+  it('a registered beat plan whose file is missing on disk reads as data: null, matching every other include (readJSON swallows the error)', async () => {
+    cleanup();
+    await initProject({ title: 'Missing Beat Plan File', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+    await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic-never-written.json',
+    });
+
+    const context = await getProjectContext({
+      project: TEST_SLUG_BEATPLAN,
+      include: ['beat_plans'],
+    });
+
+    assert.equal(context.beat_plans.length, 1);
+    assert.equal(context.beat_plans[0].data, null, 'missing file must degrade to null, like scenes/manifest/review do — never throw');
+    assert.equal(context.beat_plans[0].strategy, 'dramatic', 'the entry itself is still returned even though its file is missing');
   });
 });
 

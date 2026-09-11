@@ -1,616 +1,369 @@
-# ANI-210 / ANI-211 gate seam plan (round 2)
+# ANI-210 / ANI-211 gate seam plan (round 3, narrowed)
 
-Status: plan only, no product code. Round 1 (commit `95e90f0`) was rejected by
-a read-only Codex review at high effort. Every finding was re-verified against
-`origin/main` at `863478d` before being accepted, corrected, or (nowhere, in
-the end) rejected. Round 1's architecture assumed `render_master` and
-`runPreflight` were the two places bytes get produced; that assumption was
-wrong, and this round replaces it. Worktree:
-`~/.claude-worktrees/animatic/ani-210-gate-plan`, branch
-`james/ani-210-gate-seam-plan`. Clean-room note unchanged: OpenMontage source
-was never opened.
+Status: plan only, no product code. Round 2 (`42bd260`) was rejected by a
+read-only Codex review. James's scope decision (2026-09-11): most round-2
+findings landed in machinery built to answer round 1 (a normalizer, override
+recording spread across three artifact types), or in prerequisites this
+issue doesn't own (panel-identity threading). Round 3 narrows the claim
+instead of hardening more machinery. This is the review cap; no round 4.
+Worktree: `~/.claude-worktrees/animatic/ani-210-gate-plan`, branch
+`james/ani-210-gate-seam-plan`. Clean-room note unchanged: OpenMontage
+source was never opened.
 
-## 0. What round 1 got wrong, verified
+## 0. The narrowed claim
 
-Every one of these was checked against real code, not taken on Codex's word:
+**Old claim (rounds 1-2): "the render honors the brief."** Too broad to
+verify: it implied panel-level promise checking that has no code-level
+binding to rely on, and a normalizer whose output could drift from what
+Remotion actually encodes.
 
-- **The seam was bypassable.** `skip_preflight` skips ALL of `runPreflight`,
-  and its own tool description says so: "Use when you know the environment is
-  ready and want to bypass checks" (`tools.js:848`). A BLOCKed `render_master`
-  result is still persisted in full: `persistMaster` writes every artifact's
-  `manifest.json`, `timelines.json`, and every scene def regardless of
-  `verdict` (`master-persist.js:104-146`, the `verdict` param is only copied
-  into the index, never checked). Those files, or an inline
-  `manifest`/`sceneDefs`, can then reach `assemble_video_sequence`
-  (`video-assembly.js:35`), which performs no verdict check at all. Confirmed
-  real, not hypothetical: `render_project`'s own `manifest` param
-  (`projects.js:668-682`) can point straight at a persisted master's
-  `manifest.json` and re-render it through `runPreflight` again with
-  `skip_preflight: true`.
-- **`/sizzle` and the `compile-and-render*.js` scripts render directly.**
-  Verified: `scripts/sizzle.mjs` runs its own `evaluateManifest`/
-  `validateManifestGuardrails`, then `renderVideo(props, outputPath)`
-  (`sizzle.mjs:355-415`), never calling `runPreflight` or `render_master`.
-  `scripts/compile-and-render-sequence.js:113,134` and
-  `scripts/compile-and-render.js:102` do the same. These are real,
-  independent entry points, not covered by anything in round 1.
-- **The delivery-promise layer-count predicate was wrong.** A real project
-  fixture, `examples/fintech-sizzle/scenes/sc_02_insight_cards.json`, carries
-  one `type: 'card_conveyor'` layer whose `stories` array holds 8 items
-  (`:18-24`), rendered by a real, wired composition
-  (`CardConveyorLayer.jsx:32`, `SceneComposition.jsx:313,540`). Round 1's
-  claim "no code concept of a card exists" was false, it existed, I hadn't
-  looked past `generator.js`/`catalog/*.json`. Counting top-level layers
-  would have reported 1 item where there are 8.
-- **Positional panel-to-scene matching is unsafe.** Storyboard panels carry a
-  generated `panel_id` (`compose-storyboard.js:334,343`) but nothing in
-  `generator.js`/`planner.js` binds a scene to it, confirmed again this
-  round. An equal-length reorder would silently mismatch every promise to the
-  wrong scene.
-- **Slice 1 and slice 2 don't see the same input.** `render_master` gates
-  COMPILED scene defs, `composeCompileGate` overwrites
-  `a.sceneDefs = compiled.sceneDefs` after `compileAllScenes`
-  (`render-master.js:183-186`), while `render_project`'s preflight receives
-  RAW scene defs read straight off disk (`projects.js:696-708`), never
-  compiled. For a v3 semantic scene, raw `scene.layers` can be `[]` with all
-  content in `scene.semantic.components` (real example:
-  `catalog/benchmarks/dropdown-open-select.json:7`, `layers: []` with a
-  `dropdown_menu` + `input_field` in `semantic.components`). A layer-counting
-  gate run against the two sites' inputs literally counts different objects.
-- **Aspect variants weren't gated per artifact.** `adaptManifestAspectRatio`
-  clamps scene duration to the target format's max and reduces camera pan
-  intensity for narrower ratios (`social-formats.js:117-123`), a 9:16 cut
-  can be a genuinely different pacing/motion object than the 16:9 primary.
-  The existing hero-frame gate already audits every emitted artifact
-  separately (`render-master.js:189-199`); round 1's output gates ran once on
-  the source and would miss an aspect-specific failure.
-- **`story_brief` "persistence" didn't write anything.** `saveProjectArtifact`
-  takes no content argument at all, it only registers a caller-supplied
-  `path` string into `project.json` (`projects.js:414-460`). Adding a
-  `'story_brief'` case cannot make a file appear; something has to
-  `writeJSON` it first. `handleComposeStoryboard` (`handlers.js:3497-3527`)
-  already receives `project` but only uses it for titling, never writes.
-- **The "brief is always markdown" claim was wrong.** A real project,
-  `projects/2026-03-25-fintech-sizzle/project.json:20`, points
-  `entrypoints.brief` at `brief/story-brief.json`, and that file IS the
-  structured `story_brief` object (`must_show_features`, `promise`,
-  `proof_points`, matches `story-brief.js:270`'s schema exactly). Round 1's
-  new `entrypoints.story_brief` key would have silently ignored this
-  project's real brief sitting at `entrypoints.brief`.
-- **`auto_revise` doesn't know why a gate blocked.** It skips only on
-  `verdict === 'PASS'` or `gated.missingEvidence` (`render-master.js:264-274`,
-  `missingEvidence` computed at `:204`, purely from hero-frame evidence). A
-  delivery-promise or slideshow-risk BLOCK is neither, so `auto_revise` would
-  run a retime-only revision loop against a problem retiming cannot fix.
-- **`persistMaster` and the handler summary only ever print hero-frame data**
-  (`master-persist.js:134,144`; `handlers.js:3672-3676`), round 1 never
-  actually wired the new gates' output into either.
-- **`save_project_artifact`'s enum and `render_master`'s schema/handler**
-  needed real, non-optional changes, `tools.js:827` doesn't have a
-  `story_brief` kind; `handleRenderMaster` (`handlers.js:3653,3665`)
-  destructures neither `story_brief` nor `storyboard` and forwards neither.
-  Round 1 called this optional; it isn't.
-- **The GateResult shape claim was overstated.** `auditHeroFrames`'s findings
-  use `verdict` per finding, not `severity`, and its result also carries
-  `tier`, `threshold`, per-scene `scenes`, and `evidence_summary`
-  (`hero-frame.js:470-489`), more than "`id` and `evidence` added."
-- **Citation errors:** `composeCompileGate` starts at `render-master.js:174`
-  (not 169), `renderMaster` at `:239` (not 254), storyboard panel
-  construction at `compose-storyboard.js:334` (not 113). Preflight has six
-  checks, not five (`preflight.js:290-297`), and `sceneDefs` was already
-  being passed into it (`projects.js:734`), round 1 said it wasn't.
-- **Semantic-critic is not reached via `evaluate_sequence`, ever.**
-  `scoreMotionRichness(sceneMap, timelineMap)` only calls `critiqueScene` (the
-  only path to `critiqueSemanticScene`) when `timelineMap && timelineMap.size
-  > 0` (`evaluate.js:896-903`). `evaluateSequence` calls it as
-  `scoreMotionRichness(sceneMap)`, no second argument (`:961`), so that
-  branch structurally can never run through `evaluate_sequence`. The real
-  paths are `critiqueScene` called directly, e.g. `generateVideo`'s Stage 5
-  (`video.js:221`) and `scoring.js`'s own critique loop.
-- **Calibration's "text-only" heuristic misclassified real content.**
-  `catalog/benchmarks/editorial-photo-e2e.json:8` has two `type: 'html'`
-  layers rendering a photo and a notification card via external asset
-  templates, flagged "text-only" purely because `type === 'html'`, which is
-  a generic rich-content escape hatch, not a text signal. And the
-  `layers: []` v3 fixtures (`dropdown-open-select.json`) were silently
-  measured on MUTATED state: `compileMotion` mutates `scene.layers` in place
-  via `compileSemantic` (`compiler.js:1034-1063`, `if (!scene.layers)
-  scene.layers = []` then pushes generated layers into the SAME object);
-  round 1's probe script called `compileMotion(scene, ...)` before reading
-  `scene.layers.length`, so it measured post-mutation state without
-  realizing it. The reported 10/14 "text-only" population is not trustworthy.
+**New claim: encoded-props feature presence, with disclosed unverifiable
+panels.** The gate inspects the exact render-props object/file that is
+about to be handed to `npx remotion render`, checks whether each
+`story_brief.must_show_features[]` entry's text appears inside a layer type
+`SceneComposition` actually renders, anywhere in that props payload, and
+reports `PASS`/`BLOCK` on that narrow question only. Storyboard-panel-level
+promises (a specific panel promised N items) are reported `WARN` +
+`unverifiable`, never `PASS`, because no code path binds a panel to the
+scene meant to satisfy it. Every contract, test, and function name below
+says this, not the broader claim.
 
-## 1. Choke point (the architectural fix)
+## 1. What round 2 built that this round deletes
 
-Repo-wide inventory of every place a byte-producing Remotion render actually
-starts, via `git grep -n "renderMedia\|renderStill\|npx remotion\|remotion
-render" origin/main`:
+- **Deleted: `normalizeGateInput`/"always compile."** It wasn't idempotent
+  (`compileAllScenes` re-running `compileSemantic` on an already-compiled
+  scene prepends a second copy of the generated motion groups,
+  `compiler.js:1108`-adjacent) and it inspected content `render_project`
+  never actually renders (raw `sceneDefs` with no timelines,
+  `projects.js:695-799`), not the compiled shape the normalizer produced. §2
+  replaces it: no compilation step, ever, inside the gate.
+- **Deleted: panel-to-scene binding as a PASS-capable mechanism.** Round 2
+  still let a `panel_id` match win a confident `PASS`. §5 replaces this with
+  disclosure-only: no binding this plan can build makes a panel promise
+  verifiable, so none may ever resolve to `PASS`.
+- **Deleted: the `.meta.json`-vs-`project.json.overrides[]` split.** §7
+  keeps one visibility target, widened to include the encoded artifact
+  itself, not two.
+- **Kept, adjusted:** per-artifact evaluation (unchanged, already correct);
+  the override record shape (unchanged fields, tightened sequencing); the
+  compound-layer inventory (narrowed to what actually renders, §4); the
+  residual-bypass list (widened, §8); the motion-density defect (now a
+  committed, runnable repro, §10, and corrected for the reactive case).
 
-| Call site | What it does | In scope? |
-|---|---|---|
-| `mcp/lib/video.js`'s `renderRemotionSequence` (the `// ── renderRemotionSequence ──` section) | `execFileAsync('npx', ['remotion','render','Sequence', ...])`, the ONE function that spawns a final-video Remotion render from Node | **Yes, this is the choke point.** |
-| `mcp/lib/master-persist.js`'s `encodeMaster` | Calls `renderRemotionSequence` as its default `render` param (`master-persist.js:172`, imported `:29`), `render_master`'s `encode: true` path | Covered via the choke point. |
-| `mcp/lib/projects.js`'s `renderProject` | Calls `renderRemotionSequence(props, outputPath)` directly, `render_project` | Covered via the choke point. |
-| `mcp/lib/video-assembly.js`'s `assembleVideoSequence` | Never spawns Remotion, writes `render-props.json` and returns a command STRING (`buildRenderCommand`, `:140-150`) | Not a byte-production site; see residual risk below. |
-| `scripts/sizzle.mjs` | Own `renderVideo` implementation, independent of `renderRemotionSequence` | **Out of scope, named explicitly** (see below). |
-| `scripts/compile-and-render-sequence.js`, `scripts/compile-and-render.js` | Own direct `npx remotion render` invocations | **Out of scope, named explicitly.** |
-| `package.json`'s `remotion:render*` scripts, `render-mercury.sh` | Raw `npx remotion render` from a shell | **Out of scope, outside Node entirely, ungateable in principle.** |
-| `hero-frame-capture.js`, `storyboard-export.js`, `render-cookbook-contact-sheets.mjs` | `renderStill` for scoring/preview/contact-sheet stills, not a final deliverable | Not a delivery site; unaffected. |
+## 2. Gate input: the exact encoded props, no normalizer
 
-**Decision: put the admission check inside `renderRemotionSequence` itself,
-not only at the two orchestrator sites.** This is the choke point for every
-MCP-tool-mediated render (`render_project` and `render_master`'s `encode`),
-because both paths funnel through this one function before `npx remotion
-render` ever runs. Concretely: `renderRemotionSequence(props, outputPath,
-opts)` gains an admission step at its top that re-derives the gate verdict
-from the ACTUAL `props.manifest`/`props.sceneDefs` about to be rendered (not
-a cached verdict from earlier in the call chain) and refuses to spawn on an
-unoverridden BLOCK. This closes every bypass found in §0 within the MCP
-surface: `skip_preflight` can no longer mean "skip content admission" because
-content admission no longer lives in preflight's `Promise.all` at all; a
-persisted-then-reassembled BLOCKed master gets re-checked against its real
-content the moment anything tries to actually render it, regardless of which
-tool call path got it there.
+Two, and only two, functions ever produce the file `npx remotion render`
+reads via `--props`:
 
-**`render_master`'s existing gate rollup (`composeCompileGate`) and
-`runPreflight` both stay, as an early/advisory layer**, not the enforcement
-point: they give a caller a fast BLOCK/WARN before spending compute, exactly
-as today. `skip_preflight` still skips the five pre-existing environment
-checks (encoders, fonts, plates, manifest refs, voiceover fit, disk space),
-none of which are content gates, and now also skips only the ADVISORY
-content-gate check, never the enforcement at `renderRemotionSequence`. A test
-must assert this split (§8).
-
-**Rejected alternative: "make blocked results unassemblable."** Considered
-and rejected for two reasons. First, `persistMaster`'s own docstring already
-treats persistence-on-BLOCK as a deliberate feature ("persisted for
-inspection"), and inspecting why something blocked is a real, named use case
-this plan shouldn't remove. Second, it doesn't actually fix `render_project`'s
-direct raw-manifest path, that isn't "assembling a persisted master," it's a
-fresh preflight-then-render call with no persisted artifact involved at all,
-so unassemblability wouldn't touch it. The choke point covers both mechanisms
-with one change.
-
-**Residual risk, stated plainly, not swept under "covered":** `assemble_video_sequence`
-prints a runnable `npx remotion render` command as plain text. A human who
-copies that command and runs it from a shell is outside the Node process
-entirely; no in-process check can stop that, same as `sizzle.mjs` or a raw
-`npx remotion render` invocation. This is a fundamental limit of any
-in-process gate, not something this plan can close. If James wants that
-residual path closed too, it needs a filesystem-level or CI-level control
-(e.g., a pre-render hook that refuses to run against a directory containing a
-`BLOCKED` marker), which is out of scope for this plan and named as an open
-question (§12).
-
-## 2. One normalized gate input
-
-Both gates need `{ manifest, scenes, timelines }` in the SAME shape
-regardless of which caller built it. New helper in `mcp/lib/output-gates.js`:
+- **`render_project`:** `renderRemotionSequence(props, outputPath, opts)`
+  (`mcp/lib/video.js`, the `renderRemotionSequence` section). When
+  `opts.propsPath` is absent, it `JSON.stringify`s its own `props` parameter
+  into a fresh temp file and points Remotion at that file. `props` IS what
+  gets encoded; there is no transform in between. `render_project` builds
+  `props = { manifest, sceneDefs }` from raw, uncompiled data
+  (`projects.js:696-725`), so the gate reads exactly that: raw `layers` for
+  a v2 scene, raw `semantic.components` for a v3 scene with `layers: []`.
+  Nothing is recompiled to "fix" this; it's what's actually rendered.
+- **`render_master`'s `encode` path:** `encodeMaster` (`master-persist.js`)
+  calls `assembleVideoSequence` (`video-assembly.js:121-126`) to write
+  `render-props.json` to disk (the ANI-185 persisted source of truth), then
+  calls `render(renderProps, outputAbs, { propsPath: propsAbs })`. When
+  `opts.propsPath` is given, `renderRemotionSequence` reads Remotion's
+  `--props` from **that file on disk**, not the in-memory `renderProps`
+  object, even though today's `render()` call receives both. The gate must
+  do the same: prefer `opts.propsPath`'s file contents when present, and
+  only fall back to the in-memory `props` parameter when absent. This
+  content already contains compiled `sceneDefs`/`timelines`, because
+  `render_master`'s own pipeline compiled them once, upstream, before
+  persisting; the gate doesn't recompile, it reads what's already there.
 
 ```js
-export async function normalizeGateInput({ manifest, scenes, timelines, catalogs, personality }) {
-  const sceneDefs = Array.isArray(scenes) ? Object.fromEntries(scenes.map(s => [s.scene_id, s])) : scenes;
-  // Always compile, compileAllScenes is idempotent on already-compiled defs
-  // (it only fills scene.layers/scene.motion when scene.semantic drives them;
-  // a v2 scene with layers already set passes through unchanged, per
-  // compiler.js:1034's `if (!scene.layers) scene.layers = []` guard).
-  const compiled = compileAllScenes(manifest, sceneDefs, catalogs, { personality });
-  return { manifest, scenes: compiled.sceneDefs, timelines: timelines || compiled.timelines };
+// inside renderRemotionSequence, before execFileAsync
+const encodedProps = opts.propsPath
+  ? JSON.parse(fs.readFileSync(opts.propsPath, 'utf-8'))
+  : props;
+const admission = await runOutputGates(encodedProps, { override: opts.override });
+if (admission.verdict === 'BLOCK' && !admission.overridden) {
+  throw new Error(`Render refused: ${admission.block_reason}`);
 }
 ```
 
-Both enforcement paths call this before running gates: `composeCompileGate`
-already has compiled defs, so `normalizeGateInput` is a cheap pass-through
-there; the choke point (`renderRemotionSequence`) receives whatever raw props
-`render_project` assembled and compiles them fresh. This is the "one
-normalized post-compile input" both sites must share, built once, in one
-file, not duplicated. **Parity test (required, §8):** run
-`normalizeGateInput` on (a) a raw v2 scene with authored `layers`, (b) a raw
-v3 scene with `layers: []` and `semantic.components`, (c) an already-compiled
-scene from `render_master`'s path, and assert all three produce a
-`GateResult` with the same finding for the same underlying content
-(constructed so (a)/(b) describe the same promised content two different
-ways).
+**Required test:** for each call shape, assert the object the gate actually
+read is the SAME object (render_project: `encodedProps === props`, deep
+equal, and the temp file on disk deep-equals it too) or the same file
+contents (encodeMaster: `encodedProps` deep-equals
+`JSON.parse(readFileSync(propsAbs))`, read independently, not trusted from
+the in-memory `renderProps`). If gate input and encoded input could ever
+differ, the design is wrong; this test is what proves they can't.
 
-## 3. Seam contract
+## 3. Content matching, not counts
 
-`mcp/lib/output-gates.js`: gate functions take
-`{ manifest, scenes, timelines, story_brief?, storyboard?, tier?, override? }`
-(already normalized) and return:
+**Rule:** a promised feature (`story_brief.must_show_features[i]`, a plain
+string) is delivered only if its normalized text appears as a substring
+inside a renderable layer's content-bearing field (`content`, `title`,
+`label`, `excerpt`, or a compound layer's item text fields, §4) in some
+scene of the encoded props. Normalization: lowercase, collapse whitespace,
+strip surrounding punctuation. No paraphrase matching, no semantic
+similarity, no id lookup beyond exact substring, because inventing either
+would be an unverifiable claim of its own. **If scenes ever carry an
+explicit `feature_id`/`promise_ref` field, prefer id equality over text
+containment.** Grepped `mcp/lib/*.js` and `catalog/*.json`/`projects/**/*.json`
+for such a field: none exists today, so text containment is the only signal
+available, stated as a limitation, not a design choice.
 
-```js
-{ id, verdict: 'PASS'|'WARN'|'BLOCK', findings: [{ severity, message, scene_id?, panel_id? }], evidence }
-```
+**Construction-space corpus, built before the rule shipped (per the "cannot
+be discovered by counterexample" doctrine):**
 
-(Not claimed to mirror `auditHeroFrames` beyond the `verdict`/`findings`
-concept, that result additionally carries `tier`, `threshold`,
-per-scene `scenes`, `evidence_summary`, and uses `verdict` per-finding, not
-`severity`; the two shapes are related, not identical, corrected from round
-1.) `registerGate(id, fn)` / `runOutputGates(input)` roll up BLOCK > WARN >
-PASS and join `block_reason`, exactly as round 1 designed. Slice 1 registers
-`delivery_promise`; slice 2 adds `registerGate('slideshow_risk', ...)`.
+| Case | Feature text | Scene content | Expected |
+|---|---|---|---|
+| Exact match | `"12% revenue growth"` | layer text `"12% revenue growth"` | delivered |
+| Case/whitespace variant | `"12% Revenue Growth"` | `"  12% revenue growth  "` | delivered (normalization) |
+| Paraphrase | `"revenue grew this quarter"` | `"12% revenue growth"` | **not delivered** (no NLP claimed) |
+| Split across two items | `"revenue growth and cost cuts"` | one card says `"revenue growth"`, another says `"cost cuts"` | **not delivered** (no single layer contains the whole promised string; a real per-item match against a decomposed promise is future work, not this rule) |
+| Present, wrong layer type | text is inside a `moodboard.items[].alt` | `moodboard` is not renderable (§4) | **not delivered** |
+| Present, but capped out | text is `cards[5]` of an 8-card `stack_fan_settle`, cap is 5 | rendered cards are `[0..4]` | **not delivered** |
+| Four unrelated cards vs. four features | 4 promised features, 4 `card_conveyor.stories[]` whose text matches none of them | | **BLOCK, naming all 4 missing**, proves the rule judges content, not count |
+| Punctuation-only diff | `"AI-powered insights"` | `"AI powered insights"` | delivered (punctuation stripped) |
+| Substring collision | feature `"chat"` | scene text `"merchant support"` | **not delivered**, word-boundary check required, or `"chat"` false-matches inside `"merchant"`; this row is why the rule needs boundary-aware matching, not naive `.includes()` |
 
-## 4. Override policy (decided by James, 2026-09-11; shape aligned to ANI-212)
+The last row is load-bearing: naive substring containment (`text.includes(feature)`)
+would pass the "four unrelated cards" case wrongly if any feature word is a
+short common substring, so the matcher must be boundary-aware (word or
+phrase boundaries), not a bare `.includes()`. This corpus is the acceptance
+test for `checkDeliveryPromise`'s matcher, run before any real project
+fixture.
 
-Content gates can be overridden **only with a recorded reason.** "Never" was
-rejected: it produces shadow bypasses once a real exception shows up.
+## 4. Only renderable layers count
 
-**Shape: adopt ANI-212's record exactly, not a parallel one.** ANI-212's
-stage-map draft (`~/.claude-worktrees/animatic/ani-212-stage-map`, commit
-`7c1ee49`, `docs/process/ani-212-stage-map.md` §4) already designed a
-generic override record for the same explicit/attributable/visible
-requirement, persisted at `project.json.overrides[]` via a shared
-`recordOverride(project, { type, gate, tool, reason, actor, detail })`
-helper. Its fields: `type` (discriminator), `at` (server-stamped timestamp),
-`actor`, `tool`, `reason`, `gate`, `detail`. This plan uses that shape
-verbatim, not the `GateOverride = { gate_id, reason, actor, overridden_at }`
-this document proposed in an earlier draft, so stage gates and content gates
-share one record and one helper as the coordinator asked:
+**Authority, until ANI-223 ships a registry:** the `layer.type` switch
+inside `SceneComposition`'s render function (`src/remotion/compositions/SceneComposition.jsx`,
+the case list around `:538-548`, mirrored at `:304-314`). Confirmed by
+reading the file: it renders content for `html`, `video`, `image`, `text`,
+`svg`, `card_conveyor`, `stack_fan_settle`, `chart_build_explain`,
+`spotlight_cursor_reveal`. Everything else falls to
+`default: <div>[{layer.type}: {layer.id}]</div>`, a debug placeholder, not
+content.
 
-```jsonc
-// content-gate override, using ANI-212's exact fields, project.json.overrides[]
-{
-  "type": "content_gate",                 // ANI-212 uses "stage_prerequisite"; this is the sibling discriminator
-  "at": "2026-09-11T12:30:00Z",           // server-stamped, never caller-supplied
-  "actor": "James Schuyler",              // required, same rule as approve_stage's actor
-  "tool": "render_master",                // or "render_project"
-  "reason": "known slideshow-risk gap on this cut, ships next week",
-  "gate": "slideshow_risk",               // "delivery_promise" | "slideshow_risk" | "all"
-  "detail": {                             // gate-specific context, same field ANI-212 already reserves for this
-    "artifact_id": "9:16",
-    "overridden_findings": ["static_layer_ratio: 0.67 (band: revise)"]
-  }
-}
-```
+**The trap this plan corrects:** `src/remotion/lib.js:342`'s schema
+validator and `mcp/lib/render-routing.js:31`'s `REMOTION_NATIVE_TYPES` BOTH
+list `moodboard`, `result_grid`, `stacked_thumbs`, `media_strip` as valid,
+native types. They validate and route successfully. Grepping
+`SceneComposition.jsx` for any of those four type strings or their
+`*Layer.jsx` component names returns **zero hits**, real React components
+exist for them (`MoodboardLayer.jsx`, `ResultGridLayer.jsx`,
+`StackedThumbsLayer.jsx`, `MediaStripLayer.jsx`) but `SceneComposition`
+never dispatches to any of them. A gate that trusted the validator's or
+router's "valid type" list would count content Remotion silently drops to a
+placeholder. `checkDeliveryPromise`'s renderable-type list is deliberately
+narrower than either, and must be revisited (not blindly widened) if
+`SceneComposition`'s switch grows.
 
-Requirements, all four enforced together, matching ANI-212's own wording:
+**Respect visible caps, not raw array length.** Confirmed per component:
+`stack_fan_settle` renders `Math.min(cards.length, config.cardCount)`
+(`StackFanSettleLayer.jsx`, defaulting `cardCount: 5`,
+`stack-fan-settle.js:15`), an 8-card array with `cardCount` unset still
+only shows 5. `card_conveyor`, `chart_build_explain`,
+`spotlight_cursor_reveal` have no such cap (checked their source directly:
+no `.slice()`/`Math.min()` on their item arrays). The item-counting helper
+must apply each component's real cap, not assume every array element is
+visible; `stack_fan_settle` is the one case that needs it today.
 
-- **Explicit.** A dedicated `override` parameter (carrying `reason`/`actor`,
-  `type`/`gate`/`tool`/`detail` filled in by the gate code, not the caller)
-  on `render_project` and `render_master`. No unrelated flag acts as an
-  override: `skip_preflight: true` alone never overrides a content gate
-  (tested, §8), exactly as ANI-212 requires `skip_preflight` never implies a
-  stage-prerequisite override and vice versa.
-- **Attributable.** `reason` and `actor` are both required (non-empty) when
-  `override` is present; `at` is stamped server-side.
-- **Visible.** `recordOverride(proj, {...})` appends to
-  `project.json.overrides[]` (persisted, array, never overwritten) AND the
-  same record is echoed into the calling tool's own return payload, not
-  written to disk silently. **This is always possible for the sites that
-  matter:** the choke point (`renderRemotionSequence`, §1) is reached only
-  from `render_project` (which always resolves a `proj` via `getProject`,
-  erroring if none, `projects.js:679-682`) or from `render_master`'s
-  `encode`/`persist` path (which already requires `project`,
-  `render-master.js:333-335`). Every case where bytes are actually about to
-  be produced therefore has a `project.json` to record into; there is no
-  inline-without-a-project case that reaches the choke point, so no separate
-  sidecar file is needed (this plan's earlier draft proposed one; dropped).
+## 5. Panel-level promises are unverifiable, never PASS
 
-**Where `recordOverride` is called from, for the content-gate side:**
-`render_master`'s persist/encode path calls it right alongside the existing
-`saveProjectArtifact({kind:'master', ...})` registration
-(`render-master.js:342`-equivalent), so the master's entrypoint update and
-its override record land together; `render_project` calls it right after the
-choke point admits a BLOCK-with-override, before `saveProjectArtifact({kind:'render',...})`
-registers the output. Both depend on ANI-212's `writeJSONAtomic` +
-in-process mutex around `project.json` writes (ANI-212 §4) landing first, or
-slice 1 needs the same minimal safe-write itself, flagged as a sequencing
-dependency (§12).
+Confirmed again this round: `story-beats.js:434` writes
+`beat.panel_ref = { panel_id, ... }`, and nothing downstream reads it.
+`generateScenes` (`generator.js:1389`) takes no beats/storyboard input at
+all; `planSequence`'s manifest entries carry only `scene_id`, duration,
+transition, camera, shot grammar (`planner.js:785`). There is no code path,
+anywhere, that copies a panel's identity onto the scene meant to fulfill it.
 
-**Shared module, not one issue's file importing the other's.** ANI-212
-proposes `recordOverride`/`checkStagePrerequisites` in `mcp/lib/stage-map.js`.
-Rather than `output-gates.js` importing from `stage-map.js` (or vice versa,
-either of which makes one issue depend on the other's file), propose
-extracting `recordOverride` and the record shape into their own small shared
-module, e.g. `mcp/lib/gate-overrides.js`, that both `stage-map.js` and
-`output-gates.js` import. Whichever of ANI-210/ANI-211 or ANI-212 lands
-second does the extraction; noted as an open question for both (§12).
+**Verdict rule, made executable:** a storyboard panel promise
+(`content_type` in `insight_cards`/`dashboard`/`split_panel` with an array
+`content`) with no bound scene resolves to `WARN`, a finding with
+`unverifiable: true`, and is **never counted toward `PASS`, and never
+silently dropped from findings** even when nothing else blocks. Nothing in
+`checkDeliveryPromise` may promote this to a confident verdict. Required
+tests, each proving a tempting shortcut fails:
+- Equal-length manifest and storyboard panels, no `panel_id` on any scene →
+  still `WARN unverifiable`, not `PASS` (equal counts prove nothing).
+- Scenes in storyboard order, no `panel_id` → still `WARN unverifiable`
+  (position proves nothing once anything can reorder).
+- Every scene's `content_type`-equivalent metadata matches its
+  positionally-corresponding panel's `content_type` → still `WARN
+  unverifiable` (a type match is not an identity match).
 
-**The attribution limit, and how this plan handles it (per ANI-212's own
-open question 5, "actor provenance beyond a free-text name"):** `actor` is
-asserted by whoever calls the tool, never proven; there is no auth-identity
-concept on this stdio-only MCP surface (confirmed: `mcp/index.js` uses
-`StdioServerTransport` with no session/client id threaded into any handler,
-grep for `sessionId`/`clientInfo`/`requestId` across `mcp/index.js` and
-`mcp/handlers.js` returns nothing). When an agent calls `override` on a
-human's behalf, mid-conversation, `actor` records what the agent typed as
-the human's name, exactly the same trust level ANI-212 already accepts for
-`approve_stage`'s `actor`. **Proposed addition to the shared shape, not a
-second record:** an optional `invoking_session` field, filled in by the
-server itself (never caller-supplied, same rule as `at`), holding whatever
-this runtime can actually observe about the call: a UUID generated once at
-MCP server boot (`mcp/index.js`, module-scope) and reused for every tool
-call in that process's lifetime, plus `process.pid`. This distinguishes two
-different claims that the current single `actor` field conflates: `actor`
-is *who the agent says authorized this* (an assertion, unverifiable here);
-`invoking_session` is *which running server process actually made the call*
-(observed by the runtime, not asserted, but still not proof of the human's
-identity, only proof of which process/session produced the record, useful
-for correlating multiple overrides back to one conversation or catching a
-session that overrides gates suspiciously often). This is a real gap, not a
-fix for it. Proposed as an optional field on ANI-212's shared shape so both
-issues gain it together rather than diverging.
+`must_show_features` coverage (§3) is unaffected by this section: it is a
+flat, brief-level list, not scoped to any panel, and is checked across the
+WHOLE encoded props regardless of panel binding. That is the one promise
+class this gate can confidently `PASS`/`BLOCK` on. A prerequisite issue
+(threading panel identity from beats through scenes into the manifest) is
+being filed separately; this plan does not build that threading and does
+not assume it exists.
 
-## 5. Every render entry point, corrected
+## 6. Reactive scenes: no assumption
 
-| Tool / script | Reaches the choke point? |
-|---|---|
-| `render_project` | **Yes**, directly (`renderRemotionSequence` call in `projects.js`). |
-| `render_master` (`encode: true`) | **Yes**, via `encodeMaster` → `renderRemotionSequence`. |
-| `render_master` (no encode) | No render happens; the advisory gate rollup still reports `verdict`/`block_reason` so a caller sees the same answer before ever reaching the choke point. |
-| `assemble_video_sequence` | No, never renders; prints a command a human could run outside Node (residual risk, §1). |
-| `generate_video`, `create_social_cutdown`, `preview_video`, `auto_revise_loop` (standalone) | No, as established in round 1 and unchanged: none of these render, or (cutdown) deliberately re-authors, or (preview) produces no artifact. |
-| `scripts/sizzle.mjs`, `scripts/compile-and-render*.js`, `npm run remotion:render*`, `render-mercury.sh` | **No, explicitly out of scope.** These are developer CLI scripts outside the MCP tool surface, each with their own render call independent of `renderRemotionSequence`. Closing them would mean either rewriting them to call the shared function (a real, separate follow-up) or duplicating the gate logic a third time (exactly what this plan exists to avoid). Named here as a gap, not claimed as covered. |
+`compileMotion(scene, catalogs, {mode:'reactive'})` returns `{ mode:
+'reactive', compound, config, contentCount, ... }` with **no `tracks` key
+at all** (`compiler.js`'s own JSDoc return-type union, confirmed by reading
+it this round). There is no per-layer breakdown to inspect for these scenes
+under §2's "no separate compile" rule; the gate literally cannot observe
+their motion. Round 2's language ("treat every reactive descriptor as
+verified-animated") is retracted outright, not merely softened: it was an
+unearned assumption, exactly the shortcut this round exists to stop taking.
+Any density/static-layer sub-score for a reactive scene reports
+`unverifiable`, not a number, and slideshow-risk's rollup must not silently
+average an `unverifiable` into a PASS-leaning score.
 
-## 6. Delivery-promise matching, corrected
+## 7. Overrides: James's rule, tightened
 
-### 6.1 Counting items inside compound layers
+Shared record shape unchanged from round 2, adopted from ANI-212's
+stage-map draft verbatim: `{ type, at, actor, tool, reason, gate, detail }`,
+persisted via a shared `recordOverride()` helper. Three new requirements
+this round closes real gaps in:
 
-Inventoried every compound (multi-item) layer type wired into
-`SceneComposition.jsx` by reading each component's source, not guessing:
+1. **Record before Remotion starts, inside the same function.** Round 2 had
+   admission and recording as separate steps a caller could get out of
+   order; round 2's `renderRemotionSequence` does admission-and-spawn in
+   one call, so recording must be sequenced INSIDE that same function,
+   immediately before `execFileAsync`, never left to the caller to remember
+   to do first:
+   ```js
+   if (admission.verdict === 'BLOCK') {
+     if (!opts.override) throw new Error(`Render refused: ${admission.block_reason}`);
+     await recordOverride(opts.project, { type: 'content_gate', gate: admission.block_reason, tool: opts.toolName, reason: opts.override.reason, actor: opts.override.actor, detail: admission.findings });
+     // only reaches execFileAsync after the write above succeeds
+   }
+   ```
+2. **Fail closed on a recording failure.** If `recordOverride` throws (disk
+   full, `project.json` unwritable), that error propagates and
+   `execFileAsync` is never reached. No bytes get produced with no record.
+3. **Visible in the encoded artifact, not only `project.json`.** The
+   override record is stamped into `encodedProps` itself (a new top-level
+   `_admission: { verdict, override }` key) before it is written to the
+   temp file or already sits in the persisted `render-props.json`, so it
+   travels with the bytes into whatever consumes that props file (a person
+   reading `render-props.json` later sees the override right there, not
+   only in a separate `project.json`).
 
-| `layer.type` | item field | source |
+**`render_master` inline (no project):** the choke point
+(`renderRemotionSequence`) is reached only via `encodeMaster`, which
+already refuses to run without a `project` (`persist || encode` requires
+`project`, `render-master.js`'s existing guard). There is no
+inline-without-a-project case that reaches the choke point at all, so
+"require a project to override" is already true by construction; nothing
+new to build here, just stated plainly instead of left implicit.
+
+## 8. Residual bypasses, re-verified this round
+
+| Path | Reaches the choke point? | Disposition |
 |---|---|---|
-| `card_conveyor` | `stories` | `CardConveyorLayer.jsx:32` |
-| `chart_build_explain` | `bars` | `ChartBuildExplainLayer.jsx` |
-| `media_strip` | `items` | `MediaStripLayer.jsx` |
-| `moodboard` | `items` | `MoodboardLayer.jsx` |
-| `result_grid` | `items` | `ResultGridLayer.jsx` |
-| `stacked_thumbs` | `items` | `StackedThumbsLayer.jsx` |
-| `stack_fan_settle` | `cards` | `StackFanSettleLayer.jsx` |
+| `render_project`, `render_master` (`encode`) | Yes | Enforced (§2, §7). |
+| `assemble_video_sequence` | No today; **fixed this round.** | It writes `render-props.json` and returns a runnable command for ANY input, blocked or not (`video-assembly.js:121-140`), the exact mechanism a persisted-then-reassembled BLOCKed master used to escape enforcement in rounds 1-2. **Decision: `assembleVideoSequence` runs the same admission check on its own `{manifest,sceneDefs,timelines}` before writing anything.** On an unoverridden `BLOCK`, it still returns routing/plate information (useful for inspection) but `buildRenderCommand` refuses to emit a runnable command, and no `render-props.json` is written. This closes the bypass at its only remaining door rather than declaring it accepted. |
+| `scripts/sizzle.mjs` | No | Own renderer, independent of `renderRemotionSequence` (`sizzle.mjs:150,157`). Out of scope, named. |
+| `scripts/compile-and-render-sequence.js`, `scripts/compile-and-render.js` | No | Own direct `npx remotion render` calls. Out of scope, named. |
+| `scripts/render-showcase.sh` | No | **Re-verified this round, confirmed real:** `git grep -n remotion origin/main -- scripts/render-showcase.sh` shows `npx remotion render src/remotion/Root.jsx Sequence --props=public/showcase/showcase-props.json ...` at `:65`. Round 2 missed this file entirely. Out of scope, named. |
+| `package.json`'s `remotion:render*`, `render-mercury.sh` | No | Raw shell invocations, outside Node. Out of scope, fundamentally ungateable in-process. |
+| `hero-frame-capture.js:75`, `mcp/lib/figma/storyboard-export.js:129`, `scripts/render-cookbook-contact-sheets.mjs` | No | Confirmed non-delivery: these call `renderStill` for scoring/preview/contact-sheet stills, never a final deliverable video. Not bypasses of a delivery gate; unaffected. |
 
-`countPromiseItems(layer)` looks up `layer.type` in this table and counts
-`(layer[field] || []).length`; any other layer type counts as 1 item, UNLESS
-`layer.product_role === 'decorative'` (a real, established field, 46 of 44+
-scene files checked use `product_role`, with `decorative` the single most
-common value ahead of `hero`/`supporting`/`result`/etc.), which counts as 0.
-This replaces round 1's flat top-level-layer count and is judged on semantic
-content (item arrays, role tags) rather than layer count, per the confirmed
-requirement. For v3 scenes (`layers: []`, content in
-`scene.semantic.components`), the same non-decorative filter applies to
-`components[].role !== 'decorative'`, there is no compound-item convention
-inside `semantic.components` today (each component is already one discrete
-thing), so components count 1 each.
+Five real, independent render paths (`sizzle.mjs`, two `compile-and-render*.js`,
+`render-showcase.sh`, plus raw package/shell scripts) sit entirely outside
+Node's `renderRemotionSequence`/`assembleVideoSequence` machinery. Closing
+them means either rewriting each to call the shared function (a real,
+separate follow-up, not this plan) or accepting they are developer-only
+paths outside the MCP tool surface. Stated as a limit, not swept into
+"covered."
 
-### 6.2 Binding a panel to a scene by stable identity, not position
+## 9. Carried forward from round 2, adjusted for the narrower claim
 
-Confirmed this round: `story-beats.js` DOES create a binding,
-`beat.panel_ref = { panel_id, content_type, act, intent, ... }`
-(`story-beats.js:434-441`), but grep across the entire `mcp/lib/` tree finds
-**zero consumers** of `beat.panel_ref` anywhere else. It is written and never
-read. Nothing copies it onto a `scene` def or a `manifest.scenes[]` entry.
-This is the concrete gap the binding requirement (now a hard requirement, not
-a suggestion) must close:
+- **Lossless preflight `details`**, if preflight stays as an advisory layer
+  at all: the full per-gate result (`verdict`, `findings`, `evidence`,
+  `block_reason`) goes into `details.output_gates`, not summarized into
+  `pass`/`warn`/`fail` alone. Preflight remains advisory only; enforcement
+  is §2's choke point, unaffected by `skip_preflight`.
+- **`persistMaster` and handler visibility, made concrete:** `persistMaster`'s
+  index currently reduces each artifact's gate to `{artifact, ratio,
+  verdict}` (`master-persist.js`, the `gate_by_artifact` map inside
+  `persistMaster`). It must carry the full `findings`/`evidence` for the
+  new gates too, and `handleRenderMaster`'s printed summary
+  (`handlers.js`'s `render_master` handler) must print them, not only
+  hero-frame evidence.
+- **Per-artifact evaluation.** Unchanged; already correct per round 1's
+  fix, confirmed again this round (`render-master.js`'s artifact loop gates
+  each emitted aspect separately).
+- **`auto_revise`, refined, not just skipped wholesale.** A block caused
+  only by `delivery_promise` never triggers `auto_revise` (retiming cannot
+  add missing content, unchanged from round 2). For `slideshow_risk`, this
+  round narrows further: `auto_revise` should skip ONLY when the blocking
+  sub-score is a content-shape measure (static-layer ratio, text-only
+  ratio, template repetition), because retiming cannot change layer
+  composition. It should NOT skip when the blocking sub-score is purely
+  motion-density-derived, because duration changes genuinely can move
+  density (`motion-density.js`'s own remediation suggestions recommend
+  shortening/extending holds). This requires `scoreSlideshowRisk`'s rollup
+  to expose which sub-score(s) triggered the block, so `auto_revise`'s skip
+  condition can check that, not just "any slideshow_risk block."
+- **ANI-211 hangs off the same exact-encoded-props input as §2.** No
+  separate normalizer for slideshow-risk either; it reads the identical
+  `encodedProps` the delivery-promise gate reads, with §4's renderable-type
+  filter and §6's reactive-scene disclosure applied identically.
+- **Calibration corpus remains a slice-2 prerequisite,** unchanged from
+  round 2's retraction of fixed band-edge numbers.
 
-1. **Slice 1 adds `panel_id` as a recognized field on scene defs**
-   (`scene.metadata.panel_id`) and documents the authoring convention: any
-   scene authored from a beat/panel plan must copy `beat.panel_ref.panel_id`
-   onto `scene.metadata.panel_id`. This can't be enforced by a pure function
-   today because, confirmed again this round, no code path generates
-   scenes from beats/storyboard; an agent authors them by hand following the
-   plan as a spec (same finding as round 1, re-verified).
-2. `checkDeliveryPromise` binds by `panel_id` whenever BOTH the storyboard's
-   panels and the manifest's scenes (via their scene defs) carry one, an
-   unambiguous, order-independent match, immune to reordering.
-3. **When any scene is missing `panel_id` while a storyboard is present**,
-   that's its own WARN finding (`binding_confidence: 'positional_fallback'`,
-   naming which scenes lack the field) and the check falls back to
-   positional matching for those scenes only, with every finding derived
-   from a positional match explicitly flagged low-confidence, never a
-   silent, confident BLOCK or PASS built on a guess.
-4. Open question for James (§12): should scene-authoring tooling
-   (`create_layer` or whatever writes scene JSON in practice) be changed to
-   require `panel_id` when authoring against a plan? That's a larger,
-   separate change; this plan only defines the convention and the gate's
-   graceful-degradation behavior.
+## 10. Motion-density defect: committed, runnable repro
 
-## 7. `story_brief` persistence, corrected
+`docs/process/repro-motion-density.mjs` (committed alongside this plan, run
+with `node docs/process/repro-motion-density.mjs` from the repo root, no
+arguments). It loads catalogs exactly as `mcp/lib/scoring.js` does
+(`loadPrimitivesCatalog` + `loadPersonalitiesCatalog` + `loadRecipes`), runs
+`compileMotion` then `auditMotionDensity` over all 14
+`catalog/benchmarks/*.json` scenes, and asserts three things printed to the
+console: every scene scores density `0` regardless of real motion; no scene
+ever produces the `timeline.layers`-as-array shape `normalizeLayers` reads;
+every non-reactive scene DOES have the `timeline.tracks.layers` shape
+`normalizeLayers` never reads. Ran it this round: all three assertions hold.
+**Correction from round 2:** the reactive-scene case (1 of the 14
+benchmarks) is not fixed by adding a `tracks.layers` branch to
+`normalizeLayers`, because reactive timelines have no per-layer breakdown
+at all (§6), that scene needs the `unverifiable` disclosure path, not a
+new read branch. The `tracks.layers` branch fix is real and sufficient only
+for the 13 non-reactive benchmarks. This is a prerequisite bug for
+ANI-211, filed against `motion-density.js`, not built by this plan.
 
-`saveProjectArtifact` cannot write content, confirmed, it only takes a
-`path` string and registers it (`projects.js:414-460`). The real fix:
+## 11. Slice list
 
-1. `handleExtractStoryBrief` and `handleComposeStoryboard`
-   (`handlers.js:3497` region) gain an optional `project` behavior change:
-   when `project` is given, the handler itself `writeJSON`s the result to
-   `concept/story-brief.json` / the storyboard's existing default
-   `concept/storyboard.json` path, THEN calls `saveProjectArtifact({project,
-   kind, path})` to register the entrypoint. Two real writes, not a switch
-   case pretending to be one.
-2. **Legacy compatibility, required, not optional:** a real project already
-   uses `entrypoints.brief` for a structured JSON brief
-   (`projects/2026-03-25-fintech-sizzle/project.json:20` →
-   `brief/story-brief.json`, matching `story-brief.js:270`'s schema). The
-   loader tries, in order: (a) a dedicated `entrypoints.story_brief` if set;
-   (b) `entrypoints.brief`, attempting `JSON.parse` and checking for a
-   `must_show_features` key, if it parses and matches the shape, treat it
-   as the structured brief; if it fails to parse or lacks that key, treat it
-   as prose (no promise to check, same WARN path as "no brief at all"). This
-   is more code than round 1's single-key read, but it's the only version
-   that doesn't silently drop a real project's real brief.
-3. WARN-vs-BLOCK on missing inputs is unchanged from round 1: absent →
-   WARN, `evidence.checked === false`; present and failing → BLOCK. This was
-   not disputed and stands.
-4. Mandatory (not optional) schema/handler changes, confirmed needed:
-   `tools.js:827`'s `save_project_artifact` kind enum gains `'story_brief'`;
-   `handleRenderMaster` (`handlers.js:3653,3665`) and its `render_master`
-   tool schema both gain `story_brief`, `storyboard`, and `override` params,
-   destructured and forwarded to `renderMaster(...)`.
+**Slice 1 (ANI-210):** `mcp/lib/output-gates.js` (registry, rollup, no
+normalizer); `mcp/lib/delivery-promise.js` (§3's matcher against the
+corpus, §4's renderable-type filter, §5's disclosure rule); `mcp/lib/video.js`
+(`renderRemotionSequence` gains §2's admission read + §7's
+record-then-spawn); `mcp/lib/video-assembly.js` (`assembleVideoSequence`
+gains §8's admission check); `mcp/lib/gate-overrides.js` (shared with
+ANI-212, `recordOverride`, unchanged shape); `mcp/lib/master-persist.js`,
+`mcp/handlers.js` (§9's visibility). Tests: §2's three-way equality, §3's
+full corpus table, §4's cap/unrenderable-type cases, §5's three
+tempting-shortcut cases, §7's fail-closed-on-write-failure case, §8's
+`assemble_video_sequence`-refuses-a-BLOCK case.
 
-## 8. Slice list
+**Slice 2 (ANI-211):** `mcp/lib/slideshow-risk.js`, reading the identical
+`encodedProps` slice 1 defines; §6's reactive disclosure; §9's
+sub-score-attribution for `auto_revise`. Depends on slice 1's registry.
+Calibration corpus stays a named prerequisite, not built here.
 
-### Slice 1, ANI-210: choke point + seam + delivery-promise + override
+## 12. Open questions for James
 
-**Files:** `mcp/lib/gate-overrides.js` (new, shared with ANI-212, §4:
-`recordOverride`, the record shape); `mcp/lib/output-gates.js` (new,
-registry, `normalizeGateInput`, rollup); `mcp/lib/delivery-promise.js` (new,
-`checkDeliveryPromise`, §6-§7 logic); `mcp/lib/video.js`
-(`renderRemotionSequence` gains the admission check, structural override
-validation, the actual enforcement point, §1); `mcp/lib/render-master.js`
-(`composeCompileGate` runs gates early/advisory via `normalizeGateInput`;
-`renderMaster` gains `story_brief`, `storyboard`, `override` params, threads
-`override` down through `encodeMaster` to `renderRemotionSequence`, calls
-`recordOverride` alongside its existing `saveProjectArtifact({kind:'master'})`
-registration, §4); `mcp/lib/projects.js` (`renderProject` gains `override`
-param, threads it to `renderRemotionSequence`, calls `recordOverride` before
-its own `saveProjectArtifact({kind:'render'})` registration, reads
-`story_brief`/`storyboard` per §7); `mcp/handlers.js` + `mcp/tools.js`
-(schema/handler changes in §7.4, not optional, plus echoing the override
-record in each tool's return payload).
-
-**Test plan (every item the coordinator asked for):**
-- Polaris-shaped BLOCK / faithful PASS / missing-input WARN (round 1's
-  original three, unchanged).
-- `normalizeGateInput` parity: raw v2, raw v3 (`layers:[]`), pre-compiled;
-  same finding for equivalent content (§2).
-- Compound-layer item count: a `card_conveyor` with `stories.length === 8`
-  against a promise of 8 features → `PASS`; against a promise of 10 →
-  `BLOCK` naming exactly the 2 missing, not "1 vs 10."
-- Equal-length reordered panels: storyboard panels A,B,C with promises
-  `[2,0,4]` items; scenes authored in order C,A,B but each carrying the
-  right `panel_id` → correct binding, no false BLOCK/PASS. A second test
-  with the SAME reorder but no `panel_id` on any scene → positional
-  fallback WARN with `binding_confidence: 'positional_fallback'`.
-- `skip_preflight: true`, no `override` param, with a genuinely BLOCK-worthy
-  manifest → the advisory preflight check is skipped, but `render_project`
-  still fails at the choke point with a content-gate error, not a
-  successful render. Proves `skip_preflight` is not an implicit override.
-- Override, recorded and visible: `render_project({..., override: {reason:'known gap, ships next week', actor:'James Schuyler'}})`
-  on a BLOCK-worthy manifest, where the gate/tool/detail fields are filled
-  in by the gate code itself, not the caller. Render proceeds;
-  `project.json.overrides[]` gains a `{type:'content_gate', at, actor, tool:'render_project', reason, gate:'delivery_promise', detail}`
-  entry (ANI-212's exact field names), and the SAME record is present in the
-  tool call's own return payload, not only on disk.
-- Override missing actor: `override: {reason: '...'}` with no `actor` →
-  throws, matching ANI-212's `approve_stage`/`save_project_artifact` rule
-  that an override is never anonymous.
-- Aspect variants: a source that passes slideshow-risk at 16:9 but whose 9:16
-  variant's clamped duration tips a scene into the static-layer band →
-  `gate_by_artifact`-equivalent per-artifact result catches it; a single
-  source-level check does not (regression test proving the per-artifact
-  requirement, §9).
-- Blocked-master persistence + reassembly: persist a BLOCKed master, then
-  feed its persisted `manifest.json`/`sceneDefs` into
-  `assemble_video_sequence` and separately into `render_project`'s
-  `manifest` override param → the latter still blocks at the choke point
-  (proves the bypass Codex found is closed); the former is documented as
-  the residual, out-of-process risk (§1), not silently passing.
-- Handler/schema forwarding: `handleRenderMaster` actually forwards
-  `story_brief`/`storyboard`/`override` to `renderMaster` (a destructuring
-  regression test, this exact gap was round 1's bug).
-- Multiple simultaneous blockers: delivery-promise AND hero-frame both BLOCK
-  → `block_reason` names both, ranked verdict is `BLOCK`.
-- Gate exceptions: a gate function that throws is caught by
-  `runOutputGates` and surfaces as its own `BLOCK` finding
-  ("gate crashed: <message>"), never an unhandled rejection that silently
-  lets a render proceed.
-- `auto_revise` interaction (§10): a delivery-promise-only BLOCK with
-  `auto_revise: true` → `auto_revise_report.ran === false`, reason names the
-  content gate, no frame-evidence revision spawned.
-- `preflight.test.js:149,156`'s `checks.length === 6` assertion updated to 7
-  once the advisory `output_gates` check is added.
-
-**Mergeability:** first; slice 2 depends on `output-gates.js`.
-
-### Slice 2, ANI-211: slideshow-risk
-
-**Files:** `mcp/lib/slideshow-risk.js` (new, calls `evaluateSequence`
-(`evaluate.js:937`), `auditMotionDensity` per scene, AND `critiqueSemanticScene`
-per v3 scene directly, NOT via `evaluate_sequence`, since that path
-structurally never reaches it, §0); `mcp/lib/output-gates.js` (one
-`registerGate` line); prerequisite repair (§9) to `motion-density.js`'s
-`normalizeLayers`; per-artifact evaluation (loop over
-`gate_by_artifact`-equivalent artifacts, not once on the source, §0).
-
-**Mergeability:** after slice 1.
-
-**Test plan:** all 14 benchmarks scored (per-artifact sub-scores only, not
-band edges, §9); the real 6-scene `generateVideo` sample; per-sub-score unit
-tests; compound-layer-aware static-ratio test (a `card_conveyor` with 8
-active stories should not read as "1 static layer"); aspect-variant
-regression (above); `panel_id`-bound and positional-fallback cases shared
-with slice 1's fixtures where relevant.
-
-## 9. Calibration and the motion-density repro
-
-### 9.1 Motion-density bug, reproduced rigorously
-
-Re-ran against the EXACT catalog-loading and call pattern `scoring.js` uses
-in production (`scoring.js:58-67,661-667`:
-`loadPrimitivesCatalog()+loadPersonalitiesCatalog()+loadRecipes()`, then
-`compileMotion(sceneDef, catalogs, isReactiveScene(sceneDef)?{mode:'reactive'}:{})`
-→ `auditMotionDensity(timeline, sceneDef)`), not a hand-simplified version.
-Result, all 14 benchmarks: `Array.isArray(timeline.layers)` is `false` for
-every one; `timeline.tracks.layers` exists (non-reactive scenes, 13/14) or is
-absent (the one reactive/compound scene); `auditMotionDensity(...).score` is
-exactly `0` for all 14, including scenes with 5 staggered animated layers.
-**Confirmed, not retracted.** `normalizeLayers` (`motion-density.js:198-217`)
-needs the `timeline.tracks.layers` branch before slice 2 can honestly claim
-to reuse this signal.
-
-### 9.2 Calibration is a slice-2 prerequisite corpus task, not a band proposal
-
-Round 1's numeric "weight X heavily" recommendation is retracted along with
-the text-only heuristic that produced it (§0). What stands: 13/14 benchmarks
-are correctly ~0.0 static once compound layers are handled (§6.1) and the
-mutation bug is fixed (§0); the one real 6-scene `generateVideo` sample
-remains a legitimate bad-manifest data point. What's needed before ANY band
-edge ships: a corpus built with (a) the corrected, non-mutating measurement,
-(b) `type: 'html'` layers with real asset content excluded from any
-"text-only" signal (distinguish a decorative fill div from an asset-backed
-photo/notification layer, needs its own small heuristic, e.g. presence of
-an `assets[]` reference or a `src`-bearing HTML template path vs. an inline
-`<div style="background:...">`), and (c) several more full-manifest samples
-spanning good-to-bad. This is now explicitly slice 2's first deliverable,
-before any threshold is proposed, not a post-hoc recommendation.
-
-## 10. `auto_revise` interaction, fixed
-
-`autoReviseLoop` is skipped when `gated.verdict === 'PASS'` OR
-`gated.missingEvidence` (`render-master.js:264-274`, `missingEvidence` at
-`:204`, purely hero-frame-derived). Slice 1 adds a third skip condition:
-non-PASS caused ONLY by an output gate (delivery-promise/slideshow-risk),
-never hero-frame, `auto_revise_report = { ran: false, reason: 'content gate blocked (delivery_promise/slideshow_risk), a retime-only revision cannot add missing content or fix static layers' }`.
-A mixed BLOCK (both hero-frame missing-evidence AND a content gate) still
-skips, since the existing `missingEvidence` branch already covers that case
-first.
-
-## 11. Edge / hosted surface
-
-Unchanged from round 1's conclusions on tool edge-readiness
-(`render_master`/`render_project` local, `assemble_video_sequence`/
-`evaluate_sequence`/`audit_motion_density` edge-ready, `render-master.js:132,155`,
-`tool-groups.js:93,114,140`), none of that was disputed. Corrected: slice 2
-calls `critiqueSemanticScene` directly rather than assuming
-`evaluate_sequence` supplies it (§0), which doesn't change any tool's edge
-status since `critiqueSemanticScene` is itself a pure function with no
-standalone tool registration.
-
-## 12. Risks and open questions for James
-
-1. The residual out-of-process risk (§1): a human running a printed
-   `assemble_video_sequence` command, or `sizzle.mjs`/`compile-and-render*.js`,
-   from a shell is unreachable by any in-process gate. Worth a follow-up
-   (filesystem marker + pre-render hook), or accepted as out of scope?
-2. Should scene-authoring tooling be changed to require `panel_id` when
-   authoring against a beat/storyboard plan (§6.2.4), or does the
-   graceful-degradation WARN suffice indefinitely?
-3. The `product_role: 'decorative'` filter (§6.1) is a real, established
-   convention (44+ files) but was never designed as a promise-coverage
-   signal, confirm it's an acceptable repurposing before slice 1 ships.
-4. Calibration (§9.2) needs real additional sample generation time before
-   slice 2's band edges can be trusted, how many more `generateVideo`
-   samples is enough, and who reviews the resulting corpus?
-5. `mcp/lib/gate-overrides.js` (§4) needs to exist before either ANI-210/211
-   or ANI-212 can call `recordOverride`. Whichever lands second should do
-   the extraction from ANI-212's proposed `stage-map.js` location; flagging
-   so neither side assumes the other did it.
-6. `invoking_session` (§4) is a new optional field this plan proposes adding
-   to ANI-212's shared override shape. It only proves which server process
-   made a call, not who the human actually is. Confirm that's worth adding
-   now (before either issue ships) rather than as a later migration to an
-   already-written `overrides[]` array.
-7. This plan's override recording depends on ANI-212's `writeJSONAtomic` +
-   in-process mutex around `project.json` writes (ANI-212 §4) landing
-   first, or slice 1 duplicating a minimal version of the same fix. Confirm
-   the sequencing: does ANI-212 land before ANI-210/211's slice 1, or does
-   slice 1 need its own copy of the atomic-write fix?
+1. `assembleVideoSequence` refusing a `BLOCK` (§8) changes the behavior of
+   an edge-ready tool (`tool-groups.js` marks it `edgeReady:true`). Confirm
+   that's acceptable, versus returning an advisory warning while still
+   emitting the command.
+2. If `encodeMaster`'s override-write fails partway through a multi-artifact
+   loop (artifact 1 recorded, artifact 2's write throws), does the whole
+   encode abort, or only the unrecorded artifact? Not designed here.
+3. `story_brief` persistence (writing the structured brief to disk so
+   `checkDeliveryPromise` has `must_show_features` to check) still needs a
+   real write path and an unambiguous project identifier, both flagged in
+   round 2 and not rebuilt this round since neither is part of the
+   narrowed claim's enforcement machinery. Still needed before slice 1 has
+   anything to check features against.
+4. ANI-223's registry, once it ships, replaces §4's hardcoded
+   `SceneComposition`-switch citation. Whoever ships it should grep this
+   plan's file:line citations and update them, not assume they're still
+   current.

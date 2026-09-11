@@ -4,538 +4,441 @@ Design draft only, no product code. Written against `origin/main` at `863478d` (
 2026-09-11, worktree `~/.claude-worktrees/animatic/ani-212-stage-map`, branch
 `james/ani-212-stage-map-design`). Clean-room: OpenMontage source was not opened, the
 mechanism description in ANI-212/ANI-209 is the only input taken from that project.
-Parent: ANI-209 (clean-room reimplementation of OpenMontage's stage-gate mechanism, MIT
-license preserved). Sibling: ANI-210 (shared gate hook for `render_master` + preflight,
-not designed here, only where this stage check sits relative to it, and its own override
-plan is being revised in parallel against the same rule as Section 4's generic override
-shape). Prior art: ANI-151 (`compose_storyboard`, shipped, the storyboard producer this
-issue gates) and `docs/cinematography/design-pipeline-audit.md`, whose target-pipeline
-table already lists `2.5 human review, approval, gate before any HTML`, the strongest
-existing precedent for where an approval belongs.
+Parent: ANI-209. Sibling: ANI-210/211 (`~/.claude-worktrees/animatic/ani-210-gate-plan`,
+`docs/process/ani-210-211-gate-seam-plan.md`, read not edited): its round 3 puts
+content-gate admission inside `renderRemotionSequence` (`mcp/lib/video.js:293`) and
+adopts this draft's override record shape verbatim. Section 4 designs the render-path
+stage check to share that exact chokepoint and record, one admission call, not two.
 
-**Update 2026-09-11:** James made the three open decisions below (strict/grandfathered,
-approval default, override shape). Sections 3, 4, 6, and 7 are revised accordingly.
-Sequencing note: ANI-220 (beat plans saved under `kind: storyboard`, clobbering the
-pointer, see 1b) is being fixed first as a data-integrity bug, landing before ANI-212.
-This draft assumes ANI-220 has already given beat plans their own `kind`/entrypoint by
-the time this work starts, and designs the `beats` stage accordingly.
+**Round 2 (this revision):** Codex rejected round 1 (`7c1ee49`) at P1. James triaged
+every finding; this revision fixes the 10 accepted items, states the rationale for the
+1 rejected item, and, for the 1 on-hold item (approval authenticity), makes the
+non-discretionary fixes now and sketches two options without picking. Superseded text
+is deleted, not annotated. Round cap: 3, this is round 2.
 
 ## 1. Inventory on origin/main
 
 ### 1a. Every writer of `project.json`
 
-```
-git grep -n "project\.json" -- . ':!*.test.js' ':!docs/**' ':!*.md'
-```
-
-turns up exactly two write sites, both in `mcp/lib/projects.js`, both going through the
-same `writeJSON` helper (`projects.js:101-103`, plain `writeFile`, not atomic):
-
-| Writer | File:line | Trigger |
-|---|---|---|
-| `initProject` | `mcp/lib/projects.js:186` | `init_project` tool - creates the file |
-| `saveProjectArtifact` | `mcp/lib/projects.js:529` | `save_project_artifact` tool - read-modify-write on every call |
-
-**No other writer exists, on or off the `save_project_artifact` door.** Every caller that
-mutates project state goes through `saveProjectArtifact`, not around it:
-
-| Caller | File:line | Kind |
-|---|---|---|
-| `renderProject` (`render_project`, marks latest render) | `mcp/lib/projects.js:838` | `render` |
-| `renderMaster` (`render_master`, persist/encode path) | `mcp/lib/render-master.js:342` | `master` |
-| `recordRenderFeedback` (`record_render_feedback`) | `mcp/lib/feedback.js:130` | `review` (role `feedback`) |
-
-`bin/animatic.mjs:190` reads `project.json` (CLI status display) but never writes it.
-`mcp/lib/master-persist.js:114-147` writes `manifest.json`/`timelines.json`/a masters
-index under the project tree, real disk writes, but never `project.json` itself; the
-pointer back is registered through `saveProjectArtifact` at `render-master.js:342` above.
-**Conclusion: there is one door, not several.** The "don't gate one door and leave
-another" risk the issue calls out doesn't apply to writers, it applies to *tools that
-produce stage content without saving it*, below.
+Unchanged from round 1: exactly two write sites, `initProject` (`projects.js:186`) and
+`saveProjectArtifact` (`projects.js:529`), both via `writeJSON` (`projects.js:101-103`).
+Every durable caller (`renderProject`, `renderMaster`, `recordRenderFeedback`) mutates
+project state only through `saveProjectArtifact`, confirmed unchanged. **What round 1
+got wrong:** that finding is about who writes `project.json`, not about when. Section 4
+below is the fix for the real gap Codex found: several of these callers produce a
+durable side effect (an MP4, a persisted master, a feedback log entry) *before* the
+`saveProjectArtifact` call that was the only place round 1 proposed to gate.
 
 ### 1b. Every tool that produces each stage's artifact
 
-Registration = the name appearing in `mcp/tools-registry.js` `HANDLERS` (dispatch) and in
-`mcp/tool-groups.js` `TOOL_GROUPS` (tier/edge manifest - the two are cross-checked at
-startup, `tools-registry.js:158-184`, so a name can't be in one without the other).
+Table unchanged from round 1 (brief/storyboard/beats/scenes/manifest/render/review
+producers, all pure TRANSFORM tools except the two render tools). Two real gaps found
+this round, both P2:
 
-| Stage | Producer tool | Registry | Tier manifest | Handler | Writes to disk itself? |
-|---|---|---|---|---|---|
-| brief | `extract_story_brief` | `tools-registry.js:90` | `tool-groups.js:126` (TRANSFORM, edge-ready) | `handlers.js:3482` | No - pure, returns JSON |
-| storyboard | `compose_storyboard` | `tools-registry.js:91` | `tool-groups.js:127` (TRANSFORM, edge-ready) | `handlers.js:3497` | No - pure (+ optional LLM enrichment), returns JSON |
-| beats | `plan_story_beats` | `tools-registry.js:92` | `tool-groups.js:128` (TRANSFORM, edge-ready) | `handlers.js:3536` | No - pure, returns JSON; `storyboard` param is optional (see 1c) |
-| scenes | `generate_scenes` | `tools-registry.js:40` | `tool-groups.js:160` - marked `edgeReady:false, "VERIFY: may write scene files"` | `handlers.js:1771` | No - confirmed by reading the handler and grepping `generator.js` for `writeFile`/`writeJSON`: none. The manifest's caution note is stale; a follow-up to flip it is out of scope here. |
-| manifest | `plan_sequence` | `tools-registry.js:34` | `tool-groups.js:92` (TRANSFORM, edge-ready) | `handlers.js:1397` | No - pure |
-| render | `render_project` | `tools-registry.js:57` | `tool-groups.js:155` (RENDER, local-only) | `mcp/lib/projects.js:668` | Yes - spawns Remotion, then registers via `saveProjectArtifact` (`:838`) |
-| render (alt track) | `render_master` | `tools-registry.js:96` | `tool-groups.js:132` (TRANSFORM but `edgeReady:false`, local Remotion stills for the hero-frame gate) | `mcp/lib/render-master.js:239` | Yes when `persist`/`encode` - registers via `saveProjectArtifact` kind `master` (`render-master.js:342`) |
-| review | `review_project` | `tools-registry.js:58` | `tool-groups.js:148 (PROJECT)` | `mcp/lib/projects.js:545` | Yes - writes `review/evaluation.json` directly (`projects.js:636`), **not** through `saveProjectArtifact`; safe only because `review.evaluation`'s path is a fixed string set once at `initProject` (`projects.js:176`) and never re-pointed |
+- **`generate_brief_stub`** (`tools-registry.js:103`, `handlers.js:3966`,
+  `mcp/lib/story-brief.js`) is a second, alternate `brief` producer, pure, no write
+  (grepped `story-brief.js` for `writeFile`/`writeJSON`: none). `bin/animatic.mjs`'s
+  `case 'brief':` (`:186-193`, corrected citation, see 1f) calls the same function from
+  the CLI. Neither writes `project.json`; the agent/CLI still has to call
+  `save_project_artifact(kind: 'brief', ...)` to persist it.
+- **`assemble_video_sequence`** (`tools-registry.js`'s `assemble_video_sequence` entry,
+  `mcp/lib/video-assembly.js`) writes `render-props.json` to disk via `outputDir`
+  (`video-assembly.js:121-124`, `writeFileSync`), a real durable write outside
+  `saveProjectArtifact`. It takes no `project` parameter at all, structurally: it cannot
+  be gated against project stage state because it has no reference to a project. This is
+  ANI-210's bypass to close (their round-3 plan §8, an admission check on its own
+  `{manifest,sceneDefs,timelines}`), not ANI-212's; named here so the inventory states
+  the boundary honestly rather than omitting the write. **Stated boundary:** a pure
+  transform stays ungated until something persists it under a project; the moment it
+  does, that persistence call is what gets checked, never the transform itself.
 
-**Every stage-producing tool except `render_project`/`render_master` is a pure TRANSFORM
-tool that returns data and touches no disk.** Persistence is the agent calling
-`save_project_artifact` afterward, good news for enforcement: gating the one chokepoint
-gates real stage completion for every stage except `review`, which needs its own note
-(below) because its write bypasses the chokepoint by construction, not by omission.
+`score_candidate_video`, `compare_candidate_videos`, `generate_contact_sheet`
+(`tools-registry.js`, `handlers.js:3051` for the sheet) are the score-card/comparison/
+contact-sheet producers Section 6's Step 8 registers. Confirmed pure (no write) by
+reading `handleGenerateContactSheet`; the other two are TRANSFORM/edge-ready per
+`tool-groups.js`, same evidentiary bar as round 1's table. Their `kind` is fixed in
+Section 2/6 below (round 1 called them `review`, which deadlocked `/direct`; see 1c).
 
-**Found while inventorying, not asked for but load-bearing:** `.claude/skills/direct/SKILL.md:124-136`
-(Step 8's save table) registers **both** the real storyboard **and** each of the three
-per-strategy beat plans under `kind: storyboard`:
+### 1c. The two sequencing deadlocks Codex found (P1, accepted)
 
-```
-| Storyboard | `storyboard` | `concept/storyboard.json` |
-| Beat plans | `storyboard` | `concept/beat-plan-{strategy}.json` |
-```
+Both real, verified against `.claude/skills/direct/SKILL.md` and the round-1 stage map:
 
-`saveProjectArtifact`'s `storyboard` case (`projects.js:444-446`) does
-`projectData.entrypoints.storyboard = artifactPath`, a scalar overwrite, not an append.
-Calling it four times in Step 8 (once for the real storyboard, three times for
-`prestige`/`energy`/`dramatic` beat plans) means **whichever save runs last wins the
-entrypoint**. Not hypothetical: `projects/2026-03-25-fintech-sizzle/project.json` on
-`origin/main` has `entrypoints.storyboard` pointing at `concept/beat-plan-dramatic.json`,
-and `concept/storyboard.json` does not exist on disk in that project at all, only the
-three beat-plan files do. The real storyboard save was clobbered (or never landed) and
-nothing noticed because nothing reads `entrypoints.storyboard` for anything but display
-today. **Stage completion cannot be inferred from `entrypoints.storyboard` alone.**
-Section 2 tracks completion in a separate `stages` block for this reason. This exact
-collision is ANI-220's data-integrity fix (beat plans get their own `kind`), which is
-being landed first, as a prerequisite to this issue rather than something this issue
-also has to fix. Section 2's `beats` stage assumes that kind already exists. It stays a
-worked example here regardless: `fintech-sizzle` is also this doc's canonical case for
-the grandfather warning in Section 3a, since its `entrypoints.storyboard` is present but
-unreliable, exactly the "unknown, not missing" case that warning has to distinguish.
+1. **Storyboard before brief.** The map requires `brief` complete before `storyboard`
+   (Section 2). Round 1's Step 2.5 saved the storyboard; round 1's Step 8 saved the
+   brief. Every `/direct` run on a strict project would refuse its own first storyboard
+   save. **Fix (Section 6):** move the brief save to Step 2, immediately after
+   `extract_story_brief` returns, not deferred to Step 8.
+2. **Review requiring a render `/direct` never produces.** Round 1 gated `review` on
+   `render`, then had Step 8 register score cards, comparisons, and contact sheets as
+   `kind: 'review'` -- but `/direct`'s 9 steps never call `render_project`/`render_master`
+   at all; rendering is a separate, later action. Every one of those saves would refuse.
+   **Fix (Section 2/6):** these are pre-render candidate-evaluation artifacts, not
+   post-render human review, and conflating them was the actual bug -- the same shape as
+   the storyboard/beat-plan `kind` collision ANI-220 is fixing (1b's round-1 finding).
+   Same fix: give them their own stage and `kind` (`candidate_review`), requiring only
+   `manifest`, not `render`. `review` stays strictly post-render, unchanged meaning,
+   now with nothing wrongly routed through it.
 
-### 1c. Every current read of project status
+### 1d. Grandfather-warning surfaces, complete this time
 
-```
-git grep -n "\.status\b|approved_render|STATUS_PROJECT|STATUS_SCENE|STATUS_VERSION|entrypoints\." -- 'mcp/lib/*.js' 'mcp/*.js'
-```
+Round 1 hand-picked four surfaces. Enumerated instead, every call site of `getProject`/
+`getProjectContext`/`listProjects` outside `projects.js` itself
+(`git grep -n "getProject(\|getProjectContext(\|listProjects(" mcp/handlers.js mcp/lib/*.js`,
+excluding `projects.js`):
 
-| Read | File:line | What it does |
+| Call site | Tool | Round-1 gap |
 |---|---|---|
-| `STATUS_PROJECT` / `STATUS_SCENE` / `STATUS_VERSION` | `mcp/lib/projects.js:33-35` | Declared. **Never read for gating anywhere.** No code transitions a project's `status` past its `initProject`-set `'draft'` (`projects.js:154`); no code reads `STATUS_*` except the test file's enum assertions. |
-| `listProjects({ status })` filter | `mcp/lib/projects.js:225` | Optional query filter only, not enforcement. Since nothing ever sets `status` to anything but `draft`, this filter is currently a no-op in practice. |
-| `entrypoints.approved_render` | `mcp/lib/feedback.js:138` | The **only** reader in the codebase - feedback-target resolution falls back `approved_render` → `latest_render` → `latest_master`. Matches the issue text exactly. |
-| `entrypoints.root_manifest` | `mcp/lib/projects.js:299-300`, `:684-686`, `feedback.js:84-87` | Read as a required precondition (throws/returns error if unset) - this is the one place something resembling "stage prerequisite" enforcement already exists, informally, per call site rather than centrally. |
-| scene `status` field (`'draft'` etc., `STATUS_SCENE` vocabulary) | `projects.js:467` sets it, nothing reads it | `saveProjectArtifact`'s `scene` case spreads `...metadata` after `status: 'draft'` (`:468`), so a caller *could* pass `metadata: { status: 'approved' }` to override it - no validation against `STATUS_SCENE`, no enforcement downstream. |
+| `handlers.js:2630` (`handleListProjects`) | `list_projects` | Missed entirely. |
+| `handlers.js:2635` (`handleGetProject`) | `get_project` | Had it. |
+| `handlers.js:2640` (`handleGetProjectContext`) | `get_project_context` | Had it. |
+| `handlers.js:1038` (`handleExportStoryboardToFigma`) | `export_storyboard_to_figma` | Missed; returns at `:1104` with no warning field. |
+| `handlers.js:1196` (`exportFigmaImageFills`, a helper inside the Figma frame-to-scene flow) | `figma_frame_to_scene` | Missed. |
+| `feedback.js:78` (`recordRenderFeedback`) | `record_render_feedback` | Missed; its return at `:132` discards `proj` entirely. |
+| `render-master.js:337` (`renderMaster`, persist/encode path) | `render_master` | Had it, via `renderMaster`'s own return. |
 
-**Confirmed root cause matches the issue:** the approval vocabulary (`STATUS_PROJECT`
-`approved`, `STATUS_SCENE` `approved`, `entrypoints.approved_render`) exists in the type
-shape but nothing writes to it under real conditions and nothing but `feedback.js:138`
-reads it. There is no order enforcement anywhere in `mcp/lib/`.
+`renderProject` (`projects.js:679`) and `reviewProject` (`projects.js:546`) call
+`getProject` internally too; both already carried the warning in round 1 and still do.
+**Fix:** `getStageWarning(proj)` (Section 3b) is attached by every handler in the left
+column above before it returns, not by `getProject` itself (see 1e for why).
 
-### 1d. `story-beats.js` optional-storyboard confirmation
+### 1e. `stage_warning` would get persisted (P2, accepted)
 
-`planStoryBeats({ story_brief, archetype_slug, storyboard, audio_beats, options })`
-(`mcp/lib/story-beats.js:320`) takes `storyboard` as an unchecked optional destructure,
-no default, no throw. Panels are read only if present
-(`:376`, `const panels = Array.isArray(storyboard?.panels) ? storyboard.panels : [];`),
-and the beat plan reports `storyboard_aware: panels.length > 0` (`:466`). Exactly as the
-issue states.
+Real bug in round 1's own design: `getProject`'s return object was the proposed carrier
+for `stage_warning`, but `saveProjectArtifact` builds `projectData` by calling
+`getProject` internally and spreading everything off it except `project_root`
+(`projects.js:433-434`, `const { project_root: _root, ...projectData } = proj`). A
+`stage_warning` field on `getProject`'s return would ride along into the next write and
+land in `project.json` as a stale, derived fact. **Fix:** `getStageWarning` is never
+attached inside `getProject`/`getProjectContext` itself. It is computed and attached
+only at the outer handler boundary (the table in 1d), which never feeds its result back
+into a write. `saveProjectArtifact` additionally destructures a `DERIVED_FIELDS` list
+(`['project_root', 'stage_warning']`, extensible) instead of just `project_root`, so even
+a future derived field added the same careless way is caught by the same line, not a new
+one. Test in Section 5.
 
-### 1e. Fixture scope - `projects/` and `examples/`
+### 1f. Citation corrections (P3, accepted)
 
-- `projects/` on `origin/main`: **3** projects (`fintech-sizzle`, `polaris-observability`,
- `aria-cloud-console`). All three have a non-null `entrypoints.storyboard`, but per 1b
- that field is not a reliable completion signal for `fintech-sizzle`; the other two do
- have a real `concept/storyboard.json` on disk.
-- `examples/` on `origin/main`: **5** entries. None contain a `project.json`
- (`find examples/ -iname project.json` returns nothing). They are golden test fixtures
- read directly by `mcp/test/*.test.js` via raw file paths (e.g.
- `confidence-upgrade.test.js:231`, `shot-grammar-first.test.js:49`), never through
- `getProject`/`saveProjectArtifact`. **They never touch the enforcement path and need
- no grandfathering.**
+- `bin/animatic.mjs:190` is inside `case 'brief':` (the CLI's brief subcommand, calling
+  `generateBriefStub`), not a "CLI status display." Corrected in 1b above.
+- `tool-groups.js:15-16` describes Tier 2 storage-backing, not process topology. The
+  actual citation for "one process per stdio session" is `mcp/index.js:212`
+  (`await server.connect(transport)` inside `main()`), corrected in Section 4.
+- `mcp/test/projects.test.js:272-410` does not create a fresh project per test or seed one
+  in `beforeEach`. It reuses one project (`TEST_SLUG`, created in an earlier `describe`
+  block, `:38`) across the whole `saveProjectArtifact` suite in sequence -- "updates
+  existing scene entry" depends on the previous test's "adds scene to scenes array"
+  having already run. Corrected in Section 5's test-impact note.
 
 ## 2. Stage map draft
 
-Per-project completion state lives in a new `stages` block inside `project.json` (not
-inferred from `entrypoints.*`, precisely because of the overwrite bug in 1b). The map
-*shape* (stage order, `requires`, `approval`) is a static catalog document; the map
-*state* (which stages this project has completed/approved) is per-project.
-
 ```jsonc
-// catalog/stage-map.json (shape - static, versioned, NOT a per-project file)
+// catalog/stage-map.json (shape - static, versioned)
 {
- "stage_map_version": 1,
- "stages": [
- { "key": "brief", "requires": [], "produces_kind": "brief", "approval": false },
- { "key": "storyboard", "requires": ["brief"], "produces_kind": "storyboard","approval": true },
- { "key": "beats", "requires": ["storyboard"], "produces_kind": "beats", "approval": false, "note": "produces_kind assumes ANI-220 lands first (beat plans get a dedicated kind, no longer collide with storyboard's entrypoint, see 1b)" },
- { "key": "scenes", "requires": ["storyboard"], "produces_kind": "scene", "approval": false },
- { "key": "manifest", "requires": ["storyboard"], "produces_kind": "manifest", "approval": false },
- { "key": "render", "requires": ["manifest"], "produces_kind": ["render", "master"], "approval": true, "approval_role": "approved" },
- { "key": "review", "requires": ["render"], "produces_kind": "review", "approval": false }
- ]
+  "stage_map_version": 1,
+  "grandfathered_project_ids": ["fintech-sizzle", "polaris-observability", "aria-cloud-console"],
+  "stages": [
+    { "key": "brief", "requires": [], "produces_kind": "brief", "approval": false },
+    { "key": "storyboard", "requires": ["brief"], "produces_kind": "storyboard", "approval": true },
+    { "key": "beats", "requires": ["storyboard"], "produces_kind": "beats", "approval": false, "note": "assumes ANI-220 lands first, see 1b/1c" },
+    { "key": "scenes", "requires": ["storyboard"], "produces_kind": "scene", "approval": false },
+    { "key": "manifest", "requires": ["storyboard"], "produces_kind": "manifest", "approval": false },
+    { "key": "candidate_review", "requires": ["manifest"], "produces_kind": "candidate_review", "approval": false, "note": "pre-render evaluation: score card, comparison, contact sheet (1c fix 2)" },
+    { "key": "render", "requires": ["manifest"], "produces_kind": ["render", "master"], "approval": true, "approval_role": "approved" },
+    { "key": "review", "requires": ["render"], "produces_kind": "review", "approval": false }
+  ]
 }
 ```
 
-```jsonc
-// project.json addition (per-project state, written by saveProjectArtifact/approveStage)
-{
- "...": "existing fields unchanged",
- "stage_map_version": 1, // absent/null == legacy project, see Section 3
- "stages": {
- "brief": { "status": "complete", "completed_at": "2026-09-11T12:00:00Z" },
- "storyboard": { "status": "approved", "completed_at": "...", "approved_at": "...",
- "approved_note": "panels cover all 4 features", "approved_by": "James Schuyler", "approval_policy": "human" },
- "scenes": { "status": "complete", "completed_at": "..." },
- "manifest": { "status": "not_started" }, "render": { "status": "not_started" }, "review": { "status": "not_started" }
- }
-}
-```
-
-`status` values: `not_started` → `complete` (artifact saved) → `approved` (only for stages
-with `approval: true`, via `approve_stage`). A stage with `approval: false` is usable by
-its dependents as soon as it's `complete`.
-
-**Versioning so old projects are detectable:** `project.json.stage_map_version` is the
-signal. `initProject` (`projects.js:127-193`) starts stamping it going forward
-(`stage_map_version: 1`, `stages: {}` all `not_started`). Any project written before this
-change has no `stage_map_version` key at all - `undefined`, not `0` - which is
-unambiguous and matches how `entrypoints.latest_master` already rolled out (added later,
-absent on old projects, nobody back-filled it). `catalog/stage-map.json`'s own
-`stage_map_version` lets the map shape itself evolve later without a second versioning
-scheme.
+`grandfathered_project_ids` is new this round (Section 3a); it is captured once, at
+rollout, from the 3 real projects inventoried in 1e of round 1, and is not grown for new
+projects afterward. Per-project state (`project.json.stages`) is unchanged from round 1:
+`not_started` -> `complete` -> `approved`, keyed by the stages above.
 
 ## 3. Decision (recorded 2026-09-11): strict for new, grandfathered for existing
 
-James decided **Option A**, with one addition: grandfathering must not be silent (3a).
-Options B/C are kept below as the record of what was considered and rejected, unchanged
-from the original draft.
+James decided Option A. Round 1's classifier (`stage_map_version` present = strict,
+absent = grandfathered) is replaced this round per 3a; the reasoning for A over the
+rejected B/C options is unchanged from round 1 and not repeated here.
 
-**Option A - Strict for new, grandfathered for existing (decided).**
-`saveProjectArtifact`/`approveStage` check `project.stage_map_version`. Present → enforce.
-Absent (all 3 current `projects/`, since none will have the field before this ships) →
-skip enforcement entirely, stage checks are a no-op. `initProject` stamps
-`stage_map_version` on every project from here on.
-- Breaks: nothing today. All 3 existing projects keep working exactly as now, forever,
- unless someone manually adds `stage_map_version` to their `project.json`.
-- Cost: the `fintech-sizzle` overwrite bug (1b) stays live for grandfathered projects - 
- acceptable, since strict enforcement wouldn't have caught it retroactively anyway (the
- file really is missing).
-- Tests/`/direct`/`/sizzle`: unaffected for existing fixtures; new projects created by
- tests need `stage_map_version` seeded or they're strict by default (see below).
+### 3a. Legacy ledger, not a mutable field inside the document it governs (P1, accepted)
 
-**Option B - Strict for everyone, one-time migration.** Add `stage_map_version: 1` and a
-computed `stages` block to the 3 existing `projects/*/project.json` files (a one-off
-script, not a runtime migration), backfilling `stages.storyboard.status` from whether
-`concept/storyboard.json` exists on disk (true for
-`polaris-observability`/`aria-cloud-console`, false for `fintech-sizzle`).
-- Breaks: `fintech-sizzle` becomes append-blocked until someone re-runs
- `compose_storyboard` + `save_project_artifact(kind: storyboard)` against it. Its existing
- `root_manifest`/render files aren't touched retroactively, only *new* scene/manifest
- saves against that project.
-- `examples/` untouched either way (1e, never calls these tools).
-- `mcp/test/projects.test.js` builds fresh temp projects per test
- (`describe('saveProjectArtifact', ...)`, `:272-410`) - each would need
- `stage_map_version` plus a completed `storyboard` stage seeded in `beforeEach`.
+Codex's finding: a field living inside `project.json` cannot be the sole legacy
+credential, because deleting it, hand-authoring a project without it, or a test fixture
+that never sets it (1f, `render-master-encode.test.js:508`'s `tmpProject()`) all
+silently downgrade a project to ungated. **Fix:** the classifier is now two-part, and
+the ledger lives in `catalog/stage-map.json` (Section 2), committed, outside every
+per-project document:
 
-**Option C - Opt-in per project (`enforce_stages: true` flag).** Strict only for projects
-created via a new `--strict-stages` flag on `init_project`. Weakest: invites "just don't
-set the flag" as the workaround to the discipline problem this issue exists to fix, and
-adds a third piece of per-project state. Not recommended.
-
-**Why A over B/C:** matches the issue's own acceptance criterion verbatim, costs nothing
-against the 3 real projects and 5 fixtures inventoried above, and skips a migration
-script whose correctness (Option B's "does the file exist on disk" backfill logic) would
-itself need review, the exact kind of informal inference this issue exists to stop.
-Tradeoff, addressed by 3a rather than accepted silently: `fintech-sizzle` keeps its
-clobbered entrypoint until someone touches it by hand, which is fine only as long as
-that state stays visible.
-
-### 3a. Grandfather warning - the debt stays visible, never blocking
-
-A grandfathered project (no `stage_map_version`) must never be gated, but every read
-surface that already loads the project state surfaces a structured, non-blocking warning
-naming it grandfathered and listing what's missing or unverifiable. New helper,
-`getStageWarning(proj)` (proposed `mcp/lib/stage-map.js`, alongside
-`checkStagePrerequisites`):
-
-```jsonc
-// returned by getStageWarning; null for any project with stage_map_version set
-{
- "type": "stage_map_grandfathered",
- "project": "fintech-sizzle",
- "message": "Project predates the stage map (no stage_map_version) - prerequisites are not enforced.",
- "stages": {
- "brief": "inferred_complete", "storyboard": "unknown", "beats": "unknown",
- "scenes": "inferred_complete", "manifest": "inferred_complete",
- "render": "inferred_complete", "review": "inferred_missing"
- },
- "detected_at": "2026-09-11T12:00:00Z"
-}
+```
+isGrandfathered(proj) = proj.stage_map_version == null AND proj.slug is in grandfathered_project_ids
 ```
 
-Per-stage values are best-effort, explicitly labeled as inference, never authoritative:
-`inferred_complete` / `inferred_missing` come from existing signals (`entrypoints.*` set
-+ file exists on disk; `scenes.length > 0`; `masters.length > 0`). `unknown` is used when
-the signal itself is untrustworthy, not merely absent, which is exactly
-`fintech-sizzle`'s case: `entrypoints.storyboard` is set but points at a beat-plan file
-(1b), so the checker cannot call it complete OR missing, it has to say so. This is the
-worked example the test in Section 5 uses.
+A project with no `stage_map_version` that is **not** in the ledger is strict and fails
+closed -- exactly the versionless `render-master-encode.test.js` fixture, which was never
+one of the 3 real projects and was never meant to be exempt. The ledger is frozen at
+rollout (never appended to); a project can only move off it by migrating forward
+(gaining `stage_map_version`), never by an existing project acquiring grandfathered
+status later. `initProject` stamps `stage_map_version: 1` on every project from here on,
+so the ledger's membership is fixed the day this ships and shrinks only.
 
-**Where it surfaces** (never a return-value change that could break an existing caller,
-always an added field):
-- `getProject` (`projects.js:253`) - adds `stage_warning` to the returned object.
-- `getProjectContext` (`projects.js:331`) - adds `result.stage_warning` alongside
- `result.project`, so `/direct` Step 1 sees it on every run without a new call.
-- `reviewProject` (`projects.js:545`) - adds `stage_warning` into the `evaluationOutput`
- object that's already written to `review/evaluation.json` (`:636`), so the warning is
- durably logged as part of the review record, not just returned once.
-- `renderProject` (`projects.js:668`) / `renderMaster` (`render-master.js:239`) - adds
- `stage_warning` to the return payload, surfaced to whoever is watching the render
- (human or agent), never written into the render artifact itself.
+### 3b. Grandfather warning, corrected surfacing (see 1d, 1e)
 
-**Guarantee:** `getStageWarning` never throws and never affects control flow, it's a pure
-read appended to an existing successful result. `checkStagePrerequisites` (Section 4)
-short-circuits to "no gate" for a grandfathered project *before* `getStageWarning` would
-even be relevant to that call, so the warning and the enforcement skip are two separate
-codepaths that can't contradict each other by construction.
+Shape unchanged from round 1 (`type: 'stage_map_grandfathered'`, per-stage
+`inferred_complete`/`inferred_missing`/`unknown`, `detected_at`). `isGrandfathered`
+above is `getStageWarning`'s entry condition, replacing round 1's `stage_map_version`-only
+check. Surfacing is now the complete table in 1d, and it is attached at the handler
+boundary only (1e), never inside `getProject`/`getProjectContext`.
 
 ## 4. Tool contracts
 
 ### `approve_stage({ project, stage, note, actor, policy? })`
 
-**Decided 2026-09-11: human approval is the default, not self-approval.** `policy`
-defaults to `'human'`; any other value is rejected for now ("policy not implemented" -
-see Section 6 for how `/direct` actually stops and waits rather than calling this tool
-itself). `actor` is now required, not optional, matching "attributable" for every
-approval, not only overrides (Section 4's override shape below applies the same rule).
+**Fix (P1, accepted): the target stage must already be `complete`.** Round 1's error
+list checked only the stage's *predecessors*, never the stage's own current status, so
+`not_started -> approved` was reachable. New error, checked first:
+
+```
+"Cannot approve \"<stage>\": current status is \"<status>\", must be \"complete\" first"
+```
+
+**Fix (on hold, do-now per James): no unauthenticated identity claim.** MCP dispatch
+passes caller-supplied arguments straight to handlers (`tools-registry.js:187`); nothing
+authenticates `actor`, and nothing distinguishes a human from an agent calling this tool.
+Round 1 claimed "human approval, not self-approval" as a guarantee. It is not one. The
+only honest guarantee: **the caller attested that a human approved.** Every mention of
+"human approval" in this document (Section 6 included) means attestation, not a verified
+fact. `'human (unspecified)'` (round 1's fallback when no name was given) is deleted; a
+caller with no name to attest simply cannot call this successfully -- `actor` has no
+default, ever.
 
 ```jsonc
-// input
-{ "project": "string (slug or path)", "stage": "string (one of catalog/stage-map.json stages[].key)",
- "note": "string, required", "actor": "string, required - who/what approved, e.g. a human name, or 'auto:/direct' once an unattended policy ships",
- "policy": "string, optional, default 'human' - the approval_policy that authorized this call" }
+// input (actor required, no default; policy default 'human', only value implemented)
+{ "project": "string", "stage": "string", "note": "string, required",
+  "actor": "string, required - the caller's attestation of who approved, never defaulted",
+  "policy": "string, optional, default 'human'" }
 
-// output (mirrors saveProjectArtifact's return shape: updated project.json)
-{ "...projectData": "...", "stages": { "storyboard": {
- "status": "approved", "approved_at": "...", "approved_note": "...",
- "approved_by": "...", "approval_policy": "human" } } }
-
-// errors (thrown Error, uncaught by the handler, same convention as
-// handleSaveProjectArtifact at handlers.js:2644-2647, not handleRecordRenderFeedback's
-// try/catch at :2659-2668)
+// errors
 "Project not found: <id>"
-"Unknown stage: <stage>. Valid stages: brief, storyboard, ..." // forged/unknown key
+"Unknown stage: <stage>. Valid stages: brief, storyboard, ..."
 "Stage \"<stage>\" is not gated (approval: false) - nothing to approve"
+"Cannot approve \"<stage>\": current status is \"<status>\", must be \"complete\" first"
 "Cannot approve \"<stage>\": predecessor \"<dep>\" is not complete"
-"note is required for approve_stage" // no silent approval
-"actor is required for approve_stage" // no anonymous approval either
-"Unknown approval_policy \"<policy>\": only \"human\" is implemented" // fail closed, not silently accepted
+"actor is required for approve_stage" // no anonymous, no default
+"note is required for approve_stage"
+"Unknown approval_policy \"<policy>\": only \"human\" is implemented"
 ```
 
-The provenance record (`approved_by`, `approval_policy`, `approved_at`, `approved_note`)
-is the "policy name, who/what invoked it, when, and the reason" James asked to design
-now even though only `'human'` ships first: it's already a complete record shape, an
-unattended policy added later is a new accepted `policy` value plus its own invocation
-path, not a schema change. `actor`'s source is deliberately left to the caller (there's
-no auth-identity concept in this stdio-only surface, Tier 2, `tool-groups.js:143-150`):
-the `/direct` agent should pass whatever name/handle the human gave in conversation, or
-a fixed literal like `'human (unspecified)'` if none was given, rather than leaving the
-field empty. See Section 6 for the exact pause/resume mechanics.
+### 4a. Approval authenticity: two options, not decided
 
-### `save_project_artifact` refusal shape
+Both fixes above ship regardless of which option James picks later. What's undecided is
+how much further to go:
 
-Same function, same signature, `projects.js:414-532`. New check inserted before the
-existing `switch (kind)` block (`:439`), after `getProject` resolves (`:425-428`) so the
-"project not found" error still fires first:
+- **(a) Attested-only.** `/direct` ends its turn and waits (Section 6, unchanged
+  mechanism); the record states `attestation: true` and nothing stronger. Ships today,
+  zero new infrastructure, the honest version of what round 1 already built.
+- **(b) Client-side confirmation via MCP elicitation.** The server asks the connected
+  MCP client to collect the confirmation directly from the human through the client's
+  own UI, not through the calling agent's tool-call arguments -- the agent in the loop
+  cannot answer on the human's behalf because the round-trip happens between server and
+  client, bypassing the agent. Falls back to (a) when the connected client doesn't
+  support elicitation (not every MCP client does; this needs verifying per client, not
+  assumed). More real, more infrastructure, not designed further here.
 
-```js
-const gate = checkStagePrerequisites(proj, kind, options.override_reason);
-if (!gate.ok) {
- throw new Error(
- `save_project_artifact refused: kind "${kind}" requires stage "${gate.missing_stage}" ` +
- `to be ${gate.needs_approval ? 'approved' : 'complete'} first (currently "${gate.actual_status}"). ` +
- `Pass override_reason (and actor) to bypass and record why.`
- );
-}
-if (options.override_reason) {
- if (!options.actor) throw new Error('actor is required when passing override_reason');
- await recordOverride(proj, { type: 'stage_prerequisite', gate: gate.missing_stage,
- tool: 'save_project_artifact', reason: options.override_reason, actor: options.actor,
- detail: { kind, missing_stage: gate.missing_stage } });
-}
-```
+### 4b. Cold-restart determinism (P1, accepted)
 
-Error names the specific missing prerequisite and its current status, not a generic
-"blocked," matching the acceptance criterion ("fails and names the missing
-prerequisite"). `review`'s direct `writeJSON` to `review/evaluation.json`
-(`projects.js:636`) is unaffected by this check by construction (1b), so
-`reviewProject` must call the same `checkStagePrerequisites` helper before writing, or
-the gate is silently absent on that one path: a second call site for the same
-predicate, which needs to be one shared function, not logic inlined twice.
+Round 1's pause persisted only `stages.storyboard.status`. Codex's finding: that alone
+can't reproduce a paused run, because the structured `story_brief` (produced at Step 2)
+was never saved, the run's own parameters (`--strategies`, `--max-revisions`,
+`approval_policy`) were never saved, and nothing bound the approval to the exact
+storyboard content it was given for -- an out-of-band edit to `concept/storyboard.json`
+after approval would leave a stale `'approved'` status pointing at different content.
+Three fixes:
 
-### Override record - generic shape, shared with ANI-210
+1. **Persist the structured brief, not just the markdown.** Step 2 (Section 6) now
+   saves `story_brief` itself via `save_project_artifact(kind: 'brief', role:
+   'structured', path: 'brief/story-brief.json')`, alongside the existing markdown
+   entrypoint. A cold restart's Step 1 load has something to resume Step 3 from without
+   re-running `extract_story_brief`.
+2. **Persist run parameters.** `initProject`/the first `save_project_artifact` call of a
+   `/direct` run stamps a `project.json.active_run` object: `{ strategies,
+   max_revisions, approval_policy, started_at }`. Step 1 reads this back on a cold
+   restart instead of re-deriving it from CLI args that may differ between the original
+   invocation and the resuming one.
+3. **Bind approval to a digest, invalidate on change.** `approve_stage(stage:
+   'storyboard', ...)` computes `sha256` of `concept/storyboard.json`'s current bytes
+   and stores it as `stages.storyboard.approved_digest`. `saveProjectArtifact`'s
+   `storyboard` case, when the stage is already `'approved'`, recomputes the digest of
+   the content being saved: an identical digest is a no-op re-save (approval survives);
+   any other digest downgrades `stages.storyboard.status` back to `'complete'` in the
+   same write, so a changed storyboard can never coast on a stale approval. Cold-restart
+   resume (Step 1) re-verifies the on-disk file's digest against `approved_digest` before
+   trusting `'approved'` and skipping to Step 3, closing the residual gap where a direct
+   filesystem edit bypasses `saveProjectArtifact` entirely and the invalidation above
+   never runs.
 
-**Decided 2026-09-11:** overrides must be explicit, attributable, and visible, for
-ANI-212's stage gates and ANI-210's content gates alike ("never overridable" was
-rejected - it breeds shadow bypasses). This is a shared contract, not a stage-map-only
-one, so the shape below is designed generic enough for ANI-210 to reuse without ANI-212
-designing ANI-210's actual gates.
+### Render-path admission: one call, shared with ANI-210 (P1, accepted)
 
-- **Explicit:** `override_reason` is its own dedicated parameter on every gated call
- (`save_project_artifact`, `approve_stage`, and whatever ANI-210's `render_master`/
- preflight hook ends up naming its equivalent). It is never inferred from another flag
- (e.g. `skip_preflight` does not imply an override, and an override does not imply
- `skip_preflight`) - two different bypasses, two different named parameters, always.
-- **Attributable:** `actor` (required, same rule as `approve_stage` above), `at`
- (timestamp), `tool` (which call), and `reason` (the `override_reason` text, non-empty).
-- **Visible:** recorded in `project.json.overrides[]` (persisted, never overwritten,
- array-appended so history survives multiple bypasses) *and* echoed into the calling
- tool's own return payload/log, not only written to disk silently - the caller sees the
- override record in the same response that tells them the artifact saved.
+Round 1's mistake: it only checked inside `saveProjectArtifact`, but three durable
+producers do their side effect *before* that call, or can skip it entirely:
 
-```jsonc
-// generic override record - one entry per bypass, project.json.overrides[]
-{
- "type": "stage_prerequisite", // discriminator; ANI-210 content gates would use e.g. "content_gate"
- "at": "2026-09-11T12:30:00Z",
- "actor": "James Schuyler", // required, same source rule as approve_stage's actor
- "tool": "save_project_artifact",
- "reason": "storyboard skipped intentionally for a 5-second logo-only bumper, no scenes to design",
- "gate": "storyboard", // the specific prerequisite/check bypassed, generic name
- "detail": { "kind": "manifest", "missing_stage": "storyboard" } // type-specific context
-}
-```
+- `render_project` writes the MP4 via `renderRemotionSequence` (`projects.js:799`) before
+  the registration at `:837-839`, which only runs `if (mark_as_latest)` -- passing
+  `mark_as_latest: false` writes the file with no check ever reached.
+- `render_master`'s persist path writes the manifest/timelines/index via `persistMaster`
+  (`render-master.js:341`) before `saveProjectArtifact` at `:342`; supplying inline
+  `manifest`/`scenes` alongside `project` doesn't skip this, because the persist branch
+  re-resolves the project independently at `:337` regardless of how the source content
+  was obtained (verified by reading `render-master.js:239-343` in full: inline data only
+  skips `loadProjectSource`, not the persist branch's own `getProject` call).
+- `record_render_feedback` appends its log (`feedback.js:127`) before the registration at
+  `:130`.
+- `reviewProject` writes `review/evaluation.json` directly (`projects.js:636`) and never
+  called `saveProjectArtifact` at all in round 1, so `stages.review` never reached
+  `complete`.
 
-`checkStagePrerequisites` still runs and still computes what was missing even when
-`override_reason` is present, the override doesn't suppress the computation, only the
-throw, so `gate`/`detail` are always populated from a real check, never guessed. A
-shared `recordOverride(project, { type, gate, tool, reason, actor, detail })` helper
-(proposed alongside `checkStagePrerequisites` in `mcp/lib/stage-map.js`) is what both
-ANI-212 and ANI-210 should call, so the two efforts don't independently invent slightly
-different override shapes that then need reconciling later.
+**Fix, one admission point per durable side effect, before it, not after:**
 
-### Atomic `project.json` writes
+1. **`renderRemotionSequence`** (`mcp/lib/video.js:293`) gains the check both
+   `render_project` and `render_master`'s encode path already funnel through -- the same
+   chokepoint ANI-210's round 3 puts its content gate in. `renderProject`/`encodeMaster`
+   pass `{ project, kind: 'render'|'master', override: { reason, actor }, toolName }`
+   through as `opts`; `renderRemotionSequence` runs `checkStagePrerequisites` (this
+   issue's gate) ahead of ANI-210's `runOutputGates` (their gate), in the same function,
+   sharing one `recordOverride()` call and one error path. This closes the
+   `mark_as_latest:false` gap completely: the check no longer depends on whether
+   registration happens afterward, because it runs before the render, not after it.
+2. **`render_master`'s persist branch** (`render-master.js:337-338`, right where `proj`
+   is resolved for persistence) gets its own check before `persistMaster` at `:341` --
+   this is the one admission point that covers both the from-project case and the
+   inline-manifest-with-a-project case, because both reach this same `getProject` call
+   regardless of where the rendered content came from. When `encode` also runs
+   afterward, item 1's check re-runs against the same `'master'` stage; harmless, not a
+   second rule, just the render step's own defense.
+3. **`recordRenderFeedback`** gets a check right after `getProject` (`feedback.js:79`),
+   before the log append at `:127`.
+4. **`reviewProject`** gets a check before its write at `:636`, and, new this round, a
+   `saveProjectArtifact({ project, kind: 'review', role: 'evaluation', path })` call
+   after the write succeeds, so `stages.review` actually reaches `complete` -- round 1
+   never wrote this call at all.
 
-Current `writeJSON` (`projects.js:101-103`) is a direct `writeFile` - a crash or
-concurrent read mid-write can observe a truncated/partial file. Fix: write to a temp
-path in the same directory, then `rename()` (POSIX-atomic on the same filesystem, the
-Node equivalent of the issue's cited `os.replace`):
+`assemble_video_sequence` is explicitly out of this list (1b): it has no `project`
+parameter, so there is nothing for `checkStagePrerequisites` to check against. That is
+ANI-210's bypass to close, not this issue's.
 
-```js
-export async function writeJSONAtomic(filePath, data) {
- const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
- await writeFile(tmp, JSON.stringify(data, null, 2) + '\n', 'utf-8');
- await rename(tmp, filePath);
-}
-```
+### Override record, unchanged shape, one write (P1, accepted fix)
 
-This fixes torn reads, not lost updates: `saveProjectArtifact`/`approveStage` are still
-read-modify-write (`getProject` → mutate → `writeJSONAtomic`), so two concurrent calls
-against the same project can still race and clobber each other (see 1b, the entrypoint
-overwrite bug is this same shape without the concurrency). Tier 2 tools are stdio-only
-(single Node process per session, `tool-groups.js:15-16`), so an in-process
-`Map<project_root, Promise>` mutex around the read-modify-write closes the intra-process
-race cheaply; it does not close a cross-process race (two sessions writing the same
-project at once), out of scope here (no lock utility exists in the repo today, confirmed
-by grep).
+The shape (`{ type, at, actor, tool, reason, gate, detail }`) is unchanged from round 1
+and, per ANI-210's round 3, adopted verbatim by their content gates too. **What changes
+this round:** round 1's pseudocode recorded the override as a step separate from the
+gated mutation, which a crash between the two could separate or erase. Fixed: inside
+`saveProjectArtifact`, the override entry (if any) is appended to `projectData.overrides`
+in memory, in the same pass as the stage/entrypoint mutation the gate was checking, and
+`writeJSONAtomic` writes both in the one call that ends the function -- never two writes
+for one gate event. `render_project`/`render_master`'s render-path override (above) is a
+different event (permission to render, not a stage mutation) and is its own single
+atomic write, per ANI-210's own requirement that recording happen "inside the same
+function, immediately before `execFileAsync`" -- same rule, independently satisfied at
+each of the two distinct write events, never combined into one at the cost of atomicity
+at either.
+
+### Concurrency: cross-process lock, ANI-220's serializer is the inner layer (P1, accepted)
+
+Round 1 proposed an in-process `Map<project_root, Promise>` mutex and called it done.
+Codex's correction: every stdio session is its own OS process
+(`mcp/index.js:212`, corrected citation, 1f), so a process-local mutex does nothing for
+two sessions racing the same project -- exactly the case that matters, since nothing
+stops a human from having two `claude` sessions open on the same repo. ANI-220 is
+separately adding a small in-process per-project serializer to `saveProjectArtifact`;
+that is the **inner** layer (this design doesn't rebuild it) and does not by itself
+solve the cross-process case.
+
+**Fix, cross-process layer: a directory lockfile, not a revision-counter CAS.**
+`withProjectLock(projectRoot, fn)` calls `fs.mkdirSync(join(projectRoot, '.lock'))`
+(POSIX `mkdir` is atomic w.r.t. `EEXIST` across processes, no new dependency), retries
+with backoff on `EEXIST` up to a bounded wait, and breaks a stale lock (holder's PID no
+longer running, or the lock's own timestamp older than a threshold) rather than
+deadlocking on a crashed holder; releases via `rmSync` in a `finally`. Every writer
+(`saveProjectArtifact`, `approveStage`, the render-path admission's override write)
+wraps its read-modify-write in this. **Why a lock over CAS-with-retry:** a revision
+counter would need every write site to re-derive its intended delta on conflict (re-check
+the gate, re-append the override, re-apply the stage mutation, then retry the whole
+thing), multiplying the "one write" logic above across N call sites instead of writing
+it once inside the lock body. A lock centralizes the critical section once; ANI-220's
+in-process serializer then sits inside a single process to stop that process's own
+concurrent callers from thrashing the cross-process lock against each other, composing
+cleanly rather than duplicating.
 
 ## 5. Test cases
 
 | Case | Setup | Expected |
 |---|---|---|
-| Skipped predecessor | New project, `stage_map_version` set, no storyboard saved. Call `save_project_artifact(kind: 'manifest', ...)`. | Throws, names `storyboard` as the missing stage, names its status (`not_started`). |
-| Unknown/forged stage key | `approve_stage({ project, stage: 'storyboad', note: '...', actor: '...' })` (typo) or a stage key not in `catalog/stage-map.json`. | Throws `Unknown stage`, does not silently no-op, does not fall through to approving something else. |
-| Override recorded, generic shape | `save_project_artifact(kind: 'manifest', override_reason: '...', actor: 'James Schuyler')` on a project with no storyboard. | Succeeds, `project.json.overrides` gains a `{ type: 'stage_prerequisite', gate: 'storyboard', actor, reason, at, tool, detail }` entry, and that same record is echoed in the call's return payload, not only written to disk. |
-| Override missing actor | `save_project_artifact(kind: 'manifest', override_reason: '...')` with no `actor`. | Throws `actor is required when passing override_reason` - explicit never means anonymous. |
-| Legacy project behavior | Project with no `stage_map_version` key (all 3 current `projects/*`). Call `save_project_artifact(kind: 'manifest', ...)` with no storyboard. | Succeeds unchanged (Option A grandfathering) - this is the regression test that protects `fintech-sizzle`/`polaris-observability`/`aria-cloud-console` from breaking. |
-| Grandfather warning surfaces, never blocks | `get_project({ project: 'fintech-sizzle' })` against its real `origin/main` state (storyboard entrypoint pointing at a beat-plan file, 1b). | Succeeds; `stage_warning.type === 'stage_map_grandfathered'`, `stage_warning.stages.storyboard === 'unknown'` (not `'missing'`); a follow-up `save_project_artifact(kind: 'manifest', ...)` on the same project still succeeds with no override needed. |
-| Grandfather warning absent for enforced projects | `get_project` on a project with `stage_map_version` set. | `stage_warning === null`. |
-| Concurrent write | Two near-simultaneous `saveProjectArtifact` calls against the same `project_root` (e.g. `kind: 'scene'` twice for different `scene_id`s) without the in-process mutex. | Demonstrates the lost-update race (one scene entry missing) - this test should exist to justify shipping the mutex, then re-run green once it's added. |
-| Approval required, not given | `render` stage has `approval: true`. Save a `render` artifact, then try to save a `review` artifact (which `requires: ["render"]`) before calling `approve_stage('render', ...)`. | Throws - `complete` is not `approved`; `review` needs the approved status, not just artifact-saved. |
-| Approval provenance recorded | `approve_stage({ project, stage: 'storyboard', note: '...', actor: 'James Schuyler' })` (default `policy: 'human'`). | `stages.storyboard` gains `approved_by: 'James Schuyler'`, `approval_policy: 'human'`, `approved_at`, `approved_note` - all four present, none inferred. |
-| Non-human policy rejected | `approve_stage({ ..., policy: 'auto' })` (no such policy shipped yet). | Throws `Unknown approval_policy "auto": only "human" is implemented` - the parameter surface exists without silently permitting an unbuilt bypass. |
-| `checkStagePrerequisites` shared between call sites | Unit test importing the helper directly, called once from `saveProjectArtifact`'s switch and once from `reviewProject`'s direct-write path. | Same predicate, same result, for the same project/kind pair - regression guard against the two-call-sites drifting apart (1b-style bug, prevented this time). |
+| Sequencing fix 1 | `/direct` strict project, brief saved at Step 2 per the fix. | Step 2.5's storyboard save succeeds; brief's `stages.brief.status === 'complete'` before it runs. |
+| Sequencing fix 2 | `/direct` Step 8 saves a score card as `kind: 'candidate_review'` with only `manifest` complete, no render. | Succeeds; a `kind: 'review'` save with the same state still refuses. |
+| Legacy ledger, strict-by-default | Project with no `stage_map_version`, slug not in `grandfathered_project_ids` (e.g. `render-master-encode.test.js`'s `tmpProject()`, `ani185-tmp`). | Strict: a gated save with no satisfied prerequisite refuses, does not silently pass as grandfathered. |
+| Legacy ledger, real project | `fintech-sizzle` (in the ledger, no `stage_map_version`). | Grandfathered: gated saves succeed unchanged. |
+| `stage_warning` never persists | `get_project`, then `save_project_artifact` on the same project. | The written `project.json` has no `stage_warning` key at any point. |
+| Warning on every enumerated surface | Call each tool in 1d's table against a grandfathered project. | Every one carries `stage_warning`; none silently omit it. |
+| Approve `not_started` rejected | `approve_stage` on a stage with no artifact saved yet. | Throws "must be complete first," not "predecessor not complete." |
+| No default actor | `approve_stage`/override call with no `actor`. | Throws; `'human (unspecified)'` does not appear anywhere in the codebase or the record. |
+| Storyboard re-save invalidates approval | Approve `storyboard`, then `save_project_artifact(kind: 'storyboard', ...)` with different content. | `stages.storyboard.status` downgrades to `'complete'` in that same write; an identical re-save leaves it `'approved'`. |
+| Cold-restart digest mismatch | Approve `storyboard`, edit `concept/storyboard.json` directly on disk (bypassing `saveProjectArtifact`), then reload via Step 1. | Digest check fails; treated as `'complete'`, not `'approved'` -- `/direct` re-pauses at Step 2.5 rather than trusting stale approval. |
+| Admission before side effect, render_project | `render_project(..., mark_as_latest: false)` on an ungated project. | Refused before any MP4 is written to disk (assert the file never exists), not merely unregistered. |
+| Admission before side effect, render_master inline | `render_master({ project, manifest, scenes, persist: true })` (inline content, real project, ungated). | Refused before `persistMaster` runs (assert no files under `masters/`). |
+| Admission before side effect, feedback | `record_render_feedback` on an ungated project. | Refused before `review/feedback.json` is touched. |
+| `reviewProject` marks its own stage | `review_project` on a satisfied project. | `stages.review.status === 'complete'` afterward; round 1 never set this at all. |
+| Cross-process concurrency | Two separate processes call `saveProjectArtifact` against the same project near-simultaneously. | No lost update: both mutations land (e.g. two different `scene_id`s both present), verified without relying on the in-process serializer being present. |
+| One write per gate event | Force a write failure mid-override (mock `writeJSONAtomic` to throw). | The override entry and the stage mutation are both absent afterward, never one without the other. |
+| Test-suite migration note | `mcp/test/render-master-encode.test.js`'s `tmpProject()` fixture and `projects.test.js`'s shared `TEST_SLUG` (1f). | Both need `stage_map_version` + satisfied prerequisites (or an `override_reason`) once gating ships, or they fail closed under the new strict-by-default rule; call out in the PR, don't silently patch test helpers without saying why. |
 
 ## 6. Skill changes
 
-`.claude/skills/direct/SKILL.md` is the only SKILL.md referencing these tools
-(`compose_storyboard`, `save_project_artifact`, `plan_story_beats`, `render_project`,
-`render_master` - confirmed by grepping every `SKILL.md` under `.claude/skills/`).
+`.claude/skills/direct/SKILL.md` is the only SKILL.md referencing these tools, unchanged
+finding from round 1.
 
-**Decided 2026-09-11: `/direct` stops for human storyboard approval by default.**
-Self-approval collapses the pipeline's one real design checkpoint (the audit doc's row
-2.5, "human review, approval, gate before any HTML"), so it is not what ships. New
-`/direct` parameter: `--approval-policy` (default `human`; any other value errors for
-now, per Section 4's `approve_stage` contract - the surface exists, nothing unattended
-ships yet).
-
-- **Step 2.5 (`:54-67`)** currently ends: *"The loop continues either way - this is the
- design checkpoint, not a hard gate."* Replaced with an explicit pause:
- 1. Compose + save the storyboard as today (`compose_storyboard` then
- `save_project_artifact(kind: 'storyboard', ...)`), plus a `beats` kind for each of
- the three per-strategy beat plans once Section 2's assumption (ANI-220 landed) holds
- - `Storyboard`/`Beat plans` are no longer the same `kind`, so this step stops
- overwriting the storyboard entrypoint.
- 2. **If `approval_policy === 'human'` (default):** surface the panel-count/
- content-type/empty-composition summary this step already computes, the path to
- `concept/storyboard.json`, and an explicit question - "Approve this storyboard to
- continue, or revise?" - then **end the turn**. Step 3 (`plan_story_beats`) is not
- called in this response. This is the pause; the storyboard sits at `stages.storyboard.status: 'complete'`,
- not yet `'approved'`, so a `manifest`/`scene` save attempted from here would still be
- refused (Section 4).
- 3. **Resume:** when the user approves (same conversation, next message, or a fresh
- `/direct <project>` invocation later), the agent calls
- `approve_stage({ project, stage: 'storyboard', note: <the user's stated reason, or
- the panel-coverage summary if they gave none>, actor: <the human's name/handle from
- context, or 'human (unspecified)'>, policy: 'human' })`, then continues at Step 3 in
- that same response. **Cold-restart resume:** a fresh `/direct <project>` invocation's
- Step 1 (`get_project_context`) already loads `stages.storyboard.status` - if it's
- already `'approved'`, Step 2.5 skips straight to Step 3 instead of recomposing a
- storyboard that's already signed off.
- 4. **Revision path:** if the user asks for changes instead, the agent revises
- (re-runs `compose_storyboard`/`save_project_artifact`, which resets
- `stages.storyboard.status` back to `'complete'`, requiring approval again) and
- returns to point 2.
- 5. **If `approval_policy` is anything else:** `approve_stage` rejects it today
- (Section 4), so Step 2.5 surfaces that error rather than silently falling back to
- either behavior - no policy value is treated as an implicit "skip the human."
-- **Step 8 (`:124-138`)** currently saves `brief`, `storyboard`, beat plans, `manifest`,
- and `review` all in one undifferentiated batch at the end of the run. By the time Step
- 8 runs, storyboard approval already happened at Step 2.5 (the pipeline cannot reach
- Step 3 otherwise), so Step 8 only needs the `kind` split from point 1 above; it no
- longer needs to also carry the approval call.
-- No other `SKILL.md` (`storyboard`, `sizzle`, `brief`, `animate`, etc.) calls
- `save_project_artifact` or any gated tool directly, so none need a matching change -
- worth a second grep pass once the real implementation lands, since a new skill could be
- added between now and then.
+- **Step 1 (Load Project Context):** on a cold-restart resume, also loads
+  `project.json.active_run` and re-verifies `stages.storyboard.approved_digest` against
+  the on-disk file before trusting `'approved'` (4b). A mismatch means the storyboard
+  changed out of band; treat it as `'complete'`, not `'approved'`, and re-pause at Step
+  2.5.
+- **Step 2 (Extract Story Brief):** gains two saves immediately after
+  `extract_story_brief` returns, not deferred to Step 8 (1c fix 1, 4b): the markdown
+  entrypoint (`kind: 'brief'`) and the structured `story_brief` itself
+  (`kind: 'brief', role: 'structured'`), plus stamping `project.json.active_run` with
+  this run's parameters (4b).
+- **Step 2.5 (Storyboard):** mechanism unchanged from round 1 -- compose, save, then
+  (default `policy: 'human'`) surface the summary and **end the turn**, resuming on the
+  human's next message or a fresh invocation that finds `stages.storyboard.status`
+  already `'approved'` and its digest still matching (4b). Every "approve" in this step
+  now means **attest**, per 4a: the language changes, the pause/resume mechanics do not.
+  No default actor (Section 4); the agent must have an actual name/handle to attest
+  with, or it cannot call `approve_stage` and must ask for one.
+- **Step 3 (Plan Beats):** each of the three beat plans is saved as `kind: 'beats'` (once
+  ANI-220 lands, 1b) right after this step, not deferred to Step 8 -- same principle as
+  the brief fix, save where it's produced.
+- **Step 8 (Save Artifacts):** now only the winning manifest (`kind: 'manifest'`, saved
+  first) and the three candidate-evaluation artifacts (`kind: 'candidate_review'`, roles
+  `score_card`/`comparison`/`contact_sheet`, not `kind: 'review'`, 1c fix 2). Brief and
+  beat plans are gone from this step, moved to where they're produced above.
 
 ## 7. Open questions
 
-Resolved by James's 2026-09-11 decisions (Sections 3a, 4, 6) and removed from this list:
-human-vs-agent approval default, and the `beats` `produces_kind` question (now assumed
-solved upstream by ANI-220, see the intro's sequencing note and 1b).
+Resolved this round and removed: human-vs-agent approval default (4a, decided by James,
+implemented honestly), `beats` `produces_kind` (assumed solved by ANI-220), the
+render-path admission point (Section 4, no longer open), concurrency mechanism (Section
+4, lock chosen and justified), cold-restart determinism (4b).
 
-1. **Should `manifest` also require `scenes`?** Not proposed here - `plan_sequence` runs
- before all scenes necessarily exist per-file in a `/direct` run, and gating it would
- likely break the existing candidate-generation flow. Flagging so the decision is
- explicit rather than assumed, same reasoning as before, just renumbered.
-2. **`review` requiring `render` to be `approved`, not just `complete`.** Section 2 wires
- it that way by extension of `render`'s `approval: true`, but `reviewProject` only ever
- reads the manifest + scenes, never the rendered output - nothing in current code needs
- a completed render to run a review. That's a new constraint this issue would introduce,
- not one implied by existing behavior; confirm it's intended and not scope creep.
-3. **Where the ANI-210 gate hook and this stage check compose.** `render_master`'s
- insertion point is `render-master.js:249-255`, right after `loadProjectSource(project)`
- resolves and before any compose/compile/gate work runs (`:260` onward) - cheapest
- possible failure. `render_project`'s equivalent point is `projects.js:679-682`, after
- `getProject` resolves, before preflight (`:733`). If ANI-210's shared gate hook wants
- the same early checkpoint in these two functions, it should run first (a stage-prereq
- failure is cheaper and more fundamental than a quality verdict), and the two checks
- should stay separate functions - "is project state consistent" vs. "does this render
- pass quality gates" are different questions. ANI-210 itself is out of scope here; the
- override record shape in Section 4 is designed to be shared, the gate logic is not.
-4. **`stage_map_version` bump semantics.** If `catalog/stage-map.json` changes later (a
- stage added/removed/reordered), what happens to projects mid-flight under the old
- version? Not designed here; Section 2's versioning field only solves "detect legacy
- projects with no map at all," not "detect projects on map v1 once v2 ships."
-5. **`actor` provenance beyond a free-text name.** Section 4 requires `actor` on every
- approval and override but has no identity system to draw it from (stdio-only, no auth).
- Good enough for a first cut, but a free-text field can't be verified later ("did James
- actually say this, or did the agent guess a name"); worth deciding whether that's
- acceptable long-term or needs a real identity source once one exists in this surface.
-6. **`unattended` policy design.** Section 4/6 reserve the `policy` parameter and reject
- every value but `'human'`, deliberately not designing an unattended path now. When one
- is needed, it should specify at minimum: what triggers it (an explicit
- `--approval-policy` on the `/direct` invocation, never a default), what `actor` records
- for a fully autonomous run, and whether it's scoped per-project or per-invocation.
+1. **Should `manifest` also require `scenes`?** Unchanged from round 1: not proposed,
+   `plan_sequence` runs before all scenes necessarily exist per-file in a `/direct` run.
+2. **`review` requiring `render` to be `approved`, not just `complete`.** Unchanged from
+   round 1: `reviewProject` only reads manifest + scenes today, never the rendered
+   output, so this is a new constraint the issue would introduce, not one implied by
+   existing behavior.
+3. **The unattended `policy` value.** Rejected as a P1 finding, kept as designed-later:
+   James decided human attestation is the default and unattended execution is for later,
+   as an explicit invocation policy with recorded provenance (4a's shape already covers
+   it: `policy` plus `actor` plus timestamp plus reason). Deferring the *policy itself*
+   is deliberate, not an oversight; the record shape it would use is already designed,
+   the trigger conditions are not, on purpose, until someone actually needs it.
+4. **`stage_map_version` bump semantics.** Unchanged from round 1: if the map shape
+   changes later, what happens to projects mid-flight under the old version is not
+   designed here.

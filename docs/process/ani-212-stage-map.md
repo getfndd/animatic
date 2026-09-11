@@ -4,18 +4,22 @@ Design draft only, no product code. Written against `origin/main` at `863478d` (
 2026-09-11, worktree `~/.claude-worktrees/animatic/ani-212-stage-map`, branch
 `james/ani-212-stage-map-design`). Clean-room: OpenMontage source was not opened, the
 mechanism description in ANI-212/ANI-209 is the only input taken from that project.
-Parent: ANI-209. Sibling: ANI-210/211 (`~/.claude-worktrees/animatic/ani-210-gate-plan`,
-`docs/process/ani-210-211-gate-seam-plan.md`, read not edited): its round 3 puts
-content-gate admission inside `renderRemotionSequence` (`mcp/lib/video.js:293`) and
-adopts this draft's override record shape verbatim. Section 4 designs the render-path
-stage check to share that exact chokepoint and record, one admission call, not two.
+Parent: ANI-209. ANI-210/211 (sibling content-gate plan, `docs/process/ani-210-211-gate-seam-plan.md`)
+hit its review cap still rejected and is now **parked**, blocked on ANI-212/223/224/225,
+to be re-planned later around a content report the renderer emits. **This design does
+not depend on it:** Section 4's render-path admission works alone, at the same
+chokepoint (`renderRemotionSequence`, `mcp/lib/video.js:293`) that plan had also picked,
+with a named extension point for whatever gate eventually lands there, not a dependency
+on a specific plan that may not resume in this shape.
 
 **Round 2 (this revision):** Codex rejected round 1 (`7c1ee49`) at P1. James triaged
-every finding; this revision fixes the 10 accepted items and states the rationale for
-the 1 rejected item. The 1 on-hold item (approval authenticity) started as a two-option
-sketch and was then decided by James (option b, elicitation with an attested fallback,
-Section 4a) within this same round; the sketch is replaced by that design, not kept
-alongside it. Superseded text is deleted, not annotated. Round cap: 3, this is round 2.
+every finding; this fixes the 10 accepted items and states the rationale for the 1
+rejected one. The 1 on-hold item (approval authenticity) started as a two-option sketch,
+then James decided it (option b, elicitation with an attested fallback, Section 4a)
+within this round; the sketch is replaced, not kept alongside it. A later ANI-220 review
+added two cross-process write-safety requirements (Section 4, Concurrency); ANI-210
+parking required decoupling the render-path admission from it (Section 4, Render-path
+admission). Superseded text is deleted, not annotated. Round cap: 3, this is round 2.
 
 ## 1. Inventory on origin/main
 
@@ -46,10 +50,9 @@ this round, both P2:
   `mcp/lib/video-assembly.js`) writes `render-props.json` to disk via `outputDir`
   (`video-assembly.js:121-124`, `writeFileSync`), a real durable write outside
   `saveProjectArtifact`. It takes no `project` parameter at all, structurally: it cannot
-  be gated against project stage state because it has no reference to a project. This is
-  ANI-210's bypass to close (their round-3 plan §8, an admission check on its own
-  `{manifest,sceneDefs,timelines}`), not ANI-212's; named here so the inventory states
-  the boundary honestly rather than omitting the write. **Stated boundary:** a pure
+  be gated against project stage state because it has no reference to a project. Left
+  unclosed by this design for that reason; named here so the inventory states the
+  boundary honestly rather than omitting the write. **Stated boundary:** a pure
   transform stays ungated until something persists it under a project; the moment it
   does, that persistence call is what gets checked, never the transform itself.
 
@@ -331,7 +334,7 @@ Three fixes:
    filesystem edit bypasses `saveProjectArtifact` entirely and the invalidation above
    never runs.
 
-### Render-path admission: one call, shared with ANI-210 (P1, accepted)
+### Render-path admission: one call, stands alone, extension point for later gates
 
 Round 1's mistake: it only checked inside `saveProjectArtifact`, but three durable
 producers do their side effect *before* that call, or can skip it entirely:
@@ -351,22 +354,35 @@ producers do their side effect *before* that call, or can skip it entirely:
   called `saveProjectArtifact` at all in round 1, so `stages.review` never reached
   `complete`.
 
-**Fix, one admission point per durable side effect, before it, not after:**
+**Fix, one admission point per durable side effect, before it, not after, no dependency
+on ANI-210:**
 
-1. **`renderRemotionSequence`** (`mcp/lib/video.js:293`) gains the check both
-   `render_project` and `render_master`'s encode path already funnel through -- the same
-   chokepoint ANI-210's round 3 puts its content gate in. `renderProject`/`encodeMaster`
-   pass `{ project, kind: 'render'|'master', override: { reason, actor }, toolName }`
-   through as `opts`; `renderRemotionSequence` runs `checkStagePrerequisites` (this
-   issue's gate) ahead of ANI-210's `runOutputGates` (their gate), in the same function,
-   sharing one `recordOverride()` call and one error path. This closes the
-   `mark_as_latest:false` gap completely: the check no longer depends on whether
-   registration happens afterward, because it runs before the render, not after it.
+1. **`renderRemotionSequence`** (`mcp/lib/video.js:293`) gains a `runAdmission({ project,
+   kind, override, toolName, storyBrief, encodedProps })` call, run against a `GATES`
+   array containing only `checkStagePrerequisites` today -- the array is the extension
+   point a future content gate would add itself to, not a dependency on one existing yet.
+   Both real callers of this function need code changes to reach it, named exactly,
+   verified against `origin/main`'s current calls (neither passes an `opts` object
+   today):
+   - `renderProject` (`projects.js:799`, currently `renderRemotionSequence(props,
+     outputPath)`, no third argument at all) changes to pass
+     `{ project: projectId, kind: 'render', override: { reason: options.override_reason,
+     actor: options.actor }, toolName: 'render_project', storyBrief }` as `opts`.
+   - `encodeMaster` (`master-persist.js:205`, currently `render(renderProps, outputAbs,
+     { propsPath: propsAbs })`, only `propsPath`) gains new params `project` and
+     `override`, threaded from `renderMaster`'s call site (`render-master.js:349-358`,
+     which today passes neither `projectId` -- held in that function's own `projectId`
+     variable, `:248`/`:254` -- nor an override), and adds both to the `opts` object it
+     already builds.
+
+   This closes the `mark_as_latest:false` gap completely: the check no longer depends on
+   whether registration happens afterward, because it runs before the render, not after
+   it.
 2. **`render_master`'s persist branch** (`render-master.js:337-338`, right where `proj`
-   is resolved for persistence) gets its own check before `persistMaster` at `:341` --
-   this is the one admission point that covers both the from-project case and the
-   inline-manifest-with-a-project case, because both reach this same `getProject` call
-   regardless of where the rendered content came from. When `encode` also runs
+   is resolved for persistence) gets its own `runAdmission` call before `persistMaster`
+   at `:341` -- this is the one admission point that covers both the from-project case
+   and the inline-manifest-with-a-project case, because both reach this same `getProject`
+   call regardless of where the rendered content came from. When `encode` also runs
    afterward, item 1's check re-runs against the same `'master'` stage; harmless, not a
    second rule, just the render step's own defense.
 3. **`recordRenderFeedback`** gets a check right after `getProject` (`feedback.js:79`),
@@ -376,25 +392,58 @@ producers do their side effect *before* that call, or can skip it entirely:
    after the write succeeds, so `stages.review` actually reaches `complete` -- round 1
    never wrote this call at all.
 
-`assemble_video_sequence` is explicitly out of this list (1b): it has no `project`
-parameter, so there is nothing for `checkStagePrerequisites` to check against. That is
-ANI-210's bypass to close, not this issue's.
+**Deliverable this round adds: the promise and the render context must be addressable
+from every render entry point, whether or not a content gate ever consumes them.**
+Section 4b already persists the structured `story_brief` (Step 2, `kind: 'brief', role:
+'structured'`) -- but `entrypoints.brief` is a single scalar (`projects.js`'s `brief`
+case, unchanged since round 1), so giving the structured brief a second `role` would
+collide with the markdown entrypoint exactly like the storyboard/beat-plan bug in 1b.
+**Fix:** `saveProjectArtifact`'s `brief` case gains a `role` branch mirroring `review`'s
+pattern -- no role (unchanged) writes `entrypoints.brief`; `role: 'structured'` writes a
+new `entrypoints.story_brief` field. `render_project`/`render_master`/`encodeMaster` load
+it (`readJSON(join(project_root, proj.entrypoints.story_brief))` when set) and pass it as
+`opts.storyBrief` into `runAdmission`, whether or not `checkStagePrerequisites` (today's
+only gate) reads it. This is the concrete prerequisite the parked ANI-210 re-plan will
+need whenever it resumes; ANI-212 ships it now because these are exactly the call sites
+this issue already has to change, and a future gate should not need a fourth round of
+"thread this through" to reach data that could have been wired the first time. Test in
+Section 5.
+
+**Persisted masters: the admission stamp has to land in the file that's actually
+encoded, before the spawn.** `encodeMaster` calls `assembleVideoSequence` to write
+`render-props.json` *before* calling `render()`/`renderRemotionSequence` (confirmed by
+reading `encodeMaster`: the props file exists on disk before item 1's admission call
+ever runs). If admission records anything durable (an override, `approval_channel`, a
+stage-status snapshot), an in-memory stamp on `encodedProps` never reaches the persisted
+file, already written by an earlier step. **Fix:** when `opts.propsPath` is given,
+`runAdmission`'s caller re-writes that path itself, atomically (`writeJSONAtomic`,
+Concurrency above), with the stamped object, before `execFileAsync` -- patching the
+actual encoded file, not a copy Remotion never reads. When `opts.propsPath` is absent
+(`render_project`'s own ephemeral temp props file), that write gets the stamped object
+via `writeJSONAtomic` too, for the same reason: whichever file Remotion reads is the
+one that carries the record.
+
+`assemble_video_sequence` remains explicitly out of this design (1b): it has no
+`project` parameter, so there is nothing for `runAdmission` to check against. Left open,
+named, not swept into "covered."
 
 ### Override record, unchanged shape, one write (P1, accepted fix)
 
-The shape (`{ type, at, actor, tool, reason, gate, detail }`) is unchanged from round 1
-and, per ANI-210's round 3, adopted verbatim by their content gates too. **What changes
-this round:** round 1's pseudocode recorded the override as a step separate from the
-gated mutation, which a crash between the two could separate or erase. Fixed: inside
-`saveProjectArtifact`, the override entry (if any) is appended to `projectData.overrides`
-in memory, in the same pass as the stage/entrypoint mutation the gate was checking, and
-`writeJSONAtomic` writes both in the one call that ends the function -- never two writes
-for one gate event. `render_project`/`render_master`'s render-path override (above) is a
-different event (permission to render, not a stage mutation) and is its own single
-atomic write, per ANI-210's own requirement that recording happen "inside the same
-function, immediately before `execFileAsync`" -- same rule, independently satisfied at
-each of the two distinct write events, never combined into one at the cost of atomicity
-at either.
+The shape (`{ type, at, actor, tool, reason, gate, detail }`) is unchanged from round 1,
+kept generic (a `type` discriminator, not a stage-map-specific field list) on the chance
+some later gate reuses it, but that is no longer a claim about a specific plan -- ANI-210
+is parked (see intro) and this shape is not contingent on it landing in any particular
+form. **What changes this round:** round 1's pseudocode recorded the override as a step
+separate from the gated mutation, which a crash between the two could separate or erase.
+Fixed: inside `saveProjectArtifact`, the override entry (if any) is appended to
+`projectData.overrides` in memory, in the same pass as the stage/entrypoint mutation the
+gate was checking, and `writeJSONAtomic` writes both in the one call that ends the
+function -- never two writes for one gate event. `render_project`/`render_master`'s
+render-path override (above) is a different event (permission to render, not a stage
+mutation): recording happens inside the same function, immediately before
+`execFileAsync`, its own single atomic write -- same "record before the side effect,
+one write" rule this document applies everywhere, independently satisfied at each of the
+two distinct write events, never combined into one at the cost of atomicity at either.
 
 ### Concurrency: cross-process lock, ANI-220's serializer is the inner layer (P1, accepted)
 
@@ -402,26 +451,61 @@ Round 1 proposed an in-process `Map<project_root, Promise>` mutex and called it 
 Codex's correction: every stdio session is its own OS process
 (`mcp/index.js:212`, corrected citation, 1f), so a process-local mutex does nothing for
 two sessions racing the same project -- exactly the case that matters, since nothing
-stops a human from having two `claude` sessions open on the same repo. ANI-220 is
-separately adding a small in-process per-project serializer to `saveProjectArtifact`;
-that is the **inner** layer (this design doesn't rebuild it) and does not by itself
-solve the cross-process case.
+stops a human from having two `claude` sessions open on the same repo.
 
-**Fix, cross-process layer: a directory lockfile, not a revision-counter CAS.**
-`withProjectLock(projectRoot, fn)` calls `fs.mkdirSync(join(projectRoot, '.lock'))`
-(POSIX `mkdir` is atomic w.r.t. `EEXIST` across processes, no new dependency), retries
-with backoff on `EEXIST` up to a bounded wait, and breaks a stale lock (holder's PID no
-longer running, or the lock's own timestamp older than a threshold) rather than
-deadlocking on a crashed holder; releases via `rmSync` in a `finally`. Every writer
-(`saveProjectArtifact`, `approveStage`, the render-path admission's override write)
-wraps its read-modify-write in this. **Why a lock over CAS-with-retry:** a revision
-counter would need every write site to re-derive its intended delta on conflict (re-check
-the gate, re-append the override, re-apply the stage mutation, then retry the whole
-thing), multiplying the "one write" logic above across N call sites instead of writing
-it once inside the lock body. A lock centralizes the critical section once; ANI-220's
-in-process serializer then sits inside a single process to stop that process's own
-concurrent callers from thrashing the cross-process lock against each other, composing
-cleanly rather than duplicating.
+**ANI-220's `withFileLock` is landed and approved** (`mcp/lib/projects.js:124-144` on
+`james/ani-220-beat-plan-kind`, commit `0477d52`, read to confirm, not edited): a
+`Map<key, Promise>` queue so at most one read-modify-write per key is in flight within
+one process, explicitly documented in that file as the layer ANI-212 should import, not
+re-invent. That module's own comment (`:118-122`) already names the gap: "NOT
+cross-process or cross-host locking." This design's cross-process lockfile is the outer
+layer around it, unchanged in shape from round 2. The final ANI-220 review found two
+gaps in how the two layers would compose, both fixed below.
+
+**Gap 1: canonical key.** `withFileLock`'s `key` is `projectFile` as constructed by the
+caller (`join(project_root, 'project.json')`, verbatim, `projects.js:486` on that
+branch) -- an absolute path, a symlink, or (on the case-preserving-but-insensitive
+filesystem this repo develops on) a case alias of the same file gets a *different* map
+key, and the lost-update race this lock exists to close comes back for exactly the
+callers who don't happen to spell the path identically. **Fix:** both the in-process key
+and the cross-process lockfile's key are `join(realpathSync(project_root), 'project.json')`,
+never the file itself. `realpathSync` on a not-yet-existing `project.json` throws, but
+`initProject` doesn't need it to exist first: `PROJECT_DIRS` are `mkdir`'d (creating
+`project_root`) before any lock is taken (`projects.js:186-188`/`228` on that branch), so
+`project_root` always exists by the time a key is computed, for `initProject` and every
+other writer alike. One key derivation, no not-yet-existing-file special case.
+
+**Gap 2: no read outside the lock feeds a write.** `saveProjectArtifact`'s outer wrapper
+calls `getProject({ project: projectId })` to resolve `project_root` *before* taking the
+lock (`projects.js:480` on that branch) -- and `getProject` fully parses `project.json`
+to do it. `writeJSON` (`:101-103` on that branch) is still a plain `writeFile`, not
+atomic, so that early, unlocked read can observe a half-written file mid-write by another
+process and throw "Project not found" for a project that exists fine once the write
+finishes -- a spurious failure, not a correctness violation of the lock itself (the
+locked `saveProjectArtifactLocked` re-reads fresh at `:503` and is already correct), but
+still a read this design has to close. **Fix, two parts:**
+1. **Atomic writes.** Every writer of `project.json` (`writeJSON`'s call sites: `initProject`,
+   `saveProjectArtifactLocked`) uses `writeJSONAtomic` (round 2's design, unchanged: temp
+   file in the same directory, then `rename`) instead of plain `writeFile`. A reader now
+   always observes either the fully-old or fully-new file, never a torn one.
+2. **Path resolution, not content parsing, before the lock.** A new `resolveProjectRoot(projectId)`
+   finds `project_root` the same way `getProject` does for a slug (scan `projects/`,
+   match by stripped date prefix) or a path (used as-is), but never opens `project.json`
+   itself -- it only needs directory entries to exist, never their contents. `saveProjectArtifact`'s
+   outer wrapper calls this instead of `getProject`, then takes the lock keyed by Gap 1's
+   canonical key, then does the real `readJSON` (the one that feeds the write) *inside*
+   `saveProjectArtifactLocked`, exactly where ANI-220 already put it. Resolving the path
+   before locking is fine (directory-only, no races an atomic write can't already handle);
+   parsing the file before locking is what moves inside.
+
+**Why a lock over CAS-with-retry** (unchanged from round 2): a revision counter would need
+every write site to re-derive its intended delta on conflict (re-check the gate, re-append
+the override, re-apply the stage mutation, then retry the whole thing), multiplying the
+"one write" logic above across N call sites instead of writing it once inside the lock
+body. A lock centralizes the critical section once; ANI-220's in-process serializer sits
+inside a single process to stop that process's own concurrent callers from thrashing the
+cross-process lock against each other, composing cleanly rather than duplicating, now that
+both layers share the same canonical key from Gap 1.
 
 ## 5. Test cases
 
@@ -448,6 +532,11 @@ cleanly rather than duplicating.
 | Admission before side effect, feedback | `record_render_feedback` on an ungated project. | Refused before `review/feedback.json` is touched. |
 | `reviewProject` marks its own stage | `review_project` on a satisfied project. | `stages.review.status === 'complete'` afterward; round 1 never set this at all. |
 | Cross-process concurrency | Two separate processes call `saveProjectArtifact` against the same project near-simultaneously. | No lost update: both mutations land (e.g. two different `scene_id`s both present), verified without relying on the in-process serializer being present. |
+| Canonical key, two aliases race | Two near-simultaneous `saveProjectArtifact` calls against the *same* `project.json`, one via slug, one via an absolute/symlinked/differently-cased path to the identical file. | Both resolve to the same `realpath`-derived key, both queue through one lock, neither's mutation is lost. |
+| Read racing a write | A path-only `resolveProjectRoot` (or `getProject`) call fired while another call's `writeJSONAtomic` is mid-rename for the same file. | The read observes either the complete old file or the complete new file, never a parse error or a spurious "Project not found" from a torn read. |
+| story_brief loadable by project | `save_project_artifact(kind: 'brief', role: 'structured', ...)` at Step 2, then `render_project`/`render_master`/`encodeMaster` against the same project with no inline `story_brief` passed. | Each loads it from `entrypoints.story_brief` and threads it into `runAdmission`'s `opts.storyBrief`, present and matching what was saved, with no collision against `entrypoints.brief`. |
+| Render-path context threading | Call `render_project`/`render_master` with `override_reason`+`actor` and no other change. | The values reach `runAdmission` (`opts.override`) at every call site named above, not silently dropped at `encodeMaster`, which passed neither before this round. |
+| Persisted-master stamp survives | Force a `'master'`-stage override during `render_master({ persist: true, encode: true })`. | The override/`approval_channel` record is present in the actual `render-props.json` on disk after the call, written atomically before the encode spawned, not only in `project.json`. |
 | One write per gate event | Force a write failure mid-override (mock `writeJSONAtomic` to throw). | The override entry and the stage mutation are both absent afterward, never one without the other. |
 | Test-suite migration note | `mcp/test/render-master-encode.test.js`'s `tmpProject()` fixture and `projects.test.js`'s shared `TEST_SLUG` (1f). | Both need `stage_map_version` + satisfied prerequisites (or an `override_reason`) once gating ships, or they fail closed under the new strict-by-default rule; call out in the PR, don't silently patch test helpers without saying why. |
 

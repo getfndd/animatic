@@ -15,7 +15,7 @@ Four other areas became their own issues, each with its own review, not designed
 | ANI-227 | Stable project identity (not slug; `getProject` today returns the first date-prefixed folder `readdir` happens to list for an ambiguous slug) | A stable id, not derived from caller input, that the legacy ledger keys on instead of slug |
 | ANI-228 | Cross-process-safe `project.json` writes: lockfile lifecycle, atomic rename, canonical `realpath` key, every mutation under both lock layers | Nothing new required to ship the core; the core's own writes already go through ANI-220's landed in-process `withFileLock` |
 | ANI-229 | Server context passed to tool handlers; `approve_stage` over MCP elicitation with an attested fallback | `approval_channel: 'elicitation' \| 'attested'` on the stage record (core defines the field; ANI-229 is what ever writes `'elicitation'`) |
-| ANI-230 | `/direct` resume: run checkpoint, `story_brief` include + legacy JSON-brief fallback, storyboard digest rechecked by the shared checker | `approved_digest` stored on the stage record at approval time (core writes it once; ANI-230 is what re-verifies it on every gated path) |
+| ANI-230 | `/direct` cold-restart resume: run checkpoint, `story_brief` include + legacy JSON-brief fallback | Nothing for digest checking -- the core re-verifies `approved_digest` itself (1b). ANI-230 only needs the run-checkpoint read/write path. |
 
 Superseded text (the round-2 lock/elicitation/digest-recheck mechanism designs, now
 those issues' scope) is deleted below, not annotated.
@@ -48,19 +48,34 @@ supports `'beat_plans'`). Pre-render candidate-evaluation artifacts get their ow
 ```
 
 Per-project state (`project.json.stages`): `not_started` -> `complete` -> `approved`.
-`approve_stage` requires `complete` first (no `not_started -> approved`). An approved
-`storyboard` stores `approved_digest` (sha256 of the file at approval time, computed and
-stored by core; re-verifying it on every gated path is ANI-230's addition to 1b's
-checker, not built here) and `approval_channel` (core always writes `'attested'` until
-ANI-229 ships the elicitation path, 2).
+`approve_stage` requires `complete` first (no `not_started -> approved`); `override_reason`
+does not bypass this invariant, only a stage-prerequisite refusal (1h). An approved
+`storyboard` stores `approved_digest` (sha256 of the file at approval time) and
+`approval_channel` (core always writes `'attested'` until ANI-229 ships the elicitation
+path, 2). 1b's checker re-verifies `approved_digest` on every gated call.
 
 ### 1b. Prerequisites checked at persistence
 
 `saveProjectArtifact` gains a check before its `switch (kind)` (`projects.js:439`):
-refuse a kind whose stage's `requires` aren't `complete` (or `approved`, for the render
-stage), naming the missing stage and its status, unless `override_reason` is supplied.
-This is the shared `checkStagePrerequisites` function every 1c call site below reuses,
-not reimplements.
+refuse a kind whose stage's `requires` aren't satisfied, naming the missing stage and
+its status, unless `override_reason` is supplied. **Generic rule, not a render-specific
+special case:** a required stage satisfies the check at `complete` unless its own
+`approval` is `true`, in which case it must be `approved`. `storyboard` is `approval:
+true`, so `beat_plan`/`scenes`/`manifest` all require it `approved`, not merely
+`complete` -- round 3 stated this only as a parenthetical about the render stage, which
+left the storyboard case ambiguous. This is the shared `checkStagePrerequisites`
+function every 1c call site below reuses, not reimplements. It also re-hashes the
+approved storyboard file on every call (below), not only at approval time.
+
+**Digest re-check lives in the core, not ANI-230 (James decided this).**
+`checkStagePrerequisites` computes `sha256` of `concept/storyboard.json`'s current bytes
+whenever a check depends on `storyboard` being `approved`, and compares it to
+`stages.storyboard.approved_digest` (stored by `approve_stage` at approval time, 1a). A
+mismatch is refused as not-approved, naming the change, the same error shape as a
+missing predecessor -- not a softer warning. Round 3's finding: storing a digest but
+never re-checking it means "this pathname was approved once," not "these bytes were
+approved," and a direct filesystem edit is a normal workflow, not an exotic attack.
+Re-approving with the new digest (`approve_stage` again) clears it.
 
 **Concurrency, stated honestly:** this write, and every other writer in 1c, goes through
 ANI-220's landed `withFileLock` (in-process only). **Until ANI-228 lands, that is what
@@ -95,10 +110,18 @@ there.
   never admitted.
 - **`assemble_video_sequence`** (the standalone tool, `tools.js`'s `assemble_video_sequence`
   entry, currently `manifest`/`scene_defs`/`scenes`/`plates`/`timelines`/`output_dir`/
-  `output_path`, no `project` field at all): gains an optional `project` param, threaded
-  to the underlying `assembleVideoSequence()`. When given, checked before the
-  `output_dir` write (`video-assembly.js:121-124`). When omitted, structurally ungated,
-  same as today -- a smaller, named residual instead of an unconditional public bypass.
+  `output_path`, no `project` field at all; handler at `handlers.js:3847` passes
+  `output_dir` straight through, `video-assembly.js:121` creates it and writes
+  `render-props.json`). Naming it as an unconditional residual left a real public bypass:
+  a caller can omit `project` while pointing `output_dir` inside a strict project. **Fix,
+  picked over the alternative of rejecting any `output_dir` that resolves inside a
+  project tree:** `project` becomes required whenever `output_dir` is set (the tool
+  throws `project is required when output_dir is set` otherwise). Requiring `project` is
+  simpler to implement and to test than resolving and comparing `output_dir` against
+  every project root on every call, and it matches how every other 1c producer is
+  gated -- by an explicit project reference, not by inferring one from a path. Checked
+  before the `output_dir` write. Calls with no `output_dir` (in-memory only, nothing
+  durable) stay ungated, unchanged.
 - **`record_render_feedback`** (`feedback.js:78`, `getProject`): checked before the log
   append at `:127`. Its tool schema has no `override_reason`/`actor` today (`tools.js`'s
   `record_render_feedback` entry); both are added.
@@ -111,26 +134,36 @@ there.
 ### 1d. Artifact paths must exist before a stage completes
 
 `saveProjectArtifact` never checks that `artifactPath` exists on disk (confirmed: no
-`existsSync` import anywhere in `projects.js`). **Fix:** for every file-backed `kind`
-(`brief`, `storyboard`, `beat_plan`, `scene`, `manifest`, `render`, `master`, `review`,
-`candidate_review`), the check in 1b also asserts `existsSync(join(project_root,
-artifactPath))`, throwing `Artifact not found: <path>` if not -- a stage cannot reach
-`complete` by registering a path nothing wrote.
+`existsSync` import anywhere in `projects.js`), and a bare `existsSync` isn't enough: a
+directory or a `../README.md` outside the project would still pass. **Fix:** for every
+file-backed `kind` (`brief`, `storyboard`, `beat_plan`, `scene`, `manifest`, `render`,
+`master`, `review`, `candidate_review`), the check in 1b resolves `artifactPath` with the
+same containment helper ANI-222 introduces (`resolveWithinProject(project_root,
+artifactPath)`, rejecting absolute paths and anything resolving outside the root through
+symlinks) and then asserts `statSync(resolved).isFile()`, throwing `Artifact not found:
+<path>` if either check fails. This core reuses that helper rather than forking its own;
+ANI-222's own scope (every reader, not just this write) is not designed here.
 
-### 1e. `candidate_review`: a strict role whitelist
+### 1e. `candidate_review`: a strict role whitelist, bound to a path convention
 
 `review`'s existing `case` accepts any `role` string verbatim (`projects.js:490-498`),
 proven exploitable: without a whitelist, a caller could label arbitrary post-render data
 `candidate_review` and skip the `review -> render` prerequisite the same way. **Fix:**
 `candidate_review`'s case accepts only `role in ['score_card', 'comparison',
-'contact_sheet']`, throwing `Unknown candidate_review role: <role>` otherwise. Scoped to
-the new kind only; `review`'s existing permissive role is unchanged, pre-existing
-behavior, not touched by this core.
+'contact_sheet']`, throwing `Unknown candidate_review role: <role>` otherwise. A
+whitelist alone still lets any existing file be registered under an allowed role, so it
+additionally requires `artifactPath` to equal the fixed convention
+`review/candidates/<role>.json` for that role (mirroring how `review`'s own paths are
+fixed at `initProject`), rejecting a mismatched path rather than trusting the caller's
+label. Scoped to the new
+kind only; `review`'s existing permissive role is unchanged, pre-existing behavior, not
+touched by this core.
 
 ### 1f. Grandfather warning, every project-returning surface
 
 Unchanged list from round 2 (`list_projects`, `get_project`, `get_project_context`,
-`export_storyboard_to_figma`, `exportFigmaImageFills`, `record_render_feedback`,
+`export_storyboard_to_figma`, `figma_frame_to_scene` (the public tool; its handler at
+`handlers.js:1147` calls the private `exportFigmaImageFills` helper), `record_render_feedback`,
 `render_master`, `render_project`, `review_project`), **plus the one round 2 missed:
 `save_project_artifact`** (`handlers.js:2644`, `handleSaveProjectArtifact`, currently
 serializes `saveProjectArtifact`'s result with no warning attached) -- the principal
@@ -166,6 +199,26 @@ never a separate write:
 `type` stays a generic discriminator on the chance something else reuses the shape;
 that's not a claim about any specific other issue adopting it.
 
+### 1i. `/direct`: the minimal sequencing fix belongs to the core
+
+Round 3's finding: the brief-order and approval-stop fixes disappeared from the round-2
+core, leaving the live `.claude/skills/direct/SKILL.md` still saving the storyboard at
+Step 2.5 and continuing straight past it (`:54`), brief unsaved until Step 8 (`:124`) --
+both directly contradicting 1a's `storyboard.requires = ["brief"]` and the decided human
+stop. Full resumability (a cold restart resuming a paused run) is ANI-230's scope; this
+minimal ordering fix is not:
+
+- **Step 2 (Extract Story Brief):** gains `save_project_artifact(kind: 'brief', ...)`
+  immediately after `extract_story_brief` returns, not deferred to Step 8. `storyboard`'s
+  prerequisite is satisfied before Step 2.5 ever runs.
+- **Step 2.5 (Storyboard):** composes and saves the storyboard (`kind: 'storyboard'`),
+  then **ends the turn** -- no `approve_stage` call yet, per the decided human stop.
+- **Resume, same conversation:** on the human's next message, the agent calls
+  `approve_stage({ project, stage: 'storyboard', actor, note })`, attested (ANI-229 not
+  landed yet, 2), then continues to Step 3.
+- **Cold restart** (a fresh invocation after the session ends) is unchanged from today
+  and stays entirely in ANI-230's scope -- not designed here.
+
 ## 2. Slice plan
 
 | Slice | Provides | Consumes | Depends on | Mergeability |
@@ -174,7 +227,7 @@ that's not a claim about any specific other issue adopting it.
 | **Core (ANI-212)** | Stage map, `checkStagePrerequisites`, 1c's admission call sites, existence checks, role whitelist, warning surfaces, override shape, attested-only `approve_stage` | ANI-227's stable id (1g); ANI-220's `withFileLock` (landed) | **ANI-227 (blocking)** | Cannot merge before ANI-227: 1g's ledger has no safe key without it. No safe interim -- a slug-keyed ledger is the exact bug ANI-227 exists to fix, so shipping one anyway just re-imports it. Independent of ANI-228/229/230 otherwise. |
 | ANI-228 | Cross-process lock (lockfile lifecycle, atomic rename, canonical key), wrapping 1b/1c's call sites | Core's write call sites to wrap | Core merged first (wraps shapes core creates) | Merges any time after core; does not block core shipping (1b states the interim honestly) |
 | ANI-229 | Server context in handlers; elicitation-based `approve_stage` | Core's `approve_stage` (extends it) | Core merged first | Merges any time after core; does not block core shipping (approve_stage ships attested-only, 1a) |
-| ANI-230 | `story_brief`/run-checkpoint persistence; digest re-check added to `checkStagePrerequisites` | Core's shared checker (extends it) | Core merged first | Merges any time after core; does not block core shipping (`approved_digest` is stored but only re-verified where ANI-230 adds that) |
+| ANI-230 | `story_brief`/run-checkpoint persistence; cold-restart resume | Nothing from the checker -- digest re-checking is core's own (1b) | Core merged first | Merges any time after core; does not block core shipping (1i's minimal sequencing ships without cold-restart resume) |
 
 **What the core does before each dependency lands, stated plainly:**
 
@@ -186,25 +239,34 @@ that's not a claim about any specific other issue adopting it.
 - **Before ANI-229:** ships attested-only. `approve_stage` never attempts elicitation
   (that code doesn't exist yet); every approval records `approval_channel: 'attested'`,
   which is what the field is for -- no placeholder, no fake "pending" state.
-- **Before ANI-230:** ships without cold-restart digest re-verification. `approved_digest`
-  is computed and stored (1a) so ANI-230 has something to check against, but the core's
-  own `checkStagePrerequisites` doesn't re-read the storyboard file on every gated call --
-  only ANI-230 adds that. A direct filesystem edit after approval is not caught by the
-  core alone; it needs ANI-230's addition to close.
+- **Before ANI-230:** ships without cold-restart resume. Digest re-verification is
+  already in the core (1b), not deferred. What's missing without ANI-230 is only that a
+  fresh `/direct` invocation after the session ends can't pick back up where a paused run
+  left off; 1i's same-conversation resume works regardless.
 
 ## 3. Test matrix (core only)
 
 | Case | Setup | Expected |
 |---|---|---|
 | Dry-run encode admission | `render_master({ persist: true, encode: true, dry_run_encode: true })` on an ungated project. | Refused before `assembleVideoSequence` writes `render-props.json`, not only before the (skipped) render call. |
-| Direct `assemble_video_sequence`, with project | Call with `project` set, ungated. | Refused before the `output_dir` write. |
-| Direct `assemble_video_sequence`, no project | Call with no `project`. | Succeeds ungated (named residual, not silently "covered"). |
+| Direct `assemble_video_sequence`, with project | Call with `project` set and `output_dir` set, ungated project. | Refused before the `output_dir` write. |
+| Direct `assemble_video_sequence`, `output_dir` no project | Call with `output_dir` set and no `project`. | Throws `project is required when output_dir is set` before any write; no bypass via omission. |
+| `assemble_video_sequence`, no `output_dir` | Call with neither `output_dir` nor `project`. | Succeeds ungated -- nothing durable happens, correctly unchanged. |
 | Voiceover pre-write | `render_project` on an ungated project with `voiceover.text` scenes. | Refused before `prepareVoiceoverTrack` runs; no TTS cache file written. |
 | Nonexistent artifact path | `save_project_artifact(kind: 'manifest', path: 'motion/manifests/does-not-exist.json')`. | Throws `Artifact not found`, stage stays `not_started`. |
 | `candidate_review` role whitelist | `save_project_artifact(kind: 'candidate_review', role: 'sneaky_full_review', ...)`. | Throws `Unknown candidate_review role`; the three real roles still succeed. |
 | Warning on `save_project_artifact` | Call it against a grandfathered project. | Result carries `stage_warning`, closing round 2's gap. |
 | Override provenance, every gated tool | For each of `save_project_artifact`, `approve_stage`, `render_project`, `render_master`, `encodeMaster`, `assemble_video_sequence` (with project), `record_render_feedback`, `review_project`: call with `override_reason` and no `actor`. | Every one throws the same "actor required" error; none silently accepts an anonymous override. |
 | Legacy ledger blocked on ANI-227 | Attempt to implement 1g's ledger against slug alone. | Not a runtime test -- a review/merge-order check: this PR does not merge without ANI-227's id already available. |
+| Complete-but-not-approved storyboard | `save_project_artifact(kind: 'beat_plan' \| 'scene' \| 'manifest', ...)` against a storyboard that is `complete` but not `approved`. | Refused for all three kinds, naming `storyboard` as not `approved`; each succeeds once `approve_stage` runs. |
+| Digest mismatch after approval | Approve `storyboard`, edit `concept/storyboard.json` on disk, then `save_project_artifact(kind: 'manifest', ...)`, `render_project`, and `render_master`. | All three refuse, naming the storyboard as changed since approval; re-running `approve_stage` (new digest) clears it for all three. |
+| Refusal before any write, persist-only paths | `render_master({ persist: true })`, `record_render_feedback`, `review_project`, each on an ungated project. | Each refuses before its first durable write (`persistMaster`, the feedback log append, `review/evaluation.json`), not merely before registration. |
+| `approve_stage` complete-first and digest storage | Approve a stage that just reached `complete`. | Succeeds; `stages.storyboard.approved_digest` is present and matches the file's current hash. |
+| `override_reason` can't bypass complete-first | `approve_stage` on a `not_started` stage with `override_reason` supplied. | Still throws "must be complete first" -- overrides bypass prerequisite refusals, never the state-machine invariant. |
+| Warning on every enumerated surface | Call each tool in 1f's list against a grandfathered project. | Every one carries `stage_warning`; none silently omit it. |
+| Strict-new vs ledger-grandfathered | A project with `stage_map_version` set vs. one on the ledger with none. | The first is gated normally; the second's gated calls succeed with no override needed. |
+| Override record, full and exactly once | Trigger one override on `save_project_artifact`. | `project.json.overrides` gains exactly one entry with every field (1h's shape) populated; the same record is present in the call's own return payload, not only on disk. |
+| Schema coverage, every gated tool | Inspect the public `inputSchema` for `save_project_artifact`, `approve_stage`, `render_project`, `render_master`, `assemble_video_sequence`, `record_render_feedback`, `review_project`. | Every one declares `override_reason` and `actor`; none rely on an internal-only param a real MCP client could never send. |
 
 **Alternate scene/manifest producers, verified this round, pure vs. durable:**
 

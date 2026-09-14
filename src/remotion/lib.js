@@ -6,6 +6,21 @@
  */
 
 /**
+ * The v3 `semantic.components[].type` enum `validateScene` enforces. Exported
+ * so importers that build v3 scenes (e.g. `mcp/lib/lottie/to-scene.js`,
+ * `mcp/lib/figma/frame-to-scene.js`) can read the real, enforced enum instead
+ * of hand-typing a copy that silently drifts from what `validateScene` (below)
+ * actually accepts (ANI-199 P1).
+ */
+export const VALID_SEMANTIC_COMPONENT_TYPES = ['input_field', 'prompt_card', 'dropdown_menu', 'result_stack', 'upload_zone', 'chip_row', 'icon_label_row', 'stacked_cards'];
+
+/** The v3 `semantic.components[].role` enum. */
+export const VALID_SEMANTIC_COMPONENT_ROLES = ['hero', 'supporting', 'background', 'wildcard'];
+
+/** The `layer.product_role` enum (distinct from the component role above). */
+export const VALID_LAYER_PRODUCT_ROLES = ['hero', 'supporting', 'functional', 'decorative'];
+
+/**
  * Get default transition duration for a type (in ms).
  */
 export function getDefaultTransitionDuration(type) {
@@ -407,7 +422,7 @@ export function validateScene(scene) {
 
         // Product annotations (optional)
         if (layer.product_role != null) {
-          const validLayerRoles = ['hero', 'supporting', 'functional', 'decorative'];
+          const validLayerRoles = VALID_LAYER_PRODUCT_ROLES;
           if (!validLayerRoles.includes(layer.product_role)) {
             errors.push(`layer "${layer.id || '?'}".product_role "${layer.product_role}" is not valid (must be one of: ${validLayerRoles.join(', ')})`);
           }
@@ -489,8 +504,8 @@ export function validateScene(scene) {
     }
 
     // Components
-    const validComponentTypes = ['input_field', 'prompt_card', 'dropdown_menu', 'result_stack', 'upload_zone', 'chip_row', 'icon_label_row', 'stacked_cards'];
-    const validRoles = ['hero', 'supporting', 'background', 'wildcard'];
+    const validComponentTypes = VALID_SEMANTIC_COMPONENT_TYPES;
+    const validRoles = VALID_SEMANTIC_COMPONENT_ROLES;
     const componentIds = new Set();
 
     if (sem.components && Array.isArray(sem.components)) {

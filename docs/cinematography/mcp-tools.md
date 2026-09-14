@@ -217,7 +217,7 @@ Returns tempo, beat timestamps, and an energy curve. Feed it to `sync_sequence_t
 |------|------|
 | `init_project` | Create project with directory structure |
 | `list_projects` / `get_project` / `get_project_context` | Load projects |
-| `save_project_artifact` | Save artifact (brief, manifest, render, review) to project |
+| `save_project_artifact` | Save artifact (brief, storyboard, manifest, render, scene, version, review, master, beat_plan) to project — `beat_plan` is keyed by strategy and never touches `entrypoints.storyboard` (ANI-220) |
 | `render_project` | Trigger project render |
 | `export_storyboard_to_figma` | Storyboard→Figma export payload + panel stills (agent drives the Figma MCP; sb_<scene_id> contract) |
 | `verify_figma_export` | REST read-back: created Figma file vs payload contract (fail-closed) |

@@ -21,15 +21,27 @@ import {
   saveProjectArtifact,
   reviewProject,
   renderProject,
+  writeJSON,
   STATUS_PROJECT,
   STATUS_SCENE,
   STATUS_VERSION,
 } from '../lib/projects.js';
 
+// For deriveArtifactKindsFromSchema() — built the same way
+// registration-parity.test.js builds the tool list, so the schema-derived
+// authority is the real advertised tool, not a re-typed copy of it.
+import { buildTools } from '../tools.js';
+import { loadIntentMappings, loadBriefTemplates, listReferenceDocs } from '../data/loader.js';
+import { STYLE_PACKS } from '../lib/planner.js';
+import { ART_DIRECTION_SLUGS } from '../lib/art-direction.js';
+import { COMPOSITING_PASS_SLUGS } from '../lib/compositing.js';
+import { AVAILABLE_PROVIDERS as TTS_PROVIDERS } from '../lib/tts.js';
+
 const PROJECTS_ROOT = join(process.cwd(), 'projects');
 const TEST_SLUG = '__test_project__';
 const TEST_SLUG_2 = '__test_project_2__';
 const TEST_SLUG_REVIEW = '__test_project_review__';
+const TEST_SLUG_BEATPLAN = '__test_project_beatplan__';
 let testProjectRoot;
 let testProjectRoot2;
 
@@ -46,7 +58,7 @@ after(() => {
 
 function cleanup() {
   // Remove test project directories
-  for (const slug of [TEST_SLUG, TEST_SLUG_2, TEST_SLUG_REVIEW]) {
+  for (const slug of [TEST_SLUG, TEST_SLUG_2, TEST_SLUG_REVIEW, TEST_SLUG_BEATPLAN]) {
     const entries = existsSync(PROJECTS_ROOT)
       ? readdirSync(PROJECTS_ROOT)
       : [];
@@ -403,6 +415,483 @@ describe('saveProjectArtifact', () => {
       }),
       { message: /not found/ }
     );
+  });
+});
+
+// ── saveProjectArtifact — beat plans must not clobber the storyboard pointer ──
+//
+// ANI-220 regression: `/direct` Step 8 used to register storyboard AND all
+// three beat plans under kind: 'storyboard'. Since saveProjectArtifact's
+// storyboard case is a scalar overwrite of entrypoints.storyboard, whichever
+// beat plan saved last replaced the storyboard pointer (verified live in
+// projects/2026-03-25-fintech-sizzle/project.json). Beat plans get their own
+// `beat_plan` kind, keyed by strategy, that never touches entrypoints.
+
+describe('saveProjectArtifact — beat_plan kind (ANI-220)', () => {
+  it('storyboard pointer survives saving three beat plans under their own kind', async () => {
+    cleanup();
+    await initProject({
+      title: 'Beat Plan Isolation Test',
+      slug: TEST_SLUG_BEATPLAN,
+      date_prefix: false,
+    });
+
+    const storyboardResult = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'storyboard',
+      path: 'concept/storyboard.json',
+    });
+    assert.equal(storyboardResult.entrypoints.storyboard, 'concept/storyboard.json');
+
+    for (const strategy of ['dramatic', 'energy', 'prestige']) {
+      const result = await saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: strategy,
+        path: `concept/beat-plan-${strategy}.json`,
+      });
+
+      // The storyboard pointer must be untouched by every beat-plan save.
+      assert.equal(
+        result.entrypoints.storyboard,
+        'concept/storyboard.json',
+        `storyboard entrypoint clobbered after saving beat plan "${strategy}"`
+      );
+    }
+
+    const final = await getProject({ project: TEST_SLUG_BEATPLAN });
+    assert.equal(final.entrypoints.storyboard, 'concept/storyboard.json');
+
+    // All three beat plans are retrievable under their own key, each with
+    // its own strategy-scoped path (not a single scalar overwritten 3x).
+    assert.equal(final.beat_plans.length, 3);
+    const byStrategy = Object.fromEntries(final.beat_plans.map(bp => [bp.strategy, bp.path]));
+    assert.equal(byStrategy.dramatic, 'concept/beat-plan-dramatic.json');
+    assert.equal(byStrategy.energy, 'concept/beat-plan-energy.json');
+    assert.equal(byStrategy.prestige, 'concept/beat-plan-prestige.json');
+  });
+
+  it('re-saving a beat plan for the same strategy replaces that entry, not the whole array', async () => {
+    cleanup();
+    await initProject({
+      title: 'Beat Plan Replace Test',
+      slug: TEST_SLUG_BEATPLAN,
+      date_prefix: false,
+    });
+
+    await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic.json',
+    });
+    await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'energy',
+      path: 'concept/beat-plan-energy.json',
+    });
+    const result = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic-v2.json',
+    });
+
+    assert.equal(result.beat_plans.length, 2, 're-saving the same strategy must replace, not append');
+    const byStrategy = Object.fromEntries(result.beat_plans.map(bp => [bp.strategy, bp.path]));
+    assert.equal(byStrategy.dramatic, 'concept/beat-plan-dramatic-v2.json');
+    assert.equal(byStrategy.energy, 'concept/beat-plan-energy.json');
+  });
+
+  it('getProjectContext({ include: ["beat_plans"] }) returns all saved beat plans with data', async () => {
+    cleanup();
+    const init = await initProject({
+      title: 'Beat Plan Context Test',
+      slug: TEST_SLUG_BEATPLAN,
+      date_prefix: false,
+    });
+    const root = init.project_root;
+
+    for (const strategy of ['dramatic', 'energy']) {
+      const path = `concept/beat-plan-${strategy}.json`;
+      writeFileSync(join(root, path), JSON.stringify({ strategy, beats: [] }, null, 2));
+      await saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: strategy,
+        path,
+      });
+    }
+
+    const context = await getProjectContext({
+      project: TEST_SLUG_BEATPLAN,
+      include: ['beat_plans'],
+    });
+
+    assert.equal(context.beat_plans.length, 2);
+    const byStrategy = Object.fromEntries(context.beat_plans.map(bp => [bp.strategy, bp]));
+    assert.equal(byStrategy.dramatic.data.strategy, 'dramatic');
+    assert.equal(byStrategy.energy.data.strategy, 'energy');
+  });
+});
+
+// ── Codex review follow-up (58582d6) ─────────────────────────────────────────
+//
+// A `beat_plan` with no strategy was silently appended (and duplicated on
+// every re-save, since the lookup that would replace it needs a strategy to
+// match on); `metadata` was spread after the canonical `strategy`/`path`/
+// `created_at` fields, so a caller-supplied metadata.strategy could silently
+// overwrite `role`'s strategy and land the entry under the wrong key.
+
+// Derive the set of artifact kinds straight from saveProjectArtifact's own
+// `switch (kind)` in mcp/lib/projects.js — not a hand-typed list here — so
+// "no kind can clobber entrypoints.storyboard" stays a property of the
+// switch statement itself, not a snapshot of it that can silently drift.
+function deriveArtifactKinds() {
+  const src = readFileSync(join(process.cwd(), 'mcp/lib/projects.js'), 'utf-8');
+  const start = src.indexOf('export async function saveProjectArtifact');
+  const end = src.indexOf('export async function reviewProject');
+  assert.ok(start >= 0 && end > start, 'could not locate saveProjectArtifact in mcp/lib/projects.js');
+  const switchBody = src.slice(start, end);
+  // Accept both quote styles — a double-quoted case must not silently drop
+  // out of the derived list (Codex round 2).
+  const kinds = [...switchBody.matchAll(/case ['"]([a-z_]+)['"]:/g)].map(m => m[1]);
+  assert.ok(kinds.includes('beat_plan'), 'sanity check: beat_plan case not found — regex or slice is wrong');
+  return [...new Set(kinds)];
+}
+
+// Second, independent authority for the same list: the `kind` enum the
+// save_project_artifact tool schema advertises (built the same way
+// registration-parity.test.js does — via buildTools(), not regex). If a
+// kind is ever added to one but not the other, this fails loudly instead of
+// both "sources of truth" silently drifting apart (Codex round 2).
+function deriveArtifactKindsFromSchema() {
+  const tools = buildTools({
+    STYLE_PACKS,
+    intentMappings: loadIntentMappings(),
+    briefTemplatesCatalog: loadBriefTemplates(),
+    ART_DIRECTION_SLUGS,
+    COMPOSITING_PASS_SLUGS,
+    TTS_PROVIDERS,
+    listReferenceDocs,
+  });
+  const tool = tools.find(t => t.name === 'save_project_artifact');
+  assert.ok(tool, 'save_project_artifact tool not found in buildTools() output');
+  return [...tool.inputSchema.properties.kind.enum];
+}
+
+// Extra args each kind needs to save without throwing, beyond project/kind/path.
+// beat_plan now requires a strategy (this review's own fix); every other kind
+// tolerates being called with just a path.
+const EXTRA_ARGS_BY_KIND = {
+  beat_plan: { role: 'dramatic' },
+};
+
+describe('saveProjectArtifact — no non-storyboard kind can touch entrypoints.storyboard (Codex 58582d6)', () => {
+  const kinds = deriveArtifactKinds().filter(k => k !== 'storyboard');
+
+  it('derived at least brief/manifest/render/scene/version/review/master/beat_plan (guards against an empty/broken derivation)', () => {
+    for (const expected of ['brief', 'manifest', 'render', 'scene', 'version', 'review', 'master', 'beat_plan']) {
+      assert.ok(kinds.includes(expected), `deriveArtifactKinds() missing "${expected}" — regex drifted from the switch`);
+    }
+  });
+
+  it('the switch-derived kind list matches the save_project_artifact schema enum exactly (two independent authorities)', () => {
+    const fromSwitch = [...deriveArtifactKinds()].sort();
+    const fromSchema = [...deriveArtifactKindsFromSchema()].sort();
+    assert.deepEqual(
+      fromSwitch,
+      fromSchema,
+      'mcp/lib/projects.js switch(kind) and the save_project_artifact schema enum in mcp/tools.js have drifted apart'
+    );
+  });
+
+  for (const kind of kinds) {
+    it(`kind: '${kind}' leaves entrypoints.storyboard untouched`, async () => {
+      cleanup();
+      await initProject({
+        title: `Kind Isolation Test — ${kind}`,
+        slug: TEST_SLUG_BEATPLAN,
+        date_prefix: false,
+      });
+      await saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'storyboard',
+        path: 'concept/storyboard.json',
+      });
+
+      const result = await saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind,
+        path: `test-artifact-${kind}.json`,
+        ...(EXTRA_ARGS_BY_KIND[kind] || {}),
+      });
+
+      assert.equal(
+        result.entrypoints.storyboard,
+        'concept/storyboard.json',
+        `kind "${kind}" clobbered the storyboard entrypoint`
+      );
+    });
+  }
+});
+
+describe('saveProjectArtifact — beat_plan strategy integrity (Codex 58582d6)', () => {
+  it('rejects a missing strategy (no role, no metadata.strategy)', async () => {
+    cleanup();
+    await initProject({ title: 'No Strategy', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        path: 'concept/beat-plan-dramatic.json',
+      }),
+      { message: /beat_plan requires a strategy/ }
+    );
+  });
+
+  it('rejects an empty-string strategy', async () => {
+    cleanup();
+    await initProject({ title: 'Empty Strategy', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: '',
+        path: 'concept/beat-plan-dramatic.json',
+      }),
+      { message: /beat_plan requires a strategy/ }
+    );
+  });
+
+  it('rejects a re-save with a missing strategy rather than appending a duplicate', async () => {
+    cleanup();
+    await initProject({ title: 'No Strategy Resave', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+    await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic.json',
+    });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        path: 'concept/beat-plan-dramatic-v2.json',
+      }),
+      { message: /beat_plan requires a strategy/ }
+    );
+
+    const project = await getProject({ project: TEST_SLUG_BEATPLAN });
+    assert.equal(project.beat_plans.length, 1, 'the rejected save must not have appended anything');
+  });
+
+  it('rejects role/metadata.strategy disagreement instead of silently picking one', async () => {
+    cleanup();
+    await initProject({ title: 'Strategy Conflict', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: 'dramatic',
+        path: 'concept/beat-plan-dramatic.json',
+        metadata: { strategy: 'energy' },
+      }),
+      { message: /disagree/ }
+    );
+  });
+
+  it('accepts metadata.strategy alone (no role) as the strategy', async () => {
+    cleanup();
+    await initProject({ title: 'Metadata Strategy Only', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    const result = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      path: 'concept/beat-plan-energy.json',
+      metadata: { strategy: 'energy' },
+    });
+
+    assert.equal(result.beat_plans.length, 1);
+    assert.equal(result.beat_plans[0].strategy, 'energy');
+  });
+
+  it('canonical path/created_at win over conflicting metadata fields of the same name', async () => {
+    cleanup();
+    await initProject({ title: 'Metadata Identity Guard', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    const result = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic.json',
+      metadata: { path: 'concept/attacker-controlled.json', created_at: 'not-a-real-date', note: 'kept' },
+    });
+
+    assert.equal(result.beat_plans[0].path, 'concept/beat-plan-dramatic.json');
+    assert.notEqual(result.beat_plans[0].created_at, 'not-a-real-date');
+    assert.equal(result.beat_plans[0].note, 'kept', 'non-identity metadata fields still pass through');
+  });
+});
+
+describe('getProjectContext — beat_plans edge cases (Codex 58582d6)', () => {
+  it('returns [] for a legacy project.json with no beat_plans key at all', async () => {
+    cleanup();
+    const init = await initProject({ title: 'Legacy Project', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+    const { project_root: root } = init;
+
+    // Simulate a pre-ANI-220 project.json written before `beat_plans` existed.
+    const legacy = await getProject({ project: TEST_SLUG_BEATPLAN });
+    delete legacy.beat_plans;
+    const { project_root: _root, ...legacyData } = legacy;
+    await writeJSON(join(root, 'project.json'), legacyData);
+
+    const context = await getProjectContext({
+      project: TEST_SLUG_BEATPLAN,
+      include: ['beat_plans'],
+    });
+
+    assert.deepEqual(context.beat_plans, []);
+  });
+
+  it('a registered beat plan whose file is missing on disk reads as data: null, matching every other include (readJSON swallows the error)', async () => {
+    cleanup();
+    await initProject({ title: 'Missing Beat Plan File', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+    await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic-never-written.json',
+    });
+
+    const context = await getProjectContext({
+      project: TEST_SLUG_BEATPLAN,
+      include: ['beat_plans'],
+    });
+
+    assert.equal(context.beat_plans.length, 1);
+    assert.equal(context.beat_plans[0].data, null, 'missing file must degrade to null, like scenes/manifest/review do — never throw');
+    assert.equal(context.beat_plans[0].strategy, 'dramatic', 'the entry itself is still returned even though its file is missing');
+  });
+});
+
+describe('saveProjectArtifact — beat_plan strategy whitespace (Codex round 2)', () => {
+  it('rejects a whitespace-only role', async () => {
+    cleanup();
+    await initProject({ title: 'Whitespace Role', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: '   ',
+        path: 'concept/beat-plan-dramatic.json',
+      }),
+      { message: /beat_plan requires a strategy/ }
+    );
+  });
+
+  it('rejects a whitespace-only metadata.strategy', async () => {
+    cleanup();
+    await initProject({ title: 'Whitespace Metadata Strategy', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await assert.rejects(
+      () => saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        path: 'concept/beat-plan-dramatic.json',
+        metadata: { strategy: '   ' },
+      }),
+      { message: /beat_plan requires a strategy/ }
+    );
+  });
+
+  it('stores a padded role trimmed, and matches it on re-save', async () => {
+    cleanup();
+    await initProject({ title: 'Padded Role', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    const first = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: '  dramatic  ',
+      path: 'concept/beat-plan-dramatic.json',
+    });
+    assert.equal(first.beat_plans.length, 1);
+    assert.equal(first.beat_plans[0].strategy, 'dramatic', 'stored strategy must be trimmed, not the padded literal');
+
+    // Re-saving with the same (untrimmed) role must replace, not append —
+    // proves the stored/trimmed value is what the lookup keys on too.
+    const second = await saveProjectArtifact({
+      project: TEST_SLUG_BEATPLAN,
+      kind: 'beat_plan',
+      role: 'dramatic',
+      path: 'concept/beat-plan-dramatic-v2.json',
+    });
+    assert.equal(second.beat_plans.length, 1, 're-save with the trimmed-equivalent role must replace, not append');
+    assert.equal(second.beat_plans[0].path, 'concept/beat-plan-dramatic-v2.json');
+  });
+});
+
+// ── Codex review round 2 — concurrent saves ──────────────────────────────────
+//
+// saveProjectArtifact reads the whole project.json, mutates the in-memory
+// snapshot, then rewrites the whole file, with nothing serializing those
+// steps. Three beat-plan saves fired as parallel tool calls (exactly what
+// /direct's Step 8 does) can each read the SAME pre-save snapshot, so all
+// three writes race and only the last writer's beat_plans survives; the
+// same race lets a beat-plan save that read before a concurrent storyboard
+// save write back — and thereby revert — the stale storyboard pointer. This
+// is the exact class of bug ANI-220 exists for, just via a second door.
+describe('saveProjectArtifact — concurrent saves must not lose data (Codex round 2)', () => {
+  it('three parallel beat-plan saves (distinct strategies) all survive', async () => {
+    cleanup();
+    await initProject({ title: 'Concurrent Beat Plans', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await Promise.all(['dramatic', 'energy', 'prestige'].map(strategy =>
+      saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'beat_plan',
+        role: strategy,
+        path: `concept/beat-plan-${strategy}.json`,
+      })
+    ));
+
+    const project = await getProject({ project: TEST_SLUG_BEATPLAN });
+    assert.equal(project.beat_plans.length, 3, `expected all 3 parallel beat-plan saves to survive, got ${project.beat_plans.length}`);
+    const byStrategy = Object.fromEntries(project.beat_plans.map(bp => [bp.strategy, bp.path]));
+    assert.equal(byStrategy.dramatic, 'concept/beat-plan-dramatic.json');
+    assert.equal(byStrategy.energy, 'concept/beat-plan-energy.json');
+    assert.equal(byStrategy.prestige, 'concept/beat-plan-prestige.json');
+  });
+
+  it('a storyboard save interleaved with parallel beat-plan saves is never reverted', async () => {
+    cleanup();
+    await initProject({ title: 'Concurrent Storyboard + Beat Plans', slug: TEST_SLUG_BEATPLAN, date_prefix: false });
+
+    await Promise.all([
+      saveProjectArtifact({
+        project: TEST_SLUG_BEATPLAN,
+        kind: 'storyboard',
+        path: 'concept/storyboard.json',
+      }),
+      ...['dramatic', 'energy', 'prestige'].map(strategy =>
+        saveProjectArtifact({
+          project: TEST_SLUG_BEATPLAN,
+          kind: 'beat_plan',
+          role: strategy,
+          path: `concept/beat-plan-${strategy}.json`,
+        })
+      ),
+    ]);
+
+    const project = await getProject({ project: TEST_SLUG_BEATPLAN });
+    assert.equal(project.entrypoints.storyboard, 'concept/storyboard.json', 'storyboard pointer must survive concurrent beat-plan saves');
+    assert.equal(project.beat_plans.length, 3, `expected all 3 parallel beat-plan saves to survive, got ${project.beat_plans.length}`);
   });
 });
 

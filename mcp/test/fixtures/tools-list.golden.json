@@ -1036,7 +1036,7 @@
   },
   {
     "name": "get_project_context",
-    "description": "Get the minimum useful working context for a project. Returns brief, storyboard, scenes, manifest, and/or review content.",
+    "description": "Get the minimum useful working context for a project. Returns brief, storyboard, scenes, manifest, review, and/or beat_plans content.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1053,10 +1053,11 @@
               "storyboard",
               "scenes",
               "manifest",
-              "review"
+              "review",
+              "beat_plans"
             ]
           },
-          "description": "Which context sections to include — any of `brief`, `storyboard`, `scenes`, `manifest`, `review`. Defaults to all."
+          "description": "Which context sections to include — any of `brief`, `storyboard`, `scenes`, `manifest`, `review`, `beat_plans`. Omitted or empty returns none of these sections (just the project record)."
         }
       },
       "required": [
@@ -1084,9 +1085,10 @@
             "scene",
             "version",
             "review",
-            "master"
+            "master",
+            "beat_plan"
           ],
-          "description": "Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, `review`, or `master`."
+          "description": "Artifact type — `brief`, `storyboard`, `manifest`, `render`, `scene`, `version`, `review`, `master`, or `beat_plan`. `beat_plan` is keyed by strategy (via `role`) and never touches `entrypoints.storyboard` (ANI-220)."
         },
         "path": {
           "type": "string",
@@ -1094,7 +1096,7 @@
         },
         "role": {
           "type": "string",
-          "description": "Entrypoint role to update (e.g., `latest_render`, `approved_render`)."
+          "description": "Entrypoint role to update (e.g., `latest_render`, `approved_render`), the tier for `master` artifacts, or the strategy for `beat_plan` artifacts (e.g., `dramatic`, `energy`, `prestige`) — REQUIRED for `beat_plan` (or pass `metadata.strategy` instead; the two must agree if both are given)."
         },
         "scene_id": {
           "type": "string",

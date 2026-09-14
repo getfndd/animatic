@@ -102,6 +102,47 @@ export async function writeJSON(filePath, data) {
   await writeFile(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
+// ── Per-file write serialization (ANI-220 round 2) ──────────────────────────
+//
+// Every read-modify-write of project.json (saveProjectArtifact, initProject)
+// reads the whole file, mutates an in-memory snapshot, then rewrites the
+// whole file, with nothing serializing those steps against each other.
+// Node's single-threaded event loop still lets two such sequences for the
+// SAME file interleave across their `await`s — e.g. three beat-plan saves
+// fired as parallel tool calls, or a beat-plan save racing a storyboard
+// save — so the second writer's read can already be stale by the time it
+// writes back, silently reverting or dropping the first writer's change.
+// That's the exact class of bug ANI-220 exists for, via a second door.
+//
+// This queues same-key callers so at most one read-modify-write for a given
+// file is ever in flight *within this process*. It is NOT cross-process or
+// cross-host locking — a second MCP server process (or a second machine)
+// writing the same project.json is not covered, and needs real file
+// locking or atomic tmp-and-rename, which is a separate, larger piece of
+// work. ANI-212's stage-map design should import `withFileLock` from here
+// rather than re-inventing a second per-file queue.
+const fileLocks = new Map();
+
+/**
+ * Run `fn` only after every previously-queued call for the same `key` (in
+ * practice, a resolved file path) has settled on this process, so calls
+ * sharing a key never have their read-modify-write sequences interleave.
+ *
+ * @template T
+ * @param {string} key - Typically a resolved file path.
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
+export function withFileLock(key, fn) {
+  const previous = fileLocks.get(key) || Promise.resolve();
+  const settled = previous.then(fn, fn);
+  // Store a version that never rejects, so one failed call doesn't wedge
+  // every later call queued behind it — the caller of THIS call still sees
+  // `settled`'s real outcome via the returned promise.
+  fileLocks.set(key, settled.catch(() => {}));
+  return settled;
+}
+
 /** Strip a leading YYYY-MM-DD- prefix from a directory name to get the slug. */
 function stripDatePrefix(dirName) {
   return dirName.replace(/^\d{4}-\d{2}-\d{2}-/, '');
@@ -172,6 +213,7 @@ export async function initProject(config) {
     },
     scenes: [],
     versions: [],
+    beat_plans: [],
     review: {
       evaluation: 'review/evaluation.json',
       critic: 'review/critic.json',
@@ -183,7 +225,7 @@ export async function initProject(config) {
     metadata: {},
   };
 
-  await writeJSON(projectFile, projectData);
+  await withFileLock(projectFile, () => writeJSON(projectFile, projectData));
 
   return {
     project_id: slug,
@@ -325,7 +367,7 @@ export async function loadProjectSource(projectId, opts = {}) {
  *
  * @param {object} options
  * @param {string} options.project - Slug or path.
- * @param {string[]} options.include - Keys to include: brief, storyboard, scenes, manifest, review.
+ * @param {string[]} options.include - Keys to include: brief, storyboard, scenes, manifest, review, beat_plans. Omitted or empty returns none of these sections (just `project`).
  * @returns {Promise<object|null>}
  */
 export async function getProjectContext(options) {
@@ -366,6 +408,19 @@ export async function getProjectContext(options) {
         result.scenes = scenes;
         break;
       }
+      case 'beat_plans': {
+        // Per-strategy beat plans (ANI-220) — not an entrypoint; multiple
+        // candidates can coexist, unlike the single storyboard pointer.
+        const beatPlans = [];
+        for (const bpEntry of proj.beat_plans || []) {
+          const bpData = bpEntry.path
+            ? await readJSON(join(project_root, bpEntry.path))
+            : null;
+          beatPlans.push({ ...bpEntry, data: bpData });
+        }
+        result.beat_plans = beatPlans;
+        break;
+      }
       case 'manifest': {
         const manifestPath = proj.entrypoints?.root_manifest;
         result.manifest = manifestPath
@@ -403,8 +458,8 @@ export async function getProjectContext(options) {
  *
  * @param {object} options
  * @param {string} options.project - Slug or path.
- * @param {string} options.kind - Artifact kind: brief, storyboard, manifest, render, scene, version, review.
- * @param {string} [options.role] - Sub-role (e.g. "evaluation", "critic", "notes" for review kind).
+ * @param {string} options.kind - Artifact kind: brief, storyboard, manifest, render, scene, version, review, master, beat_plan.
+ * @param {string} [options.role] - Sub-role (e.g. "evaluation", "critic", "notes" for review kind; the tier for `master`; the strategy for `beat_plan` — required for `beat_plan`, may alternatively be given as `metadata.strategy`).
  * @param {string} options.path - Relative path from project root.
  * @param {string} [options.scene_id] - Scene identifier (for scene kind).
  * @param {string} [options.version_id] - Version identifier (for version kind).
@@ -430,8 +485,25 @@ export async function saveProjectArtifact(options) {
   const { project_root } = proj;
   const projectFile = join(project_root, 'project.json');
 
-  // Remove project_root from the data we'll write back
-  const { project_root: _root, ...projectData } = proj;
+  return withFileLock(projectFile, () => saveProjectArtifactLocked({
+    projectId, projectFile, project_root, kind, role, artifactPath, scene_id, version_id, metadata,
+  }));
+}
+
+/**
+ * The actual read-modify-write for saveProjectArtifact, run exclusively
+ * per `projectFile` via withFileLock() above. Re-reads project.json fresh
+ * rather than reusing the caller's earlier `getProject` snapshot, because
+ * another queued save may have already written a newer file since that
+ * read — writing back the older snapshot is exactly the lost-update race
+ * (a beat-plan save reverting a concurrent storyboard save, or vice versa)
+ * this lock exists to close.
+ */
+async function saveProjectArtifactLocked({ projectId, projectFile, project_root, kind, role, artifactPath, scene_id, version_id, metadata }) {
+  const projectData = await readJSON(projectFile);
+  if (!projectData) {
+    throw new Error(`Project not found: ${projectId}`);
+  }
 
   // Update timestamp
   projectData.updated_at = timestamp();
@@ -494,6 +566,56 @@ export async function saveProjectArtifact(options) {
       if (role) {
         projectData.review = projectData.review || {};
         projectData.review[role] = artifactPath;
+      }
+      break;
+    }
+
+    case 'beat_plan': {
+      // Per-strategy beat plan (ANI-220). Beat plans are one of several
+      // candidates generated alongside a storyboard, not a replacement for
+      // it — they must never touch entrypoints.storyboard. Keyed by
+      // `role` (the strategy, e.g. "dramatic"/"energy"/"prestige") the same
+      // way `master` is keyed by tier: one entry per strategy, replaced on
+      // re-save rather than appended.
+      //
+      // A strategy is mandatory: without one, the findIndex lookup below
+      // can never match an existing entry, so every "re-save" would append
+      // a duplicate instead of replacing (Codex review on 58582d6). `role`
+      // and `metadata.strategy` are both accepted as the source of truth,
+      // but if both are given they must agree — silently preferring one
+      // over the other is how a caller's actual intent gets lost. Both are
+      // trimmed before any of that: a whitespace-only value (" ") is
+      // truthy but not a real strategy, and an untrimmed one would key the
+      // lookup on a value the caller never actually intended to store
+      // (Codex round 2).
+      const trimmedRole = typeof role === 'string' ? role.trim() : role;
+      const trimmedMetadataStrategy = typeof metadata.strategy === 'string' ? metadata.strategy.trim() : metadata.strategy;
+      if (trimmedMetadataStrategy && trimmedRole && trimmedMetadataStrategy !== trimmedRole) {
+        throw new Error(
+          `save_project_artifact: beat_plan role ("${role}") and metadata.strategy ("${metadata.strategy}") disagree — pass only one, or make them match.`
+        );
+      }
+      const strategy = trimmedRole || trimmedMetadataStrategy || null;
+      if (!strategy) {
+        throw new Error(
+          'save_project_artifact: beat_plan requires a strategy — pass `role` (e.g. "dramatic", "energy", "prestige") or `metadata.strategy`.'
+        );
+      }
+      projectData.beat_plans = projectData.beat_plans || [];
+      // Canonical identity fields (strategy/path/created_at) are spread
+      // AFTER metadata so a caller-supplied metadata.path or
+      // metadata.created_at can never silently overwrite them.
+      const beatPlanEntry = {
+        ...metadata,
+        strategy,
+        path: artifactPath,
+        created_at: timestamp(),
+      };
+      const existingBeatPlan = projectData.beat_plans.findIndex((bp) => bp.strategy === strategy);
+      if (existingBeatPlan >= 0) {
+        projectData.beat_plans[existingBeatPlan] = { ...projectData.beat_plans[existingBeatPlan], ...beatPlanEntry };
+      } else {
+        projectData.beat_plans.push(beatPlanEntry);
       }
       break;
     }

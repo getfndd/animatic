@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TITLE}} — flow</title>
+  <meta name="description" content="{{DESCRIPTION}}">
+  <!-- The storyboard is a product page, not design-system-blind chrome. It links
+       the same stylesheets the screens do, so it adopts the project's palette,
+       dark mode, radius and type rather than announcing itself as tooling.
+       Copy these next to the output like any other prototype file. -->
+  <link rel="stylesheet" href="./_tokens.css">
+  {{DS_TOKEN_STYLE}}
+  <style>
+    body {
+      margin: 0;
+      background: var(--surface);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      padding: 2.5rem;
+    }
+    h1 { font-family: var(--font-display); font-size: 1.875rem; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 0.25rem; }
+    .eyebrow { font-size: 0.875rem; color: var(--ink-quiet); margin: 0 0 1rem; }
+    .rule { border-bottom: 1px solid var(--rule); margin: 1rem 0 2rem; }
+
+    /* Horizontal storyboard. Screens keep a fixed width so the strip reads as
+       a sequence at any viewport rather than reflowing into a grid — the order
+       is the content. */
+    .strip { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 1rem; }
+    .screen { flex: none; width: 360px; display: flex; flex-direction: column; gap: 0.5rem; text-decoration: none; color: inherit; }
+    .frame { border: 1px solid var(--rule); height: 260px; overflow: hidden; background: var(--surface); }
+    /* A scaled live iframe rather than a screenshot: no capture step, and the
+       thumbnail cannot drift from the screen it represents. pointer-events off
+       so the frame is a picture, and the wrapping <a> owns the click. */
+    .frame iframe { width: 1280px; height: 925px; transform: scale(0.281); transform-origin: top left; border: 0; pointer-events: none; }
+    .screen .label { font-size: 0.8125rem; }
+    .screen .num { color: var(--ink-quiet); }
+    .transition { flex: none; width: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.25rem; padding: 0 0.5rem; text-align: center; color: var(--ink-quiet); font-size: 0.75rem; }
+    .transition .arrow { font-size: 1.25rem; line-height: 1; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .screen, .frame { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- AUTHORING SCAFFOLDING — strip this comment before writing the output.
+
+  Per-screen block (one per flow.screens[], in order):
+  <a class="screen" href="SCREEN_FILE" target="_blank" rel="noopener">
+    <div class="frame"><iframe src="SCREEN_FILE" loading="lazy" title="SCREEN_TITLE"></iframe></div>
+    <div class="label"><span class="num">NN</span> &middot; SCREEN_TITLE</div>
+  </a>
+
+  Per-transition block (one BETWEEN adjacent screens, from flow.transitions[]):
+  <div class="transition"><span class="arrow">&rarr;</span><span>CAPTION</span><span class="num">TRIGGER</span></div>
+  -->
+  <p class="eyebrow">prototype &middot; flow</p>
+  <h1>{{TITLE}}.</h1>
+  <div class="rule"></div>
+  <div class="strip">{{FLOW_STRIP}}</div>
+  {{SIGNOFF_FOOTER}}
+</body>
+</html>

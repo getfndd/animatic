@@ -69,7 +69,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   background: var(--nl-bg-body);
   color: var(--nl-text-primary);
   -webkit-font-smoothing: antialiased;

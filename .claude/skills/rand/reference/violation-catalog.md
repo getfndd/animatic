@@ -1,6 +1,27 @@
 # Violation Catalog
 
-Searchable catalog of design system violations. Each entry has: Pattern, Rule, Fix, Tier.
+Searchable catalog of design system violations. Each entry has: Pattern, Rule,
+Fix, Tier.
+
+## What this file owns, and what it does not
+
+This catalog owns the **violation shapes** — the patterns worth grepping for and
+why each is a violation. It does **not** own your palette, your tier
+assignments, or your house style.
+
+- **Concrete class and token names below are illustrative**, drawn from a
+  Tailwind + semantic-token stack. `bg-muted` and `border-border` are the
+  convention this catalog assumes, not a requirement it imposes. Substitute your
+  own.
+- **Tiers are the project's call.** A Blocking here means "this is usually worth
+  blocking on"; the project's `adapters/{project}.md` decides what actually
+  blocks a commit.
+- **Brand colours, specific palette bans, and elevation doctrine belong in the
+  adapter, not here.** A rule of the form "never use *this* scale" or "*our*
+  editor pages are flat" is a project decision. Enforce it — from the adapter.
+- **Where a rule touches accessibility, `@steve` is authoritative and this file
+  is not.** Focus indicators in particular: aesthetic preferences about ring
+  width and opacity lose to the contrast requirement every time.
 
 ---
 
@@ -25,16 +46,11 @@ Searchable catalog of design system violations. Each entry has: Pattern, Rule, F
   - `text-zinc-900` / `text-gray-900` -> `text-foreground`
   - `border-zinc-200` / `border-gray-200` -> `border-border`
 
-### Zinc Usage
-- **Tier**: Blocking
-- **Pattern**: Any `zinc-*` class (`bg-zinc-*`, `text-zinc-*`, `border-zinc-*`, `ring-zinc-*`)
-- **Rule**: Never use `zinc`. Use semantic tokens instead.
-- **Fix**: Map to semantic equivalents (see Raw Tailwind Color Classes above)
-
 ### Gradients in UI Chrome
 - **Tier**: Blocking
-- **Pattern**: `bg-gradient-to-r`, `bg-gradient-to-l`, `bg-gradient-to-b`, `bg-gradient-to-t` in editor/studio pages
-- **Rule**: No gradients in application chrome. Gradients are for marketing pages only.
+- **Pattern**: `bg-gradient-to-r`, `bg-gradient-to-l`, `bg-gradient-to-b`, `bg-gradient-to-t` in application chrome
+- **Rule**: No gradients in application chrome. Marketing surfaces are exempt —
+  the distinction is app-vs-marketing, not any particular route naming.
 - **Fix**: Replace with flat color (`bg-muted`, `bg-foreground`, or `bg-background`)
 
 ### Colored Icon Containers
@@ -45,9 +61,11 @@ Searchable catalog of design system violations. Each entry has: Pattern, Rule, F
 
 ### Brand Color Misuse
 - **Tier**: Warning
-- **Pattern**: Moss (#5a6e66, #728d82), Terra (#8b4d3d, #a15e4b), Kasuri (#1e3a5f, #2d5580) used for generic UI elements
-- **Rule**: Brand colors are reserved for strategic brand emphasis
-- **Fix**: Use semantic tokens for generic UI. Reserve brand colors for intentional brand moments.
+- **Pattern**: A named brand colour used for generic UI. The project's brand
+  colours and their hex values are declared in `adapters/{project}.md` — read
+  them from there; this catalog deliberately names none.
+- **Rule**: Brand colours are reserved for intentional brand moments
+- **Fix**: Use semantic tokens for generic UI
 
 ---
 
@@ -87,11 +105,13 @@ Searchable catalog of design system violations. Each entry has: Pattern, Rule, F
 - **Rule**: No card-in-card nesting. Flatten structure.
 - **Fix**: Replace inner card with `<div className="rounded-lg border border-border p-4">`
 
-### Card Shadows in Editor Pages
-- **Tier**: Blocking
-- **Pattern**: `shadow-md`, `shadow-lg`, `shadow-xl` in studio/editor page components
-- **Rule**: Editor pages use flat design. No shadows on content cards.
-- **Fix**: Replace shadow with `border border-border`
+### Elevation Inconsistent With the Project's Doctrine
+- **Tier**: Project's call — see `adapters/{project}.md`
+- **Pattern**: `shadow-md`, `shadow-lg`, `shadow-xl` on content surfaces
+- **Rule**: Whether elevation is expressed with shadow or with borders is a
+  project decision. Flag *inconsistency* with whichever the adapter declares,
+  not shadow itself. A project with no declared doctrine has no violation here.
+- **Fix**: Match the adapter. Where it prefers borders, `border border-border`
 
 ### Colored Status Icon Containers
 - **Tier**: Warning
@@ -119,23 +139,29 @@ Searchable catalog of design system violations. Each entry has: Pattern, Rule, F
 - **Rule**: All interactive elements need visible hover feedback
 - **Fix**: Add `hover:border-muted-foreground/50 transition-colors` or appropriate hover variant
 
-### Thick Focus Ring
+### Missing Focus Indicator
 - **Tier**: Blocking
-- **Pattern**: `ring-2` on interactive elements
-- **Rule**: Focus rings use `ring-1` for subtlety
-- **Fix**: Replace with `focus:outline-none focus:ring-1 focus:ring-foreground/50 focus:ring-offset-1`
+- **Pattern**: `focus:outline-none` with no `focus-visible:` ring, outline, or
+  other visible indicator replacing it
+- **Rule**: Removing the default outline without substituting an indicator makes
+  the element unreachable for keyboard users
+- **Fix**: Add a `focus-visible:` indicator
 
-### Colored Focus Ring
+### Non-Semantic Focus Ring Color
 - **Tier**: Blocking
-- **Pattern**: `ring-blue-500`, `ring-indigo-500`, `ring-purple-500` or any non-semantic focus ring color
-- **Rule**: Focus rings use semantic `foreground` token
-- **Fix**: Replace with `ring-foreground/50`
+- **Pattern**: `ring-blue-500`, `ring-indigo-500`, `ring-purple-500` or any raw
+  palette scale on a focus ring
+- **Rule**: Focus rings use a semantic token so they follow the theme
+- **Fix**: Replace with the project's semantic focus token
 
-### Full Opacity Focus Ring
-- **Tier**: Warning
-- **Pattern**: `ring-foreground` without opacity modifier (no `/50`)
-- **Rule**: Focus rings use 50% opacity for softness
-- **Fix**: Replace `ring-foreground` with `ring-foreground/50`
+> **Ring width and opacity are not this file's call.** A project may prefer a
+> thin, low-opacity ring, but that is house style and belongs in
+> `adapters/{project}.md` — and it is subordinate to the contrast requirement.
+> WCAG asks focus indicators to reach **3:1 against adjacent colours**; a
+> narrowed or 50%-opacity ring frequently does not. Do not raise a violation for
+> a ring being "too thick" or "too opaque". If a project's adapter mandates one,
+> check the rendered indicator against 3:1 and defer to `@steve` — see
+> `steve/reference/color-and-contrast.md` and `keyboard-and-focus.md`.
 
 ### Missing Transition
 - **Tier**: Suggestion
@@ -161,7 +187,10 @@ Searchable catalog of design system violations. Each entry has: Pattern, Rule, F
 
 ---
 
-## Museum Principle Violations
+## AI-Assumed Design Violations
+
+Intelligence is infrastructure, not a feature to market. An AI-backed control
+looks like every other control.
 
 ### AI Feature Gradient
 - **Tier**: Blocking
@@ -180,60 +209,3 @@ Searchable catalog of design system violations. Each entry has: Pattern, Rule, F
 - **Pattern**: One feature path (typically AI) with visually heavier styling (more color, larger size, "Recommended" badge) than sibling paths
 - **Rule**: All paths to the same goal get equal visual weight
 - **Fix**: Normalize all paths to same styling pattern
-
----
-
-## Motion / Accessibility Violations
-
-### Reduced Motion Fallback Missing — Recipe (motion/requires-reduced-motion-fallback)
-- **Tier**: Blocking
-- **Pattern**: Recipe in `catalog/motion-recipes.json` missing `accessibility_fallback.reduced_motion` (or any required field inside it: `from`, `to`, `differentiation`)
-- **Rule**: Every motion recipe must ship a reduced-motion variant. Schema requires it; the validator surfaces the same error at the Rand gate.
-- **Fix**: Add the fallback. For opacity+transform recipes, opacity-only is usually correct:
-  ```json
-  "accessibility_fallback": {
-    "reduced_motion": {
-      "from": { "opacity": 0 },
-      "to": { "opacity": 1 },
-      "differentiation": "Opacity-only fade preserves the enter signal; translation removed so vestibular users are not affected."
-    }
-  }
-  ```
-
-### Reduced Motion Fallback Missing — Composition (motion/requires-reduced-motion-fallback)
-- **Tier**: Blocking
-- **Pattern**: `.tsx`/`.jsx` file imports `framer-motion` or `motion/react` and uses `<motion.X>` / `useAnimate()` / spring-typed variants, but does NOT call `useReducedMotion()`, `useMotionRecipe()`, or define a `reduced` variant key
-- **Rule**: Custom motion compositions must declare reduced-motion behavior. Routing through `useMotionRecipe()` inherits the recipe's fallback automatically; inline variants must opt in explicitly.
-- **Fix**: Either route through `useMotionRecipe('enter.fade-up')` (recipe handles fallback) or:
-  ```tsx
-  import { motion, useReducedMotion } from 'framer-motion';
-  const reduced = useReducedMotion();
-  return <motion.div animate={{ y: reduced ? 0 : -20, opacity: 1 }} />;
-  ```
-
-### Reduced Motion Fallback Missing — CSS (motion/requires-reduced-motion-fallback)
-- **Tier**: Warning
-- **Pattern**: CSS file containing `@keyframes` or `animation:` declarations with no `@media (prefers-reduced-motion: reduce)` query in the same file
-- **Rule**: CSS animations need a reduced-motion override. Warning only — some files legitimately define keyframes consumed elsewhere.
-- **Fix**: Add a sibling query:
-  ```css
-  @media (prefers-reduced-motion: reduce) {
-    .animated { animation: none; transition: none; }
-  }
-  ```
-  Or, if the file is a pure keyframe library, silence with: `/* rand-disable motion/requires-reduced-motion-fallback: keyframe library consumed elsewhere */`
-
-### Per-File Disable Mechanism
-
-Any file may silence the rule with a comment containing a required reason:
-
-- JS/TSX: `// rand-disable motion/requires-reduced-motion-fallback: <reason>`
-- CSS: `/* rand-disable motion/requires-reduced-motion-fallback: <reason> */`
-
-Disabled files appear in the Rand report with their reason so reviewers can audit. Use sparingly; legitimate cases include decorative loading spinners, keyframe-only library files, and Framer Motion usage inside Remotion compositions (rendered to MP4, not live web).
-
-### Validator
-
-Programmatic check: `npm run rand:motion-a11y` (or `node scripts/rand-motion-a11y.mjs`). Returns exit code 1 on any blocking violation; warnings do not block. The validator lives in `mcp/lib/rand-motion-a11y.js` and can be imported by other Rand-enabled repos via `import { checkProject } from 'animatic/mcp/lib/rand-motion-a11y.js'`.
-
-References: ANI-138, [WCAG 2.3.3 Animation from Interactions](https://www.w3.org/WAI/WCAG21/Understanding/animation-from-interactions.html), Recipe contract from ANI-134.

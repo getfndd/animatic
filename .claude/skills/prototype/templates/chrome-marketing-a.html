@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}} · {{PROJECT}}</title>
+<meta name="description" content="{{DESCRIPTION}}">
+
+
+<link rel="stylesheet" href="./_tokens.css">
+
+<style>
+/* ════════════════════════════════════════════════════════════════════
+ * chrome-marketing-A — Full-width section backgrounds, contained content
+ *
+ * Containment strategy A:
+ *   - Section <section> spans full viewport (bg-color can vary)
+ *   - Section INNER content clamped to max-w-wide (1024px)
+ *   - Pill nav floats above, also max-w-wide wrapper
+ *   - Footer follows same full-width-bg + contained-inner pattern
+ *
+ * Closest to: a product marketing home page
+ * Feels: Open, airy, room for large hero images to breathe
+ * ════════════════════════════════════════════════════════════════════ */
+
+.mkt-a-main { padding-top: var(--nav-offset); }
+
+.mkt-a-section {
+  width: 100%;
+  padding: var(--space-20) 0;
+  border-top: 1px solid var(--rule);
+}
+.mkt-a-section.first { border-top: none; padding-top: var(--space-16); }
+.mkt-a-section.alt { background: var(--surface-2); }
+
+.mkt-a-section-inner {
+  max-width: var(--max-w-wide);
+  margin: 0 auto;
+  padding: 0 var(--pad);
+}
+
+.mkt-a-ftr {
+  width: 100%;
+  border-top: 1px solid var(--rule);
+  padding: var(--space-16) 0 var(--space-8);
+}
+.mkt-a-ftr-inner {
+  max-width: var(--max-w-wide);
+  margin: 0 auto;
+  padding: 0 var(--pad);
+}
+.mkt-a-ftr-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-10);
+  padding-bottom: var(--space-10);
+  flex-wrap: wrap;
+}
+.mkt-a-ftr-brand-block .brand-mark {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+.mkt-a-ftr-brand-block .tagline {
+  font-size: 14px;
+  color: var(--ink-quiet);
+  max-width: 32ch;
+}
+.mkt-a-ftr-links {
+  display: flex;
+  gap: var(--space-12);
+}
+.mkt-a-ftr-col h4 {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-3);
+}
+.mkt-a-ftr-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.mkt-a-ftr-col a {
+  font-size: 14px;
+  color: var(--ink-quiet);
+  transition: color var(--dur-tier1) var(--ease-out);
+}
+.mkt-a-ftr-col a:hover { color: var(--ink); }
+
+.mkt-a-ftr-bottom {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .mkt-a-section-inner, .mkt-a-ftr-inner { padding: 0 var(--pad-sm); }
+  .mkt-a-ftr-top { flex-direction: column; gap: var(--space-8); }
+  .mkt-a-ftr-links { gap: var(--space-8); flex-wrap: wrap; }
+}
+
+/* ── Variant label (distinguishes A/B/C for review) ──────────────── */
+.variant-label {
+  position: fixed;
+  bottom: var(--space-4);
+  left: var(--space-6);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-ghost);
+  z-index: 100;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+}
+</style>
+</head>
+<body>
+
+<aside class="variant-label">variant A — full-width bg · contained content</aside>
+
+<header class="proto-header">
+  <div class="proto-header-inner">
+    <nav class="pill-nav">
+      <a href="/" class="pill-brand">{{PROJECT}}</a>
+      <div class="pill-links">
+        <a href="#overview" class="pill-link active">Overview</a>
+        <a href="#products" class="pill-link">Products</a>
+        <a href="#about" class="pill-link">About</a>
+        <a href="#contact" class="pill-link">Contact</a>
+      </div>
+      <a href="{{CTA_HREF}}" class="pill-cta">{{CTA}}</a>
+    </nav>
+  </div>
+</header>
+
+<main class="mkt-a-main">
+  {{CONTENT}}
+</main>
+
+<footer class="mkt-a-ftr">
+  <div class="mkt-a-ftr-inner">
+    <div class="mkt-a-ftr-top">
+      <div class="mkt-a-ftr-brand-block">
+        <div class="brand-mark">{{PROJECT}}</div>
+        <p class="tagline">{{TAGLINE}}</p>
+      </div>
+      <div class="mkt-a-ftr-links">
+        <div class="mkt-a-ftr-col">
+          <h4>Products</h4>
+          <ul>
+            <li><a href="#">{{PROJECT}}</a></li>
+          </ul>
+        </div>
+        <div class="mkt-a-ftr-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div class="mkt-a-ftr-col">
+          <h4>Contact</h4>
+          <ul>
+                                  </ul>
+        </div>
+      </div>
+    </div>
+    <div class="mkt-a-ftr-bottom">
+      <span>© {{PROJECT}}</span>
+      <span class="mono">prototype · {{DATE}}</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,5 +1,20 @@
 # Motion Design
 
+> **Scope: presentation motion.** Everything here — durations, easing
+> curves, staggers, CSS keyframes — applies to motion the user *watches*:
+> entrances, exits, state changes, page loads, reveals. Nobody's finger is
+> on it while it runs.
+>
+> **For motion the user is touching, none of this applies.** A drag, swipe,
+> sheet, drawer, slider or any gesture-driven surface needs springs, not
+> durations — a fixed-duration curve cannot be grabbed and reversed
+> mid-flight, which is the property that makes direct manipulation feel
+> real. See `_knowledge/mobile-native/` and its `reference/fluid-feel.md`.
+>
+> Applying a `500ms ease-out` to a drag is the specific mistake this note
+> exists to prevent. The two bodies of guidance do not compete; they cover
+> different halves of the problem.
+
 ## Duration: The 100/300/500 Rule
 
 Timing matters more than easing. These durations feel right for most UI:

@@ -227,6 +227,13 @@ Each step is a quality gate. Bad prototype? Fix the HTML before animating. Bad a
 
 ## Figma Export (ANI-113)
 
+> **Requires the animatic MCP server.** `export_storyboard_to_figma`,
+> `verify_figma_export`, and `import_figma_comments` are its tools, and
+> `FIGMA_TOKEN` must be set in its environment for verification and comment
+> reads. In a project without that server, say the export is unavailable —
+> do not attempt the steps below through the Figma MCP alone, which would
+> produce a file with no naming contract and nothing able to verify it.
+
 When the user asks to export the storyboard to Figma (or `--figma` is passed):
 
 1. **Build the payload:** call `export_storyboard_to_figma` with the project slug. It renders one panel still per scene (960x540, `storyboards/figma-export/`) and returns `{ panels, layout_plan, naming_contract, figma_instructions }`.

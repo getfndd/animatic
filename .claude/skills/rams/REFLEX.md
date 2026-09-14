@@ -83,17 +83,50 @@ Format:
 - **Rationale**: [Why this matters - tie to principles if possible]
 ```
 
-### 5. Confirm Before Persisting
+### 4b. Check for Existing Learning (dedup)
+
+Before ingesting, call `knowledge_query` with:
+- `tags`: `["learning", "persona:rams"]`
+- `text`: the rule statement (semantic search)
+- `min_confidence`: `speculative`
+
+If a matching node exists at a **lower** confidence tier:
+- Call `knowledge_revise` with `new_confidence` bumped one tier
+- Provide `evidence` and `evidence_source` to record the re-confirmation
+- Do NOT create a duplicate node
+
+If a matching node exists at the **same or higher** tier:
+- Skip — the learning is already captured at adequate confidence
+- Exception: if the new correction adds meaningfully different evidence,
+  call `knowledge_revise` with same confidence but new evidence
+
+### 5. Persist to Knowledge Graph
 
 **Manual mode (default):**
 - Present the proposed learning to the user
 - Wait for explicit approval: "yes", "confirmed", "add it"
-- Only then append to LEARNINGS.md
+- Call `knowledge_ingest` with the mapped parameters (see field mapping below)
 
 **Automatic mode (via preflight/command):**
-- Apply directly to LEARNINGS.md
+- Call `knowledge_ingest` directly
 - Output summary of what was learned
-- Git provides rollback
+- Revisions are tracked in the graph (no git rollback needed)
+
+Do NOT write to LEARNINGS.md. The knowledge graph is the single source of truth.
+
+**Field mapping:**
+
+| REFLEX Field | knowledge_ingest Param | Notes |
+|---|---|---|
+| Rule text | `claim` | Imperative statement from step 4 |
+| Type | `tags: ["learning:{type}"]` | e.g., `learning:constraint` |
+| Scope | `subdomain` | Global → omit; narrower scopes → use as subdomain |
+| Confidence | `confidence` | Low → `hypothesis`, Medium → `validated`, High → `established` |
+| Source | `source_type` | correction → `observation`, review → `research`, platform → `external` |
+| Rationale | `evidence` | |
+| — | `tags: ["learning", "persona:rams"]` | Always include |
+| — | `domain` | Read from project adapter (`_adapters/{project}.md`) |
+| — | `evidence_source` | e.g., "Session correction 2026-04-10" |
 
 ---
 
@@ -115,32 +148,41 @@ Format:
 ### Where to Store
 
 | Learning Type | Destination |
-|---------------|-------------|
-| UX flow patterns | LEARNINGS.md → Graduate to canonical patterns |
-| Feature rules | LEARNINGS.md (Feature scope) |
-| Global principles | LEARNINGS.md (Global scope) |
-| Identity/behavior changes | **Never** - SKILL.md is immutable unless user explicitly requests |
-
-### Append-Only
-
-- NEVER modify past learnings (except to graduate or archive)
-- NEVER remove learnings without user approval
-- NEVER overwrite existing entries
+|---|---|
+| All learnings | `knowledge_ingest` → project knowledge graph |
+| Identity/behavior changes | **Never** — SKILL.md is immutable unless user explicitly requests |
 
 ---
 
 ## Confidence Progression
 
-Learnings mature over time:
+Learnings mature over time in the knowledge graph:
 
-| Stage | Confidence | Criteria | Location |
-|-------|------------|----------|----------|
-| Captured | Low | Single instance | LEARNINGS.md |
-| Validated | Medium | Confirmed 2-3 times | LEARNINGS.md |
-| Graduated | High | Canonical pattern | UX documentation |
-| Archived | N/A | Superseded/obsolete | LEARNINGS_ARCHIVE.md |
+| Stage | Graph Confidence | Criteria | Mechanism |
+|---|---|---|---|
+| Captured | `hypothesis` | Single instance | `knowledge_ingest` |
+| Validated | `validated` | Confirmed 2-3 times | `knowledge_revise` (step 4b) |
+| Established | `established` | Canonical pattern | `knowledge_revise` after extended validation |
 
-Periodically review learnings for graduation or archival.
+### Portability Assessment (before promotion tagging)
+
+REFLEX scope describes reach **within this project**.
+It does NOT determine cross-project portability. Before adding promotion tags:
+
+1. **Is this a generalizable pattern or a project-specific rule?**
+   - Pattern: generalizable principle → portable
+   - Project rule: references project-specific tokens/APIs/conventions → not portable
+
+2. **Does it reference project-specific tokens, APIs, or conventions?**
+   - If yes → stays project-scoped, no promotion tags
+   - If no → candidate for promotion
+
+3. **Would another project benefit from this learning?**
+   - If yes → add `candidate:universal` or `candidate:domain:{tag}` tag
+   - If unsure → do NOT tag. Promotion can happen later via `knowledge_promotion_candidates`
+
+Promotion tags trigger the existing pipeline (anonymize → human review → promote).
+They do NOT bypass the privacy contract.
 
 ---
 

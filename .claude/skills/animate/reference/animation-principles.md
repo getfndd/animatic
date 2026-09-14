@@ -175,44 +175,6 @@ suggests where it's going next. Common patterns:
 - Content sweeps **left** = "filed away" or "done"
 - Content **scales down** = "receding" or "closing"
 
-## Spatial Causality
-
-**The principle:** Element B appears *because* element A's animation reached it — not
-because a timer happened to fire. Motion flows through space with visible cause and effect.
-
-### Timer Sequence vs. Causality Chain
-
-```
-Timer sequence (independent delays):
-  0ms   → A appears    No visual connection between
-  400ms → B appears    elements. Feels mechanical.
-  800ms → C appears
-
-Causality chain (spatial triggers):
-  A's stroke reaches corner → B reveals from that corner
-  B's edge reaches C       → C begins drawing
-  Result: Each motion causes the next. Feels organic.
-```
-
-### When Causality Matters
-
-| Context | Causality Needed? | Why |
-|---------|-------------------|-----|
-| **Illustration animation** | Always | The whole point — shapes relate spatially |
-| **Product-ui stagger reveals** | Sometimes | Stagger items within a phase can use spatial flow (e.g., items reveal from the direction of a preceding action) |
-| **Phase transitions** | Rarely | Phase crossfades are temporal, not spatial |
-| **Ambient effects** | Never | Background particles, glows, etc. are decorative |
-
-### Building a Causality Graph
-
-1. **Identify root(s)** — what starts the sequence (largest element, outer boundary, or focal point)
-2. **Map adjacency** — which elements are spatially near each other
-3. **Define triggers** — "A's animation reaching point X triggers B"
-4. **Choose chain type** — `animationend` for strict sequence, timed causality (75% overlap) for flow
-5. **Verify** — every non-root element has exactly one spatial cause
-
-See `svg-illustration-techniques.md` for full implementation patterns and code.
-
 ## Speed Hierarchy
 
 Create rhythm by varying speeds across elements:
@@ -249,58 +211,6 @@ Gentler than buttons. The primary signal is border/background color, not scale:
 
 The icon inside the drop zone (e.g., upload arrow) gets a gentler wiggle:
 ±10deg rotation with slight `translateY(-2px)` lift to suggest "receiving."
-
----
-
-## `prefers-reduced-motion` Enforcement
-
-All animations **must** respect `prefers-reduced-motion`. Three enforcement tiers:
-
-### Tier 1: Freeze (cinematic-dark default)
-Ambient loops pause. Choreography completes once but doesn't repeat.
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  .ambient-layer * {
-    animation-play-state: paused !important;
-    animation-iteration-count: 1 !important;
-  }
-}
-```
-
-### Tier 2: Reduce (editorial default)
-Choreography simplified to crossfade-only. No spatial transforms (slides, scales, rotations).
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  [class*="stagger"],
-  [class*="reveal"],
-  [class*="draw"] {
-    animation: fade-in 400ms ease-out forwards !important;
-  }
-}
-```
-
-### Tier 3: Remove (neutral-light default)
-Decorative filters and ambient effects hidden entirely. Content visible immediately.
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  .grain-overlay,
-  .gradient-shift,
-  .blob,
-  .concentric-pulse .ring,
-  .ambient-layer {
-    display: none !important;
-  }
-}
-```
-
-**Personality defaults:** cinematic-dark → Tier 1, editorial → Tier 2, neutral-light → Tier 3, montage → N/A (no ambient).
-
-See `reference/ambient-generative-techniques.md` for full details.
-
----
 
 ### Full Squash/Stretch (alternative)
 

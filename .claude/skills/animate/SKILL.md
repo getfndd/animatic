@@ -43,7 +43,7 @@ Transform interactive prototypes into polished, self-running animated demos that
 
 ### Personalities
 
-Personalities define *how things move* (animation behavior), independent of color mode (light/dark). Use `--personality` to select, `--color-mode` to override the default color scheme. See `docs/design-patterns/motion-design-system.md` for the full personality roadmap.
+Personalities define *how things move* (animation behavior), independent of color mode (light/dark). Use `--personality` to select, `--color-mode` to override the default color scheme. Where a project maintains `docs/design-patterns/motion-design-system.md`, that document carries the full personality roadmap; the four personalities below ship with this skill and work without it.
 | Personality | Token prefix | Engine | Visual | Best For |
 |-------------|-------------|--------|--------|----------|
 | `editorial` | `--ed-` | `EditorialEngine` | Content-forward, crossfade transitions, slide+fade staggers, content cycling | Product showcases, content tools |
@@ -784,9 +784,17 @@ The skill produces:
 - `.claude/skills/animate/reference/SCHEMA.md` — Template for creating new reference breakdowns
 - `.claude/skills/animate/reference/industry-references.md` — Gold-standard products, libraries, and learning resources
 - `.claude/skills/animate/reference/cinematic-techniques-research.md` — Research: camera motion, focus-pull, clip-path, parallax
-- `.claude/skills/animate/reference/inspiration/INDEX.md` — Collected GIF/video reference catalog
 - `.claude/skills/maya/reference/motion-design.md` — Duration/easing/performance reference
 - `.claude/skills/prototype/SKILL.md` — Prototype generation skill (upstream)
+
+**Project-provided, not shipped with this skill.** Present only where the
+project supplies them; treat a miss as "no catalog here", not an error:
+
+- `.claude/skills/animate/reference/inspiration/INDEX.md` — collected GIF/video
+  reference catalog. Deliberately not distributed: the source material runs to
+  ~100 MB of video, which has no place in a skill installed into every project.
+- `docs/design-patterns/motion-design-system.md` — motion design taxonomy and
+  personality roadmap, where a project maintains one.
 
 ### Personality Files
 
@@ -799,7 +807,6 @@ The skill produces:
 - `.claude/skills/animate/personalities/neutral-light/` — Neutral light personality (motion.css, engine.js, PERSONALITY.md, reference.html)
 - `.claude/skills/animate/personalities/montage/` — Montage personality (motion.css, engine.js, PERSONALITY.md, reference.html)
 - `.claude/skills/animate/primitives/tutorial/` — Tutorial primitives (spotlight, cursor, tooltip, step progress)
-- `docs/design-patterns/motion-design-system.md` — Motion design taxonomy and approach document
 
 ---
 

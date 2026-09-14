@@ -29,7 +29,7 @@ Returns the cinematic-dark cookbook patterns (e.g. `product-hero-push-in`, `logo
 | `analyze_scene` | Classify content type, visual weight, motion energy, intent tags + semantic annotations |
 | `generate_scenes` | Brief → classified assets → validated scene JSON with auto-annotations |
 | `figma_frame_to_scene` | Convert a Figma frame into a v3 semantic scene (layers, components, roles, palette) — needs FIGMA_TOKEN, local only. `export_images` downloads real image-fill bitmaps and embeds them as data-URIs (faithful scaleMode incl. pan/zoom CROP); with `project` they're also saved to `brief/references/assets/`. Default off → image fills stay dark placeholders |
-| `lottie_to_scene` | Convert a raw Lottie animation (`.json`) into a v3 semantic scene — parses without rendering, maps layers to components, extracts a brand palette, emits a staggered `enter` choreography. Inline JSON only (no `.lottie` ZIP); Lottie motion is not translated (Animatic re-animates). Edge-safe |
+| `lottie_to_scene` | Convert a raw Lottie animation (`.json`) into a v3 semantic scene — parses without rendering, maps layers to components, extracts a brand palette, emits a staggered `enter` choreography. Inline JSON only (no `.lottie` ZIP); Lottie motion is not translated (Animatic re-animates). Stdio-only for v1 — hostile-input bounds aren't complete enough for the hosted edge yet |
 | `validate_choreography` | Validate animation choreography against guardrails |
 | `compile_motion` | Compile scene motion (groups, stagger, camera) into a timeline |
 | `critique_motion` | Critique a compiled timeline for static-track and reactive (lib-*) quality issues |

@@ -19,10 +19,16 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseLottie } from '../lib/lottie/parse.js';
-import { lottieToScene } from '../lib/lottie/to-scene.js';
+import { lottieToScene, safeColor } from '../lib/lottie/to-scene.js';
 import { handleLottieToScene } from '../handlers.js';
 import { compileMotion } from '../lib/compiler.js';
-import { validateScene } from '../../src/remotion/lib.js';
+import {
+  validateScene,
+  VALID_SEMANTIC_COMPONENT_TYPES,
+  VALID_SEMANTIC_COMPONENT_ROLES,
+  VALID_LAYER_PRODUCT_ROLES,
+  SCENE_DURATION_S_BOUNDS,
+} from '../../src/remotion/lib.js';
 import {
   loadPrimitivesCatalog,
   loadPersonalitiesCatalog,
@@ -68,6 +74,40 @@ function shapeLayer({ ind, nm = null, parent, p = [0, 0], shapes }) {
   if (parent != null) layer.parent = parent;
   return layer;
 }
+
+describe('validator enums are frozen (ANI-199 P3)', () => {
+  it('pushing onto an exported enum throws (strict mode) and leaves it unchanged', () => {
+    for (const [name, arr] of [
+      ['VALID_SEMANTIC_COMPONENT_TYPES', VALID_SEMANTIC_COMPONENT_TYPES],
+      ['VALID_SEMANTIC_COMPONENT_ROLES', VALID_SEMANTIC_COMPONENT_ROLES],
+      ['VALID_LAYER_PRODUCT_ROLES', VALID_LAYER_PRODUCT_ROLES],
+    ]) {
+      assert.ok(Object.isFrozen(arr), `${name} must be frozen`);
+      const before = [...arr];
+      assert.throws(() => arr.push('bogus_value'), TypeError, `${name}.push must throw in strict mode`);
+      assert.deepEqual(arr, before, `${name} must be unchanged after the rejected push`);
+    }
+    assert.ok(Object.isFrozen(SCENE_DURATION_S_BOUNDS), 'SCENE_DURATION_S_BOUNDS must be frozen');
+  });
+
+  it('validateScene behaves the same against the frozen enums (unaffected by freezing)', () => {
+    const good = {
+      scene_id: 'sc_frozen_check',
+      format_version: 3,
+      duration_s: 4,
+      fps: 60,
+      layers: [{ id: 'l1', type: 'html', content: '<div></div>' }],
+      semantic: {
+        components: [{ id: 'cmp_l1', type: VALID_SEMANTIC_COMPONENT_TYPES[0], role: 'hero', layer_ref: 'l1' }],
+        interactions: [{ id: 'int_l1', target: 'cmp_l1', kind: 'enter' }],
+      },
+    };
+    assert.deepEqual(validateScene(good).errors, []);
+
+    const bad = { ...good, semantic: { ...good.semantic, components: [{ ...good.semantic.components[0], type: 'not_a_real_type' }] } };
+    assert.ok(validateScene(bad).errors.length > 0);
+  });
+});
 
 describe('parseLottie', () => {
   it('extracts composition metadata and visual layers (drops the null controller)', () => {
@@ -283,6 +323,113 @@ describe('lottieToScene', () => {
       // Stable: re-running produces the same ids (deterministic on layer order).
       const again = lottieToScene(doc);
       assert.deepEqual(again.scene.layers.map(l => l.id), layerIds);
+    });
+  });
+
+  describe('no pre-parsed-structure shortcut (ANI-199 P1, round 2)', () => {
+    it('parses a raw Lottie that happens to carry an extra top-level `palette` property, instead of crashing', () => {
+      const raw = JSON.parse(FIXTURE);
+      // A genuine raw Lottie never has this key, but nothing forbids it —
+      // the old `Array.isArray(input.layers) && 'palette' in input` shortcut
+      // would have misdetected this as an already-parsed structure (whose
+      // layers carry `.colors`/`.position`) and crashed on the real raw
+      // layers, which don't.
+      raw.palette = ['#ff00ff'];
+      const { scene } = lottieToScene(raw);
+      assert.equal(scene.layers.length, 2);
+      const result = validateScene(scene);
+      assert.deepEqual(result.errors, []);
+    });
+  });
+
+  describe('duration_s bounds (ANI-199 P2)', () => {
+    it('rejects a duration_s above the validator\'s max', () => {
+      assert.throws(() => lottieToScene(FIXTURE, { duration_s: 100 }), /duration_s must be between/);
+    });
+
+    it('rejects a negative duration_s', () => {
+      assert.throws(() => lottieToScene(FIXTURE, { duration_s: -2 }), /duration_s must be between/);
+    });
+
+    it('accepts a valid duration_s and uses it verbatim', () => {
+      const { scene } = lottieToScene(FIXTURE, { duration_s: 6 });
+      assert.equal(scene.duration_s, 6);
+      const result = validateScene(scene);
+      assert.deepEqual(result.errors, []);
+    });
+
+    it('the rejected values really are outside SCENE_DURATION_S_BOUNDS (reads the real bound, not a copy)', () => {
+      assert.ok(100 > SCENE_DURATION_S_BOUNDS.max);
+      assert.ok(-2 < SCENE_DURATION_S_BOUNDS.min);
+      assert.ok(6 >= SCENE_DURATION_S_BOUNDS.min && 6 <= SCENE_DURATION_S_BOUNDS.max);
+    });
+  });
+
+  describe('HTML/attribute injection safety (ANI-199 P2)', () => {
+    it('escapes a malicious `ty` so it cannot break out of the data-lottie-layer attribute', () => {
+      const malicious = 'x" style="background:url(https://example.invalid/p)" data-x="';
+      const doc = lottieDoc({
+        layers: [{
+          ty: malicious,
+          nm: 'Weird',
+          ind: 1,
+          ks: {
+            o: { a: 0, k: 100 }, r: { a: 0, k: 0 },
+            p: { a: 0, k: [0, 0, 0] }, a: { a: 0, k: [0, 0, 0] }, s: { a: 0, k: [100, 100, 100] },
+          },
+          ip: 0, op: 30, st: 0, sr: 1,
+        }],
+      });
+      const { scene } = lottieToScene(doc);
+      const html = scene.layers[0].content;
+      // The raw payload must never appear unescaped — every quote in the
+      // interpolated value must be entity-escaped, so the attribute can't
+      // be broken out of.
+      assert.ok(!html.includes('data-x="'), `unescaped attribute breakout: ${html}`);
+      assert.ok(!html.includes('style="background:url(https://example.invalid/p)" data-x'), `unescaped CSS/attribute injection: ${html}`);
+      assert.ok(html.includes('&quot;'), 'quotes in an interpolated value must be entity-escaped');
+      // The generated markup must still only contain the two attributes the
+      // template itself writes (data-lottie-layer, style) — no extras injected.
+      const attrCount = (html.match(/\s[a-z-]+="/g) || []).length;
+      assert.equal(attrCount, 2, `expected exactly 2 attributes, got: ${html}`);
+    });
+
+    it('safeColor only ever lets through #rrggbb — a malicious colour string cannot inject CSS', () => {
+      assert.equal(safeColor('#336699', 'transparent'), '#336699');
+      assert.equal(safeColor('#AABBCC', 'transparent'), '#aabbcc'); // normalised lowercase
+      for (const malicious of [
+        'red;background-image:url(https://example.invalid/p)',
+        'red" onmouseover="alert(1)',
+        'expression(alert(1))',
+        'url(javascript:alert(1))',
+        '#fff; }</style><script>alert(1)</script>',
+        '#12345', // too short — not a real #rrggbb
+        '#1234567', // too long
+        'rgba(0,0,0,1)',
+      ]) {
+        assert.equal(safeColor(malicious, 'transparent'), 'transparent', `must reject: ${malicious}`);
+      }
+    });
+
+    it('a malicious solid-layer colour string cannot reach the generated HTML unvalidated', () => {
+      // Even though parse.js's normalizeColor already filters this at the
+      // source, layerHtml must not trust `layer.colors[0]` blindly — confirm
+      // end-to-end that a scene built from a solid layer with a bogus `sc`
+      // never carries the raw string into markup.
+      const doc = lottieDoc({
+        layers: [{
+          ty: 1, nm: 'Bad Solid', ind: 1, sw: 50, sh: 50,
+          sc: 'red;background-image:url(https://example.invalid/p)',
+          ks: {
+            o: { a: 0, k: 100 }, r: { a: 0, k: 0 },
+            p: { a: 0, k: [0, 0, 0] }, a: { a: 0, k: [0, 0, 0] }, s: { a: 0, k: [100, 100, 100] },
+          },
+          ip: 0, op: 30, st: 0, sr: 1,
+        }],
+      });
+      const { scene } = lottieToScene(doc);
+      const html = scene.layers[0].content;
+      assert.ok(!html.includes('background-image'), `bogus colour must not reach markup: ${html}`);
     });
   });
 });

@@ -20,11 +20,13 @@
  * real confidence and fall back to the closest generic bucket (`stacked_cards`
  * / `prompt_card`) rather than inventing a type the validator would reject.
  *
- * Pure module (no Node-only imports) — keeps the tool edge-safe.
+ * Pure module (no Node-only imports) — platform-portable, though the tool is
+ * registered `edgeReady: false` for v1 (see `mcp/tool-groups.js`); the
+ * hostile-input bound isn't complete enough yet to expose on the hosted edge.
  */
 
 import { parseLottie } from './parse.js';
-import { VALID_SEMANTIC_COMPONENT_TYPES } from '../../../src/remotion/lib.js';
+import { VALID_SEMANTIC_COMPONENT_TYPES, SCENE_DURATION_S_BOUNDS } from '../../../src/remotion/lib.js';
 
 const DEFAULT_DURATION_S = 4;
 const CANVAS_W = 1920;
@@ -42,10 +44,17 @@ function slug(name, fallback) {
   return s || fallback;
 }
 
-/** Escape text for embedding in HTML. */
+/** Escape text for embedding in HTML — both element content AND a quoted
+ *  attribute value. Every `layerHtml` interpolation site is inside a
+ *  double-quoted attribute or element text, so `"`/`'` must be escaped too:
+ *  an unescaped `"` in an attacker-controlled value (e.g. an unrecognised
+ *  Lottie layer `ty`, echoed into `data-lottie-layer`) breaks out of the
+ *  attribute and injects arbitrary attributes/CSS into the `srcDoc` a
+ *  renderer treats as trusted. */
 function esc(text) {
   return String(text == null ? '' : text)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 /** Snap a normalised (0–1) centre point to the nearest 9-point named anchor. */
@@ -107,15 +116,32 @@ function productRoleFor(role, type) {
   return FUNCTIONAL_TYPES.has(type) ? 'functional' : 'supporting';
 }
 
+/**
+ * Validate/normalise a colour before it's interpolated into an inline
+ * `style` value. `esc()` escapes markup/attribute delimiters, but a colour is
+ * interpolated bare into a CSS property value (`color:${c}`), where escaping
+ * `"`/`<`/`>` doesn't help — a value like `red;background-image:url(...)`
+ * contains none of those characters and would still inject a second CSS
+ * declaration. `parse.js`'s own `normalizeColor` already constrains every
+ * entry in `layer.colors` to `#rrggbb`, but this is a second, independent
+ * check at the point of interpolation: never trust a colour string just
+ * because it arrived in a field named `colors` — validate its shape here too,
+ * so a future change to parse.js (or a differently-sourced colour) can't
+ * turn into a CSS/attribute injection on its own.
+ */
+export function safeColor(c, fallback) {
+  return typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c) ? c.toLowerCase() : fallback;
+}
+
 /** Placeholder HTML for a layer — text string, or a fill-coloured box. */
 function layerHtml(layer) {
   const root = 'position:absolute;inset:0;margin:0;box-sizing:border-box';
   if (layer.ty === 5 && layer.text) {
-    const color = layer.colors[0] || '#ffffff';
+    const color = safeColor(layer.colors[0], '#ffffff');
     return `<div style="${root};display:flex;align-items:center;justify-content:center;` +
       `color:${color};font-family:system-ui,sans-serif;text-align:center">${esc(layer.text)}</div>`;
   }
-  const bg = layer.colors[0] || 'transparent';
+  const bg = safeColor(layer.colors[0], 'transparent');
   return `<div data-lottie-layer="${esc(layer.typeLabel)}" style="${root};background:${bg}"></div>`;
 }
 
@@ -132,21 +158,39 @@ function constraints(layer, comp) {
 }
 
 /**
- * Convert a parsed Lottie (or raw JSON / object) into a v3 semantic scene.
+ * Convert a raw Lottie animation into a v3 semantic scene.
  *
- * @param {string|object} input - Raw Lottie `.json` (string/object) or a value
- *   already produced by `parseLottie`.
+ * Always goes through `parseLottie` — there is deliberately no "input already
+ * looks parsed, skip parsing" shortcut. The MCP schema accepts an arbitrary
+ * object, so a shortcut keyed on shape (e.g. "has a `layers` array and a
+ * `palette` key") is attacker-steerable: a caller can hand a normalized-
+ * looking object with an oversized `layers` array and bypass every hostile-
+ * input limit `parseLottie` enforces, and a genuine raw Lottie that merely
+ * happens to carry an extra top-level `palette` property would be
+ * misdetected as pre-parsed and crash (its raw layers lack `colors`/
+ * `position`). If an internal caller ever needs to pass an already-parsed
+ * structure, that's a distinct, non-exported entry point the MCP handler
+ * can't reach — not a public-input heuristic.
+ *
+ * @param {string|object} input - Raw Lottie `.json` content (string or object).
  * @param {object} [options] - { personality?, duration_s?, source_name? }
  * @returns {{ scene: object, report: object }}
  */
 export function lottieToScene(input, options = {}) {
-  // Accept either raw Lottie or a pre-parsed structure.
-  const parsed = input && Array.isArray(input.layers) && 'palette' in input
-    ? input
-    : parseLottie(input);
+  const parsed = parseLottie(input);
 
   if (parsed.layers.length === 0) {
     throw new Error('Lottie has no visual layers to convert (only null/audio/camera or hidden layers).');
+  }
+
+  // A caller-supplied duration_s that validateScene would reject (e.g. 100,
+  // -2) must fail here with a clear message, not flow through into a scene
+  // the handler returns without ever calling validateScene on its own output.
+  if (options.duration_s != null) {
+    const { min, max } = SCENE_DURATION_S_BOUNDS;
+    if (typeof options.duration_s !== 'number' || Number.isNaN(options.duration_s) || options.duration_s < min || options.duration_s > max) {
+      throw new Error(`duration_s must be between ${min} and ${max} (got ${options.duration_s})`);
+    }
   }
 
   const comp = { width: parsed.width, height: parsed.height };

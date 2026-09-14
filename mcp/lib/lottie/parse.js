@@ -10,8 +10,12 @@
  * motion). `.lottie` (a ZIP container) is out of scope for v0 and rejected with
  * a clear message rather than silently mis-parsed.
  *
- * Pure module: no Node-only imports, so the importer stays edge-safe
- * (TIER.TRANSFORM, edgeReady:true).
+ * Pure module: no Node-only imports (no bare `Buffer`), so nothing here
+ * structurally blocks a Deno/edge runtime. The tool is registered
+ * `edgeReady:false` for v1 regardless (TIER.TRANSFORM, `mcp/tool-groups.js`)
+ * — the hostile-input bound isn't complete enough yet (unbounded byte size
+ * before JSON.parse, layer/asset copies made before the count check); this
+ * module being platform-portable is necessary but not sufficient for that.
  */
 
 /** Human-readable label per Lottie layer `ty`. */
@@ -257,8 +261,9 @@ const ZIP_CONTAINER_MESSAGE =
  * @param {string|object|Uint8Array} input - Lottie `.json` content: a string,
  *   an already-parsed object, or raw UTF-8 bytes (e.g. `Buffer` on Node — a
  *   `Buffer` *is* a `Uint8Array`, so it's handled by the same branch without
- *   ever naming the Node-only `Buffer` global, which doesn't exist on the
- *   Deno edge runtime this tool is bundled for, `edgeReady: true`).
+ *   ever naming the Node-only `Buffer` global — kept platform-portable even
+ *   though the tool itself is `edgeReady: false` for v1, see the module
+ *   docstring above).
  * @returns {{ name, fps, width, height, durationFrames, durationS, layers, palette }}
  */
 export function parseLottie(input) {

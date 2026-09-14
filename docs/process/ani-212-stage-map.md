@@ -4,11 +4,14 @@ Design draft only, no product code. Written against `origin/main` at `863478d`, 
 `~/.claude-worktrees/animatic/ani-212-stage-map`, branch `james/ani-212-stage-map-design`.
 Clean-room: OpenMontage source was not opened.
 
-**Round 3 (this revision, the review cap).** Codex rejected round 2 (`7e39267`) at P1 on
-a read-only review. Round 2's findings spread across five designs bundled into one
-issue. James split it 2026-09-12: **this doc now covers only the core** (stage map,
-persistence gate, admission at durable producers, override shape, grandfather warning).
-Four other areas became their own issues, each with its own review, not designed here:
+**Reviews are closed.** Four Codex rounds (`7e39267`, round 3, `45ae337`, James's one-time
+cap override for round 4). Round 4 still came back REJECT with three new P1s; James
+closed the loop there -- **no round 5, this revision's findings are binding
+implementation requirements**, not proposals to re-litigate. Round 2's findings spread
+across five designs bundled into one issue; James split it 2026-09-12 so **this doc
+covers only the core** (stage map, persistence gate, admission at durable producers,
+override shape, grandfather warning). Four other areas became their own issues, each
+with its own review, not designed here:
 
 | Issue | Owns | Interface the core consumes |
 |---|---|---|
@@ -62,20 +65,22 @@ its status, unless `override_reason` is supplied. **Generic rule, not a render-s
 special case:** a required stage satisfies the check at `complete` unless its own
 `approval` is `true`, in which case it must be `approved`. `storyboard` is `approval:
 true`, so `beat_plan`/`scenes`/`manifest` all require it `approved`, not merely
-`complete` -- round 3 stated this only as a parenthetical about the render stage, which
-left the storyboard case ambiguous. This is the shared `checkStagePrerequisites`
+`complete` -- round 2 stated this only as a parenthetical about the render stage
+(round 3's review caught it). This is the shared `checkStagePrerequisites`
 function every 1c call site below reuses, not reimplements. It also re-hashes the
 approved storyboard file on every call (below), not only at approval time.
 
-**Digest re-check lives in the core, not ANI-230 (James decided this).**
-`checkStagePrerequisites` computes `sha256` of `concept/storyboard.json`'s current bytes
-whenever a check depends on `storyboard` being `approved`, and compares it to
-`stages.storyboard.approved_digest` (stored by `approve_stage` at approval time, 1a). A
-mismatch is refused as not-approved, naming the change, the same error shape as a
-missing predecessor -- not a softer warning. Round 3's finding: storing a digest but
-never re-checking it means "this pathname was approved once," not "these bytes were
-approved," and a direct filesystem edit is a normal workflow, not an exotic attack.
-Re-approving with the new digest (`approve_stage` again) clears it.
+**Digest re-check lives in the core, not ANI-230 (James decided this), and targets the
+registered path, not a hard-coded one.** `saveProjectArtifact`'s `storyboard` case
+stores whatever path the caller passed as `entrypoints.storyboard`
+(`projects.js:444-445`), and the public schema allows any project-relative path
+(`tools.js:827`) -- hard-coding `concept/storyboard.json` would hash the wrong file for
+any project that registered its storyboard elsewhere, causing false refusal or worse,
+approving bytes other than the registered artifact. **Fix:** both `approve_stage`
+(hashing at approval time) and `checkStagePrerequisites` (re-hashing on every gated
+call) resolve `proj.entrypoints.storyboard` first and hash that file. A mismatch is
+refused as not-approved, naming the change, same error shape as a missing predecessor,
+not a softer warning. Re-approving with the new digest clears it.
 
 **Concurrency, stated honestly:** this write, and every other writer in 1c, goes through
 ANI-220's landed `withFileLock` (in-process only). **Until ANI-228 lands, that is what
@@ -108,20 +113,14 @@ there.
   `render-props.json` unconditionally -- `dryRun` only skips the later `render()` call,
   not the props write. Gating solely at the render call means every dry-run write was
   never admitted.
-- **`assemble_video_sequence`** (the standalone tool, `tools.js`'s `assemble_video_sequence`
-  entry, currently `manifest`/`scene_defs`/`scenes`/`plates`/`timelines`/`output_dir`/
-  `output_path`, no `project` field at all; handler at `handlers.js:3847` passes
-  `output_dir` straight through, `video-assembly.js:121` creates it and writes
-  `render-props.json`). Naming it as an unconditional residual left a real public bypass:
-  a caller can omit `project` while pointing `output_dir` inside a strict project. **Fix,
-  picked over the alternative of rejecting any `output_dir` that resolves inside a
-  project tree:** `project` becomes required whenever `output_dir` is set (the tool
-  throws `project is required when output_dir is set` otherwise). Requiring `project` is
-  simpler to implement and to test than resolving and comparing `output_dir` against
-  every project root on every call, and it matches how every other 1c producer is
-  gated -- by an explicit project reference, not by inferring one from a path. Checked
-  before the `output_dir` write. Calls with no `output_dir` (in-memory only, nothing
-  durable) stay ungated, unchanged.
+- **`assemble_video_sequence`** (the standalone tool; handler at `handlers.js:3847`
+  passes `output_dir` straight through, `video-assembly.js:121` creates it and writes
+  `render-props.json`; no `project` field on the public schema today). Naming it as an
+  unconditional residual left a real bypass: omit `project`, point `output_dir` inside a
+  strict project. **Fix, picked over resolving `output_dir` against every project root:**
+  `project` becomes required whenever `output_dir` is set, matching how every other 1c
+  producer is gated -- an explicit reference, not an inferred one. Checked before the
+  write; calls with no `output_dir` stay ungated, unchanged.
 - **`record_render_feedback`** (`feedback.js:78`, `getProject`): checked before the log
   append at `:127`. Its tool schema has no `override_reason`/`actor` today (`tools.js`'s
   `record_render_feedback` entry); both are added.
@@ -137,12 +136,13 @@ there.
 `existsSync` import anywhere in `projects.js`), and a bare `existsSync` isn't enough: a
 directory or a `../README.md` outside the project would still pass. **Fix:** for every
 file-backed `kind` (`brief`, `storyboard`, `beat_plan`, `scene`, `manifest`, `render`,
-`master`, `review`, `candidate_review`), the check in 1b resolves `artifactPath` with the
-same containment helper ANI-222 introduces (`resolveWithinProject(project_root,
-artifactPath)`, rejecting absolute paths and anything resolving outside the root through
-symlinks) and then asserts `statSync(resolved).isFile()`, throwing `Artifact not found:
-<path>` if either check fails. This core reuses that helper rather than forking its own;
-ANI-222's own scope (every reader, not just this write) is not designed here.
+`master`, `review`, `candidate_review`), the check in 1b resolves `artifactPath` with a
+new `resolveWithinProject(project_root, artifactPath)` helper (rejecting absolute paths
+and anything resolving outside the root through symlinks) and then asserts
+`statSync(resolved).isFile()`, throwing `Artifact not found: <path>` if either check
+fails. **The core ships this helper** (see the slice plan, 2, for why it isn't blocked on
+ANI-222, which audits every *reader* against the same helper afterward rather than
+forking its own).
 
 ### 1e. `candidate_review`: a strict role whitelist, bound to a path convention
 
@@ -152,12 +152,21 @@ proven exploitable: without a whitelist, a caller could label arbitrary post-ren
 `candidate_review`'s case accepts only `role in ['score_card', 'comparison',
 'contact_sheet']`, throwing `Unknown candidate_review role: <role>` otherwise. A
 whitelist alone still lets any existing file be registered under an allowed role, so it
-additionally requires `artifactPath` to equal the fixed convention
-`review/candidates/<role>.json` for that role (mirroring how `review`'s own paths are
-fixed at `initProject`), rejecting a mismatched path rather than trusting the caller's
-label. Scoped to the new
-kind only; `review`'s existing permissive role is unchanged, pre-existing behavior, not
-touched by this core.
+additionally requires `artifactPath` to equal a fixed path per role (mirroring how
+`review`'s own paths are fixed at `initProject`), rejecting a mismatch rather than
+trusting the caller's label:
+
+```
+score_card    -> review/candidates/score_card.json
+comparison    -> review/candidates/comparison.json
+contact_sheet -> review/candidates/contact_sheet.md
+```
+
+Not a single `<role>.json` template: `contact_sheet` is markdown prose today (the live
+Step 8 table already writes `review/contact-sheet.md`), and forcing it into a JSON
+string would be an unforced format change. `review/candidates` is a new `PROJECT_DIRS`
+entry (`projects.js:~37`). Scoped to the new kind only; `review`'s permissive role is
+unchanged.
 
 ### 1f. Grandfather warning, every project-returning surface
 
@@ -201,23 +210,39 @@ that's not a claim about any specific other issue adopting it.
 
 ### 1i. `/direct`: the minimal sequencing fix belongs to the core
 
-Round 3's finding: the brief-order and approval-stop fixes disappeared from the round-2
-core, leaving the live `.claude/skills/direct/SKILL.md` still saving the storyboard at
-Step 2.5 and continuing straight past it (`:54`), brief unsaved until Step 8 (`:124`) --
-both directly contradicting 1a's `storyboard.requires = ["brief"]` and the decided human
-stop. Full resumability (a cold restart resuming a paused run) is ANI-230's scope; this
-minimal ordering fix is not:
+The live `.claude/skills/direct/SKILL.md` saves the storyboard at Step 2.5 and continues
+straight past it (`:54`), brief unsaved until Step 8 (`:124`) -- contradicting 1a's
+`storyboard.requires = ["brief"]` and the decided human stop. `extract_story_brief`/
+`compose_storyboard` only return objects (`handlers.js:3482`, `:3497`); `save_project_artifact`
+only registers a path that already resolves to a real file (1d). Full resumability
+(a cold restart resuming a paused run) is ANI-230's scope; the write-then-register steps
+below are not:
 
-- **Step 2 (Extract Story Brief):** gains `save_project_artifact(kind: 'brief', ...)`
-  immediately after `extract_story_brief` returns, not deferred to Step 8. `storyboard`'s
-  prerequisite is satisfied before Step 2.5 ever runs.
-- **Step 2.5 (Storyboard):** composes and saves the storyboard (`kind: 'storyboard'`),
-  then **ends the turn** -- no `approve_stage` call yet, per the decided human stop.
+- **Step 2 (Extract Story Brief):** call `extract_story_brief`, write its returned
+  object as JSON to `brief/story-brief.json`, then
+  `save_project_artifact(kind: 'brief', role: 'structured', path: 'brief/story-brief.json')`
+  -- immediately, not deferred to Step 8.
+- **Step 2.5 (Storyboard):** call `compose_storyboard`, write its returned object as
+  JSON to `concept/storyboard.json`, then
+  `save_project_artifact(kind: 'storyboard', path: 'concept/storyboard.json')`, then
+  **end the turn** -- no `approve_stage` call yet, per the decided human stop.
 - **Resume, same conversation:** on the human's next message, the agent calls
   `approve_stage({ project, stage: 'storyboard', actor, note })`, attested (ANI-229 not
   landed yet, 2), then continues to Step 3.
-- **Cold restart** (a fresh invocation after the session ends) is unchanged from today
-  and stays entirely in ANI-230's scope -- not designed here.
+- **Step 8 (Save Artifacts):** the live table saves the score card, comparison, and
+  contact sheet as `kind: 'review'` at `review/score-card.json`, `review/comparison.json`,
+  `review/contact-sheet.md` (`SKILL.md:124-136`) -- incompatible with 1e's fixed paths,
+  and wrong regardless: `review` requires a render `/direct` never produces. Corrected:
+
+  | Artifact | Kind | Role | Path |
+  |---|---|---|---|
+  | Score card | `candidate_review` | `score_card` | `review/candidates/score_card.json` |
+  | Comparison | `candidate_review` | `comparison` | `review/candidates/comparison.json` |
+  | Contact sheet | `candidate_review` | `contact_sheet` | `review/candidates/contact_sheet.md` |
+
+  Each is written to its path first, exactly as Step 2/2.5 above, then registered.
+- **Cold restart** stays entirely in ANI-230's scope, unchanged from today -- not
+  designed here.
 
 ## 2. Slice plan
 
@@ -228,21 +253,18 @@ minimal ordering fix is not:
 | ANI-228 | Cross-process lock (lockfile lifecycle, atomic rename, canonical key), wrapping 1b/1c's call sites | Core's write call sites to wrap | Core merged first (wraps shapes core creates) | Merges any time after core; does not block core shipping (1b states the interim honestly) |
 | ANI-229 | Server context in handlers; elicitation-based `approve_stage` | Core's `approve_stage` (extends it) | Core merged first | Merges any time after core; does not block core shipping (approve_stage ships attested-only, 1a) |
 | ANI-230 | `story_brief`/run-checkpoint persistence; cold-restart resume | Nothing from the checker -- digest re-checking is core's own (1b) | Core merged first | Merges any time after core; does not block core shipping (1i's minimal sequencing ships without cold-restart resume) |
+| ANI-222 | Containment for every project-state reader, not only writes | Core's `resolveWithinProject` (1d), adopted not forked | Core merged first | **Picked: core ships `resolveWithinProject`, ANI-222 adopts it.** 1d needs containment now; ANI-222 is a broader, Low-priority audit with no reason to block the core -- the reverse order would repeat ANI-227's mistake on a dependency that isn't actually blocking. |
 
 **What the core does before each dependency lands, stated plainly:**
 
-- **Before ANI-227:** nothing -- this is the one blocking dependency. The core's PR
-  cannot land until ANI-227's stable id exists for 1g to key on.
-- **Before ANI-228:** ships with ANI-220's in-process lock only. Honest limit: a second
-  concurrent MCP session can still lose an update against the same project. Stated in
-  1b, not hidden.
-- **Before ANI-229:** ships attested-only. `approve_stage` never attempts elicitation
-  (that code doesn't exist yet); every approval records `approval_channel: 'attested'`,
-  which is what the field is for -- no placeholder, no fake "pending" state.
+- **Before ANI-227:** nothing -- the one blocking dependency. No PR without its id.
+- **Before ANI-228:** ships with ANI-220's in-process lock only (1b); a second concurrent
+  MCP session can still lose an update, stated not hidden.
+- **Before ANI-229:** ships attested-only; `approve_stage` never attempts elicitation,
+  `approval_channel: 'attested'` always, no placeholder.
 - **Before ANI-230:** ships without cold-restart resume. Digest re-verification is
-  already in the core (1b), not deferred. What's missing without ANI-230 is only that a
-  fresh `/direct` invocation after the session ends can't pick back up where a paused run
-  left off; 1i's same-conversation resume works regardless.
+  already in the core (1b); only same-conversation resume works without it (1i).
+- **Before ANI-222:** nothing missing -- the core ships its own `resolveWithinProject`.
 
 ## 3. Test matrix (core only)
 
@@ -254,7 +276,11 @@ minimal ordering fix is not:
 | `assemble_video_sequence`, no `output_dir` | Call with neither `output_dir` nor `project`. | Succeeds ungated -- nothing durable happens, correctly unchanged. |
 | Voiceover pre-write | `render_project` on an ungated project with `voiceover.text` scenes. | Refused before `prepareVoiceoverTrack` runs; no TTS cache file written. |
 | Nonexistent artifact path | `save_project_artifact(kind: 'manifest', path: 'motion/manifests/does-not-exist.json')`. | Throws `Artifact not found`, stage stays `not_started`. |
-| `candidate_review` role whitelist | `save_project_artifact(kind: 'candidate_review', role: 'sneaky_full_review', ...)`. | Throws `Unknown candidate_review role`; the three real roles still succeed. |
+| Existing directory, not a file | `save_project_artifact(kind: 'manifest', path: 'motion/manifests')` (a real directory). | Refused: `resolveWithinProject` resolves it, but `isFile()` is false. |
+| Path escapes, three shapes | `save_project_artifact` with an absolute path, a `../`-traversal path, and a path through a symlink pointing outside the project root. | All three refused by `resolveWithinProject` before `isFile()` is even checked. |
+| `candidate_review` role whitelist | `save_project_artifact(kind: 'candidate_review', role: 'sneaky_full_review', ...)`. | Throws `Unknown candidate_review role`; the three real roles at their real paths still succeed. |
+| `candidate_review`, allowed role wrong path | `save_project_artifact(kind: 'candidate_review', role: 'score_card', path: 'review/wherever.json')`. | Refused: the role is valid, the path doesn't match `score_card`'s fixed convention. |
+| `/direct`-shaped compatibility | Run 1i's corrected flow end to end: write + register brief, write + register storyboard, attest approval, write + register all three `candidate_review` artifacts at their fixed paths. | Every save succeeds with no `override_reason`, the exact case round 4 found broken. |
 | Warning on `save_project_artifact` | Call it against a grandfathered project. | Result carries `stage_warning`, closing round 2's gap. |
 | Override provenance, every gated tool | For each of `save_project_artifact`, `approve_stage`, `render_project`, `render_master`, `encodeMaster`, `assemble_video_sequence` (with project), `record_render_feedback`, `review_project`: call with `override_reason` and no `actor`. | Every one throws the same "actor required" error; none silently accepts an anonymous override. |
 | Legacy ledger blocked on ANI-227 | Attempt to implement 1g's ledger against slug alone. | Not a runtime test -- a review/merge-order check: this PR does not merge without ANI-227's id already available. |

@@ -4,7 +4,7 @@
  * Guards the dual-surface registration seam:
  *   A. The stdio tool surface is byte-for-byte identical to the pre-refactor
  *      snapshot (checked-in golden) — no tool name or schema moved.
- *   B. The edge surface (exclude: EDGE_EXCLUDE) exposes exactly 60 tools and
+ *   B. The edge surface (exclude: EDGE_EXCLUDE) exposes exactly 61 tools and
  *      strips each tool's edgeStripParams() from its advertised input schema.
  *   C. The handler map covers the tool-groups universe exactly (no drift) and
  *      the CallTool dispatch routes every tool to the same handler the old
@@ -63,7 +63,7 @@ describe('PRE-1439 acceptance A — stdio surface unchanged', () => {
     const srv = mockServer();
     registerTools(srv, { tools: buildAllTools(), exclude: [], stripParams: false });
     const { tools } = await srv.captured.list();
-    assert.equal(tools.length, 88);
+    assert.equal(tools.length, 89);
     assert.deepEqual(tools, golden, 'stdio tool surface drifted from the pre-refactor golden snapshot');
   });
 });
@@ -83,6 +83,13 @@ describe('PRE-1439 acceptance B — edge surface', () => {
     const srv = mockServer();
     const { names } = registerTools(srv, { tools: buildAllTools(), exclude: EDGE_EXCLUDE });
     assert.ok(!names.includes('analyze_beats'), 'analyze_beats must not be exposed on the edge surface');
+  });
+
+  it('lottie_to_scene is edge-excluded — stdio-only for v1, hostile-input bound incomplete (ANI-199)', async () => {
+    assert.ok(EDGE_EXCLUDE.includes('lottie_to_scene'), 'lottie_to_scene must be in EDGE_EXCLUDE');
+    const srv = mockServer();
+    const { names } = registerTools(srv, { tools: buildAllTools(), exclude: EDGE_EXCLUDE });
+    assert.ok(!names.includes('lottie_to_scene'), 'lottie_to_scene must not be exposed on the edge surface');
   });
 
   it('strips edgeStripParams() from exposed tool schemas', async () => {
@@ -147,7 +154,7 @@ describe('PRE-1439 acceptance C — handler map covers the universe, no drift', 
     const handlerNames = Object.keys(HANDLERS).sort();
     const groupNames = Object.keys(TOOL_GROUPS).sort();
     assert.deepEqual(handlerNames, groupNames);
-    assert.equal(handlerNames.length, 88);
+    assert.equal(handlerNames.length, 89);
   });
 
   it('every handler is a function', () => {
@@ -165,8 +172,8 @@ describe('PRE-1439 acceptance C — handler map covers the universe, no drift', 
 
   it('throws when the advertised tools array is missing a manifest tool (fail-closed)', () => {
     const srv = mockServer();
-    const short = buildAllTools().filter(t => t.name !== 'search_primitives'); // 87, not 88
-    assert.equal(short.length, 87);
+    const short = buildAllTools().filter(t => t.name !== 'search_primitives'); // 88, not 89
+    assert.equal(short.length, 88);
     assert.throws(
       () => registerTools(srv, { tools: short, exclude: [], stripParams: false }),
       /search_primitives is in the manifest but missing from the advertised tools/,

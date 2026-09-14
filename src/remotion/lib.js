@@ -6,6 +6,34 @@
  */
 
 /**
+ * The v3 `semantic.components[].type` enum `validateScene` enforces. Exported
+ * so importers that build v3 scenes (e.g. `mcp/lib/lottie/to-scene.js`,
+ * `mcp/lib/figma/frame-to-scene.js`) can read the real, enforced enum instead
+ * of hand-typing a copy that silently drifts from what `validateScene` (below)
+ * actually accepts (ANI-199 P1).
+ */
+export const VALID_SEMANTIC_COMPONENT_TYPES = ['input_field', 'prompt_card', 'dropdown_menu', 'result_stack', 'upload_zone', 'chip_row', 'icon_label_row', 'stacked_cards'];
+
+/** The v3 `semantic.components[].role` enum. */
+export const VALID_SEMANTIC_COMPONENT_ROLES = ['hero', 'supporting', 'background', 'wildcard'];
+
+/** The `layer.product_role` enum (distinct from the component role above). */
+export const VALID_LAYER_PRODUCT_ROLES = ['hero', 'supporting', 'functional', 'decorative'];
+
+/** The accepted `scene.duration_s` range, enforced by `validateScene` below
+ *  and readable by importers that construct a scene's `duration_s` so they
+ *  can reject an out-of-range value up front instead of producing output
+ *  `validateScene` will only reject later. */
+export const SCENE_DURATION_S_BOUNDS = Object.freeze({ min: 0.5, max: 30 });
+
+// These enums are part of the validator's enforced contract — freeze them so
+// an importer can't `push`/`splice`/reorder a shared array and silently
+// change what `validateScene` accepts at runtime (ANI-199 P3).
+Object.freeze(VALID_SEMANTIC_COMPONENT_TYPES);
+Object.freeze(VALID_SEMANTIC_COMPONENT_ROLES);
+Object.freeze(VALID_LAYER_PRODUCT_ROLES);
+
+/**
  * Get default transition duration for a type (in ms).
  */
 export function getDefaultTransitionDuration(type) {
@@ -279,8 +307,9 @@ export function validateScene(scene) {
 
   // duration_s
   if (scene.duration_s != null) {
-    if (typeof scene.duration_s !== 'number' || scene.duration_s < 0.5 || scene.duration_s > 30) {
-      errors.push(`duration_s must be between 0.5 and 30 (got ${scene.duration_s})`);
+    const { min, max } = SCENE_DURATION_S_BOUNDS;
+    if (typeof scene.duration_s !== 'number' || scene.duration_s < min || scene.duration_s > max) {
+      errors.push(`duration_s must be between ${min} and ${max} (got ${scene.duration_s})`);
     }
   }
 
@@ -407,7 +436,7 @@ export function validateScene(scene) {
 
         // Product annotations (optional)
         if (layer.product_role != null) {
-          const validLayerRoles = ['hero', 'supporting', 'functional', 'decorative'];
+          const validLayerRoles = VALID_LAYER_PRODUCT_ROLES;
           if (!validLayerRoles.includes(layer.product_role)) {
             errors.push(`layer "${layer.id || '?'}".product_role "${layer.product_role}" is not valid (must be one of: ${validLayerRoles.join(', ')})`);
           }
@@ -489,8 +518,8 @@ export function validateScene(scene) {
     }
 
     // Components
-    const validComponentTypes = ['input_field', 'prompt_card', 'dropdown_menu', 'result_stack', 'upload_zone', 'chip_row', 'icon_label_row', 'stacked_cards'];
-    const validRoles = ['hero', 'supporting', 'background', 'wildcard'];
+    const validComponentTypes = VALID_SEMANTIC_COMPONENT_TYPES;
+    const validRoles = VALID_SEMANTIC_COMPONENT_ROLES;
     const componentIds = new Set();
 
     if (sem.components && Array.isArray(sem.components)) {

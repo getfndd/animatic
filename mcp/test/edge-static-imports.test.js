@@ -28,9 +28,17 @@ const NODE_ONLY = [
   resolve(MCP_DIR, 'lib/hero-frame-capture.js'), // node:fs/os/dns + DNS mutation at load, Remotion/Chromium
 ];
 
-// Line-anchored so JSDoc (` * import …`) and dynamic `import(` never match; the
-// non-quote span lets a multi-line `import {\n a,\n} from './x.js'` match.
-const STATIC_IMPORT = /^[ \t]*(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]/gm;
+// A static import or re-export of a relative module. Line-anchored so JSDoc
+// (` * import …`) and `// import …` never match; `\b` keeps `importantPath = …`
+// out; `\s*` plus optional block comments admit `import'./x.js'`,
+// `import/* c */'./x.js'` and `export{}from'./x.js'`; the non-quote span admits a
+// multi-line `import {\n a,\n} from './x.js'`. A dynamic `import('./x.js')` fails
+// because `(` is neither a quote nor followed by `from`. Known gap: a quote
+// character inside the specifier list (e.g. a comment containing an apostrophe)
+// ends the span early. The corpus below pins every form this claims to handle.
+const STATIC_IMPORT = /^[ \t]*(?:import|export)\b\s*(?:\/\*[\s\S]*?\*\/\s*)*(?:[^'";]*?\bfrom\s*)?['"](\.{1,2}\/[^'"]+)['"]/gm;
+
+const specsIn = (src) => [...src.matchAll(STATIC_IMPORT)].map(m => m[1]);
 
 function resolveSpec(fromFile, spec) {
   const base = resolve(dirname(fromFile), spec);
@@ -48,9 +56,9 @@ function walk(entry) {
   const queue = [entry];
   while (queue.length) {
     const file = queue.shift();
-    for (const m of readFileSync(file, 'utf8').matchAll(STATIC_IMPORT)) {
-      const target = resolveSpec(file, m[1]);
-      if (!target) { unresolved.push(`${relative(REPO_ROOT, file)} -> ${m[1]}`); continue; }
+    for (const spec of specsIn(readFileSync(file, 'utf8'))) {
+      const target = resolveSpec(file, spec);
+      if (!target) { unresolved.push(`${relative(REPO_ROOT, file)} -> ${spec}`); continue; }
       if (visited.has(target)) continue;
       visited.add(target);
       parent.set(target, file);
@@ -65,6 +73,37 @@ function chain(parent, file) {
   while (parent.has(path[0])) path.unshift(parent.get(path[0]));
   return path.map(p => relative(REPO_ROOT, p)).join(' -> ');
 }
+
+describe('static import detection — construction corpus', () => {
+  const MATCHES = [
+    ["import { a } from './a.js';", './a.js'],
+    ["import {\n  a,\n  b,\n} from '../b.js';", '../b.js'],
+    ['import x, * as y from "./dq.js";', './dq.js'],
+    ["export { c } from './c.js';", './c.js'],
+    ["export * from './d.js';", './d.js'],
+    ["import './side-effect.js';", './side-effect.js'],
+    ["  import z from './indented.js';", './indented.js'],
+    ["import'./no-space.js';", './no-space.js'],
+    ["import/* note */'./comment.js';", './comment.js'],
+    ["export{}from'./tight.js';", './tight.js'],
+    ["import {a}from'./tight-import.js';", './tight-import.js'],
+  ];
+  const NON_MATCHES = [
+    "const m = await import('./dynamic.js');",
+    " * import { a } from './jsdoc.js'",
+    "// import { a } from './line-comment.js'",
+    "export const from = './not-an-import.js';",
+    "importantPath = './not-an-import.js';",
+    "import { a } from 'bare-package';",
+  ];
+
+  for (const [src, spec] of MATCHES) {
+    it(`matches ${JSON.stringify(src)}`, () => assert.deepEqual(specsIn(src), [spec]));
+  }
+  for (const src of NON_MATCHES) {
+    it(`ignores ${JSON.stringify(src)}`, () => assert.deepEqual(specsIn(src), []));
+  }
+});
 
 describe('edge bundle — static import graph from tools-registry.js', () => {
   const { visited, parent, unresolved } = walk(ENTRY);

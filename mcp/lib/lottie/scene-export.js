@@ -36,7 +36,18 @@ const CAPTURE_FPS = 60;
  *  makes compilation, not the export, the cost. */
 const FPS_BOUNDS = Object.freeze({ min: 1, max: 240 });
 
-/** Bundling Remotion dominates opening a session; one still renders much faster. */
+/** The camera tracks buildCameraLottie reads. */
+const EXPORTED_CAMERA_TRACKS = ['scale', 'translateX', 'translateY'];
+
+/**
+ * How long the tool call waits for each render step. Bundling Remotion dominates
+ * opening a session; one still renders much faster.
+ *
+ * These bound the CALL, not the browser. openHeroCaptureSession exposes no way to
+ * cancel a render or force a browser to exit, so a render that hangs keeps running
+ * after its timeout, and a close() that hangs can leave Chromium alive. A timed-out
+ * close is reported in `report.render_warnings` rather than hidden.
+ */
 export const DEFAULT_TIMEOUTS = Object.freeze({ openMs: 120_000, captureMs: 60_000, closeMs: 15_000 });
 
 /** Largest base64 poster embedded in the response: 8 MiB, about 6 MiB of PNG. A 1080p
@@ -93,6 +104,26 @@ function assertExportable({ scene, at, name }) {
 }
 
 /**
+ * Refuse a compiled camera track the Lottie can't faithfully carry (review round 2,
+ * P2). The compiler does arithmetic on camera inputs it doesn't validate (a string
+ * `intensity` compiles to NaN), and JSON would serialise NaN as null inside a
+ * "successful" Lottie. This checks the compiler's OUTPUT, the thing the export
+ * consumes, instead of re-modelling the compiler's input rules here.
+ */
+function assertFiniteCameraTrack(cameraTrack) {
+  for (const prop of EXPORTED_CAMERA_TRACKS) {
+    const track = cameraTrack?.[prop];
+    if (track === undefined) continue;
+    if (!Array.isArray(track)) throw new Error(`compiled camera track "${prop}" is not a keyframe array.`);
+    for (const kf of track) {
+      if (!Number.isFinite(kf?.frame) || !Number.isFinite(kf?.value)) {
+        throw new Error(`compiled camera track "${prop}" has a non-finite keyframe (frame ${show(kf?.frame)}, value ${show(kf?.value)}); check the scene's camera inputs.`);
+      }
+    }
+  }
+}
+
+/**
  * Export a scene as `{ lottie, report }`. Throws on any failure.
  *
  * @param {{ scene: object, at?: number, name?: string }} args
@@ -120,7 +151,8 @@ export async function exportSceneToLottie(args = {}, deps = {}) {
   const fps = timeline?.fps || scene.fps || 60;
   const durationFrames = timeline?.duration_frames || timeline?.durationFrames || Math.round((scene.duration_s || 3) * fps);
   const cameraTrack = cameraTrackFromTimeline(timeline);
-  // Computed before rendering so an unusable camera track fails without a render.
+  // Both checks run before rendering, so an unusable camera track fails without a render.
+  assertFiniteCameraTrack(cameraTrack);
   const overscan = posterOverscan({ cameraTrack, width: EXPORT_WIDTH, height: EXPORT_HEIGHT });
 
   // The poster is compiled a second time at the capture rate. The Scene composition
@@ -139,7 +171,8 @@ export async function exportSceneToLottie(args = {}, deps = {}) {
   try {
     session = await withTimeout(opening, timeouts.openMs, 'opening the render session');
   } catch (err) {
-    // A session that finishes opening after we gave up still owns a browser and a temp dir.
+    // A session that finishes opening after we gave up still owns a browser and a temp
+    // dir, so close it whenever it arrives. Best effort: see DEFAULT_TIMEOUTS.
     opening.then(s => s?.close?.()).catch(() => {});
     throw err;
   }
@@ -157,7 +190,7 @@ export async function exportSceneToLottie(args = {}, deps = {}) {
     );
   } finally {
     await withTimeout(Promise.resolve().then(() => session.close()), timeouts.closeMs, 'closing the render session')
-      .catch(err => { renderWarnings.push(err.message); });
+      .catch(err => { renderWarnings.push(`${err.message}; the browser may still be running`); });
   }
   if (!shot || shot.error || !shot.data) {
     throw new Error(`poster capture failed: ${shot?.error || 'no frame returned'}`);

@@ -405,3 +405,46 @@ describe('handleSceneToLottie — input validation happens before any render', (
     await rejects({ scene: pushIn({ fps: 0 }) }, /fps must be between/);
   });
 });
+
+describe('review round 2 — compiled-output check, cleanup limits, production wiring', () => {
+  it('a camera input the compiler turns into NaN is refused before any render', async () => {
+    const { openSession, calls } = fakeSession();
+    const res = await sceneToLottieResult(
+      { scene: pushIn({ motion: { camera: { move: 'push_in', intensity: 'bad' } } }) },
+      { catalogs: CATALOGS, openSession },
+    );
+    assert.ok(res.isError, `expected isError, got: ${res.content[0].text.slice(0, 200)}`);
+    assert.match(res.content[0].text, /non-finite keyframe/);
+    assert.equal(calls.opened, 0, 'refused before opening a render session');
+  });
+
+  it('a close that hangs still returns the Lottie, with a visible warning that the browser may still be running', async () => {
+    let closed = false;
+    const openSession = async () => ({
+      capture: async () => FRAME,
+      close: async () => { await tick(300); closed = true; },
+    });
+    const { lottie, report } = await exportSceneToLottie(
+      { scene: pushIn() },
+      { catalogs: CATALOGS, openSession, timeouts: { closeMs: 20 } },
+    );
+    assert.equal(lottie.assets[0].p, 'data:image/png;base64,AAAA');
+    assert.equal(closed, false, 'returned before the hung close finished');
+    assert.match(report.render_warnings?.[0] ?? '', /closing the render session timed out after 20ms; the browser may still be running/);
+  });
+
+  it('the production handler supplies catalogs, compiles, and resolves the lazily imported capture module', async () => {
+    const prev = process.env.ANIMATIC_SKIP_REMOTION_RENDER;
+    process.env.ANIMATIC_SKIP_REMOTION_RENDER = '1';
+    try {
+      const res = await handleSceneToLottie({ scene: pushIn() });
+      assert.ok(res.isError);
+      // Reachable only after the real handler passed catalogs, compiled, and resolved
+      // import('../hero-frame-capture.js'), whose session reports rendering as skipped.
+      assert.match(res.content[0].text, /render toolchain unavailable; cannot capture the poster image/);
+    } finally {
+      if (prev === undefined) delete process.env.ANIMATIC_SKIP_REMOTION_RENDER;
+      else process.env.ANIMATIC_SKIP_REMOTION_RENDER = prev;
+    }
+  });
+});

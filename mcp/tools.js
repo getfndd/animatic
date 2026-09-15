@@ -283,16 +283,18 @@ export function buildTools({
     {
       name: 'scene_to_lottie',
       description:
-        'Export an Animatic v3 scene as a lightweight Lottie animation (ANI-200). v0 captures one still poster of the scene (camera neutralised) and animates it with the scene\'s CAMERA track only — push-in/pull-out → scale, pan/drift → position (cubic-bezier easings → Lottie tangents). Internal per-layer motion is baked into the poster, not re-animated (vector/per-layer fidelity is out of scope for v0). Reactive compound scenes degrade to a poster-only fallback. Needs the local Remotion/Chromium toolchain to capture the poster (LOCAL only). Returns { lottie, report } — `lottie` is a self-contained animation with an embedded poster image; `report` states the camera mode and dimensions.',
+        'Export an Animatic v3 scene as a lightweight Lottie animation (ANI-200). v0 captures one still poster of the scene (camera neutralised) and animates it with the scene\'s CAMERA track only — push-in/pull-out → scale, pan/drift → position (cubic-bezier easings → Lottie tangents). Internal per-layer motion is baked into the poster, not re-animated (vector/per-layer fidelity is out of scope for v0). Reactive compound scenes degrade to a poster-only fallback. The poster is enlarged just enough that camera moves never reveal the canvas edge (report.overscan). Needs the local Remotion/Chromium toolchain to capture the poster (LOCAL only). Returns { lottie, report } — `lottie` is a self-contained animation with an embedded poster image; `report` states the camera mode, dimensions, overscan, and any validateScene warnings.',
       inputSchema: {
         type: 'object',
         properties: {
           scene: {
             type: 'object',
-            description: 'An Animatic v3 scene object (with layers + optional motion/semantic/camera). Required.',
+            description: 'An Animatic v3 scene object with layers and/or semantic components (+ optional motion/camera). Required.',
           },
           at: {
             type: 'number',
+            minimum: 0,
+            maximum: 1,
             description: 'Normalised time (0–1) at which to capture the poster — pick a frame where entrances have settled. Default 0.6.',
           },
           name: {

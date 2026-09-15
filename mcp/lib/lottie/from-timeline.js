@@ -84,6 +84,74 @@ function positionProp(tx, ty, cx, cy) {
   return { a: 1, k };
 }
 
+/** Range one axis of a Lottie property reaches as Lottie plays it. Each segment is
+ *  a cubic bezier in progress space whose y-controls are the source keyframe's
+ *  out/in tangents, and a bezier never leaves the convex hull of its control
+ *  points, so segment a→b stays within a + [min(0,oy,iy), max(1,oy,iy)]·(b−a).
+ *  That bounds easing overshoot, not just the keyframe values. */
+function axisRange(prop, axis) {
+  if (!prop.a) return [prop.k[axis], prop.k[axis]];
+  let lo = Infinity, hi = -Infinity;
+  prop.k.forEach((kf, j) => {
+    const b = kf.s[axis];
+    lo = Math.min(lo, b); hi = Math.max(hi, b);
+    if (j === 0) return;
+    const prev = prop.k[j - 1];
+    const a = prev.s[axis];
+    for (const y of [prev.o?.y?.[0] ?? 0, prev.i?.y?.[0] ?? 1]) {
+      lo = Math.min(lo, a + y * (b - a)); hi = Math.max(hi, a + y * (b - a));
+    }
+  });
+  return [lo, hi];
+}
+
+/**
+ * How much to enlarge the poster so the camera move never uncovers the
+ * transparent canvas (ANI-200 review P2). The poster is comp-sized, so any
+ * pan/drift, or a scale below 100%, would expose a strip at the edge. Lottie
+ * scales about the anchor (the poster centre), so the poster covers the comp iff
+ * k·s·pw/2 ≥ w/2 + |x| on each axis, with s the camera scale and x the offset
+ * from centre. Taking the smallest reachable scale and the largest reachable
+ * offset is conservative; 1 means no overscan. The cost is framing: a pan crops
+ * into the poster instead of revealing content beyond it, which a single still
+ * does not have.
+ */
+function coverFactor(scaleProp, posProp, w, h, pw, ph) {
+  const minS = Math.min(axisRange(scaleProp, 0)[0], axisRange(scaleProp, 1)[0]) / 100;
+  if (!(minS > 0)) throw new Error(`camera scale must stay above 0 (reaches ${minS})`);
+  const [xLo, xHi] = axisRange(posProp, 0);
+  const [yLo, yHi] = axisRange(posProp, 1);
+  const dx = Math.max(Math.abs(xLo - w / 2), Math.abs(xHi - w / 2));
+  const dy = Math.max(Math.abs(yLo - h / 2), Math.abs(yHi - h / 2));
+  return Math.max(1, (w / 2 + dx) / (minS * pw / 2), (h / 2 + dy) / (minS * ph / 2));
+}
+
+function scaleBy(prop, f) {
+  if (f === 1) return prop;
+  if (!prop.a) return { a: 0, k: prop.k.map(v => v * f) };
+  return { a: 1, k: prop.k.map(kf => ({ ...kf, s: kf.s.map(v => v * f) })) };
+}
+
+/** Camera track → the poster layer's Lottie scale + position, overscanned to cover. */
+function cameraProps(cameraTrack, w, h, pw, ph) {
+  const cam = cameraTrack || {};
+  const scaleProp = scalarProp(cam.scale, v => [v * 100, v * 100], [100, 100]);
+  const posProp = positionProp(cam.translateX, cam.translateY, w / 2, h / 2);
+  const overscan = coverFactor(scaleProp, posProp, w, h, pw, ph);
+  return { scaleProp: scaleBy(scaleProp, overscan), posProp, overscan };
+}
+
+/**
+ * The factor buildCameraLottie enlarges the poster by (1 = none), for reporting.
+ * @param {object} p
+ * @param {object|null} p.cameraTrack
+ * @param {number} p.width @param {number} p.height - Lottie comp size.
+ * @param {number} [p.posterWidth] @param {number} [p.posterHeight] - default to the comp size.
+ */
+export function posterOverscan({ cameraTrack, width, height, posterWidth, posterHeight }) {
+  return cameraProps(cameraTrack, width, height, posterWidth || width, posterHeight || height).overscan;
+}
+
 /**
  * Pull the camera track out of a compiled timeline, or null when there's none
  * to export. A reactive descriptor (compound scene, no `tracks`) → null, which
@@ -133,8 +201,8 @@ export function buildCameraLottie({ cameraTrack, poster, width, height, fps, dur
   const pw = poster?.width || w;
   const ph = poster?.height || h;
 
-  const scaleProp = scalarProp(cam.scale, v => [v * 100, v * 100], [100, 100]);
-  const posProp = positionProp(cam.translateX, cam.translateY, w / 2, h / 2);
+  // Overscanned so the camera move never uncovers the canvas (see coverFactor).
+  const { scaleProp, posProp } = cameraProps(cam, w, h, pw, ph);
   // Animatic's compiled camera never rotates; keep rotation static for v0.
 
   return {

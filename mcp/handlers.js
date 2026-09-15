@@ -62,6 +62,7 @@ import { annotateScenes, auditAnnotationQuality } from './lib/scene-annotations.
 import { fetchNode as fetchFigmaNode, fetchFileTree, fetchComments, fetchImageFills, downloadBinary, sniffImage } from './lib/figma/client.js';
 import { frameToScene, collectImageFills } from './lib/figma/frame-to-scene.js';
 import { lottieToScene } from './lib/lottie/to-scene.js';
+import { sceneToLottieResult } from './lib/lottie/scene-export.js';
 import { recordRenderFeedback, recalibrateScoringWeights } from './lib/feedback.js';
 import { track } from './lib/telemetry.js';
 import { buildStoryboardExportPayload, renderStoryboardPanels } from './lib/figma/storyboard-export.js';
@@ -1182,6 +1183,13 @@ export async function handleLottieToScene(args) {
       isError: true,
     };
   }
+}
+
+export async function handleSceneToLottie(args) {
+  // Orchestration lives in lib/lottie/scene-export.js so the Node-only capture module
+  // stays behind a dynamic import (edge safety) and the real path is testable with an
+  // injected capture session (ANI-200 review).
+  return sceneToLottieResult(args, { catalogs: { recipes: recipesCatalog, primitives: primitivesCatalog } });
 }
 
 /**
